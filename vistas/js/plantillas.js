@@ -68,7 +68,7 @@
     if (!config || !value) return null;
     if (config[value]) return value;
     const match = Object.keys(config).find(
-      (key) => key.toLowerCase() === String(value).toLowerCase()
+      (key) => key.toLowerCase() === String(value).toLowerCase(),
     );
     return match || null;
   };
@@ -102,7 +102,7 @@
 
   const obtenerEmpresaIdDesdeSelector = () => {
     const parentSelector = window.parent?.document?.querySelector(
-      ".company-selector select"
+      ".company-selector select",
     );
     const localSelector = document.querySelector(".company-selector select");
     const selector = parentSelector || localSelector;
@@ -133,9 +133,7 @@
   };
 
   const obtenerEmpresaIdApi = () =>
-    state.empresaId ||
-    resolverEmpresaIdContexto(state.capitulo) ||
-    "EMPRESA01";
+    state.empresaId || resolverEmpresaIdContexto(state.capitulo) || "EMPRESA01";
 
   const agregarEmpresaIdQuery = (url) => {
     const empresaId = obtenerEmpresaIdApi();
@@ -173,7 +171,7 @@
       const desiredKey = normalizeOperationMatch(moduloPreferido);
       const options = Array.from(dom.moduloSelect.options || []);
       const match = options.find(
-        (opt) => normalizeOperationMatch(opt?.value || "") === desiredKey
+        (opt) => normalizeOperationMatch(opt?.value || "") === desiredKey,
       );
       dom.moduloSelect.value = match ? match.value : moduloPreferido;
       state.modulo = dom.moduloSelect.value;
@@ -195,7 +193,8 @@
     }
 
     if (urlCtx.empresa) {
-      state.empresaId = resolverEmpresaConfigKey(urlCtx.empresa) || urlCtx.empresa;
+      state.empresaId =
+        resolverEmpresaConfigKey(urlCtx.empresa) || urlCtx.empresa;
     }
 
     updateHeaderLabels();
@@ -219,11 +218,11 @@
 
       document.documentElement.style.setProperty(
         "--plantillas-context-offset",
-        `${contextOffset}px`
+        `${contextOffset}px`,
       );
       document.documentElement.style.setProperty(
         "--plantillas-actions-offset",
-        `${actionsOffset}px`
+        `${actionsOffset}px`,
       );
     } catch (error) {
       console.warn("No fue posible calcular offsets sticky", error);
@@ -259,7 +258,9 @@
     // Buttons
     dom.btnCargar = document.getElementById("btnCargar");
     dom.btnGuardar = document.getElementById("btnGuardar");
-    dom.btnHistorialVersiones = document.getElementById("btnHistorialVersiones");
+    dom.btnHistorialVersiones = document.getElementById(
+      "btnHistorialVersiones",
+    );
     dom.btnAgregar = document.getElementById("btnAgregar");
     dom.btnCopiar = document.getElementById("btnCopiar");
     dom.btnExpandir = document.getElementById("btnExpandir");
@@ -309,7 +310,7 @@
     dom.operationEditorPanel = document.getElementById("operationEditorPanel");
     dom.operationEditorTitle = document.getElementById("operationEditorTitle");
     dom.operationEditorSubtitle = document.getElementById(
-      "operationEditorSubtitle"
+      "operationEditorSubtitle",
     );
     dom.editorTabDatos = document.getElementById("editorTabDatos");
     dom.editorTabFormula = document.getElementById("editorTabFormula");
@@ -338,7 +339,10 @@
     // Buttons
     dom.btnCargar.addEventListener("click", loadLayout);
     dom.btnGuardar.addEventListener("click", saveLayout);
-    dom.btnHistorialVersiones?.addEventListener("click", openVersionHistoryModal);
+    dom.btnHistorialVersiones?.addEventListener(
+      "click",
+      openVersionHistoryModal,
+    );
     dom.btnAgregar.addEventListener("click", openAddModal);
     dom.btnCopiar.addEventListener("click", openCopyModal);
     dom.btnExpandir?.addEventListener("click", expandAll);
@@ -346,14 +350,19 @@
     dom.btnPreview?.addEventListener("click", showPreview);
     dom.btnPrintPreview?.addEventListener("click", () => window.print());
     dom.btnRefreshOrder?.addEventListener("click", updateLayoutOrderPanel);
-    
+
     // Importación/Exportación masiva
-    const btnDescargarPlantilla = document.getElementById("btnDescargarPlantilla");
+    const btnDescargarPlantilla = document.getElementById(
+      "btnDescargarPlantilla",
+    );
     const btnImportarExcel = document.getElementById("btnImportarExcel");
     const fileImportInput = document.getElementById("fileImportInput");
-    
+
     if (btnDescargarPlantilla) {
-      btnDescargarPlantilla.addEventListener("click", descargarPlantillaImportacion);
+      btnDescargarPlantilla.addEventListener(
+        "click",
+        descargarPlantillaImportacion,
+      );
     }
     if (btnImportarExcel && fileImportInput) {
       btnImportarExcel.addEventListener("click", () => fileImportInput.click());
@@ -362,7 +371,7 @@
 
     // Search
     dom.searchInput?.addEventListener("input", handleSearch);
-    
+
     // Quick filters
     document.querySelectorAll('input[name="quickFilter"]').forEach((radio) => {
       radio.addEventListener("change", () => {
@@ -424,14 +433,12 @@
       const btn = event.target?.closest?.("button");
       if (!btn) return;
       const container = btn.closest(
-        ".operation-card, .operation-row, .inline-operation-row, .list-item.item-operation"
+        ".operation-card, .operation-row, .inline-operation-row, .list-item.item-operation",
       );
       if (!container) return;
       if (!btn.querySelector(".bi-pencil")) return;
       const opId =
-        container.dataset.operationId ||
-        container.dataset.operationLabel ||
-        "";
+        container.dataset.operationId || container.dataset.operationLabel || "";
       if (!opId) return;
       const last = state.lastEditInvocation || 0;
       setTimeout(() => {
@@ -459,30 +466,34 @@
     const empresaId = asegurarEmpresaIdContexto(capituloActual, true);
 
     if (!empresaId) {
-      console.warn(`[Plantillas] No se encontró empresaId para el capítulo: ${capituloActual}`);
+      console.warn(
+        `[Plantillas] No se encontró empresaId para el capítulo: ${capituloActual}`,
+      );
       return;
     }
 
-    console.log(`[Plantillas] Filtrando módulos para empresa: ${empresaId}, capítulo: ${capituloActual}`);
+    console.log(
+      `[Plantillas] Filtrando módulos para empresa: ${empresaId}, capítulo: ${capituloActual}`,
+    );
 
     // Mapeo de valores de opción a IDs de módulo (normalizados)
     const moduloMapping = {
-      'RESUMEN': 'resumen',
-      'SUMMARY': 'resumen',
-      'Finanzas': 'finanzas',
-      'Gastos Generales': 'gastosgenerales',
-      'Nomina': 'nomina',
-      'Nómina': 'nomina',
-      'Membresía': 'membresia',
-      'Serv Membresía': 'serv-membresia',
-      'RH': 'rh',
-      'Eventos': 'eventos',
-      'Comités': 'comites',
-      'Comunicación': 'comunicacion',
-      'Dirección': 'direccion',
-      'Gtos Corporativos': 'gtos-corporativos',
-      'T&IC': 'tic',
-      'VPE': 'vpe'
+      RESUMEN: "resumen",
+      SUMMARY: "resumen",
+      Finanzas: "finanzas",
+      "Gastos Generales": "gastosgenerales",
+      Nomina: "nomina",
+      Nómina: "nomina",
+      Membresía: "membresia",
+      "Serv Membresía": "serv-membresia",
+      RH: "rh",
+      Eventos: "eventos",
+      Comités: "comites",
+      Comunicación: "comunicacion",
+      Dirección: "direccion",
+      "Gtos Corporativos": "gtos-corporativos",
+      "T&IC": "tic",
+      VPE: "vpe",
     };
 
     // Filtrar opciones del select
@@ -490,28 +501,31 @@
     const valorActual = dom.moduloSelect.value;
     let valorActualDisponible = false;
 
-    options.forEach(option => {
+    options.forEach((option) => {
       const valorOption = option.value;
       const moduloId = moduloMapping[valorOption];
 
       if (!moduloId) {
         // Si no está en el mapeo, dejar visible (ej: opciones especiales)
-        option.style.display = '';
+        option.style.display = "";
         option.disabled = false;
         return;
       }
 
       // Verificar si el módulo está disponible para esta empresa
-      const disponible = window.CapitulosModulos.moduloDisponible(empresaId, moduloId);
+      const disponible = window.CapitulosModulos.moduloDisponible(
+        empresaId,
+        moduloId,
+      );
 
       if (disponible) {
-        option.style.display = '';
+        option.style.display = "";
         option.disabled = false;
         if (valorOption === valorActual) {
           valorActualDisponible = true;
         }
       } else {
-        option.style.display = 'none';
+        option.style.display = "none";
         option.disabled = true;
       }
     });
@@ -519,9 +533,11 @@
     // Si el valor actualmente seleccionado no está disponible, seleccionar el primero disponible
     if (!valorActualDisponible && options.length > 0) {
       for (const option of options) {
-        if (!option.disabled && option.style.display !== 'none') {
+        if (!option.disabled && option.style.display !== "none") {
           dom.moduloSelect.value = option.value;
-          console.log(`[Plantillas] Módulo seleccionado cambiado a: ${option.value}`);
+          console.log(
+            `[Plantillas] Módulo seleccionado cambiado a: ${option.value}`,
+          );
           break;
         }
       }
@@ -579,7 +595,7 @@
         // Optimización: Solo verificar si cambió el capítulo o el usuario
         const tienePermiso = await verificarPermisoCapitulo(
           usuarioId,
-          capitulo
+          capitulo,
         );
         state.editMode = tienePermiso;
         state.esAdminGlobal = false;
@@ -587,7 +603,7 @@
           tienePermiso,
           tienePermiso
             ? `Editor de ${capitulo} - Edición activa`
-            : "Consulta - solicita permiso de edición en administración de usuarios"
+            : "Consulta - solicita permiso de edición en administración de usuarios",
         );
       } else {
         state.editMode = false;
@@ -626,7 +642,7 @@
       if (!response.ok) return false;
       const data = await response.json();
       const miPermiso = data.permisos?.find(
-        (p) => p.usuario_id === usuarioId && p.capitulo === capitulo
+        (p) => p.usuario_id === usuarioId && p.capitulo === capitulo,
       );
       const tiene = miPermiso ? miPermiso.puede_editar === 1 : false;
 
@@ -696,7 +712,7 @@
     try {
       const empresaId = obtenerEmpresaIdApi();
       const url = `${API_ROOT}/saldos/anios?empresaId=${encodeURIComponent(
-        empresaId
+        empresaId,
       )}`;
       const response = await fetch(url, { headers: getAuthHeaders() });
 
@@ -716,8 +732,8 @@
       const selectedYear = sortedYears.includes(preferredYear)
         ? preferredYear
         : sortedYears.includes(currentYear)
-        ? currentYear
-        : sortedYears[0] || null;
+          ? currentYear
+          : sortedYears[0] || null;
 
       dom.anioSelect.innerHTML = sortedYears.length
         ? sortedYears
@@ -725,7 +741,7 @@
               (y) =>
                 `<option value="${y}" ${
                   y === selectedYear ? "selected" : ""
-                }>${y}</option>`
+                }>${y}</option>`,
             )
             .join("")
         : '<option value="">Sin años disponibles</option>';
@@ -747,7 +763,7 @@
     // Try to get chapter from parent selector
     const selector = document.querySelector(".company-selector select");
     const parentSelector = window.parent?.document?.querySelector(
-      ".company-selector select"
+      ".company-selector select",
     );
     const activeSelector = parentSelector || selector;
 
@@ -768,7 +784,7 @@
       // Load chapters from API
       try {
         const url = agregarEmpresaIdQuery(
-          `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/capitulos`
+          `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/capitulos`,
         );
         const response = await fetch(url, { headers: getAuthHeaders() });
 
@@ -811,7 +827,7 @@
 
     try {
       const urlBase = agregarEmpresaIdQuery(
-        `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/${encodeURIComponent(state.capitulo)}`
+        `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/${encodeURIComponent(state.capitulo)}`,
       );
       // MODO MANUAL: necesitamos placeholders de secciones/subsecciones VACÍAS (layout_secciones)
       // para permitir crear/reordenar secciones antes de tener cuentas.
@@ -836,12 +852,19 @@
       state.layout = data.layout || {};
       // Si backend canoniza el capítulo (p.ej. quita tildes), sincronizar estado
       // para que guardados/versions usen siempre una sola clave.
-      if (state.layout && typeof state.layout.capitulo === "string" && state.layout.capitulo.trim()) {
+      if (
+        state.layout &&
+        typeof state.layout.capitulo === "string" &&
+        state.layout.capitulo.trim()
+      ) {
         state.capitulo = state.layout.capitulo.trim();
       }
 
       // Extraer cuentas desde el formato nuevo (layout.cuentas) o legacy (layout[modulo]).
-      if (Array.isArray(state.layout.cuentas) && state.layout.cuentas.length > 0) {
+      if (
+        Array.isArray(state.layout.cuentas) &&
+        state.layout.cuentas.length > 0
+      ) {
         state.cuentas = state.layout.cuentas;
       } else if (
         Array.isArray(state.layout[state.modulo]) &&
@@ -927,19 +950,34 @@
   }
 
   function extractCuentas(layout) {
-    console.log('[extractCuentas] Input layout:', layout);
-    console.log('[extractCuentas] layout.cuentas:', layout?.cuentas);
-    console.log('[extractCuentas] layout[modulo]:', layout?.[state.modulo], 'modulo=', state.modulo);
-    
+    console.log("[extractCuentas] Input layout:", layout);
+    console.log("[extractCuentas] layout.cuentas:", layout?.cuentas);
+    console.log(
+      "[extractCuentas] layout[modulo]:",
+      layout?.[state.modulo],
+      "modulo=",
+      state.modulo,
+    );
+
     if (Array.isArray(layout.cuentas)) {
-      console.log('[extractCuentas] Retornando layout.cuentas:', layout.cuentas.length, 'elementos');
+      console.log(
+        "[extractCuentas] Retornando layout.cuentas:",
+        layout.cuentas.length,
+        "elementos",
+      );
       return layout.cuentas;
     }
     if (Array.isArray(layout[state.modulo])) {
-      console.log('[extractCuentas] Retornando layout[modulo]:', layout[state.modulo].length, 'elementos');
+      console.log(
+        "[extractCuentas] Retornando layout[modulo]:",
+        layout[state.modulo].length,
+        "elementos",
+      );
       return layout[state.modulo];
     }
-    console.log('[extractCuentas] No se encontraron cuentas, retornando array vacío');
+    console.log(
+      "[extractCuentas] No se encontraron cuentas, retornando array vacío",
+    );
     return [];
   }
 
@@ -1143,14 +1181,13 @@
   ];
 
   const APARICION_TOOLTIP_MAP = new Map(
-    OP_APARICION_ITEMS.map((item) => [item.value, item.tooltip || ""])
+    OP_APARICION_ITEMS.map((item) => [item.value, item.tooltip || ""]),
   );
 
   const normalizeAparicionValue = (value) =>
     (value || "").toString().trim().toLowerCase();
 
-  const getAparicionTooltip = (value) =>
-    APARICION_TOOLTIP_MAP.get(value) || "";
+  const getAparicionTooltip = (value) => APARICION_TOOLTIP_MAP.get(value) || "";
 
   const resolveOperationAparicionType = (op) => {
     if (!op) return "libre";
@@ -1164,8 +1201,7 @@
   const buildAparicionOptions = (selected = "") => {
     const selectedNorm = normalizeAparicionValue(selected);
     return OP_APARICION_ITEMS.map((item) => {
-      const isSelected =
-        normalizeAparicionValue(item.value) === selectedNorm;
+      const isSelected = normalizeAparicionValue(item.value) === selectedNorm;
       return `<option value="${escapeAttr(item.value)}"${
         isSelected ? " selected" : ""
       }>${escapeHtml(item.label)}</option>`;
@@ -1193,16 +1229,17 @@
     const onChange = () => applyAparicionTooltip(select, helpEl);
     select.addEventListener("change", onChange);
     applyAparicionTooltip(select, helpEl);
-    
+
     // Inicializar selector de estilo visual
-    const estiloSelect = container.querySelector('#editOperacionEstilo');
+    const estiloSelect = container.querySelector("#editOperacionEstilo");
     if (estiloSelect) {
-      const preview = container.querySelector('#estiloPreview > div');
-      estiloSelect.addEventListener('change', () => {
+      const preview = container.querySelector("#estiloPreview > div");
+      estiloSelect.addEventListener("change", () => {
         const selectedOption = estiloSelect.options[estiloSelect.selectedIndex];
-        const className = selectedOption?.dataset?.class || 'sum-row fw-semibold';
+        const className =
+          selectedOption?.dataset?.class || "sum-row fw-semibold";
         if (preview) {
-          preview.className = 'text-center ' + className;
+          preview.className = "text-center " + className;
         }
       });
     }
@@ -1233,15 +1270,11 @@
       backdrop.addEventListener("click", () => closeOffcanvasFallback(panel));
       document.body.appendChild(backdrop);
     }
-    panel
-      .querySelectorAll('[data-bs-dismiss="offcanvas"]')
-      .forEach((btn) => {
-        btn.addEventListener(
-          "click",
-          () => closeOffcanvasFallback(panel),
-          { once: true }
-        );
+    panel.querySelectorAll('[data-bs-dismiss="offcanvas"]').forEach((btn) => {
+      btn.addEventListener("click", () => closeOffcanvasFallback(panel), {
+        once: true,
       });
+    });
     return true;
   };
 
@@ -1249,7 +1282,7 @@
     if (!dom.modalEditar || !dom.formEditar) {
       if (error) {
         alert(
-          `No se pudo abrir el editor.\nError: ${error.message || error}\nOperacion: ${operationId}`
+          `No se pudo abrir el editor.\nError: ${error.message || error}\nOperacion: ${operationId}`,
         );
       }
       return false;
@@ -1269,10 +1302,10 @@
         <div class="col-md-6">
           <label class="form-label small text-muted"${tooltipAttr}>${row.label}</label>
           <input type="text" class="form-control" id="${rowLabelInputId(
-            row.field
+            row.field,
           )}" value="${escapeHtml(op?.[row.field] || "")}" placeholder="${
-        row.placeholder
-      }"${tooltipAttr} />
+            row.placeholder
+          }"${tooltipAttr} />
         </div>
       `;
     }).join("");
@@ -1287,7 +1320,7 @@
       <div class="mb-3">
         <label class="form-label">Etiqueta de la Operación</label>
         <input type="text" class="form-control" id="editClaseOp" value="${escapeHtml(
-          opLabelInput
+          opLabelInput,
         )}" />
       </div>
 
@@ -1295,14 +1328,12 @@
         <label class="form-label d-flex align-items-center gap-2">
           Tipo de fila
           <i class="bi bi-info-circle text-muted" data-aparicion-help="true" title="${escapeAttr(
-            tipoTooltip
+            tipoTooltip,
           )}"></i>
         </label>
         <select class="form-select" id="editOperacionTipo" data-aparicion-select="true" data-initial-tipo="${escapeAttr(
-          tipoSeleccionado
-        )}" title="${escapeAttr(
-          tipoTooltip
-        )}">
+          tipoSeleccionado,
+        )}" title="${escapeAttr(tipoTooltip)}">
           ${tipoOptions}
         </select>
         <div class="form-text">
@@ -1357,7 +1388,6 @@
   const rowLabelAddCheckId = (field) =>
     `addRowCheck_${field.replace(/[^a-z0-9]/gi, "_")}`;
 
-
   function normalizeOperationId(value) {
     return (value || "")
       .toString()
@@ -1408,10 +1438,10 @@
     const target = normalizeOperationMatch(value);
     return (
       state.operaciones.find(
-        (op) => normalizeOperationMatch(getOperationId(op)) === target
+        (op) => normalizeOperationMatch(getOperationId(op)) === target,
       ) ||
       state.operaciones.find(
-        (op) => normalizeOperationMatch(getOperationLabel(op)) === target
+        (op) => normalizeOperationMatch(getOperationLabel(op)) === target,
       )
     );
   }
@@ -1421,8 +1451,10 @@
     const target = normalizeOperationMatch(value);
     if (!target) return null;
     return (
-      state.operaciones || []
-    ).find((op) => normalizeOperationMatch(getOperationId(op)) === target) || null;
+      (state.operaciones || []).find(
+        (op) => normalizeOperationMatch(getOperationId(op)) === target,
+      ) || null
+    );
   }
 
   function findOperationsByRowLabel(label, preferredField = "") {
@@ -1440,7 +1472,7 @@
 
     for (const field of fields) {
       const operations = (state.operaciones || []).filter(
-        (op) => normalizeOperationMatch(op?.[field]) === target
+        (op) => normalizeOperationMatch(op?.[field]) === target,
       );
       if (operations.length) {
         return { field, operations };
@@ -1455,7 +1487,7 @@
     const target = normalizeOperationMatch(label);
     if (!target) return false;
     return ROW_LABEL_FIELDS.some(
-      (field) => normalizeOperationMatch(op?.[field]) === target
+      (field) => normalizeOperationMatch(op?.[field]) === target,
     );
   }
 
@@ -1496,7 +1528,11 @@
     return candidates.filter(Boolean);
   }
 
-  function getRowOperationMatch(label, preferredField = "", parentSection = "") {
+  function getRowOperationMatch(
+    label,
+    preferredField = "",
+    parentSection = "",
+  ) {
     if (!label) return { field: "", operations: [] };
     const target = normalizeOperationMatch(label);
     if (!target) return { field: "", operations: [] };
@@ -1506,8 +1542,8 @@
       if (!parentKey) return ops;
       const withParent = ops.filter((op) =>
         getOperationParentCandidates(op).some(
-          (candidate) => normalizeOperationMatch(candidate) === parentKey
-        )
+          (candidate) => normalizeOperationMatch(candidate) === parentKey,
+        ),
       );
       return withParent.length ? withParent : ops;
     };
@@ -1527,8 +1563,8 @@
 
     const byParent = (state.operaciones || []).filter((op) =>
       getOperationPlacementCandidates(op).some(
-        (candidate) => normalizeOperationMatch(candidate) === target
-      )
+        (candidate) => normalizeOperationMatch(candidate) === target,
+      ),
     );
     if (byParent.length) {
       return { field: "", operations: filterByParent(byParent) };
@@ -1537,10 +1573,14 @@
     return { field: "", operations: [] };
   }
 
-  function openAddOperationForRow(label, parentSection = "", preferredField = "sum-row") {
+  function openAddOperationForRow(
+    label,
+    parentSection = "",
+    preferredField = "sum-row",
+  ) {
     if (!requireEditMode()) return;
     const radio = document.querySelector(
-      'input[name="tipoElemento"][value="operacion"]'
+      'input[name="tipoElemento"][value="operacion"]',
     );
     if (radio) radio.checked = true;
     updateAddForm();
@@ -1566,7 +1606,7 @@
     if (label) valueCandidates.push(label);
 
     const checkboxes = document.querySelectorAll(
-      "#checkboxSecciones input[type='checkbox']"
+      "#checkboxSecciones input[type='checkbox']",
     );
     checkboxes.forEach((cb) => {
       if (valueCandidates.includes(cb.value)) cb.checked = true;
@@ -1578,20 +1618,48 @@
   function editRowOperation(label, preferredField = "", parentSection = "") {
     if (!label) return;
     const match = getRowOperationMatch(label, preferredField, parentSection);
+
+    // FIX: If match found multiple operations (likely children via placement match),
+    // try to narrow down to the one that exactly matches the label/field.
+    if (match.operations.length > 1) {
+      const field = match.field || preferredField || "sum-row";
+      const exactMatches = match.operations.filter((op) => {
+        const val = op[field] || getOperationLabel(op);
+        return normalizeOperationMatch(val) === normalizeOperationMatch(label);
+      });
+      if (exactMatches.length > 0) {
+        // We found exactly what we wanted among the candidates
+        match.operations = exactMatches;
+      }
+      // If exactMatches is empty, it means we found children but NO actual section operation.
+      // So let match.operations stay > 1? No, then it goes to editConsolidatedLabel and fails.
+      // We should force it to empty so it prompts to create.
+      else if (exactMatches.length === 0) {
+        match.operations = [];
+      }
+    }
+
     if (!match.operations.length) {
       const confirmed = window.confirm(
-        `No se encontró una operación ligada a "${label}".\n\n¿Deseas crear una nueva operación para esta fila?`
+        `No se encontró una operación ligada a "${label}".\n\n¿Deseas crear una nueva operación para esta fila?`,
       );
       if (!confirmed) return;
       openAddOperationForRow(label, parentSection, preferredField);
       return;
     }
+
     if (match.operations.length > 1) {
       if (typeof window.editConsolidatedLabel === "function") {
-        window.editConsolidatedLabel(label, match.field || preferredField || "sum-row");
+        window.editConsolidatedLabel(
+          label,
+          match.field || preferredField || "sum-row",
+          parentSection,
+          match.operations,
+        );
         return;
       }
     }
+
     const op = match.operations[0];
     const opId = getOperationId(op) || getOperationDisplayName(op) || label;
     if (window.editOperation) {
@@ -1620,7 +1688,8 @@
 
       let sign = Number(op.signos?.[resolvedField]);
       if (!Number.isFinite(sign)) {
-        sign = resolvedField === "sum-row" ? 1 : getOperativoSignForSection(section);
+        sign =
+          resolvedField === "sum-row" ? 1 : getOperativoSignForSection(section);
       }
       if (!Number.isFinite(sign) || sign === 0) sign = 1;
 
@@ -1656,7 +1725,7 @@
       state.operaciones
         .filter((op) => op !== currentOp)
         .map((op) => normalizeOperationId(getOperationId(op)))
-        .filter(Boolean)
+        .filter(Boolean),
     );
     let candidate = cleanBase || "OPERACION";
     let counter = 2;
@@ -1689,11 +1758,11 @@
     if (!value) return value;
     const target = normalizeOperationMatch(value);
     const byId = state.operaciones.find(
-      (op) => normalizeOperationMatch(getOperationId(op)) === target
+      (op) => normalizeOperationMatch(getOperationId(op)) === target,
     );
     if (byId) return getOperationId(byId);
     const matches = state.operaciones.filter(
-      (op) => normalizeOperationMatch(getOperationLabel(op)) === target
+      (op) => normalizeOperationMatch(getOperationLabel(op)) === target,
     );
     if (matches.length === 1) return getOperationId(matches[0]);
     return value;
@@ -1701,21 +1770,19 @@
   function sortOperations(list = []) {
     return [...(list || [])]
       .map((op, idx) => ({ op, idx }))
-      .sort(
-        (a, b) => {
-          const orderA = getOperationOrder(a.op, a.idx);
-          const orderB = getOperationOrder(b.op, b.idx);
-          if (orderA !== orderB) return orderA - orderB;
-          const fallbackA = Number.isFinite(Number(a.op?.orden))
-            ? Number(a.op.orden)
-            : a.idx;
-          const fallbackB = Number.isFinite(Number(b.op?.orden))
-            ? Number(b.op.orden)
-            : b.idx;
-          if (fallbackA !== fallbackB) return fallbackA - fallbackB;
-          return a.idx - b.idx;
-        }
-      )
+      .sort((a, b) => {
+        const orderA = getOperationOrder(a.op, a.idx);
+        const orderB = getOperationOrder(b.op, b.idx);
+        if (orderA !== orderB) return orderA - orderB;
+        const fallbackA = Number.isFinite(Number(a.op?.orden))
+          ? Number(a.op.orden)
+          : a.idx;
+        const fallbackB = Number.isFinite(Number(b.op?.orden))
+          ? Number(b.op.orden)
+          : b.idx;
+        if (fallbackA !== fallbackB) return fallbackA - fallbackB;
+        return a.idx - b.idx;
+      })
       .map((item) => item.op);
   }
 
@@ -1810,7 +1877,7 @@
       updateButtonStates();
       showToast(
         "Ordenes sin orden_presentacion fueron normalizados. Guarda para aplicar.",
-        "info"
+        "info",
       );
     }
   }
@@ -2032,7 +2099,7 @@
       { label: "Columnas", value: columnCount },
     ];
     const visibleItems = items.filter(
-      (item) => !item.optional || item.value > 0
+      (item) => !item.optional || item.value > 0,
     );
 
     const orderEnabled = state.inlineOrderMode && state.editMode !== false;
@@ -2051,7 +2118,7 @@
                 <span class="summary-label">${escapeHtml(item.label)}</span>
                 <span class="summary-value">${item.value}</span>
               </div>
-            `
+            `,
               )
               .join("")}
           </div>
@@ -2084,7 +2151,10 @@
         if (!label && !opId) return;
         const keyId = normalizeOperationMatch(opId || "");
         const keyLabel = normalizeOperationMatch(label || "");
-        if ((keyId && normalized.has(keyId)) || (keyLabel && normalized.has(keyLabel))) {
+        if (
+          (keyId && normalized.has(keyId)) ||
+          (keyLabel && normalized.has(keyLabel))
+        ) {
           return;
         }
         if (keyId) normalized.add(keyId);
@@ -2144,7 +2214,7 @@
 
     const cuentasRaw = Array.isArray(state.cuentas) ? state.cuentas : [];
     const operacionesRaw = sortOperations(state.operaciones || []).filter(
-      (op) => op && !isColumnConfigOperation(op)
+      (op) => op && !isColumnConfigOperation(op),
     );
 
     const placeholderDefs = [];
@@ -2152,8 +2222,12 @@
     cuentasRaw.forEach((cuenta, idx) => {
       if (!cuenta) return;
       if (isPlaceholderAccount(cuenta)) {
-        const principal = (getAccountPrincipalName(cuenta) || "").toString().trim();
-        const secundaria = (getAccountSecondaryName(cuenta) || "").toString().trim();
+        const principal = (getAccountPrincipalName(cuenta) || "")
+          .toString()
+          .trim();
+        const secundaria = (getAccountSecondaryName(cuenta) || "")
+          .toString()
+          .trim();
         const hint = Number.isFinite(Number(cuenta.__placeholderOrder))
           ? Number(cuenta.__placeholderOrder)
           : getAccountOrder(cuenta, idx);
@@ -2162,7 +2236,9 @@
           secundaria,
           accountId: getAccountRowId(cuenta),
           hint,
-          placeholderType: (cuenta.__placeholderType || "").toString().toLowerCase(),
+          placeholderType: (cuenta.__placeholderType || "")
+            .toString()
+            .toLowerCase(),
         });
         return;
       }
@@ -2224,20 +2300,26 @@
         def.placeholderType === "principal" ||
         (!secundaria && !sectionNode.placeholderAccountId)
       ) {
-        sectionNode.placeholderAccountId = def.accountId || sectionNode.placeholderAccountId;
+        sectionNode.placeholderAccountId =
+          def.accountId || sectionNode.placeholderAccountId;
         if (Number.isFinite(def.hint)) {
           sectionNode.placeholderHint =
-            sectionNode.placeholderHint == null ? def.hint : Math.min(sectionNode.placeholderHint, def.hint);
+            sectionNode.placeholderHint == null
+              ? def.hint
+              : Math.min(sectionNode.placeholderHint, def.hint);
         }
       }
 
       if (secundaria) {
         const subNode = ensureSubsection(sectionNode, secundaria);
         if (subNode) {
-          subNode.placeholderAccountId = def.accountId || subNode.placeholderAccountId;
+          subNode.placeholderAccountId =
+            def.accountId || subNode.placeholderAccountId;
           if (Number.isFinite(def.hint)) {
             subNode.placeholderHint =
-              subNode.placeholderHint == null ? def.hint : Math.min(subNode.placeholderHint, def.hint);
+              subNode.placeholderHint == null
+                ? def.hint
+                : Math.min(subNode.placeholderHint, def.hint);
           }
         }
       }
@@ -2245,8 +2327,12 @@
 
     // 2) Cuentas reales.
     cuentas.forEach(({ cuenta, idx }) => {
-      const principalRaw = (getAccountPrincipalName(cuenta) || "").toString().trim();
-      const secundariaRaw = (getAccountSecondaryName(cuenta) || "").toString().trim();
+      const principalRaw = (getAccountPrincipalName(cuenta) || "")
+        .toString()
+        .trim();
+      const secundariaRaw = (getAccountSecondaryName(cuenta) || "")
+        .toString()
+        .trim();
       let principal = principalRaw;
       let secundaria = secundariaRaw;
       if (!principal) {
@@ -2355,23 +2441,36 @@
     // Orden de secciones: por primera aparición (min orden de items), con fallback a hints placeholder.
     const getSectionOrder = (sectionNode, idx) => {
       const orders = [];
-      sectionNode.items.forEach((item) => orders.push(safeOrder(item.__orden, null)));
+      sectionNode.items.forEach((item) =>
+        orders.push(safeOrder(item.__orden, null)),
+      );
       sectionNode.subsectionMap.forEach((sub) => {
         sub.items.forEach((item) => orders.push(safeOrder(item.__orden, null)));
       });
       const valid = orders.filter((n) => Number.isFinite(n));
       if (valid.length) return Math.min(...valid);
-      if (Number.isFinite(Number(sectionNode.placeholderHint))) return Number(sectionNode.placeholderHint);
+      if (Number.isFinite(Number(sectionNode.placeholderHint)))
+        return Number(sectionNode.placeholderHint);
       return 1e9 + idx;
     };
 
     // Orden de items sin sección y secciones como bloques raíz por orden.
     const rootBlocks = [];
     rootItems.forEach((item, idx) => {
-      rootBlocks.push({ type: "item", order: safeOrder(item.__orden, 1e9 + idx), idx, item });
+      rootBlocks.push({
+        type: "item",
+        order: safeOrder(item.__orden, 1e9 + idx),
+        idx,
+        item,
+      });
     });
     sectionNodes.forEach((sectionNode, idx) => {
-      rootBlocks.push({ type: "section", order: getSectionOrder(sectionNode, idx), idx, sectionNode });
+      rootBlocks.push({
+        type: "section",
+        order: getSectionOrder(sectionNode, idx),
+        idx,
+        sectionNode,
+      });
     });
     rootBlocks.sort((a, b) => a.order - b.order || a.idx - b.idx);
 
@@ -2396,7 +2495,12 @@
       // Preparar children dentro de la sección: items a nivel sección + bloques de subsección.
       const children = [];
       (sectionNode.items || []).forEach((item, idx) => {
-        children.push({ type: "item", order: safeOrder(item.__orden, 1e9 + idx), idx, item });
+        children.push({
+          type: "item",
+          order: safeOrder(item.__orden, 1e9 + idx),
+          idx,
+          item,
+        });
       });
 
       const subsections = Array.from(sectionNode.subsectionMap.values());
@@ -2405,11 +2509,17 @@
           .map((it) => safeOrder(it.__orden, null))
           .filter((n) => Number.isFinite(n));
         if (valid.length) return Math.min(...valid);
-        if (Number.isFinite(Number(subNode.placeholderHint))) return Number(subNode.placeholderHint);
+        if (Number.isFinite(Number(subNode.placeholderHint)))
+          return Number(subNode.placeholderHint);
         return 1e9 + idx;
       };
       subsections.forEach((subNode, idx) => {
-        children.push({ type: "subsection", order: getSubOrder(subNode, idx), idx, subNode });
+        children.push({
+          type: "subsection",
+          order: getSubOrder(subNode, idx),
+          idx,
+          subNode,
+        });
       });
 
       children.sort((a, b) => a.order - b.order || a.idx - b.idx);
@@ -2501,12 +2611,11 @@
               />
             </td>
           </tr>
-        `
+        `,
       )
       .join("");
 
-    const colSpan =
-      3 + (showAdvanced ? 1 : 0) + (showOperation ? 1 : 0);
+    const colSpan = 3 + (showAdvanced ? 1 : 0) + (showOperation ? 1 : 0);
     const finalRowsHtml =
       rowsHtml ||
       `<tr><td colspan="${colSpan}" class="text-muted text-center">Sin columnas</td></tr>`;
@@ -2581,8 +2690,8 @@
     if (!target?.closest) return false;
     return Boolean(
       target.closest(
-        "button, a, input, select, textarea, label, [role='button'], .list-item-actions, .inline-op-actions, .account-actions, .section-actions, .inline-order-controls, .inline-order-buttons"
-      )
+        "button, a, input, select, textarea, label, [role='button'], .list-item-actions, .inline-op-actions, .account-actions, .section-actions, .inline-order-controls, .inline-order-buttons",
+      ),
     );
   }
 
@@ -2632,35 +2741,38 @@
 
     const showOrder = state.inlineOrderMode && state.editMode !== false;
     const canEdit = state.editMode !== false;
-    const disabledAttr = canEdit ? '' : 'disabled';
+    const disabledAttr = canEdit ? "" : "disabled";
     let html = '<div class="template-list-view">';
 
     rows.forEach((row, rowIndex) => {
       if (!row) return;
       const isVisible = row.visible !== false;
-      const hiddenClass = isVisible ? '' : 'opacity-50';
+      const hiddenClass = isVisible ? "" : "opacity-50";
 
-      if (row.type === 'principal') {
-        const sectionName = row.label || '';
-        const sectionOpMatch = getRowOperationMatch(sectionName, "sum-row-sumavarios");
+      if (row.type === "principal") {
+        const sectionName = row.label || "";
+        const sectionOpMatch = getRowOperationMatch(
+          sectionName,
+          "sum-row-sumavarios",
+        );
         const hasSectionOp = sectionOpMatch.operations.length > 0;
         const sectionOpBtnClass = hasSectionOp
-          ? 'btn-outline-success'
-          : 'btn-outline-secondary';
+          ? "btn-outline-success"
+          : "btn-outline-secondary";
         const sectionOpBtnTitle = hasSectionOp
-          ? 'Editar operación'
-          : 'Crear operación';
+          ? "Editar operación"
+          : "Crear operación";
         html += `
           <div class="list-item section-principal ${hiddenClass}" data-row-type="section" data-section="${escapeAttr(sectionName)}" data-row-index="${rowIndex}">
-            ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ''}
+            ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ""}
             <div class="list-item-content d-flex justify-content-between align-items-center flex-grow-1">
               <div class="d-flex align-items-center">
                 <i class="bi bi-folder2 me-2 text-primary"></i>
-                <strong>${escapeHtml(sectionName || 'Sección')}</strong>
+                <strong>${escapeHtml(sectionName || "Sección")}</strong>
               </div>
               <div class="list-item-actions">
                 <button class="btn btn-sm ${sectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
-                  sectionName
+                  sectionName,
                 )}', '${escapeAttr(sectionOpMatch.field || "sum-row-sumavarios")}', '')" title="${sectionOpBtnTitle}" ${disabledAttr}>
                   <i class="bi bi-calculator"></i>
                 </button>
@@ -2677,34 +2789,34 @@
         return;
       }
 
-      if (row.type === 'subsection') {
-        const subsectionName = row.label || '';
-        const parentSection = row.parentSection || '';
+      if (row.type === "subsection") {
+        const subsectionName = row.label || "";
+        const parentSection = row.parentSection || "";
         const subsectionOpMatch = getRowOperationMatch(
           subsectionName,
           "",
-          parentSection
+          parentSection,
         );
         const hasSubsectionOp = subsectionOpMatch.operations.length > 0;
         const subsectionOpBtnClass = hasSubsectionOp
-          ? 'btn-outline-success'
-          : 'btn-outline-secondary';
+          ? "btn-outline-success"
+          : "btn-outline-secondary";
         const subsectionOpBtnTitle = hasSubsectionOp
-          ? 'Editar operación'
-          : 'Crear operación';
+          ? "Editar operación"
+          : "Crear operación";
         html += `
           <div class="list-item section-secondary ${hiddenClass}" data-row-type="subsection" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(subsectionName)}" data-parent-section="${escapeAttr(parentSection)}" data-row-index="${rowIndex}">
-            ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ''}
+            ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ""}
             <div class="list-item-content ps-4 d-flex justify-content-between align-items-center flex-grow-1">
               <div class="d-flex align-items-center">
                 <i class="bi bi-folder me-2 text-info"></i>
-                <em>${escapeHtml(subsectionName || 'Subsección')}</em>
+                <em>${escapeHtml(subsectionName || "Subsección")}</em>
               </div>
               <div class="list-item-actions">
                 <button class="btn btn-sm ${subsectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
-                  subsectionName
+                  subsectionName,
                 )}', '${escapeAttr(subsectionOpMatch.field || "sum-row")}', '${escapeAttr(
-                  parentSection
+                  parentSection,
                 )}')" title="${subsectionOpBtnTitle}" ${disabledAttr}>
                   <i class="bi bi-calculator"></i>
                 </button>
@@ -2721,19 +2833,18 @@
         return;
       }
 
-      if (row.type === 'account') {
-        const cuenta = row.cuenta || row.label || '';
-        const nombre = row.nombre || '';
+      if (row.type === "account") {
+        const cuenta = row.cuenta || row.label || "";
+        const nombre = row.nombre || "";
         const accountId = row.accountId || row.accountID || row.rowId || cuenta;
-        const parentSection = row.parentSection || '';
-        const parentSubsection = row.parentSubsection || '';
+        const parentSection = row.parentSection || "";
+        const parentSubsection = row.parentSubsection || "";
         const depth = parentSection ? (parentSubsection ? 2 : 1) : 0;
-        const depthClass = depth ? `depth-${depth}` : '';
-        const paddingClass =
-          depth === 2 ? 'ps-3' : depth === 1 ? 'ps-4' : '';
+        const depthClass = depth ? `depth-${depth}` : "";
+        const paddingClass = depth === 2 ? "ps-3" : depth === 1 ? "ps-4" : "";
         html += `
           <div class="list-item item-account ${hiddenClass} ${depthClass}" data-row-type="account" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(parentSubsection)}" data-account-id="${escapeAttr(accountId)}" data-cuenta="${escapeAttr(cuenta)}" data-nombre="${escapeAttr(nombre)}" data-row-index="${rowIndex}">
-            ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ''}
+            ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ""}
             <div class="list-item-content ${paddingClass} d-flex justify-content-between align-items-center flex-grow-1">
               <div class="d-flex align-items-center">
                 <span class="badge bg-secondary me-2">${escapeHtml(cuenta)}</span>
@@ -2753,35 +2864,42 @@
         return;
       }
 
-      if (row.type === 'operation') {
+      if (row.type === "operation") {
         // En modo manual, `row.label` puede ser el texto visible (p.ej. "CONSOLIDATED INCOME")
         // que NO coincide con OperacionId/Clase. Usar `row.opId` primero para mantener el vínculo.
-        const op = findOperationByIdOrLabel(row.opId || row.label || '');
-        const label = op ? getOperationDisplayName(op) : row.label || '';
-        const opId = op ? getOperationId(op) : row.opId || '';
-        const kind = row.kind || '';
+        const op = findOperationByIdOrLabel(row.opId || row.label || "");
+        const label = op ? getOperationDisplayName(op) : row.label || "";
+        const opId = op ? getOperationId(op) : row.opId || "";
+        const kind = row.kind || "";
         const kindMeta = getOperationKindMeta(kind);
         const formulaTerms = op ? extractFormulaTerms(op) : [];
-        const formula = formulaTerms.length ? formatFormula(op) : '';
-        const parentSection = (row.parentSection || op?.parentSection || '').toString().trim();
-        const parentSubsection = (row.parentSubsection || op?.parentSubsection || '').toString().trim();
+        const formula = formulaTerms.length ? formatFormula(op) : "";
+        const parentSection = (row.parentSection || op?.parentSection || "")
+          .toString()
+          .trim();
+        const parentSubsection = (
+          row.parentSubsection ||
+          op?.parentSubsection ||
+          ""
+        )
+          .toString()
+          .trim();
         const depth = parentSection ? (parentSubsection ? 2 : 1) : 0;
-        const depthClass = depth ? `depth-${depth}` : '';
-        const paddingClass =
-          depth === 2 ? 'ps-3' : depth === 1 ? 'ps-4' : '';
+        const depthClass = depth ? `depth-${depth}` : "";
+        const paddingClass = depth === 2 ? "ps-3" : depth === 1 ? "ps-4" : "";
 
         html += `
-          <div class="list-item item-operation ${hiddenClass} ${depthClass}" data-row-type="operation" data-operation-id="${escapeAttr(opId || label)}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(kind)}" data-row-index="${rowIndex}" ${formula ? `title="${escapeAttr(formula)}"` : ''} onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || label)}')">
-            ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ''}
+          <div class="list-item item-operation ${hiddenClass} ${depthClass}" data-row-type="operation" data-operation-id="${escapeAttr(opId || label)}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(kind)}" data-row-index="${rowIndex}" ${formula ? `title="${escapeAttr(formula)}"` : ""} onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || label)}')">
+            ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ""}
             <div class="list-item-content ${paddingClass} d-flex justify-content-between align-items-center flex-grow-1">
               <div>
                 <div class="d-flex align-items-center">
                   <i class="bi bi-calculator me-2 text-success"></i>
                   <strong>${escapeHtml(label)}</strong>
-                  ${kindMeta ? `<span class="badge ${kindMeta.className} ms-2">${escapeHtml(kindMeta.label)}</span>` : ''}
+                  ${kindMeta ? `<span class="badge ${kindMeta.className} ms-2">${escapeHtml(kindMeta.label)}</span>` : ""}
                 </div>
                 <div class="operation-formula small text-muted ms-4 mt-1">
-                  ${formula ? `= ${escapeHtml(formula)}` : 'Sin formula'}
+                  ${formula ? `= ${escapeHtml(formula)}` : "Sin formula"}
                 </div>
               </div>
               <div class="list-item-actions">
@@ -2798,7 +2916,7 @@
       }
     });
 
-    html += '</div>';
+    html += "</div>";
 
     // Agregar estilos
     html += `
@@ -2893,7 +3011,9 @@
   }
 
   function renderInlineOrderButtons(rowIndex, maxRows = null) {
-    const maxAttr = Number.isFinite(Number(maxRows)) ? `max="${Number(maxRows)}"` : "";
+    const maxAttr = Number.isFinite(Number(maxRows))
+      ? `max="${Number(maxRows)}"`
+      : "";
     return `
       <div class="inline-order-buttons">
         <button type="button" class="btn btn-sm btn-outline-secondary inline-order-btn" data-action="up" data-row-index="${rowIndex}" title="Subir">
@@ -2941,8 +3061,8 @@
         const className = isEditable ? "col-editable" : "";
         return `
           <th data-col-index="${idx}" class="${className}" title="${escapeAttr(
-          col.key || ""
-        )}" data-col-editable="${isEditable ? "true" : "false"}">
+            col.key || "",
+          )}" data-col-editable="${isEditable ? "true" : "false"}">
             <span class="col-label">${label}</span>${indicator}
           </th>
         `;
@@ -2963,10 +3083,10 @@
         const orderCell = showOrder ? renderInlineOrderCell(row, rowIndex) : "";
         bodyHtml += `
           <tr class="section-header-row ${hiddenClass}" data-row-type="section" data-row-index="${rowIndex}" data-section="${escapeAttr(
-             currentSection
-           )}" data-generated="${row.generated ? "true" : "false"}" data-placeholder-account-id="${escapeAttr(
-             row.placeholderAccountId || ""
-           )}">
+            currentSection,
+          )}" data-generated="${row.generated ? "true" : "false"}" data-placeholder-account-id="${escapeAttr(
+            row.placeholderAccountId || "",
+          )}">
             ${orderCell}
             <td colspan="${showOrder ? colCount - 1 : colCount}">
               <strong>${escapeHtml(currentSection || "Seccion")}</strong>
@@ -2981,10 +3101,10 @@
         const orderCell = showOrder ? renderInlineOrderCell(row, rowIndex) : "";
         bodyHtml += `
           <tr class="subsection-row ${hiddenClass}" data-row-type="subsection" data-row-index="${rowIndex}" data-section="${escapeAttr(
-             currentSection
-           )}" data-subsection="${escapeAttr(currentSubsection)}" data-placeholder-account-id="${escapeAttr(
-             row.placeholderAccountId || ""
-           )}">
+            currentSection,
+          )}" data-subsection="${escapeAttr(currentSubsection)}" data-placeholder-account-id="${escapeAttr(
+            row.placeholderAccountId || "",
+          )}">
             ${orderCell}
             <td colspan="${showOrder ? colCount - 1 : colCount}">
               <em>${escapeHtml(currentSubsection || "Subseccion")}</em>
@@ -3018,13 +3138,13 @@
           const cellClass = isEditable ? "cell-editable" : "";
           if (i === 0) {
             cells.push(
-              `<td class="account-code ${cellClass}">${escapeHtml(cuenta)}</td>`
+              `<td class="account-code ${cellClass}">${escapeHtml(cuenta)}</td>`,
             );
           } else if (i === 1) {
             cells.push(
               `<td class="account-name ${cellClass}">${escapeHtml(
-                nombre || cuenta
-              )}</td>`
+                nombre || cuenta,
+              )}</td>`,
             );
           } else {
             cells.push(`<td class="${cellClass}"></td>`);
@@ -3032,12 +3152,12 @@
         }
         bodyHtml += `
           <tr class="account-row ${hiddenClass}" data-row-type="account" data-row-index="${rowIndex}" data-account-id="${escapeAttr(
-            accountId
+            accountId,
           )}" data-cuenta="${escapeAttr(
-             cuenta
-           )}" data-nombre="${escapeAttr(nombre)}" data-section="${escapeAttr(
-             parentSection
-           )}" data-subsection="${escapeAttr(parentSubsection)}">
+            cuenta,
+          )}" data-nombre="${escapeAttr(nombre)}" data-section="${escapeAttr(
+            parentSection,
+          )}" data-subsection="${escapeAttr(parentSubsection)}">
             ${cells.join("")}
           </tr>
         `;
@@ -3080,14 +3200,14 @@
                 ${
                   kindMeta
                     ? `<span class="op-kind-pill ${kindMeta.className}" title="${escapeAttr(
-                        kind
+                        kind,
                       )}">${escapeHtml(kindMeta.label)}</span>`
                     : ""
                 }
                 <div class="op-formula-preview small text-muted mt-1">
                   ${formula ? `= ${escapeHtml(formula)}` : "Sin formula"}
                 </div>
-              </td>`
+              </td>`,
             );
           } else {
             cells.push(`<td class="${cellClass}"></td>`);
@@ -3095,12 +3215,12 @@
         }
         bodyHtml += `
           <tr class="operation-row ${kind} ${kindMeta?.className || ""} ${hiddenClass}" data-row-type="operation" data-row-index="${rowIndex}" data-operation-id="${escapeAttr(
-             opId || label
-           )}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(
-             kind
-           )}" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(
-          parentSubsection
-        )}" ${formula ? `title="${escapeAttr(formula)}"` : ""}>
+            opId || label,
+          )}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(
+            kind,
+          )}" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(
+            parentSubsection,
+          )}" ${formula ? `title="${escapeAttr(formula)}"` : ""}>
             ${cells.join("")}
           </tr>
         `;
@@ -3136,7 +3256,7 @@
   function setOperationEditorTab(tabId) {
     if (!dom.operationEditorPanel || !tabId) return;
     const tabButton = dom.operationEditorPanel.querySelector(
-      `[data-bs-target="#${tabId}"]`
+      `[data-bs-target="#${tabId}"]`,
     );
     if (!tabButton || !window.bootstrap?.Tab) return;
     window.bootstrap.Tab.getOrCreateInstance(tabButton).show();
@@ -3160,18 +3280,23 @@
       new Set(
         (state.cuentas || [])
           .map((c) => (getAccountPrincipalName(c) || "").toString().trim())
-          .filter(Boolean)
-      )
-    )
-      .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
 
-    if (parentSection && !principalNames.some((n) => normalizeKey(n) === normalizeKey(parentSection))) {
+    if (
+      parentSection &&
+      !principalNames.some(
+        (n) => normalizeKey(n) === normalizeKey(parentSection),
+      )
+    ) {
       principalNames.unshift(parentSection);
     }
 
     const principalOptions = principalNames
       .map((name) => {
-        const selected = normalizeKey(name) === normalizeKey(parentSection) ? "selected" : "";
+        const selected =
+          normalizeKey(name) === normalizeKey(parentSection) ? "selected" : "";
         return `<option value="${escapeAttr(name)}" ${selected}>${escapeHtml(name)}</option>`;
       })
       .join("");
@@ -3181,23 +3306,29 @@
         (state.cuentas || [])
           .filter(
             (c) =>
-              normalizeKey(getAccountPrincipalName(c) || "") === normalizeKey(parentSection)
+              normalizeKey(getAccountPrincipalName(c) || "") ===
+              normalizeKey(parentSection),
           )
           .map((c) => (getAccountSecondaryName(c) || "").toString().trim())
-          .filter(Boolean)
-      )
+          .filter(Boolean),
+      ),
     ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
 
     if (
       parentSubsection &&
-      !subsectionsForParent.some((n) => normalizeKey(n) === normalizeKey(parentSubsection))
+      !subsectionsForParent.some(
+        (n) => normalizeKey(n) === normalizeKey(parentSubsection),
+      )
     ) {
       subsectionsForParent.unshift(parentSubsection);
     }
 
     const subsectionOptions = subsectionsForParent
       .map((name) => {
-        const selected = normalizeKey(name) === normalizeKey(parentSubsection) ? "selected" : "";
+        const selected =
+          normalizeKey(name) === normalizeKey(parentSubsection)
+            ? "selected"
+            : "";
         return `<option value="${escapeAttr(name)}" ${selected}>${escapeHtml(name)}</option>`;
       })
       .join("");
@@ -3243,7 +3374,7 @@
         <label class="form-label">Tipo de fila</label>
         <div>
           <span class="badge bg-secondary text-uppercase">${escapeHtml(
-            tipoFila
+            tipoFila,
           )}</span>
         </div>
       </div>
@@ -3272,7 +3403,11 @@
     const normalizedType = (type || "section").toString().toLowerCase();
     let sectionValue = value || "";
     let parent = parentSection || "";
-    if (!parent && typeof sectionValue === "string" && sectionValue.includes("||")) {
+    if (
+      !parent &&
+      typeof sectionValue === "string" &&
+      sectionValue.includes("||")
+    ) {
       const parts = sectionValue.split("||");
       if (parts.length >= 2) {
         parent = parts[0]?.trim() || "";
@@ -3281,7 +3416,10 @@
     }
     const normalizedValue = normalizeOperationMatch(sectionValue || "");
     const normalizedParent = normalizeOperationMatch(parent || "");
-    if ((normalizedType === "section" || normalizedType === "seccion") && normalizedParent) {
+    if (
+      (normalizedType === "section" || normalizedType === "seccion") &&
+      normalizedParent
+    ) {
       return `${normalizedType}::${normalizedParent}||${normalizedValue}`;
     }
     return `${normalizedType}::${normalizedValue}`;
@@ -3294,7 +3432,7 @@
       const key = buildFormulaSelectionKey(
         term.type,
         term.value,
-        term.parentSection
+        term.parentSection,
       );
       if (!key) return;
       map.set(key, term.operator === "-" ? "-" : "+");
@@ -3353,8 +3491,8 @@
           operator === "+"
             ? "is-plus"
             : operator === "-"
-            ? "is-minus"
-            : "is-off";
+              ? "is-minus"
+              : "is-off";
         const buttonText = operator === "none" ? "" : operator;
         return `
           <div
@@ -3398,7 +3536,7 @@
       <div data-formula-panel="manual" class="${initialMode === "manual" ? "" : "d-none"}">
         <label class="form-label">Fórmula</label>
         <textarea class="form-control font-monospace" id="operationFormulaManual" rows="4" placeholder="Ej: 401-000-000-00 + Membership - Gastos">${escapeHtml(
-          formulaText
+          formulaText,
         )}</textarea>
         <div class="form-text">Escribe cuentas, secciones u operaciones con +, -, * o /. Usa espacios alrededor del operador para evitar cortar cuentas con guiones.</div>
       </div>
@@ -3430,7 +3568,7 @@
   function collectFormulaTermsFromLayout(panel) {
     if (!panel) return [];
     const rows = panel.querySelectorAll(
-      "[data-formula-type][data-formula-value]"
+      "[data-formula-type][data-formula-value]",
     );
     const terms = [];
     rows.forEach((row, idx) => {
@@ -3476,17 +3614,12 @@
         const btn = event.target.closest(".formula-toggle");
         if (!btn) return;
         const state = btn.dataset.state || "none";
-        const next =
-          state === "none" ? "+" : state === "+" ? "-" : "none";
+        const next = state === "none" ? "+" : state === "+" ? "-" : "none";
         btn.dataset.state = next;
         btn.textContent = next === "none" ? "" : next;
         btn.classList.remove("is-plus", "is-minus", "is-off");
         btn.classList.add(
-          next === "+"
-            ? "is-plus"
-            : next === "-"
-            ? "is-minus"
-            : "is-off"
+          next === "+" ? "is-plus" : next === "-" ? "is-minus" : "is-off",
         );
         updateFormulaPreview(panel);
       });
@@ -3498,13 +3631,17 @@
     }
 
     const modeInputs = panel.querySelectorAll(
-      'input[name="operationFormulaMode"]'
+      'input[name="operationFormulaMode"]',
     );
     modeInputs.forEach((input) => {
       input.addEventListener("change", () => {
         state.operationEditorFormulaMode = input.value;
-        const manualPanel = panel.querySelector('[data-formula-panel="manual"]');
-        const layoutPanel = panel.querySelector('[data-formula-panel="layout"]');
+        const manualPanel = panel.querySelector(
+          '[data-formula-panel="manual"]',
+        );
+        const layoutPanel = panel.querySelector(
+          '[data-formula-panel="layout"]',
+        );
         if (manualPanel && layoutPanel) {
           if (input.value === "manual") {
             manualPanel.classList.remove("d-none");
@@ -3526,41 +3663,110 @@
     const tipoSeleccionado = resolveOperationAparicionType(op);
     const tipoTooltip = getAparicionTooltip(tipoSeleccionado);
     const tipoOptions = buildAparicionOptions(tipoSeleccionado);
-    
+
     // Estilos visuales de fila - EXPANDIDOS CON MÁS OPCIONES
     const estiloActual = op?.rowStyle || op?.estilo_fila || "sum-row";
     const estilosDisponibles = [
       // Estilos básicos
-      { value: "sum-row", label: "Suma Simple", class: "sum-row fw-semibold", desc: "Fila de suma básica" },
-      { value: "operation-row", label: "Operación Libre", class: "operation-row free-operation-row fw-semibold", desc: "Operación personalizada" },
-      { value: "subsection-row", label: "Subsección", class: "subsection-row bg-light fw-semibold", desc: "Encabezado de subsección" },
-      
+      {
+        value: "sum-row",
+        label: "Suma Simple",
+        class: "sum-row fw-semibold",
+        desc: "Fila de suma básica",
+      },
+      {
+        value: "operation-row",
+        label: "Operación Libre",
+        class: "operation-row free-operation-row fw-semibold",
+        desc: "Operación personalizada",
+      },
+      {
+        value: "subsection-row",
+        label: "Subsección",
+        class: "subsection-row bg-light fw-semibold",
+        desc: "Encabezado de subsección",
+      },
+
       // Estilos principales (para totales importantes)
-      { value: "sum-row-principal", label: "Suma Principal", class: "sum-row-principal fw-bold", desc: "Sección principal (INCOME, EXPENSES)" },
-      { value: "highlight-primary", label: "Consolidado Primario", class: "highlight-primary fw-bold text-uppercase", desc: "CONSOLIDATED INCOME/EXPENSES" },
-      { value: "highlight-secondary", label: "Resultado Operativo", class: "highlight-secondary fw-bold", desc: "OPERATING RESULTS" },
-      { value: "highlight-bright", label: "Resultado Neto", class: "highlight-bright text-white fw-bold", desc: "NET RESULTS (máxima jerarquía)" },
-      
+      {
+        value: "sum-row-principal",
+        label: "Suma Principal",
+        class: "sum-row-principal fw-bold",
+        desc: "Sección principal (INCOME, EXPENSES)",
+      },
+      {
+        value: "highlight-primary",
+        label: "Consolidado Primario",
+        class: "highlight-primary fw-bold text-uppercase",
+        desc: "CONSOLIDATED INCOME/EXPENSES",
+      },
+      {
+        value: "highlight-secondary",
+        label: "Resultado Operativo",
+        class: "highlight-secondary fw-bold",
+        desc: "OPERATING RESULTS",
+      },
+      {
+        value: "highlight-bright",
+        label: "Resultado Neto",
+        class: "highlight-bright text-white fw-bold",
+        desc: "NET RESULTS (máxima jerarquía)",
+      },
+
       // Nuevos estilos - CON MÁS DISEÑOS
-      { value: "sum-row-success", label: "Suma Verde (Positivo)", class: "sum-row table-success fw-semibold", desc: "Para resultados positivos/ingresos" },
-      { value: "sum-row-danger", label: "Suma Roja (Negativo)", class: "sum-row table-danger fw-semibold", desc: "Para gastos/egresos importantes" },
-      { value: "sum-row-warning", label: "Suma Amarilla (Alerta)", class: "sum-row table-warning fw-semibold", desc: "Para indicadores de atención" },
-      { value: "sum-row-info", label: "Suma Azul (Info)", class: "sum-row table-info fw-semibold", desc: "Para información adicional" },
-      
+      {
+        value: "sum-row-success",
+        label: "Suma Verde (Positivo)",
+        class: "sum-row table-success fw-semibold",
+        desc: "Para resultados positivos/ingresos",
+      },
+      {
+        value: "sum-row-danger",
+        label: "Suma Roja (Negativo)",
+        class: "sum-row table-danger fw-semibold",
+        desc: "Para gastos/egresos importantes",
+      },
+      {
+        value: "sum-row-warning",
+        label: "Suma Amarilla (Alerta)",
+        class: "sum-row table-warning fw-semibold",
+        desc: "Para indicadores de atención",
+      },
+      {
+        value: "sum-row-info",
+        label: "Suma Azul (Info)",
+        class: "sum-row table-info fw-semibold",
+        desc: "Para información adicional",
+      },
+
       // Estilos con bordes
-      { value: "border-top-bold", label: "Borde Superior", class: "sum-row fw-semibold border-top border-dark border-3", desc: "Con línea superior gruesa" },
-      { value: "border-bottom-bold", label: "Borde Inferior", class: "sum-row fw-semibold border-bottom border-dark border-3", desc: "Con línea inferior gruesa" }
+      {
+        value: "border-top-bold",
+        label: "Borde Superior",
+        class: "sum-row fw-semibold border-top border-dark border-3",
+        desc: "Con línea superior gruesa",
+      },
+      {
+        value: "border-bottom-bold",
+        label: "Borde Inferior",
+        class: "sum-row fw-semibold border-bottom border-dark border-3",
+        desc: "Con línea inferior gruesa",
+      },
     ];
-    
-    const estiloOptionsHtml = estilosDisponibles.map((estilo, idx) => {
-      const selected = estilo.value === estiloActual ? 'selected' : '';
-      return `<option value="${escapeAttr(estilo.value)}" ${selected} data-class="${escapeAttr(estilo.class)}" data-style="${escapeAttr(estilo.style || '')}">${escapeHtml(estilo.label)} - ${escapeHtml(estilo.desc)}</option>`;
-    }).join('');
-    
-    const previewStyle = estilosDisponibles.find(e => e.value === estiloActual);
-    const previewClass = previewStyle?.class || 'sum-row fw-semibold';
-    const previewInlineStyle = previewStyle?.style || '';
-    
+
+    const estiloOptionsHtml = estilosDisponibles
+      .map((estilo, idx) => {
+        const selected = estilo.value === estiloActual ? "selected" : "";
+        return `<option value="${escapeAttr(estilo.value)}" ${selected} data-class="${escapeAttr(estilo.class)}" data-style="${escapeAttr(estilo.style || "")}">${escapeHtml(estilo.label)} - ${escapeHtml(estilo.desc)}</option>`;
+      })
+      .join("");
+
+    const previewStyle = estilosDisponibles.find(
+      (e) => e.value === estiloActual,
+    );
+    const previewClass = previewStyle?.class || "sum-row fw-semibold";
+    const previewInlineStyle = previewStyle?.style || "";
+
     return `
       <div class="mb-3">
         <label class="form-label d-flex align-items-center gap-2">
@@ -3574,7 +3780,7 @@
           Define cómo se verá esta operación en el RESUMEN.
         </div>
         <div id="estiloPreview" class="mt-2 p-2 border rounded" style="min-height: 40px;">
-          <div class="text-center ${escapeAttr(estilosDisponibles.find(e => e.value === estiloActual)?.class || 'sum-row fw-semibold')}">
+          <div class="text-center ${escapeAttr(estilosDisponibles.find((e) => e.value === estiloActual)?.class || "sum-row fw-semibold")}">
             Vista previa del estilo
           </div>
         </div>
@@ -3584,14 +3790,12 @@
         <label class="form-label d-flex align-items-center gap-2">
           Tipo de fila
           <i class="bi bi-info-circle text-muted" data-aparicion-help="true" title="${escapeAttr(
-            tipoTooltip
+            tipoTooltip,
           )}"></i>
         </label>
         <select class="form-select" id="editOperacionTipo" data-aparicion-select="true" data-initial-tipo="${escapeAttr(
-          tipoSeleccionado
-        )}" title="${escapeAttr(
-          tipoTooltip
-        )}">
+          tipoSeleccionado,
+        )}" title="${escapeAttr(tipoTooltip)}">
           ${tipoOptions}
         </select>
         <div class="form-text">
@@ -3659,10 +3863,8 @@
 
     const html = items
       .map((item) => {
-        const value =
-          type === "section" ? item : item.id || item.label || "";
-        const label =
-          type === "section" ? item : item.label || item.id || "";
+        const value = type === "section" ? item : item.id || item.label || "";
+        const label = type === "section" ? item : item.label || item.id || "";
         const key = normalizeContributionKey(type, value);
         const altKey = normalizeContributionKey(type, label);
         const operator =
@@ -3671,10 +3873,10 @@
         const searchKey = normalizeOperationMatch(label || value);
         return `
           <label class="contrib-item" data-type="${escapeAttr(
-            type
+            type,
           )}" data-value="${escapeAttr(value)}" data-search="${escapeAttr(
-          searchKey
-        )}">
+            searchKey,
+          )}">
             <input class="form-check-input contrib-check" type="checkbox" ${
               checked ? "checked" : ""
             } />
@@ -3766,33 +3968,37 @@
       ? availableElements.sections
       : [];
     const operations = getRealOperationOptions(
-      availableElements?.operations || []
+      availableElements?.operations || [],
     );
     renderContributionList(
       dom.operationEditorPanel.querySelector("#contribSections"),
       sections,
       "section",
-      selectionMap
+      selectionMap,
     );
     renderContributionList(
       dom.operationEditorPanel.querySelector("#contribOperations"),
       operations,
       "operation",
-      selectionMap
+      selectionMap,
     );
-    
+
     // Actualizar contadores
     updateContributionCounters(dom.operationEditorPanel);
   }
-  
+
   function updateContributionCounters(panel) {
     if (!panel) return;
-    const sectionsChecked = panel.querySelectorAll('#contribSections .contrib-check:checked').length;
-    const operationsChecked = panel.querySelectorAll('#contribOperations .contrib-check:checked').length;
-    
-    const sectionsCounter = panel.querySelector('#contribSectionsCount');
-    const operationsCounter = panel.querySelector('#contribOperationsCount');
-    
+    const sectionsChecked = panel.querySelectorAll(
+      "#contribSections .contrib-check:checked",
+    ).length;
+    const operationsChecked = panel.querySelectorAll(
+      "#contribOperations .contrib-check:checked",
+    ).length;
+
+    const sectionsCounter = panel.querySelector("#contribSectionsCount");
+    const operationsCounter = panel.querySelector("#contribOperationsCount");
+
     if (sectionsCounter) sectionsCounter.textContent = sectionsChecked;
     if (operationsCounter) operationsCounter.textContent = operationsChecked;
   }
@@ -3800,7 +4006,7 @@
   function applyContributionTerms(mode = "replace") {
     if (!dom.operationEditorPanel) return;
     const contribPanel = dom.operationEditorPanel.querySelector(
-      '[data-formula-panel="contrib"]'
+      '[data-formula-panel="contrib"]',
     );
     const terms = collectContributionTerms(contribPanel);
     if (!terms.length) {
@@ -3843,17 +4049,17 @@
         <div class="col-md-6">
           <label class="form-label small text-muted"${tooltipAttr}>${row.label}</label>
           <input type="text" class="form-control" id="${rowLabelInputId(
-            row.field
+            row.field,
           )}" value="${escapeHtml(op[row.field] || "")}" placeholder="${
-        row.placeholder
-      }"${tooltipAttr} />
+            row.placeholder
+          }"${tooltipAttr} />
         </div>
       `;
     }).join("");
 
     if (dom.operationEditorTitle) {
       dom.operationEditorTitle.textContent = `Operacion: ${getOperationDisplayName(
-        op
+        op,
       )}`;
     }
     if (dom.operationEditorSubtitle) {
@@ -3878,13 +4084,13 @@
     if (dom.editorTabFormula) {
       dom.editorTabFormula.innerHTML = buildOperationEditorFormulaTab(
         op,
-        availableElements
+        availableElements,
       );
     }
     if (dom.editorTabAparicion) {
       dom.editorTabAparicion.innerHTML = buildOperationEditorAparicionTab(
         op,
-        rowLabelsHtml
+        rowLabelsHtml,
       );
       initAparicionSelect(dom.editorTabAparicion);
     }
@@ -3897,7 +4103,7 @@
     if (window.bootstrap?.Offcanvas) {
       try {
         const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(
-          dom.operationEditorPanel
+          dom.operationEditorPanel,
         );
         offcanvas.show();
         panelShown = true;
@@ -3907,10 +4113,12 @@
         panelShown = false;
       }
     }
-    
+
     // Fallback manual si Bootstrap no está disponible
     if (!panelShown) {
-      console.warn("⚠️ Bootstrap Offcanvas no disponible, usando fallback manual");
+      console.warn(
+        "⚠️ Bootstrap Offcanvas no disponible, usando fallback manual",
+      );
       panelShown = openOffcanvasFallback(dom.operationEditorPanel);
       if (panelShown) {
         console.log("✅ Panel lateral abierto con fallback manual");
@@ -3918,7 +4126,7 @@
         console.error("❌ No se pudo abrir el panel lateral");
       }
     }
-    
+
     return panelShown;
   }
 
@@ -3987,7 +4195,12 @@
           return;
         }
         if (match.operations.length > 1) {
-          editConsolidatedLabel(label, match.field || kind || "sum-row");
+          editConsolidatedLabel(
+            label,
+            match.field || kind || "sum-row",
+            "",
+            match.operations,
+          );
           return;
         }
 
@@ -4000,7 +4213,10 @@
         const section = item.dataset.section;
         if (section) {
           if (state.editMode === false) {
-            showToast("Activa el modo edición para modificar secciones", "warning");
+            showToast(
+              "Activa el modo edición para modificar secciones",
+              "warning",
+            );
             return;
           }
           window.editSection(section);
@@ -4013,7 +4229,10 @@
         const subsection = item.dataset.subsection;
         if (section && subsection) {
           if (state.editMode === false) {
-            showToast("Activa el modo edición para modificar subsecciones", "warning");
+            showToast(
+              "Activa el modo edición para modificar subsecciones",
+              "warning",
+            );
             return;
           }
           window.editSubsection(section, subsection);
@@ -4035,7 +4254,7 @@
       if (!Number.isFinite(desiredRaw)) return;
       const desired = Math.min(
         Math.max(Math.floor(desiredRaw), 1),
-        allRows.length
+        allRows.length,
       );
       if (desired !== desiredRaw) {
         input.value = String(desired);
@@ -4067,7 +4286,7 @@
         }
         applyInlineOrderJump(input);
       },
-      true
+      true,
     );
   }
 
@@ -4085,23 +4304,28 @@
     const cuenta = resolveAccountByIdOrCode(cuentaId);
 
     if (!cuenta) {
-      showToast('Cuenta no encontrada', 'warning');
+      showToast("Cuenta no encontrada", "warning");
       return;
     }
     const accountId = getAccountRowId(cuenta);
     const codigoCuenta = cuenta.CUENTA || cuenta.cuenta || cuentaId;
-    state.selectedElement = { type: "account", cuenta, accountId, codigo: codigoCuenta };
+    state.selectedElement = {
+      type: "account",
+      cuenta,
+      accountId,
+      codigo: codigoCuenta,
+    };
     updateSelectionInfo();
 
     // Abrir editor usando el panel existente
     if (!dom.operationEditorPanel) {
-      showToast('Panel de edición no disponible', 'error');
+      showToast("Panel de edición no disponible", "error");
       return;
     }
 
     // Configurar título del editor
     if (dom.operationEditorTitle) {
-      dom.operationEditorTitle.textContent = 'Editar Cuenta';
+      dom.operationEditorTitle.textContent = "Editar Cuenta";
     }
     if (dom.operationEditorSubtitle) {
       dom.operationEditorSubtitle.textContent = `Cuenta: ${codigoCuenta}`;
@@ -4112,23 +4336,23 @@
       dom.editorTabDatos.innerHTML = `
         <div class="mb-3">
           <label class="form-label">Cuenta</label>
-          <input type="text" class="form-control" id="editCuenta" value="${escapeHtml(codigoCuenta || '')}" readonly />
+          <input type="text" class="form-control" id="editCuenta" value="${escapeHtml(codigoCuenta || "")}" readonly />
         </div>
         <div class="mb-3">
           <label class="form-label">Nombre</label>
-          <input type="text" class="form-control" id="editNombre" value="${escapeHtml(cuenta.NOMBRE || cuenta.nombre || '')}" />
+          <input type="text" class="form-control" id="editNombre" value="${escapeHtml(cuenta.NOMBRE || cuenta.nombre || "")}" />
         </div>
         <div class="mb-3">
           <label class="form-label">Sección Principal</label>
-          <input type="text" class="form-control" id="editSeccionPrincipal" value="${escapeHtml(getAccountPrincipalName(cuenta) || '')}" />
+          <input type="text" class="form-control" id="editSeccionPrincipal" value="${escapeHtml(getAccountPrincipalName(cuenta) || "")}" />
         </div>
         <div class="mb-3">
           <label class="form-label">Sección Secundaria</label>
-          <input type="text" class="form-control" id="editSeccionSecundaria" value="${escapeHtml(getAccountSecondaryName(cuenta) || '')}" />
+          <input type="text" class="form-control" id="editSeccionSecundaria" value="${escapeHtml(getAccountSecondaryName(cuenta) || "")}" />
         </div>
         <div class="mb-3">
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="editVisible" ${cuenta.visible !== false ? 'checked' : ''} />
+            <input class="form-check-input" type="checkbox" id="editVisible" ${cuenta.visible !== false ? "checked" : ""} />
             <label class="form-check-label" for="editVisible">Visible</label>
           </div>
         </div>
@@ -4136,16 +4360,22 @@
     }
 
     // Limpiar otras pestañas
-    if (dom.editorTabFormula) dom.editorTabFormula.innerHTML = '<p class="text-muted">No aplica para cuentas</p>';
-    if (dom.editorTabAparicion) dom.editorTabAparicion.innerHTML = '<p class="text-muted">No aplica para cuentas</p>';
+    if (dom.editorTabFormula)
+      dom.editorTabFormula.innerHTML =
+        '<p class="text-muted">No aplica para cuentas</p>';
+    if (dom.editorTabAparicion)
+      dom.editorTabAparicion.innerHTML =
+        '<p class="text-muted">No aplica para cuentas</p>';
 
     // Configurar botón de guardar
     if (dom.btnEditorSave) {
       const saveHandler = () => {
-        const nombre = document.getElementById('editNombre')?.value || '';
-        const seccionPrincipal = document.getElementById('editSeccionPrincipal')?.value || '';
-        const seccionSecundaria = document.getElementById('editSeccionSecundaria')?.value || '';
-        const visible = document.getElementById('editVisible')?.checked;
+        const nombre = document.getElementById("editNombre")?.value || "";
+        const seccionPrincipal =
+          document.getElementById("editSeccionPrincipal")?.value || "";
+        const seccionSecundaria =
+          document.getElementById("editSeccionSecundaria")?.value || "";
+        const visible = document.getElementById("editVisible")?.checked;
 
         // Actualizar cuenta
         if (cuenta.NOMBRE !== undefined) cuenta.NOMBRE = nombre;
@@ -4177,20 +4407,22 @@
         updateButtonStates();
         renderLayout();
         scheduleAutoSave("edit");
-        showToast('Cuenta actualizada', 'success');
+        showToast("Cuenta actualizada", "success");
 
         // Cerrar panel
         if (window.bootstrap?.Offcanvas) {
-          const offcanvas = window.bootstrap.Offcanvas.getInstance(dom.operationEditorPanel);
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(
+            dom.operationEditorPanel,
+          );
           offcanvas?.hide();
         }
 
         // Remover listener
-        dom.btnEditorSave.removeEventListener('click', saveHandler);
+        dom.btnEditorSave.removeEventListener("click", saveHandler);
       };
 
-      dom.btnEditorSave.removeEventListener('click', saveHandler);
-      dom.btnEditorSave.addEventListener('click', saveHandler);
+      dom.btnEditorSave.removeEventListener("click", saveHandler);
+      dom.btnEditorSave.addEventListener("click", saveHandler);
     }
 
     // Configurar botón de eliminar
@@ -4199,30 +4431,34 @@
         if (!confirm(`¿Eliminar la cuenta ${codigoCuenta}?`)) return;
 
         state.cuentas = state.cuentas.filter(
-          (c) => getAccountRowId(c) !== accountId
+          (c) => getAccountRowId(c) !== accountId,
         );
         state.unsavedChanges = true;
         updateButtonStates();
         renderLayout();
         scheduleAutoSave("delete");
-        showToast('Cuenta eliminada', 'success');
+        showToast("Cuenta eliminada", "success");
 
         // Cerrar panel
         if (window.bootstrap?.Offcanvas) {
-          const offcanvas = window.bootstrap.Offcanvas.getInstance(dom.operationEditorPanel);
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(
+            dom.operationEditorPanel,
+          );
           offcanvas?.hide();
         }
 
-        dom.btnEditorDelete.removeEventListener('click', deleteHandler);
+        dom.btnEditorDelete.removeEventListener("click", deleteHandler);
       };
 
-      dom.btnEditorDelete.removeEventListener('click', deleteHandler);
-      dom.btnEditorDelete.addEventListener('click', deleteHandler);
+      dom.btnEditorDelete.removeEventListener("click", deleteHandler);
+      dom.btnEditorDelete.addEventListener("click", deleteHandler);
     }
 
     // Abrir panel
     if (window.bootstrap?.Offcanvas) {
-      const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(dom.operationEditorPanel);
+      const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(
+        dom.operationEditorPanel,
+      );
       offcanvas.show();
     }
   }
@@ -4234,13 +4470,13 @@
     if (!sectionName) return;
 
     if (!dom.operationEditorPanel) {
-      showToast('Panel de edición no disponible', 'error');
+      showToast("Panel de edición no disponible", "error");
       return;
     }
 
     // Configurar título
     if (dom.operationEditorTitle) {
-      dom.operationEditorTitle.textContent = 'Editar Sección Principal';
+      dom.operationEditorTitle.textContent = "Editar Sección Principal";
     }
     if (dom.operationEditorSubtitle) {
       dom.operationEditorSubtitle.textContent = sectionName;
@@ -4260,41 +4496,50 @@
       `;
     }
 
-    if (dom.editorTabFormula) dom.editorTabFormula.innerHTML = '<p class="text-muted">No aplica para secciones</p>';
-    if (dom.editorTabAparicion) dom.editorTabAparicion.innerHTML = '<p class="text-muted">No aplica para secciones</p>';
+    if (dom.editorTabFormula)
+      dom.editorTabFormula.innerHTML =
+        '<p class="text-muted">No aplica para secciones</p>';
+    if (dom.editorTabAparicion)
+      dom.editorTabAparicion.innerHTML =
+        '<p class="text-muted">No aplica para secciones</p>';
 
     // Configurar botón de guardar
     if (dom.btnEditorSave) {
       const saveHandler = () => {
-        const newName = document.getElementById('editSectionName')?.value?.trim();
+        const newName = document
+          .getElementById("editSectionName")
+          ?.value?.trim();
         if (!newName) {
-          showToast('El nombre de la sección es requerido', 'warning');
+          showToast("El nombre de la sección es requerido", "warning");
           return;
         }
 
         // Actualizar todas las cuentas que tienen esta sección
-        state.cuentas.forEach(cuenta => {
+        state.cuentas.forEach((cuenta) => {
           const currentSection = getAccountPrincipalName(cuenta);
           if (currentSection === sectionName) {
-            if (cuenta['SECCION PRINCIPAL']) cuenta['SECCION PRINCIPAL'] = newName;
+            if (cuenta["SECCION PRINCIPAL"])
+              cuenta["SECCION PRINCIPAL"] = newName;
             if (cuenta.seccion_principal) cuenta.seccion_principal = newName;
           }
         });
 
         state.unsavedChanges = true;
         renderLayout();
-        showToast('Sección actualizada', 'success');
+        showToast("Sección actualizada", "success");
 
         if (window.bootstrap?.Offcanvas) {
-          const offcanvas = window.bootstrap.Offcanvas.getInstance(dom.operationEditorPanel);
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(
+            dom.operationEditorPanel,
+          );
           offcanvas?.hide();
         }
 
-        dom.btnEditorSave.removeEventListener('click', saveHandler);
+        dom.btnEditorSave.removeEventListener("click", saveHandler);
       };
 
-      dom.btnEditorSave.removeEventListener('click', saveHandler);
-      dom.btnEditorSave.addEventListener('click', saveHandler);
+      dom.btnEditorSave.removeEventListener("click", saveHandler);
+      dom.btnEditorSave.addEventListener("click", saveHandler);
     }
 
     // Configurar botón de eliminar
@@ -4304,7 +4549,7 @@
       const deleteHandler = () => {
         if (
           !confirm(
-            `¿Eliminar la sección "${sectionName}" y TODAS sus cuentas? Esta acción no se puede deshacer.`
+            `¿Eliminar la sección "${sectionName}" y TODAS sus cuentas? Esta acción no se puede deshacer.`,
           )
         )
           return;
@@ -4322,7 +4567,7 @@
 
         if (window.bootstrap?.Offcanvas) {
           const offcanvas = window.bootstrap.Offcanvas.getInstance(
-            dom.operationEditorPanel
+            dom.operationEditorPanel,
           );
           offcanvas?.hide();
         }
@@ -4336,7 +4581,9 @@
 
     // Abrir panel
     if (window.bootstrap?.Offcanvas) {
-      const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(dom.operationEditorPanel);
+      const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(
+        dom.operationEditorPanel,
+      );
       offcanvas.show();
     }
   }
@@ -4348,13 +4595,13 @@
     if (!subsectionName) return;
 
     if (!dom.operationEditorPanel) {
-      showToast('Panel de edición no disponible', 'error');
+      showToast("Panel de edición no disponible", "error");
       return;
     }
 
     // Configurar título
     if (dom.operationEditorTitle) {
-      dom.operationEditorTitle.textContent = 'Editar Subsección';
+      dom.operationEditorTitle.textContent = "Editar Subsección";
     }
     if (dom.operationEditorSubtitle) {
       dom.operationEditorSubtitle.textContent = `${sectionName} > ${subsectionName}`;
@@ -4378,42 +4625,52 @@
       `;
     }
 
-    if (dom.editorTabFormula) dom.editorTabFormula.innerHTML = '<p class="text-muted">No aplica para subsecciones</p>';
-    if (dom.editorTabAparicion) dom.editorTabAparicion.innerHTML = '<p class="text-muted">No aplica para subsecciones</p>';
+    if (dom.editorTabFormula)
+      dom.editorTabFormula.innerHTML =
+        '<p class="text-muted">No aplica para subsecciones</p>';
+    if (dom.editorTabAparicion)
+      dom.editorTabAparicion.innerHTML =
+        '<p class="text-muted">No aplica para subsecciones</p>';
 
     // Configurar botón de guardar
     if (dom.btnEditorSave) {
       const saveHandler = () => {
-        const newName = document.getElementById('editSubsectionName')?.value?.trim();
+        const newName = document
+          .getElementById("editSubsectionName")
+          ?.value?.trim();
         if (!newName) {
-          showToast('El nombre de la subsección es requerido', 'warning');
+          showToast("El nombre de la subsección es requerido", "warning");
           return;
         }
 
         // Actualizar todas las cuentas que tienen esta subsección
-        state.cuentas.forEach(cuenta => {
+        state.cuentas.forEach((cuenta) => {
           const currentSubsection = getAccountSecondaryName(cuenta);
           if (currentSubsection === subsectionName) {
-            if (cuenta['SECCION Secundaria']) cuenta['SECCION Secundaria'] = newName;
-            if (cuenta['SECCION SECUNDARIA']) cuenta['SECCION SECUNDARIA'] = newName;
+            if (cuenta["SECCION Secundaria"])
+              cuenta["SECCION Secundaria"] = newName;
+            if (cuenta["SECCION SECUNDARIA"])
+              cuenta["SECCION SECUNDARIA"] = newName;
             if (cuenta.seccion_secundaria) cuenta.seccion_secundaria = newName;
           }
         });
 
         state.unsavedChanges = true;
         renderLayout();
-        showToast('Subsección actualizada', 'success');
+        showToast("Subsección actualizada", "success");
 
         if (window.bootstrap?.Offcanvas) {
-          const offcanvas = window.bootstrap.Offcanvas.getInstance(dom.operationEditorPanel);
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(
+            dom.operationEditorPanel,
+          );
           offcanvas?.hide();
         }
 
-        dom.btnEditorSave.removeEventListener('click', saveHandler);
+        dom.btnEditorSave.removeEventListener("click", saveHandler);
       };
 
-      dom.btnEditorSave.removeEventListener('click', saveHandler);
-      dom.btnEditorSave.addEventListener('click', saveHandler);
+      dom.btnEditorSave.removeEventListener("click", saveHandler);
+      dom.btnEditorSave.addEventListener("click", saveHandler);
     }
 
     // Configurar botón de eliminar
@@ -4423,7 +4680,7 @@
       const deleteHandler = () => {
         if (
           !confirm(
-            `¿Eliminar la subsección "${subsectionName}" y TODAS sus cuentas? Esta acción no se puede deshacer.`
+            `¿Eliminar la subsección "${subsectionName}" y TODAS sus cuentas? Esta acción no se puede deshacer.`,
           )
         )
           return;
@@ -4431,9 +4688,7 @@
         state.cuentas = state.cuentas.filter((c) => {
           const principal = getAccountPrincipalName(c) || "";
           const secundaria = getAccountSecondaryName(c) || "";
-          return !(
-            principal === sectionName && secundaria === subsectionName
-          );
+          return !(principal === sectionName && secundaria === subsectionName);
         });
         logChange("delete", `Subsección "${subsectionName}" eliminada`, {
           sectionName,
@@ -4445,7 +4700,7 @@
 
         if (window.bootstrap?.Offcanvas) {
           const offcanvas = window.bootstrap.Offcanvas.getInstance(
-            dom.operationEditorPanel
+            dom.operationEditorPanel,
           );
           offcanvas?.hide();
         }
@@ -4459,7 +4714,9 @@
 
     // Abrir panel
     if (window.bootstrap?.Offcanvas) {
-      const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(dom.operationEditorPanel);
+      const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(
+        dom.operationEditorPanel,
+      );
       offcanvas.show();
     }
   }
@@ -4479,35 +4736,37 @@
     }
 
     // Buscar la operación
-    const operation = state.operaciones.find(op =>
-      getOperationId(op) === operationId ||
-      (op.Clase || op.clase) === operationId ||
-      (op.OperacionId || op.OperacionID) === operationId
+    const operation = state.operaciones.find(
+      (op) =>
+        getOperationId(op) === operationId ||
+        (op.Clase || op.clase) === operationId ||
+        (op.OperacionId || op.OperacionID) === operationId,
     );
 
     if (!operation) {
-      showToast('Operación no encontrada', 'warning');
+      showToast("Operación no encontrada", "warning");
       return;
     }
 
     if (!dom.operationEditorPanel) {
-      showToast('Panel de edición no disponible', 'error');
+      showToast("Panel de edición no disponible", "error");
       return;
     }
 
     // Configurar título
     if (dom.operationEditorTitle) {
-      dom.operationEditorTitle.textContent = 'Editar Operación';
+      dom.operationEditorTitle.textContent = "Editar Operación";
     }
     if (dom.operationEditorSubtitle) {
-      dom.operationEditorSubtitle.textContent = getOperationDisplayName(operation);
+      dom.operationEditorSubtitle.textContent =
+        getOperationDisplayName(operation);
     }
 
     // Renderizar formulario básico
     if (dom.editorTabDatos) {
-      const opId = getOperationId(operation) || '';
-      const clase = operation.Clase || operation.clase || '';
-      const seccion = operation.SECCION || operation.seccion || '';
+      const opId = getOperationId(operation) || "";
+      const clase = operation.Clase || operation.clase || "";
+      const seccion = operation.SECCION || operation.seccion || "";
 
       dom.editorTabDatos.innerHTML = `
         <div class="mb-3">
@@ -4524,7 +4783,7 @@
         </div>
         <div class="mb-3">
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="editOpVisible" ${operation.visible !== false ? 'checked' : ''} />
+            <input class="form-check-input" type="checkbox" id="editOpVisible" ${operation.visible !== false ? "checked" : ""} />
             <label class="form-check-label" for="editOpVisible">Visible</label>
           </div>
         </div>
@@ -4537,26 +4796,28 @@
 
     // Pestaña de fórmula
     if (dom.editorTabFormula) {
-      const formula = formatFormula(operation) || '';
+      const formula = formatFormula(operation) || "";
       dom.editorTabFormula.innerHTML = `
         <div class="mb-3">
           <label class="form-label">Fórmula</label>
           <textarea class="form-control font-monospace" id="editFormula" rows="4" placeholder="Fórmula de la operación">${escapeHtml(formula)}</textarea>
           <div class="form-text">Edite la fórmula manualmente o use el constructor de fórmulas.</div>
         </div>
-        ${window.FormulaBuilder ? '<button type="button" class="btn btn-outline-primary btn-sm" onclick="window.FormulaBuilder.showMap && window.FormulaBuilder.showMap()">Abrir Constructor de Fórmulas</button>' : ''}
+        ${window.FormulaBuilder ? '<button type="button" class="btn btn-outline-primary btn-sm" onclick="window.FormulaBuilder.showMap && window.FormulaBuilder.showMap()">Abrir Constructor de Fórmulas</button>' : ""}
       `;
     }
 
-    if (dom.editorTabAparicion) dom.editorTabAparicion.innerHTML = '<p class="text-muted">Próximamente: configuración de aparición</p>';
+    if (dom.editorTabAparicion)
+      dom.editorTabAparicion.innerHTML =
+        '<p class="text-muted">Próximamente: configuración de aparición</p>';
 
     // Configurar botón de guardar
     if (dom.btnEditorSave) {
       const saveHandler = () => {
-        const clase = document.getElementById('editClase')?.value || '';
-        const seccion = document.getElementById('editSeccion')?.value || '';
-        const visible = document.getElementById('editOpVisible')?.checked;
-        const formula = document.getElementById('editFormula')?.value || '';
+        const clase = document.getElementById("editClase")?.value || "";
+        const seccion = document.getElementById("editSeccion")?.value || "";
+        const visible = document.getElementById("editOpVisible")?.checked;
+        const formula = document.getElementById("editFormula")?.value || "";
 
         // Actualizar operación
         if (operation.Clase !== undefined) operation.Clase = clase;
@@ -4569,53 +4830,64 @@
         if (formula && formula !== formatFormula(operation)) {
           // Aquí se podría parsear la fórmula y actualizar los campos correspondientes
           // Por ahora solo mostramos un mensaje
-          showToast('Cambios guardados. La fórmula debe ser validada.', 'info');
+          showToast("Cambios guardados. La fórmula debe ser validada.", "info");
         }
 
         state.unsavedChanges = true;
         renderLayout();
-        showToast('Operación actualizada', 'success');
+        showToast("Operación actualizada", "success");
 
         if (window.bootstrap?.Offcanvas) {
-          const offcanvas = window.bootstrap.Offcanvas.getInstance(dom.operationEditorPanel);
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(
+            dom.operationEditorPanel,
+          );
           offcanvas?.hide();
         }
 
-        dom.btnEditorSave.removeEventListener('click', saveHandler);
+        dom.btnEditorSave.removeEventListener("click", saveHandler);
       };
 
-      dom.btnEditorSave.removeEventListener('click', saveHandler);
-      dom.btnEditorSave.addEventListener('click', saveHandler);
+      dom.btnEditorSave.removeEventListener("click", saveHandler);
+      dom.btnEditorSave.addEventListener("click", saveHandler);
     }
 
     // Configurar botón de eliminar
     if (dom.btnEditorDelete) {
       dom.btnEditorDelete.disabled = false;
       const deleteHandler = () => {
-        if (!confirm(`¿Eliminar la operación ${getOperationDisplayName(operation)}?`)) return;
+        if (
+          !confirm(
+            `¿Eliminar la operación ${getOperationDisplayName(operation)}?`,
+          )
+        )
+          return;
 
-        state.operaciones = state.operaciones.filter(op =>
-          getOperationId(op) !== operationId
+        state.operaciones = state.operaciones.filter(
+          (op) => getOperationId(op) !== operationId,
         );
         state.unsavedChanges = true;
         renderLayout();
-        showToast('Operación eliminada', 'success');
+        showToast("Operación eliminada", "success");
 
         if (window.bootstrap?.Offcanvas) {
-          const offcanvas = window.bootstrap.Offcanvas.getInstance(dom.operationEditorPanel);
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(
+            dom.operationEditorPanel,
+          );
           offcanvas?.hide();
         }
 
-        dom.btnEditorDelete.removeEventListener('click', deleteHandler);
+        dom.btnEditorDelete.removeEventListener("click", deleteHandler);
       };
 
-      dom.btnEditorDelete.removeEventListener('click', deleteHandler);
-      dom.btnEditorDelete.addEventListener('click', deleteHandler);
+      dom.btnEditorDelete.removeEventListener("click", deleteHandler);
+      dom.btnEditorDelete.addEventListener("click", deleteHandler);
     }
 
     // Abrir panel
     if (window.bootstrap?.Offcanvas) {
-      const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(dom.operationEditorPanel);
+      const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(
+        dom.operationEditorPanel,
+      );
       offcanvas.show();
     }
   }
@@ -4623,10 +4895,20 @@
   /**
    * Editar una etiqueta consolidada (múltiples operaciones con mismo label)
    */
-  function editConsolidatedLabel(label, field) {
+  function editConsolidatedLabel(
+    label,
+    field,
+    parentSection = "",
+    sourceOperations = [],
+  ) {
     // Usar la versión global que tiene la implementación completa
     if (window.editConsolidatedLabel) {
-      window.editConsolidatedLabel(label, field);
+      window.editConsolidatedLabel(
+        label,
+        field,
+        parentSection,
+        sourceOperations,
+      );
     }
   }
 
@@ -4681,7 +4963,7 @@
     const accounts = state.cuentas || [];
     if (!accounts.length) return;
     const baseOrder = Math.min(
-      ...accounts.map((cuenta, idx) => getAccountOrder(cuenta, idx))
+      ...accounts.map((cuenta, idx) => getAccountOrder(cuenta, idx)),
     );
     let order = Number.isFinite(baseOrder) ? baseOrder : 0;
 
@@ -4697,11 +4979,11 @@
 
   function resequenceAccountsForSection(section) {
     const accounts = (section?.subsections || []).flatMap(
-      (subsection) => subsection.accounts || []
+      (subsection) => subsection.accounts || [],
     );
     if (!accounts.length) return;
     const baseOrder = Math.min(
-      ...accounts.map((cuenta, idx) => getAccountOrder(cuenta, idx))
+      ...accounts.map((cuenta, idx) => getAccountOrder(cuenta, idx)),
     );
     let order = Number.isFinite(baseOrder) ? baseOrder : 0;
 
@@ -4728,7 +5010,8 @@
       return;
     }
     if (rowType === "subsection") {
-      const sectionName = row.dataset.section || row.dataset.parentSection || "";
+      const sectionName =
+        row.dataset.section || row.dataset.parentSection || "";
       moveSubsectionOrder(sectionName, row.dataset.subsection, direction);
       return;
     }
@@ -4737,7 +5020,7 @@
         row.dataset.accountId || row.dataset.cuenta,
         row.dataset.section || row.dataset.parentSection || "",
         row.dataset.subsection || row.dataset.parentSubsection || "",
-        direction
+        direction,
       );
       return;
     }
@@ -4746,7 +5029,7 @@
         row.dataset.operationLabel,
         row.dataset.operationId,
         row.dataset.operationKind,
-        direction
+        direction,
       );
     }
   }
@@ -4766,7 +5049,8 @@
       if (type === "principal") return 0;
       if (type === "subsection") return 1;
       if (type === "account") {
-        const parentSub = row.parentSubsection || row.subsection || row.parentSub || "";
+        const parentSub =
+          row.parentSubsection || row.subsection || row.parentSub || "";
         const parentSec = row.parentSection || row.section || row.parent || "";
         if (parentSub) return 2;
         if (parentSec) return 1;
@@ -4833,7 +5117,7 @@
         if (level === 2 || level === 1) {
           showToast(
             "No puedes mover este elemento fuera de su sección. Cambia su sección para moverlo.",
-            "warning"
+            "warning",
           );
         }
         return;
@@ -4855,7 +5139,7 @@
         if (level === 2 || level === 1) {
           showToast(
             "No puedes mover este elemento fuera de su sección. Cambia su sección para moverlo.",
-            "warning"
+            "warning",
           );
         }
         return;
@@ -4885,7 +5169,8 @@
       if (type === "principal") return 0;
       if (type === "subsection") return 1;
       if (type === "account") {
-        const parentSub = row.parentSubsection || row.subsection || row.parentSub || "";
+        const parentSub =
+          row.parentSubsection || row.subsection || row.parentSub || "";
         const parentSec = row.parentSection || row.section || row.parent || "";
         if (parentSub) return 2;
         if (parentSec) return 1;
@@ -4929,7 +5214,7 @@
     const block = rows.slice(currentBlock.start, currentBlock.end + 1);
     const blockLen = block.length;
     const remaining = rows.filter(
-      (_, idx) => idx < currentBlock.start || idx > currentBlock.end
+      (_, idx) => idx < currentBlock.start || idx > currentBlock.end,
     );
 
     // Ajustar índice objetivo por la extracción del bloque si se mueve hacia abajo.
@@ -4953,7 +5238,7 @@
     if (level === 1 || level === 2) {
       const principalIdx = findPrevInOriginal(
         currentBlock.start,
-        (row) => resolveRowLevel(row) === 0
+        (row) => resolveRowLevel(row) === 0,
       );
       if (principalIdx >= 0) {
         groupStart = principalIdx;
@@ -4967,7 +5252,8 @@
       }
     }
 
-    const allowedMin = level === 0 ? 0 : Math.min(groupStart + 1, remaining.length);
+    const allowedMin =
+      level === 0 ? 0 : Math.min(groupStart + 1, remaining.length);
     const allowedMax = Math.min(groupEnd, remaining.length);
     const originalInsertHint = insertHint;
     if (insertHint < allowedMin) insertHint = allowedMin;
@@ -4976,7 +5262,7 @@
       if (level === 1 || level === 2) {
         showToast(
           "Esa posición está fuera de la sección. Se ajustó dentro del rango permitido.",
-          "warning"
+          "warning",
         );
       }
     }
@@ -5005,7 +5291,7 @@
     const sections = groupBySections(state.cuentas || []);
     const targetKey = normalizeOperationMatch(sectionName);
     const index = sections.findIndex(
-      (section) => normalizeOperationMatch(section.name) === targetKey
+      (section) => normalizeOperationMatch(section.name) === targetKey,
     );
     if (index === -1) {
       showToast("Seccion no encontrada", "warning");
@@ -5026,7 +5312,7 @@
     const sections = groupBySections(state.cuentas || []);
     const sectionKey = normalizeOperationMatch(sectionName);
     const section = sections.find(
-      (item) => normalizeOperationMatch(item.name) === sectionKey
+      (item) => normalizeOperationMatch(item.name) === sectionKey,
     );
     if (!section) {
       showToast("Subseccion no encontrada", "warning");
@@ -5034,7 +5320,7 @@
     }
     const subKey = normalizeOperationMatch(subsectionName);
     const index = (section.subsections || []).findIndex(
-      (subsection) => normalizeOperationMatch(subsection.name) === subKey
+      (subsection) => normalizeOperationMatch(subsection.name) === subKey,
     );
     if (index === -1) return;
     const nextIndex = index + direction;
@@ -5047,20 +5333,24 @@
     renderLayout();
   }
 
-  function moveAccountOrder(cuentaCode, sectionName, subsectionName, direction) {
+  function moveAccountOrder(
+    cuentaCode,
+    sectionName,
+    subsectionName,
+    direction,
+  ) {
     if (!cuentaCode) return;
     const account = resolveAccountByIdOrCode(cuentaCode);
     if (!account) return;
     const principal = sectionName || getAccountPrincipalName(account);
-    const secondary =
-      subsectionName || getAccountSecondaryName(account) || "";
+    const secondary = subsectionName || getAccountSecondaryName(account) || "";
 
     const group = (state.cuentas || []).filter((cuenta) => {
       const principalKey = normalizeOperationMatch(
-        getAccountPrincipalName(cuenta)
+        getAccountPrincipalName(cuenta),
       );
       const secondaryKey = normalizeOperationMatch(
-        getAccountSecondaryName(cuenta) || ""
+        getAccountSecondaryName(cuenta) || "",
       );
       return (
         principalKey === normalizeOperationMatch(principal) &&
@@ -5070,7 +5360,7 @@
     const ordered = sortAccountsByOrder(group);
     const accountId = getAccountRowId(account);
     const index = ordered.findIndex(
-      (cuenta) => getAccountRowId(cuenta) === accountId
+      (cuenta) => getAccountRowId(cuenta) === accountId,
     );
     if (index === -1) return;
     const nextIndex = index + direction;
@@ -5185,7 +5475,10 @@
       op.orden = neighborOrder;
       neighbor.orden_presentacion = currentOrder;
       neighbor.orden = currentOrder;
-      logChange("move", `Operacion "${getOperationDisplayName(op)}" reordenada`);
+      logChange(
+        "move",
+        `Operacion "${getOperationDisplayName(op)}" reordenada`,
+      );
       renderLayout();
       return;
     }
@@ -5286,11 +5579,11 @@
       const key = normalizeOperationMatch(candidate);
       if (!key) continue;
       const byId = (state.operaciones || []).filter(
-        (op) => normalizeOperationMatch(getOperationId(op)) === key
+        (op) => normalizeOperationMatch(getOperationId(op)) === key,
       );
       if (byId.length === 1) return [byId[0]];
       const byLabel = (state.operaciones || []).filter(
-        (op) => normalizeOperationMatch(getOperationLabel(op)) === key
+        (op) => normalizeOperationMatch(getOperationLabel(op)) === key,
       );
       if (byLabel.length === 1) return [byLabel[0]];
     }
@@ -5315,8 +5608,8 @@
       if (sectionKey) {
         const byParent = narrowed.filter((op) =>
           getOperationParentCandidates(op).some(
-            (candidate) => normalizeOperationMatch(candidate) === sectionKey
-          )
+            (candidate) => normalizeOperationMatch(candidate) === sectionKey,
+          ),
         );
         if (byParent.length) narrowed = byParent;
       }
@@ -5324,8 +5617,8 @@
       if (subsectionKey) {
         const byPlacement = narrowed.filter((op) =>
           getOperationPlacementCandidates(op).some(
-            (candidate) => normalizeOperationMatch(candidate) === subsectionKey
-          )
+            (candidate) => normalizeOperationMatch(candidate) === subsectionKey,
+          ),
         );
         if (byPlacement.length) narrowed = byPlacement;
       }
@@ -5334,7 +5627,7 @@
       const seen = new Set();
       narrowed.forEach((op) => {
         const key = normalizeOperationMatch(
-          getOperationId(op) || getOperationLabel(op) || ""
+          getOperationId(op) || getOperationLabel(op) || "",
         );
         if (!key || seen.has(key)) return;
         seen.add(key);
@@ -5352,7 +5645,7 @@
       ? buildPreviewRowsForEditor()
       : [];
     return rows.filter((row) =>
-      ["principal", "subsection", "account", "operation"].includes(row?.type)
+      ["principal", "subsection", "account", "operation"].includes(row?.type),
     );
   }
 
@@ -5363,7 +5656,9 @@
   // Esto evita "inventar" secciones a partir de campos legacy (secundaria->principal) y
   // mantiene consistencia entre: UI, reordenar, fórmulas, y placement.
   function buildManualSectionTree(rowsOverride = null) {
-    const rows = Array.isArray(rowsOverride) ? rowsOverride : getTemplateRowsForReorder();
+    const rows = Array.isArray(rowsOverride)
+      ? rowsOverride
+      : getTemplateRowsForReorder();
     const sections = [];
     const sectionMap = new Map(); // key -> { name, subsections: [] }
 
@@ -5373,7 +5668,12 @@
       const key = normalizeOperationMatch(clean);
       if (!key) return null;
       if (!sectionMap.has(key)) {
-        const node = { name: clean, key, subsections: [], subsectionMap: new Map() };
+        const node = {
+          name: clean,
+          key,
+          subsections: [],
+          subsectionMap: new Map(),
+        };
         sectionMap.set(key, node);
         sections.push(node);
       }
@@ -5413,8 +5713,12 @@
     rows.forEach((row) => {
       if (!row) return;
       if (row.type !== "account" && row.type !== "operation") return;
-      const parentSection = (row.parentSection || row.section || "").toString().trim();
-      const parentSubsection = (row.parentSubsection || row.subsection || "").toString().trim();
+      const parentSection = (row.parentSection || row.section || "")
+        .toString()
+        .trim();
+      const parentSubsection = (row.parentSubsection || row.subsection || "")
+        .toString()
+        .trim();
       if (!parentSection) return;
       const sectionNode = ensureSection(parentSection);
       if (parentSubsection) ensureSubsection(sectionNode, parentSubsection);
@@ -5424,19 +5728,26 @@
     return sections.map((sec) => ({
       name: sec.name,
       key: sec.key,
-      subsections: (sec.subsections || []).map((sub) => ({ name: sub.name, key: sub.key })),
+      subsections: (sec.subsections || []).map((sub) => ({
+        name: sub.name,
+        key: sub.key,
+      })),
     }));
   }
 
   function getManualSectionNames() {
-    return buildManualSectionTree().map((s) => s.name).filter(Boolean);
+    return buildManualSectionTree()
+      .map((s) => s.name)
+      .filter(Boolean);
   }
 
   function getManualSubsectionNames(principal) {
     const targetKey = normalizeOperationMatch(principal || "");
     if (!targetKey) return [];
     const tree = buildManualSectionTree();
-    const section = tree.find((s) => normalizeOperationMatch(s.name) === targetKey);
+    const section = tree.find(
+      (s) => normalizeOperationMatch(s.name) === targetKey,
+    );
     if (!section) return [];
     return (section.subsections || []).map((s) => s.name).filter(Boolean);
   }
@@ -5448,7 +5759,7 @@
     }
 
     const rows = orderedRows.filter((row) =>
-      ["principal", "subsection", "account", "operation"].includes(row?.type)
+      ["principal", "subsection", "account", "operation"].includes(row?.type),
     );
     if (!rows.length) {
       return { success: false, message: "Sin filas válidas para aplicar." };
@@ -5502,7 +5813,7 @@
         if (!account) return;
 
         const rowHasSection = Boolean(
-          (row.parentSection || row.section || "").toString().trim()
+          (row.parentSection || row.section || "").toString().trim(),
         );
 
         let targetSection = "";
@@ -5515,7 +5826,10 @@
         } else {
           targetSection = (
             currentPrincipal ||
-            (row.parentSection || row.section || row.parent || "")
+            row.parentSection ||
+            row.section ||
+            row.parent ||
+            ""
           )
             .toString()
             .trim();
@@ -5523,7 +5837,7 @@
           const isSubRow = Boolean(
             (row.parentSubsection ?? row.subsection ?? row.parentSub ?? "")
               .toString()
-              .trim()
+              .trim(),
           );
           if (isSubRow) {
             // Items nivel 2 siguen la subsección activa.
@@ -5553,7 +5867,7 @@
 
       if (type === "operation") {
         const rowHasSection = Boolean(
-          (row.parentSection || row.section || "").toString().trim()
+          (row.parentSection || row.section || "").toString().trim(),
         );
 
         let targetSection = "";
@@ -5565,7 +5879,10 @@
         } else {
           targetSection = (
             currentPrincipal ||
-            (row.parentSection || row.section || row.parent || "")
+            row.parentSection ||
+            row.section ||
+            row.parent ||
+            ""
           )
             .toString()
             .trim();
@@ -5573,7 +5890,7 @@
           const isSubRow = Boolean(
             (row.parentSubsection ?? row.subsection ?? row.parentSub ?? "")
               .toString()
-              .trim()
+              .trim(),
           );
           if (isSubRow) {
             targetSubsection = (currentSubsection || "").toString().trim();
@@ -5673,7 +5990,7 @@
     const table = dom.layoutPreview?.querySelector(".column-config-table");
     if (!table) return;
     const advancedToggle = dom.layoutPreview?.querySelector(
-      "#toggleColumnAdvanced"
+      "#toggleColumnAdvanced",
     );
     advancedToggle?.addEventListener("change", (event) => {
       state.columnConfigAdvanced = Boolean(event.target.checked);
@@ -5704,7 +6021,7 @@
       }
       if (field === "label") {
         const header = dom.layoutPreview?.querySelector(
-          `.template-table thead th[data-col-index="${index}"]`
+          `.template-table thead th[data-col-index="${index}"]`,
         );
         if (header) {
           header.textContent = column.label || column.key || "";
@@ -5723,10 +6040,10 @@
       state.columnasConfig.length
     ) {
       const opColumn = buildColumnConfigOperation(state.columnasConfig);
-    if (opColumn) {
-      lista.push(opColumn);
+      if (opColumn) {
+        lista.push(opColumn);
+      }
     }
-  }
     const capituloFinal = (state.capitulo || "").toString();
     const hojaFinal = (state.modulo || "").toString();
     return lista.map((op) => {
@@ -5961,7 +6278,11 @@
     return key;
   }
 
-  function findKeyByNormalized(obj, target, normalizer = normalizeOperationMatch) {
+  function findKeyByNormalized(
+    obj,
+    target,
+    normalizer = normalizeOperationMatch,
+  ) {
     if (!obj) return null;
     const targetKey = normalizer(target);
     if (!targetKey) return null;
@@ -6160,7 +6481,9 @@
         orden_presentacion: grupo.orden,
       });
     });
-    return operaciones.sort((a, b) => getOperationOrder(a) - getOperationOrder(b));
+    return operaciones.sort(
+      (a, b) => getOperationOrder(a) - getOperationOrder(b),
+    );
   }
 
   function normalizeOperativoNombre(value) {
@@ -6174,7 +6497,7 @@
       .split(/\s+/)
       .filter(Boolean);
     const filtered = tokens.filter(
-      (token) => !OPERATIVO_STOP_WORDS.has(token.toLowerCase())
+      (token) => !OPERATIVO_STOP_WORDS.has(token.toLowerCase()),
     );
     if (!filtered.length) return "";
     if (isModuloPiloto()) {
@@ -6265,7 +6588,7 @@
           return false;
         });
         matchingOps.forEach((op) =>
-          renderedInlineOps.add(getOperationId(op) || op.Clase || op)
+          renderedInlineOps.add(getOperationId(op) || op.Clase || op),
         );
       });
       html += renderSection(section);
@@ -6281,7 +6604,7 @@
 
     // Obtener operaciones ordenadas
     const ordenadas = sortOperations(state.operaciones);
-    
+
     // Verificar si hay operaciones
     if (ordenadas.length === 0) {
       return "";
@@ -6303,30 +6626,54 @@
       const clase = (getOperationLabel(op) || "").toLowerCase();
       const opId = (getOperationId(op) || "").toLowerCase();
       const combined = `${clase} ${opId}`;
-      
+
       // Clasificar por tipo de fila donde aparece (prioridad: más específico primero)
-      if (op["result-net-row"] || op["net-row"] || combined.includes("net result")) {
+      if (
+        op["result-net-row"] ||
+        op["net-row"] ||
+        combined.includes("net result")
+      ) {
         operationsByTable.netResults.push(op);
-      } else if (op["result-row"] || combined.includes(" results") && !combined.includes("operating")) {
+      } else if (
+        op["result-row"] ||
+        (combined.includes(" results") && !combined.includes("operating"))
+      ) {
         operationsByTable.results.push(op);
-      } else if (combined.includes("consolidated operating") || combined.includes("consolidated_operating")) {
+      } else if (
+        combined.includes("consolidated operating") ||
+        combined.includes("consolidated_operating")
+      ) {
         operationsByTable.consolidatedOperating.push(op);
-      } else if (op["sum-row-operativo"] || combined.includes("operating result")) {
+      } else if (
+        op["sum-row-operativo"] ||
+        combined.includes("operating result")
+      ) {
         // Distinguir entre operativo de capítulo y consolidado
         if (combined.includes("consolidated")) {
           operationsByTable.consolidatedOperating.push(op);
-        } else if (combined.match(/(cdmx|mty|gdl|noreste|noroeste).*operating/)) {
+        } else if (
+          combined.match(/(cdmx|mty|gdl|noreste|noroeste).*operating/)
+        ) {
           operationsByTable.chapterOperating.push(op);
         } else {
           operationsByTable.chapterOperating.push(op);
         }
-      } else if (op["sum-row-sumavarios-consolidado"] || combined.includes("consolidated")) {
+      } else if (
+        op["sum-row-sumavarios-consolidado"] ||
+        combined.includes("consolidated")
+      ) {
         operationsByTable.consolidated.push(op);
       } else if (op["sum-row-sumavarios"] || op["sum-row"]) {
         // Distinguir entre totales de capítulo y resultados de capítulo
-        if (combined.match(/(cdmx|mty|gdl|noreste|noroeste).*(income|expense|ingreso|gasto)/)) {
+        if (
+          combined.match(
+            /(cdmx|mty|gdl|noreste|noroeste).*(income|expense|ingreso|gasto)/,
+          )
+        ) {
           operationsByTable.chapterTotals.push(op);
-        } else if (combined.match(/(cdmx|mty|gdl|noreste|noroeste).*results?/)) {
+        } else if (
+          combined.match(/(cdmx|mty|gdl|noreste|noroeste).*results?/)
+        ) {
           operationsByTable.chapterResults.push(op);
         } else {
           operationsByTable.chapterTotals.push(op);
@@ -6337,9 +6684,13 @@
           operationsByTable.netResults.push(op);
         } else if (combined.includes("consolidated operating")) {
           operationsByTable.consolidatedOperating.push(op);
-        } else if (combined.match(/(cdmx|mty|gdl|noreste|noroeste).*operating/)) {
+        } else if (
+          combined.match(/(cdmx|mty|gdl|noreste|noroeste).*operating/)
+        ) {
           operationsByTable.chapterOperating.push(op);
-        } else if (combined.match(/(cdmx|mty|gdl|noreste|noroeste).*results?/)) {
+        } else if (
+          combined.match(/(cdmx|mty|gdl|noreste|noroeste).*results?/)
+        ) {
           operationsByTable.chapterResults.push(op);
         } else if (combined.includes("consolidated")) {
           operationsByTable.consolidated.push(op);
@@ -6360,35 +6711,40 @@
         title: "Totales por Capítulo",
         icon: "bi-geo-alt-fill",
         color: "info",
-        description: "Sumas de cada capítulo (CDMX INCOME, MTY EXPENSE, NORESTE INCOME, etc.)",
+        description:
+          "Sumas de cada capítulo (CDMX INCOME, MTY EXPENSE, NORESTE INCOME, etc.)",
       },
       {
         key: "chapterOperating",
         title: "Operativo por Capítulo",
         icon: "bi-calculator",
         color: "primary",
-        description: "Resultado operativo de cada capítulo (CDMX OPERATING, MTY OPERATING, etc.)",
+        description:
+          "Resultado operativo de cada capítulo (CDMX OPERATING, MTY OPERATING, etc.)",
       },
       {
         key: "chapterResults",
         title: "Resultados por Capítulo",
         icon: "bi-clipboard-data",
         color: "secondary",
-        description: "Resultados totales de cada capítulo (CDMX RESULTS, MTY RESULTS, etc.)",
+        description:
+          "Resultados totales de cada capítulo (CDMX RESULTS, MTY RESULTS, etc.)",
       },
       {
         key: "consolidated",
         title: "Consolidados",
         icon: "bi-collection-fill",
         color: "success",
-        description: "Consolidación de múltiples capítulos (CONSOLIDATED INCOME, CONSOLIDATED EXPENSE, etc.)",
+        description:
+          "Consolidación de múltiples capítulos (CONSOLIDATED INCOME, CONSOLIDATED EXPENSE, etc.)",
       },
       {
         key: "consolidatedOperating",
         title: "Operativo Consolidado",
         icon: "bi-graph-up-arrow",
         color: "info",
-        description: "Resultado operativo consolidado (CONSOLIDATED OPERATING RESULTS)",
+        description:
+          "Resultado operativo consolidado (CONSOLIDATED OPERATING RESULTS)",
       },
       {
         key: "results",
@@ -6402,7 +6758,8 @@
         title: "Resultados Netos",
         icon: "bi-cash-stack",
         color: "danger",
-        description: "Resultado neto final (NET RESULTS, CONSOLIDATED NET RESULTS)",
+        description:
+          "Resultado neto final (NET RESULTS, CONSOLIDATED NET RESULTS)",
       },
     ];
 
@@ -6442,19 +6799,25 @@
               const clase = (getOperationLabel(op) || "").toLowerCase();
               const opId = (getOperationId(op) || "").toLowerCase();
               const combined = `${clase} ${opId}`;
-              
+
               if (op["result-net-row"] || combined.includes("net result")) {
                 color = "danger";
-              } else if (op["sum-row-operativo"] || combined.includes("operating")) {
+              } else if (
+                op["sum-row-operativo"] ||
+                combined.includes("operating")
+              ) {
                 color = "primary";
-              } else if (op["sum-row-sumavarios-consolidado"] || combined.includes("consolidated")) {
+              } else if (
+                op["sum-row-sumavarios-consolidado"] ||
+                combined.includes("consolidated")
+              ) {
                 color = "success";
               } else if (op["sum-row-sumavarios"]) {
                 color = "info";
               } else if (op["sum-row"]) {
                 color = "warning";
               }
-              
+
               return renderOperationCardWithOrder(op, color, idx + 1);
             })
             .join("")}
@@ -6494,8 +6857,8 @@
       if (op[field]) {
         rowLabels.push(
           `<span class="badge bg-${colorTheme} bg-opacity-75">${label}: ${escapeHtml(
-            op[field]
-          )}</span>`
+            op[field],
+          )}</span>`,
         );
       }
     });
@@ -6515,11 +6878,11 @@
                   term.type === "operation"
                     ? formatOperationReference(term.value)
                     : term.type === "constant"
-                    ? term.constant ?? term.value ?? "0"
-                    : term.value || "???"
+                      ? (term.constant ?? term.value ?? "0")
+                      : term.value || "???",
                 )}
               </span>
-            `
+            `,
               )
               .join("")}
           </div>
@@ -6530,15 +6893,21 @@
     // Mostrar cuentas si es sum-row
     let cuentasHtml = "";
     if (op.SECCION || (op.cuentas && op.cuentas.length > 0)) {
-      const cuentasList = op.cuentas || op.SECCION?.split("+").map(c => c.trim()) || [];
+      const cuentasList =
+        op.cuentas || op.SECCION?.split("+").map((c) => c.trim()) || [];
       if (cuentasList.length > 0) {
         cuentasHtml = `
           <div class="cuentas-preview mt-2">
             <small class="text-muted d-block mb-1"><i class="bi bi-list-ul"></i> Cuentas:</small>
             <div class="d-flex flex-wrap gap-1">
-              ${cuentasList.slice(0, 5).map(cuenta => `
+              ${cuentasList
+                .slice(0, 5)
+                .map(
+                  (cuenta) => `
                 <code class="badge bg-light text-dark border">${escapeHtml(cuenta)}</code>
-              `).join("")}
+              `,
+                )
+                .join("")}
               ${cuentasList.length > 5 ? `<span class="badge bg-secondary">+${cuentasList.length - 5} más</span>` : ""}
             </div>
           </div>
@@ -6548,8 +6917,8 @@
 
     return `
       <div class="operation-card border-${colorTheme} mb-2 p-3 rounded border-start border-4 bg-white shadow-sm hover-shadow ${hiddenClass}" data-operation-id="${escapeAttr(
-      opId || ""
-    )}" data-operation-label="${escapeAttr(displayName)}">
+        opId || "",
+      )}" data-operation-label="${escapeAttr(displayName)}">
         <div class="d-flex align-items-start justify-content-between">
           <div class="d-flex gap-3 flex-grow-1">
             <div class="orden-badge">
@@ -6561,8 +6930,8 @@
               <div class="d-flex align-items-center gap-2 mb-2">
                 <i class="bi bi-calculator text-${colorTheme}"></i>
                 <strong class="text-${colorTheme}">${escapeHtml(
-      displayName
-    )}</strong>
+                  displayName,
+                )}</strong>
                 ${
                   termsCount > 0
                     ? `<span class="badge bg-secondary">${termsCount} términos</span>`
@@ -6600,12 +6969,12 @@
                 : ""
             }
             <button class="btn btn-sm btn-outline-primary" onclick="window.editOperation('${escapeAttr(
-              opId || clase
+              opId || clase,
             ).replace(/'/g, "\\'")}')" ${disabledAttr}>
               <i class="bi bi-pencil"></i> Editar
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="window.deleteOperation('${escapeAttr(
-              opId || clase
+              opId || clase,
             ).replace(/'/g, "\\'")}')" ${disabledAttr}>
               <i class="bi bi-trash"></i> Eliminar
             </button>
@@ -6618,7 +6987,7 @@
   // Renderizar tarjeta de operación con detalles completos (función legacy para compatibilidad)
   function renderOperationCard(op, colorTheme) {
     const opId = getOperationId(op);
-        const clase = getOperationLabel(op) || "Operacion";
+    const clase = getOperationLabel(op) || "Operacion";
     const displayName = getOperationDisplayName(op);
     const formula = formatFormula(op);
     const termsCount = op.formula_terms?.length || 0;
@@ -6644,8 +7013,8 @@
       if (op[field]) {
         rowLabels.push(
           `<span class="badge bg-${colorTheme} bg-opacity-75">${label}: ${escapeHtml(
-            op[field]
-          )}</span>`
+            op[field],
+          )}</span>`,
         );
       }
     });
@@ -6665,11 +7034,11 @@
                   term.type === "operation"
                     ? formatOperationReference(term.value)
                     : term.type === "constant"
-                    ? term.constant ?? term.value ?? "0"
-                    : term.value || "???"
+                      ? (term.constant ?? term.value ?? "0")
+                      : term.value || "???",
                 )}
               </span>
-            `
+            `,
               )
               .join("")}
           </div>
@@ -6679,15 +7048,15 @@
 
     return `
       <div class="operation-card border-${colorTheme} mb-2 p-3 rounded border-start border-3 bg-white shadow-sm hover-shadow ${hiddenClass}" data-operation-id="${escapeAttr(
-      opId || ""
-    )}" data-operation-label="${escapeAttr(displayName)}">
+        opId || "",
+      )}" data-operation-label="${escapeAttr(displayName)}">
         <div class="d-flex align-items-start justify-content-between">
           <div class="flex-grow-1">
             <div class="d-flex align-items-center gap-2 mb-2">
               <i class="bi bi-calculator text-${colorTheme}"></i>
               <strong class="text-${colorTheme}">${escapeHtml(
-      displayName
-    )}</strong>
+                displayName,
+              )}</strong>
               ${
                 termsCount > 0
                   ? `<span class="badge bg-secondary">${termsCount} términos</span>`
@@ -6723,12 +7092,12 @@
                 : ""
             }
             <button class="btn btn-sm btn-outline-primary" onclick="window.editOperation('${escapeAttr(
-              opId || clase
+              opId || clase,
             ).replace(/'/g, "\\'")}')" ${disabledAttr}>
               <i class="bi bi-pencil"></i> Editar
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="window.deleteOperation('${escapeAttr(
-              opId || clase
+              opId || clase,
             ).replace(/'/g, "\\'")}')" ${disabledAttr}>
               <i class="bi bi-trash"></i> Eliminar
             </button>
@@ -6812,14 +7181,16 @@
               firstIndex: opIndex, // Track order of first appearance
             });
           }
-          consolidatedLabels.get(label).operations.push(getOperationLabel(op) || op.SECCION);
+          consolidatedLabels
+            .get(label)
+            .operations.push(getOperationLabel(op) || op.SECCION);
         }
       });
     });
 
     // Convert to array and sort by first appearance order
     const sortedLabels = Array.from(consolidatedLabels.entries()).sort(
-      (a, b) => a[1].firstIndex - b[1].firstIndex
+      (a, b) => a[1].firstIndex - b[1].firstIndex,
     );
 
     // Render both: non-inline operations AND extracted consolidated labels
@@ -6866,12 +7237,12 @@
             </div>
             <div class="label-actions">
               <button class="btn btn-sm btn-outline-primary" onclick="editConsolidatedLabel('${escapeAttr(
-                label
+                label,
               )}', '${info.field}')" title="Editar">
                 <i class="bi bi-pencil"></i>
               </button>
               <button class="btn btn-sm btn-outline-danger" onclick="deleteConsolidatedLabel('${escapeAttr(
-                label
+                label,
               )}', '${info.field}')" title="Eliminar">
                 <i class="bi bi-trash"></i>
               </button>
@@ -6894,7 +7265,7 @@
     state.cuentas.forEach((c) => {
       if (c.seccion_secundaria || c["SECCION Secundaria"]) {
         allSubsections.add(
-          (c.seccion_secundaria || c["SECCION Secundaria"]).toLowerCase()
+          (c.seccion_secundaria || c["SECCION Secundaria"]).toLowerCase(),
         );
       }
     });
@@ -6921,10 +7292,10 @@
     return `
       <div class="layout-section operation-section ${tipo}">
         <div class="operation-row ${tipo} ${hiddenClass}" data-operation-id="${escapeAttr(
-          opId || ""
+          opId || "",
         )}" data-operation-label="${escapeAttr(
-      displayName
-    )}" onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || clase)}')">
+          displayName,
+        )}" onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || clase)}')">
           <div class="operation-label">
             <i class="bi bi-calculator"></i>
             <span>${escapeHtml(displayName)}</span>
@@ -6935,12 +7306,12 @@
           </div>
           <div class="account-actions">
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
-              opId || clase
+              opId || clase,
             )}')" title="Editar" ${disabledAttr}>
               <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteOperation('${escapeAttr(
-              opId || clase
+              opId || clase,
             )}')" title="Eliminar" ${disabledAttr}>
               <i class="bi bi-trash"></i>
             </button>
@@ -6967,10 +7338,10 @@
 
     return `
       <div class="inline-operation-row ${hiddenClass}" data-operation-id="${escapeAttr(
-        opId || ""
+        opId || "",
       )}" data-operation-label="${escapeAttr(
-      displayName
-    )}" onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || clase)}')">
+        displayName,
+      )}" onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || clase)}')">
         <div class="inline-op-icon">
           <i class="bi bi-calculator"></i>
         </div>
@@ -6983,17 +7354,17 @@
         </div>
         <div class="inline-op-actions">
           <button class="btn btn-sm btn-link p-0" onclick="event.stopPropagation(); editOperation('${escapeAttr(
-            opId || clase
+            opId || clase,
           )}')" title="Editar" ${disabledAttr}>
             <i class="bi bi-pencil"></i>
           </button>
           <button type="button" class="btn btn-sm btn-link p-0" onclick="window.handleInlineOperationOrderClick(event, '${escapeAttr(
-            displayName
+            displayName,
           )}', '${escapeAttr(opId || "")}', '', -1)" title="Subir" ${disabledAttr}>
             <i class="bi bi-arrow-up"></i>
           </button>
           <button type="button" class="btn btn-sm btn-link p-0" onclick="window.handleInlineOperationOrderClick(event, '${escapeAttr(
-            displayName
+            displayName,
           )}', '${escapeAttr(opId || "")}', '', 1)" title="Bajar" ${disabledAttr}>
             <i class="bi bi-arrow-down"></i>
           </button>
@@ -7049,7 +7420,7 @@
     }
 
     const candidateKeys = Object.keys(op || {}).filter((k) =>
-      /^(seccion|operacion)_\d+$/i.test(k)
+      /^(seccion|operacion)_\d+$/i.test(k),
     );
 
     candidateKeys
@@ -7090,8 +7461,8 @@
             term.type === "operation"
               ? formatOperationReference(term.value)
               : term.type === "constant"
-              ? term.constant ?? term.value ?? "0"
-              : term.value || "???";
+                ? (term.constant ?? term.value ?? "0")
+                : term.value || "???";
           return prefix + val;
         })
         .join("");
@@ -7140,7 +7511,7 @@
 
     sections.sort((a, b) => a.order - b.order);
     sections.forEach((section) =>
-      section.subsections.sort((a, b) => a.order - b.order)
+      section.subsections.sort((a, b) => a.order - b.order),
     );
 
     return sections;
@@ -7150,7 +7521,10 @@
     const { name: principal, subsections } = section;
     const canEdit = state.editMode !== false;
     const disabledAttr = canEdit ? "" : "disabled";
-    const sectionOpMatch = getRowOperationMatch(principal, "sum-row-sumavarios");
+    const sectionOpMatch = getRowOperationMatch(
+      principal,
+      "sum-row-sumavarios",
+    );
     const hasSectionOp = sectionOpMatch.operations.length > 0;
     const sectionOpBtnClass = hasSectionOp
       ? "btn-outline-success"
@@ -7163,9 +7537,9 @@
       (acc, subsection) =>
         acc +
         (subsection.accounts || []).filter(
-          (account) => !isPlaceholderAccount(account)
+          (account) => !isPlaceholderAccount(account),
         ).length,
-      0
+      0,
     );
 
     let subsectionsHtml = "";
@@ -7184,32 +7558,32 @@
           </div>
           <div class="section-actions">
             <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); moveSectionOrder('${escapeAttr(
-              principal
+              principal,
             )}', -1)" title="Subir" ${disabledAttr}>
               <i class="bi bi-arrow-up"></i>
             </button>
             <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); moveSectionOrder('${escapeAttr(
-              principal
+              principal,
             )}', 1)" title="Bajar" ${disabledAttr}>
               <i class="bi bi-arrow-down"></i>
             </button>
             <button class="btn btn-sm ${sectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
-              principal
+              principal,
             )}', '${escapeAttr(sectionOpMatch.field || "sum-row-sumavarios")}', '')" title="${sectionOpBtnTitle}" ${disabledAttr}>
               <i class="bi bi-calculator"></i>
             </button>
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSection('${escapeAttr(
-              principal
+              principal,
             )}')" title="Editar">
               <i class="bi bi-pencil"></i>
             </button>
              <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteSection('${escapeAttr(
-               principal
+               principal,
              )}')" title="Eliminar">
               <i class="bi bi-trash"></i>
             </button>
             <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); addToSection('${escapeAttr(
-              principal
+              principal,
             )}')" title="Agregar">
               <i class="bi bi-plus"></i>
             </button>
@@ -7235,7 +7609,7 @@
       ? "Editar operación"
       : "Crear operación";
     const realAccounts = (accounts || []).filter(
-      (account) => !isPlaceholderAccount(account)
+      (account) => !isPlaceholderAccount(account),
     );
     const accountsHtml = sortAccountsByOrder(realAccounts)
       .map((acc) => renderAccount(acc, principal, name))
@@ -7310,34 +7684,34 @@
           </div>
           <div class="section-actions">
             <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); moveSubsectionOrder('${escapeAttr(
-              principal
+              principal,
             )}', '${escapeAttr(name)}', -1)" title="Subir" ${disabledAttr}>
               <i class="bi bi-arrow-up"></i>
             </button>
             <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); moveSubsectionOrder('${escapeAttr(
-              principal
+              principal,
             )}', '${escapeAttr(name)}', 1)" title="Bajar" ${disabledAttr}>
               <i class="bi bi-arrow-down"></i>
             </button>
             <button class="btn btn-sm ${subsectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
-              name
+              name,
             )}', '${escapeAttr(subsectionOpMatch.field || "sum-row")}', '${escapeAttr(
-              principal
+              principal,
             )}')" title="${subsectionOpBtnTitle}" ${disabledAttr}>
               <i class="bi bi-calculator"></i>
             </button>
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSubsection('${escapeAttr(
-              principal
+              principal,
             )}', '${escapeAttr(name)}')" title="Editar subsección">
               <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteSubsection('${escapeAttr(
-              principal
+              principal,
             )}', '${escapeAttr(name)}')" title="Eliminar subsección">
               <i class="bi bi-trash"></i>
             </button>
             <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); addAccount('${escapeAttr(
-              principal
+              principal,
             )}', '${escapeAttr(name)}')" title="Agregar cuenta">
               <i class="bi bi-plus"></i>
             </button>
@@ -7363,8 +7737,8 @@
 
     return `
       <div class="account-row ${hiddenClass}" data-cuenta="${escapeHtml(
-      codigo
-    )}" data-account-id="${escapeAttr(accountId)}" onclick="selectAccount(this, '${escapeAttr(accountId)}')">
+        codigo,
+      )}" data-account-id="${escapeAttr(accountId)}" onclick="selectAccount(this, '${escapeAttr(accountId)}')">
         <span class="drag-handle" title="Arrastrar para reordenar">⋮⋮</span>
         <span class="account-code">${escapeHtml(codigo)}</span>
         <span class="account-name">${escapeHtml(nombre)}</span>
@@ -7373,7 +7747,7 @@
             window.LayoutControls
               ? window.LayoutControls.renderVisibilityControl(
                   account,
-                  "account"
+                  "account",
                 )
               : ""
           }
@@ -7383,12 +7757,12 @@
               : ""
           }
           <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editAccount('${escapeAttr(
-            accountId
+            accountId,
           )}')" title="Editar" ${disabledAttr}>
             <i class="bi bi-pencil"></i>
           </button>
           <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteAccount('${escapeAttr(
-            accountId
+            accountId,
           )}')" title="Eliminar" ${disabledAttr}>
             <i class="bi bi-trash"></i>
           </button>
@@ -7412,10 +7786,10 @@
 
         return `
         <div class="operation-row ${tipo} ${hiddenClass}" data-operation-id="${escapeAttr(
-          opId || ""
+          opId || "",
         )}" data-operation-label="${escapeAttr(displayName)}">
           <div class="operation-label" onclick="editOperation('${escapeAttr(
-            opId || clase
+            opId || clase,
           )}')">
             <i class="bi bi-calculator"></i>
             <span>${escapeHtml(displayName)}</span>
@@ -7428,12 +7802,12 @@
           </div>
           <div class="account-actions">
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
-              opId || clase
+              opId || clase,
             )}')" title="Editar" ${disabledAttr}>
               <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteOperation('${escapeAttr(
-              opId || clase
+              opId || clase,
             )}')" title="Eliminar" ${disabledAttr}>
               <i class="bi bi-trash"></i>
             </button>
@@ -7516,19 +7890,21 @@
     const query = e?.target?.value?.toLowerCase().trim() || "";
     applySearchAndFilters(query);
   }
-  
+
   function applySearchAndFilters(query = "") {
-    const activeFilter = document.querySelector('input[name="quickFilter"]:checked')?.value || "all";
-    
+    const activeFilter =
+      document.querySelector('input[name="quickFilter"]:checked')?.value ||
+      "all";
+
     const sections = document.querySelectorAll(".layout-section");
     const sectionRows = document.querySelectorAll(
-      '.template-table tr[data-row-type="section"], .template-table tr[data-row-type="subsection"], .list-item.section-principal, .list-item.section-secondary'
+      '.template-table tr[data-row-type="section"], .template-table tr[data-row-type="subsection"], .list-item.section-principal, .list-item.section-secondary',
     );
     const accountRows = document.querySelectorAll(
-      ".account-row, .list-item.item-account"
+      ".account-row, .list-item.item-account",
     );
     const operationRows = document.querySelectorAll(
-      ".operation-row, .inline-operation-row, .list-item.item-operation"
+      ".operation-row, .inline-operation-row, .list-item.item-operation",
     );
 
     // Quitar resaltado anterior
@@ -7550,12 +7926,16 @@
 
     // Filtrar secciones (vista por bloques)
     sections.forEach((section) => {
-      const isOperationSection = section.classList.contains("operation-section");
+      const isOperationSection =
+        section.classList.contains("operation-section");
       let shouldShow = false;
-      
+
       if (activeFilter === "all" || activeFilter === "sections") {
         if (!isOperationSection) {
-          const title = section.querySelector(".section-title span")?.textContent?.toLowerCase() || "";
+          const title =
+            section
+              .querySelector(".section-title span")
+              ?.textContent?.toLowerCase() || "";
           shouldShow = !query || title.includes(query);
           if (shouldShow && !firstMatch && query) {
             firstMatch = section;
@@ -7564,7 +7944,7 @@
           shouldShow = activeFilter === "all";
         }
       }
-      
+
       section.style.display = shouldShow ? "" : "none";
     });
 
@@ -7584,7 +7964,7 @@
     // Filtrar cuentas
     accountRows.forEach((row) => {
       let shouldShow = false;
-      
+
       if (activeFilter === "all" || activeFilter === "accounts") {
         const code =
           row.querySelector(".account-code")?.textContent?.toLowerCase() ||
@@ -7596,20 +7976,23 @@
           "";
         const text = row.textContent?.toLowerCase() || "";
         shouldShow =
-          !query || code.includes(query) || name.includes(query) || text.includes(query);
-        
+          !query ||
+          code.includes(query) ||
+          name.includes(query) ||
+          text.includes(query);
+
         if (shouldShow && !firstMatch && query) {
           firstMatch = row;
         }
       }
-      
+
       row.style.display = shouldShow ? "" : "none";
     });
 
     // Filtrar operaciones
     operationRows.forEach((row) => {
       let shouldShow = false;
-      
+
       if (activeFilter === "all" || activeFilter === "operations") {
         const label =
           row
@@ -7620,12 +8003,12 @@
           row.textContent?.toLowerCase() ||
           "";
         shouldShow = !query || label.includes(query);
-        
+
         if (shouldShow && !firstMatch && query) {
           firstMatch = row;
         }
       }
-      
+
       row.style.display = shouldShow ? "" : "none";
     });
 
@@ -7713,7 +8096,7 @@
     const items = rows.filter(
       (row) =>
         row &&
-        ["principal", "subsection", "account", "operation"].includes(row.type)
+        ["principal", "subsection", "account", "operation"].includes(row.type),
     );
 
     if (dom.layoutOrderCount) {
@@ -7755,8 +8138,8 @@
           row.type === "account"
             ? row.nombre || row.label || ""
             : row.type === "operation"
-            ? row.kind || ""
-            : "";
+              ? row.kind || ""
+              : "";
 
         return `
           <div class="order-item ${hiddenClass}">
@@ -7789,13 +8172,15 @@
     if (!container) return [];
     const items = [];
     const sections = Array.from(
-      container.querySelectorAll(".layout-section")
+      container.querySelectorAll(".layout-section"),
     ).filter(
-      (el) => !el.closest(".live-preview-table") // ignorar vista previa superior
+      (el) => !el.closest(".live-preview-table"), // ignorar vista previa superior
     );
 
     sections.forEach((section) => {
-      const header = section.querySelector(".section-header .section-title span");
+      const header = section.querySelector(
+        ".section-header .section-title span",
+      );
       const label = header?.textContent?.trim() || "";
       items.push({ type: "principal", label, visible: true });
 
@@ -7809,7 +8194,8 @@
         }
         sub.querySelectorAll(".account-row").forEach((row) => {
           const code = row.getAttribute("data-cuenta") || "";
-          const name = row.querySelector(".account-name")?.textContent?.trim() || "";
+          const name =
+            row.querySelector(".account-name")?.textContent?.trim() || "";
           const hidden = row.classList.contains("hidden-row");
           items.push({
             type: "account",
@@ -7819,20 +8205,24 @@
             visible: !hidden,
           });
         });
-        sub.querySelectorAll(".inline-operation-row, .operation-row").forEach((row) => {
-          const opLabel =
-            row.getAttribute("data-operation-label") ||
-            row.querySelector(".op-name")?.textContent?.trim() ||
-            row.querySelector(".operation-label span")?.textContent?.trim() ||
-            "";
-          const hidden = row.classList.contains("hidden-row");
-          items.push({
-            type: "operation",
-            label: opLabel,
-            kind: row.classList.contains("inline-operation-row") ? "inline" : "",
-            visible: !hidden,
+        sub
+          .querySelectorAll(".inline-operation-row, .operation-row")
+          .forEach((row) => {
+            const opLabel =
+              row.getAttribute("data-operation-label") ||
+              row.querySelector(".op-name")?.textContent?.trim() ||
+              row.querySelector(".operation-label span")?.textContent?.trim() ||
+              "";
+            const hidden = row.classList.contains("hidden-row");
+            items.push({
+              type: "operation",
+              label: opLabel,
+              kind: row.classList.contains("inline-operation-row")
+                ? "inline"
+                : "",
+              visible: !hidden,
+            });
           });
-        });
       });
     });
     return items;
@@ -7855,7 +8245,7 @@
     ensureBulkRows();
     if (dom.bulkInsertTbody) {
       Array.from(dom.bulkInsertTbody.querySelectorAll("tr")).forEach((row) =>
-        updateBulkRowFields(row)
+        updateBulkRowFields(row),
       );
     }
   }
@@ -7880,7 +8270,7 @@
         (opt) =>
           `<option value="${opt.value}"${
             opt.value === tipo ? " selected" : ""
-          }>${opt.label}</option>`
+          }>${opt.label}</option>`,
       )
       .join("");
 
@@ -7890,25 +8280,27 @@
     const seccionOptions = buildBulkSelectOptions(
       getBulkSectionNames(),
       values.seccion || "",
-      "Selecciona sección"
+      "Selecciona sección",
     );
     const subseccionOptions = buildBulkSelectOptions(
       getBulkSubsectionNames(values.seccion || ""),
       values.subseccion || "",
-      values.seccion ? "Selecciona subsección" : "Selecciona sección"
+      values.seccion ? "Selecciona subsección" : "Selecciona sección",
     );
-    const seccionFieldHtml = kindSeccion === "input"
-      ? `<input type="text" class="form-control form-control-sm" data-field="seccion" placeholder="Nombre de sección" value="${escapeAttr(
-          values.seccion || ""
-        )}" />`
-      : `<select class="form-select form-select-sm" data-field="seccion">
+    const seccionFieldHtml =
+      kindSeccion === "input"
+        ? `<input type="text" class="form-control form-control-sm" data-field="seccion" placeholder="Nombre de sección" value="${escapeAttr(
+            values.seccion || "",
+          )}" />`
+        : `<select class="form-select form-select-sm" data-field="seccion">
             ${seccionOptions}
           </select>`;
-    const subseccionFieldHtml = kindSubseccion === "input"
-      ? `<input type="text" class="form-control form-control-sm" data-field="subseccion" placeholder="Nombre de subsección" value="${escapeAttr(
-          values.subseccion || ""
-        )}" />`
-      : `<select class="form-select form-select-sm" data-field="subseccion">
+    const subseccionFieldHtml =
+      kindSubseccion === "input"
+        ? `<input type="text" class="form-control form-control-sm" data-field="subseccion" placeholder="Nombre de subsección" value="${escapeAttr(
+            values.subseccion || "",
+          )}" />`
+        : `<select class="form-select form-select-sm" data-field="subseccion">
             ${subseccionOptions}
           </select>`;
     const aparicionOptions = buildBulkAparicionOptions(values.aparicion || "");
@@ -7926,10 +8318,10 @@
           ${subseccionFieldHtml}
         </td>
         <td><input type="text" class="form-control form-control-sm" data-field="cuenta" placeholder="401-001-000-00" value="${escapeAttr(
-          values.cuenta || ""
+          values.cuenta || "",
         )}" /></td>
         <td><input type="text" class="form-control form-control-sm" data-field="nombre" placeholder="Nombre" value="${escapeAttr(
-          values.nombre || ""
+          values.nombre || "",
         )}" /></td>
         <td>
           <select class="form-select form-select-sm" data-field="aparicion">
@@ -7937,12 +8329,12 @@
           </select>
         </td>
         <td><input type="text" class="form-control form-control-sm text-center" data-field="signo" placeholder="1/-1" title="Signo: 1 suma, -1 resta. En cuentas aplica como factor. Vacio = automatico." data-bs-toggle="tooltip" data-bs-placement="top" value="${escapeAttr(
-          values.signo || ""
+          values.signo || "",
         )}" /></td>
         <td>
           <div class="input-group input-group-sm">
             <input type="text" class="form-control font-monospace" data-field="formula" placeholder="A + B - C" value="${escapeAttr(
-              values.formula || ""
+              values.formula || "",
             )}" />
             <button type="button" class="btn btn-outline-primary" data-action="edit-formula-bulk" title="Editor visual de fórmula">
               <i class="bi bi-calculator"></i>
@@ -8203,7 +8595,7 @@
           ? "Selecciona subsección"
           : "Selecciona sección",
         inputPlaceholder: "Nombre de subsección",
-      }
+      },
     );
     const enabledByTipo = {
       "seccion-principal": new Set(["seccion", "nombre"]),
@@ -8227,26 +8619,24 @@
       "aparicion",
       "signo",
       "formula",
-    ].forEach(
-      (field) => {
-        const input = row.querySelector(`[data-field="${field}"]`);
-        if (!input) return;
-        const shouldEnable = enabled.has(field);
-        input.disabled = !shouldEnable;
-        input.classList.toggle("text-muted", !shouldEnable);
+    ].forEach((field) => {
+      const input = row.querySelector(`[data-field="${field}"]`);
+      if (!input) return;
+      const shouldEnable = enabled.has(field);
+      input.disabled = !shouldEnable;
+      input.classList.toggle("text-muted", !shouldEnable);
 
-        if (!input.dataset.placeholder && input.getAttribute("placeholder")) {
-          input.dataset.placeholder = input.getAttribute("placeholder");
-        }
-        if (shouldEnable) {
-          if (input.dataset.placeholder) {
-            input.setAttribute("placeholder", input.dataset.placeholder);
-          }
-        } else {
-          input.removeAttribute("placeholder");
-        }
+      if (!input.dataset.placeholder && input.getAttribute("placeholder")) {
+        input.dataset.placeholder = input.getAttribute("placeholder");
       }
-    );
+      if (shouldEnable) {
+        if (input.dataset.placeholder) {
+          input.setAttribute("placeholder", input.dataset.placeholder);
+        }
+      } else {
+        input.removeAttribute("placeholder");
+      }
+    });
     refreshBulkSubsectionOptions(row);
     refreshBulkAparicionOptions(row);
   }
@@ -8255,13 +8645,12 @@
     const cell = row.querySelector(`[data-cell="${field}"]`);
     if (!cell) return;
     const current = cell.querySelector(`[data-field="${field}"]`);
-    const currentValue =
-      config.value ?? current?.value ?? "";
+    const currentValue = config.value ?? current?.value ?? "";
     if (kind === "input") {
       const placeholder = config.inputPlaceholder || "";
       if (!current || current.tagName !== "INPUT") {
         cell.innerHTML = `<input type="text" class="form-control form-control-sm" data-field="${field}" placeholder="${escapeAttr(
-          placeholder
+          placeholder,
         )}" value="${escapeAttr(currentValue)}" />`;
       } else {
         current.value = currentValue;
@@ -8275,7 +8664,7 @@
     const optionsHtml = buildBulkSelectOptions(
       config.items || [],
       currentValue,
-      config.placeholder || ""
+      config.placeholder || "",
     );
     if (!current || current.tagName !== "SELECT") {
       cell.innerHTML = `<select class="form-select form-select-sm" data-field="${field}">
@@ -8313,7 +8702,9 @@
   }
 
   function buildBulkSelectOptions(items = [], selected = "", placeholder = "") {
-    const normalizedItems = new Set(items.map((item) => normalizeBulkName(item)));
+    const normalizedItems = new Set(
+      items.map((item) => normalizeBulkName(item)),
+    );
     const normalizedSelected = normalizeBulkName(selected);
     const finalItems =
       selected && normalizedSelected && !normalizedItems.has(normalizedSelected)
@@ -8322,9 +8713,7 @@
 
     const options = [];
     if (placeholder) {
-      options.push(
-        `<option value="">${escapeHtml(placeholder)}</option>`
-      );
+      options.push(`<option value="">${escapeHtml(placeholder)}</option>`);
     }
     finalItems.forEach((item) => {
       const isSelected =
@@ -8332,7 +8721,7 @@
       options.push(
         `<option value="${escapeAttr(item)}"${
           isSelected ? " selected" : ""
-        }>${escapeHtml(item)}</option>`
+        }>${escapeHtml(item)}</option>`,
       );
     });
     return options.join("");
@@ -8357,14 +8746,14 @@
     const principal =
       row.querySelector('select[data-field="seccion"]')?.value || "";
     const subseccionSelect = row.querySelector(
-      'select[data-field="subseccion"]'
+      'select[data-field="subseccion"]',
     );
     if (!subseccionSelect) return;
     const current = subseccionSelect.value || "";
     const options = buildBulkSelectOptions(
       getBulkSubsectionNames(principal),
       current,
-      principal ? "Selecciona subsección" : "Selecciona sección"
+      principal ? "Selecciona subsección" : "Selecciona sección",
     );
     subseccionSelect.innerHTML = options;
   }
@@ -8405,12 +8794,14 @@
 
     // Si no hay términos, crear uno vacío
     if (formulaTerms.length === 0) {
-      formulaTerms = [{
-        id: Date.now(),
-        operator: "+",
-        type: "section",
-        value: ""
-      }];
+      formulaTerms = [
+        {
+          id: Date.now(),
+          operator: "+",
+          type: "section",
+          value: "",
+        },
+      ];
     }
 
     // Crear operación temporal para pasar al editor
@@ -8418,7 +8809,7 @@
       OperacionId: "TEMP_BULK_" + Date.now(),
       Clase: nombreOperacion,
       formula_terms: formulaTerms,
-      formula_json: JSON.stringify(formulaTerms)
+      formula_json: JSON.stringify(formulaTerms),
     };
 
     // Guardar referencia a la fila para actualizar después
@@ -8437,11 +8828,11 @@
     const panelOpened = openOperationEditorPanel(tempOp, availableElements);
     if (panelOpened) {
       // Configurar callback para cuando se guarde
-      window._bulkFormulaEditorCallback = function(updatedTerms) {
+      window._bulkFormulaEditorCallback = function (updatedTerms) {
         if (formulaInput) {
           const newFormulaText = buildFormulaPreviewText(updatedTerms);
           formulaInput.value = newFormulaText;
-          formulaInput.dispatchEvent(new Event('change', { bubbles: true }));
+          formulaInput.dispatchEvent(new Event("change", { bubbles: true }));
         }
         window._bulkFormulaEditorCallback = null;
       };
@@ -8558,7 +8949,7 @@
       return;
     }
     const tipo = document.querySelector(
-      'input[name="tipoElemento"]:checked'
+      'input[name="tipoElemento"]:checked',
     )?.value;
 
     let formHtml = "";
@@ -8673,17 +9064,17 @@
                   <div class="col-md-6">
                     <div class="form-check">
                       <input class="form-check-input" type="checkbox" id="${rowLabelAddCheckId(
-                        row.field
+                        row.field,
                       )}">
                       <label class="form-check-label" for="${rowLabelAddCheckId(
-                        row.field
+                        row.field,
                       )}">${row.label}</label>
                     </div>
                     <input type="text" class="form-control form-control-sm mt-1" id="${rowLabelAddInputId(
-                      row.field
+                      row.field,
                     )}" placeholder="${row.placeholder}">
                   </div>
-                `
+                `,
               ).join("")}
             </div>
             <div class="form-text">
@@ -8719,7 +9110,7 @@
       '<option value="">Sin sección (Libre)</option>',
       ...(sectionNames || []).map(
         (name) =>
-          `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`
+          `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`,
       ),
     ];
     return options.join("");
@@ -8770,13 +9161,13 @@
         (item) => `
         <div class="form-check${item.indent ? " ms-3" : ""}">
           <input class="form-check-input" type="checkbox" value="${escapeAttr(
-            item.value
+            item.value,
           )}" id="chk_${escapeAttr(item.value)}">
           <label class="form-check-label" for="chk_${escapeAttr(
-            item.value
+            item.value,
           )}">${escapeHtml(item.label)}</label>
         </div>
-      `
+      `,
       )
       .join("");
   }
@@ -8787,7 +9178,7 @@
       return;
     }
     const tipo = document.querySelector(
-      'input[name="tipoElemento"]:checked'
+      'input[name="tipoElemento"]:checked',
     )?.value;
 
     try {
@@ -8817,7 +9208,7 @@
       } else {
         showToast(
           "No se pudo guardar el cambio. Revisa permisos o conexión y vuelve a intentar.",
-          "error"
+          "error",
         );
       }
     } catch (error) {
@@ -8865,7 +9256,9 @@
     if (!cleanName) return false;
     const sectionKey = normalizeOperationMatch(cleanName);
     const alreadyExists = (state.cuentas || []).some(
-      (cuenta) => normalizeOperationMatch(getAccountPrincipalName(cuenta) || "") === sectionKey
+      (cuenta) =>
+        normalizeOperationMatch(getAccountPrincipalName(cuenta) || "") ===
+        sectionKey,
     );
     if (alreadyExists) {
       if (!silent) {
@@ -8899,7 +9292,11 @@
     return true;
   }
 
-  function addSecondarySectionByName(principal, nombre, { silent = false } = {}) {
+  function addSecondarySectionByName(
+    principal,
+    nombre,
+    { silent = false } = {},
+  ) {
     const principalClean = (principal || "").toString().trim();
     const nombreClean = (nombre || "").toString().trim();
     if (!principalClean || !nombreClean) return false;
@@ -8912,7 +9309,10 @@
     });
     if (exists) {
       if (!silent) {
-        showToast(`La subsección "${nombreClean}" ya existe en "${principalClean}"`, "info");
+        showToast(
+          `La subsección "${nombreClean}" ya existe en "${principalClean}"`,
+          "info",
+        );
       }
       return false;
     }
@@ -8945,10 +9345,12 @@
 
   function addAccountEntry(
     { principal, secundaria, cuenta, nombre, factor },
-    { silent = false } = {}
+    { silent = false } = {},
   ) {
     const principalClean = (principal || "").toString().trim();
-    const secundariaClean = principalClean ? (secundaria || "").toString().trim() : "";
+    const secundariaClean = principalClean
+      ? (secundaria || "").toString().trim()
+      : "";
     const order = getNextAccountOrder();
     const newAccount = {
       "SECCIÓN Principal": principalClean,
@@ -8978,7 +9380,7 @@
 
   function addOperationEntry(
     { nombre, seccion, subseccion, signo, formulaTerms, rowLabels = {} },
-    { silent = false } = {}
+    { silent = false } = {},
   ) {
     const parentSection = seccion || "";
     const parentSubsection = subseccion || "";
@@ -8997,17 +9399,17 @@
         const itemLabel = normalizeOperationMatch(
           getOperationDisplayName(item) ||
             getOperationLabel(item) ||
-            getOperationId(item)
+            getOperationId(item),
         );
         if (!itemLabel || itemLabel !== normalizedLabel) return false;
         if (!sectionKey) return true;
         const matchesPlacement = getOperationPlacementCandidates(item).some(
-          (candidate) => normalizeOperationMatch(candidate) === sectionKey
+          (candidate) => normalizeOperationMatch(candidate) === sectionKey,
         );
         if (!matchesPlacement) return false;
         if (!parentKey) return true;
         return getOperationParentCandidates(item).some(
-          (candidate) => normalizeOperationMatch(candidate) === parentKey
+          (candidate) => normalizeOperationMatch(candidate) === parentKey,
         );
       });
     }
@@ -9019,9 +9421,10 @@
       }
       existing.SECCION = rowSection;
       existing.seccion = rowSection;
-      existing.tipo = Array.isArray(formulaTerms) && formulaTerms.length
-        ? "custom-formula"
-        : existing.tipo || "sum-sections";
+      existing.tipo =
+        Array.isArray(formulaTerms) && formulaTerms.length
+          ? "custom-formula"
+          : existing.tipo || "sum-sections";
       existing.secciones = rowSection ? [rowSection] : [];
       existing.parentSection = parentSection || null;
       existing.parentSubsection = parentSubsection || null;
@@ -9066,9 +9469,10 @@
       Clase: nombre,
       operacion_etiqueta: nombre,
       SECCION: rowSection,
-      tipo: Array.isArray(formulaTerms) && formulaTerms.length
-        ? "custom-formula"
-        : "sum-sections",
+      tipo:
+        Array.isArray(formulaTerms) && formulaTerms.length
+          ? "custom-formula"
+          : "sum-sections",
       signos: {},
       orden: nextOperationOrder(),
       secciones: rowSection ? [rowSection] : [],
@@ -9130,7 +9534,11 @@
   function inferSignFromSectionName(sectionName) {
     const key = normalizeOperationMatch(sectionName || "");
     if (!key) return 0;
-    if (key.includes("gasto") || key.includes("costo") || key.includes("expense")) {
+    if (
+      key.includes("gasto") ||
+      key.includes("costo") ||
+      key.includes("expense")
+    ) {
       return -1;
     }
     if (key.includes("ingreso") || key.includes("income")) {
@@ -9143,29 +9551,27 @@
     if (!sectionName) return null;
     const target = normalizeOperationMatch(sectionName);
     const parentKey = normalizeOperationMatch(parentSection);
-    const matches = (state.operaciones || []).filter(
-      (op) =>
-        getOperationPlacementCandidates(op).some(
-          (candidate) => normalizeOperationMatch(candidate) === target
-        )
+    const matches = (state.operaciones || []).filter((op) =>
+      getOperationPlacementCandidates(op).some(
+        (candidate) => normalizeOperationMatch(candidate) === target,
+      ),
     );
     if (!matches.length) return null;
     if (parentKey) {
-      const filtered = matches.filter(
-        (op) =>
-          getOperationParentCandidates(op).some(
-            (candidate) => normalizeOperationMatch(candidate) === parentKey
-          )
+      const filtered = matches.filter((op) =>
+        getOperationParentCandidates(op).some(
+          (candidate) => normalizeOperationMatch(candidate) === parentKey,
+        ),
       );
       if (filtered.length) {
         const withLabels = filtered.find((op) =>
-          ROW_LABEL_FIELDS.some((field) => op?.[field])
+          ROW_LABEL_FIELDS.some((field) => op?.[field]),
         );
         return withLabels || filtered[0] || null;
       }
     }
     const withLabels = matches.find((op) =>
-      ROW_LABEL_FIELDS.some((field) => op?.[field])
+      ROW_LABEL_FIELDS.some((field) => op?.[field]),
     );
     return withLabels || matches[0] || null;
   }
@@ -9224,7 +9630,7 @@
                 nombre,
                 factor: Number.isFinite(factor) ? factor : null,
               },
-              { silent: true }
+              { silent: true },
             );
             counters.cuentas += 1;
             break;
@@ -9236,12 +9642,10 @@
             const formulaTerms = row.formula
               ? parseFormulaText(row.formula)
               : [];
-            
+
             const aparicion = (row.aparicion || "libre").trim();
             const rowLabels =
-              aparicion && aparicion !== "libre"
-                ? { [aparicion]: nombre }
-                : {};
+              aparicion && aparicion !== "libre" ? { [aparicion]: nombre } : {};
             const opResult = addOperationEntry(
               {
                 nombre,
@@ -9251,7 +9655,7 @@
                 formulaTerms,
                 rowLabels,
               },
-              { silent: true }
+              { silent: true },
             );
             if (opResult?.created) {
               counters.operaciones += 1;
@@ -9290,7 +9694,7 @@
       console.warn("[BulkAdd] Errores:", errores);
       showToast(
         `${errores[0]}${errores.length > 1 ? ` (+${errores.length - 1} más)` : ""}`,
-        "warning"
+        "warning",
       );
     }
 
@@ -9304,7 +9708,7 @@
     if (!saved) {
       showToast(
         "No se pudieron guardar los cambios de la inserción masiva. Revisa la conexión o vuelve a intentar.",
-        "error"
+        "error",
       );
       return;
     }
@@ -9314,7 +9718,7 @@
 
     showToast(
       `Agregadas: ${counters.secciones} secciones, ${counters.subsecciones} subsecciones, ${counters.cuentas} cuentas, ${counters.operaciones} operaciones.${counters.operacionesActualizadas ? ` Actualizadas: ${counters.operacionesActualizadas} operaciones.` : ""}`,
-      "success"
+      "success",
     );
   }
 
@@ -9342,7 +9746,10 @@
     if (!clase && !operacionIdInput) {
       claseInput?.classList.add("is-invalid");
       idInput?.classList.add("is-invalid");
-      showToast("Etiqueta o ID son obligatorios para crear la operación.", "error");
+      showToast(
+        "Etiqueta o ID son obligatorios para crear la operación.",
+        "error",
+      );
       return;
     }
 
@@ -9351,7 +9758,7 @@
     const operacionId = buildUniqueOperationId(baseOperacionId || clase);
 
     const checkedSections = Array.from(
-      document.querySelectorAll("#checkboxSecciones input:checked")
+      document.querySelectorAll("#checkboxSecciones input:checked"),
     ).map((cb) => cb.value);
 
     const rowLabels = collectAddOperationRowLabels(resolvedClase);
@@ -9363,7 +9770,9 @@
       .map((value) => parseSectionSelection(value))
       .filter((item) => item.section);
     const targetSelections =
-      parsedSelections.length > 0 ? parsedSelections : [{ section: "", parent: "" }];
+      parsedSelections.length > 0
+        ? parsedSelections
+        : [{ section: "", parent: "" }];
 
     const opsCreated = [];
     targetSelections.forEach((selection, idx) => {
@@ -9374,8 +9783,11 @@
       // Manual: si el usuario selecciona una sección PRINCIPAL, la operación queda ligada
       // a esa sección (parentSection = sectionName). Solo si selecciona una subsección
       // usamos parentSection + parentSubsection.
-      const parentSection = (isSubsectionSelection ? parentFromSelection : sectionName) || null;
-      const parentSubsection = isSubsectionSelection ? (sectionName || null) : null;
+      const parentSection =
+        (isSubsectionSelection ? parentFromSelection : sectionName) || null;
+      const parentSubsection = isSubsectionSelection
+        ? sectionName || null
+        : null;
       const placement = parentSection
         ? (parentSubsection || parentSection).toString().trim()
         : "";
@@ -9389,7 +9801,7 @@
         const opIdBase = normalizeOperationId(
           isPiloto
             ? baseOperacionId || resolvedClase || sectionName || operacionId
-            : `${baseOperacionId || resolvedClase || operacionId}_${sectionName || idx + 1}`
+            : `${baseOperacionId || resolvedClase || operacionId}_${sectionName || idx + 1}`,
         );
         op = {
           CAPITULO: state.capitulo || "DEFAULT",
@@ -9450,7 +9862,7 @@
             ]
           : [];
         const termsToPersist = normalizeFormulaTerms(
-          derivedTerms.length ? derivedTerms : fallbackTerms
+          derivedTerms.length ? derivedTerms : fallbackTerms,
         );
         if (termsToPersist.length) {
           op.formula_terms = termsToPersist;
@@ -9482,7 +9894,7 @@
     if (opsCreated.length) {
       logChange(
         "add",
-        `Operación "${resolvedClase}" (${opsCreated.length} secciones)`
+        `Operación "${resolvedClase}" (${opsCreated.length} secciones)`,
       );
     } else {
       logChange("edit", `Operación "${resolvedClase}" actualizada`);
@@ -9501,13 +9913,12 @@
     if (!subsectionName) return null;
     const account = state.cuentas.find(
       (c) =>
-        (c["SECCION Secundaria"] || c.seccion_secundaria) === subsectionName
+        (c["SECCION Secundaria"] || c.seccion_secundaria) === subsectionName,
     );
     return account
       ? account["SECCIÓN Principal"] || account.seccion_principal
       : null;
   }
-
 
   function buildSectionIndexes() {
     const primaryIndex = new Map();
@@ -9581,7 +9992,7 @@
     const labelKey = normalizeOperationKey(label);
     return (
       primaryNames.find((name) =>
-        labelKey.includes(normalizeOperationKey(name))
+        labelKey.includes(normalizeOperationKey(name)),
       ) || ""
     );
   }
@@ -9643,12 +10054,12 @@
     if (!op) return "";
     const parentSection = normalizeOperationKey(op.parentSection || "");
     const parentSubsection = normalizeOperationKey(
-      op.parentSubsection || op.SECCION || ""
+      op.parentSubsection || op.SECCION || "",
     );
     const label = normalizeOperationKey(
       getOperationDisplayName(op) ||
         getOperationLabel(op) ||
-        getOperationId(op)
+        getOperationId(op),
     );
     if (!label) {
       const opId = normalizeOperationKey(getOperationId(op));
@@ -9659,10 +10070,7 @@
 
   function mergeOperationInto(base, extra) {
     if (!base || !extra) return base;
-    const rowFields = [
-      ...ROW_LABEL_FIELDS,
-      "net-row-adicional",
-    ];
+    const rowFields = [...ROW_LABEL_FIELDS, "net-row-adicional"];
     rowFields.forEach((field) => {
       if (!base[field] && extra[field]) {
         base[field] = extra[field];
@@ -9709,7 +10117,7 @@
     (state.operaciones || []).forEach((op) => {
       const key = buildOperationDedupeKey(op);
       const fallbackKey = normalizeOperationKey(
-        getOperationId(op) || getOperationLabel(op)
+        getOperationId(op) || getOperationLabel(op),
       );
       const finalKey = key || fallbackKey;
       if (!finalKey) {
@@ -9732,7 +10140,7 @@
         updateButtonStates();
         showToast(
           `Se detectaron ${removed} duplicados de operaciones. Guarda para aplicar.`,
-          "warning"
+          "warning",
         );
       }
     }
@@ -9751,8 +10159,12 @@
 
     cuentasOrdenadas.forEach((cuenta) => {
       if (!cuenta) return;
-      const principal = (getAccountPrincipalName(cuenta) || "").toString().trim();
-      const secundaria = (getAccountSecondaryName(cuenta) || "").toString().trim();
+      const principal = (getAccountPrincipalName(cuenta) || "")
+        .toString()
+        .trim();
+      const secundaria = (getAccountSecondaryName(cuenta) || "")
+        .toString()
+        .trim();
 
       if (isPlaceholderAccount(cuenta)) {
         if (secundaria) {
@@ -9774,7 +10186,9 @@
         return;
       }
 
-      const cuentaCodigo = (cuenta.CUENTA || cuenta.cuenta || "").toString().trim();
+      const cuentaCodigo = (cuenta.CUENTA || cuenta.cuenta || "")
+        .toString()
+        .trim();
       const accountKey = normalizeOperationMatch(cuentaCodigo);
       if (accountKey) {
         if (seenAccountCodes.has(accountKey)) {
@@ -9789,7 +10203,7 @@
       }
       if (principal && secundaria) {
         seenSecondaryPlaceholders.add(
-          `${normalizeOperationMatch(principal)}||${normalizeOperationMatch(secundaria)}`
+          `${normalizeOperationMatch(principal)}||${normalizeOperationMatch(secundaria)}`,
         );
       }
       cuentasUnicas.push(cuenta);
@@ -9806,7 +10220,7 @@
         updateButtonStates();
         showToast(
           `Se limpiaron duplicados: ${removedAccounts} cuentas, ${removedPlaceholders} secciones/subsecciones, ${removedOps} operaciones.`,
-          "warning"
+          "warning",
         );
       }
     }
@@ -9855,11 +10269,10 @@
     if (!parents || parents.size === 0) return "";
     if (parents.size === 1) return Array.from(parents)[0];
 
-
     const claseLower = (getOperationLabel(op) || "").toLowerCase();
     if (claseLower.includes("income")) {
       const match = Array.from(parents).find((p) =>
-        p.toLowerCase().includes("income")
+        p.toLowerCase().includes("income"),
       );
       if (match) return match;
     }
@@ -9872,7 +10285,7 @@
     }
     if (claseLower.includes("other") && claseLower.includes("income")) {
       const match = Array.from(parents).find((p) =>
-        p.toLowerCase().includes("other income")
+        p.toLowerCase().includes("other income"),
       );
       if (match) return match;
     }
@@ -9892,11 +10305,7 @@
       if (!term || term.type !== "section" || term.parentSection) {
         return term;
       }
-      const parentSection = inferParentSectionForTerm(
-        op,
-        term.value,
-        indexes
-      );
+      const parentSection = inferParentSectionForTerm(op, term.value, indexes);
       if (!parentSection) return term;
       return { ...term, parentSection };
     });
@@ -9939,7 +10348,7 @@
             anioOrigen: parseInt(state.anio),
             anioDestino: parseInt(anioDestino),
           }),
-        }
+        },
       );
 
       if (!response.ok) throw new Error("No se pudo copiar el layout");
@@ -9950,7 +10359,7 @@
       // Registrar en bitácora
       await addToBitacora(
         "COPIAR",
-        `Se copió el layout de ${state.anio} a ${anioDestino} para el capítulo ${state.capitulo}`
+        `Se copió el layout de ${state.anio} a ${anioDestino} para el capítulo ${state.capitulo}`,
       );
 
       await loadYears();
@@ -10015,7 +10424,7 @@
           lastAutoSaveErrorAt = now;
           showToast(
             "No se pudo guardar automáticamente. Revisa tu conexión e intenta Guardar.",
-            "error"
+            "error",
           );
         }
         setStatus("Error en guardado automático");
@@ -10119,8 +10528,8 @@
                       .map(
                         (item) =>
                           `<li class="text-muted small">✓ ${escapeHtml(
-                            item
-                          )}</li>`
+                            item,
+                          )}</li>`,
                       )
                       .join("")}
                     ${
@@ -10149,8 +10558,8 @@
                       .map(
                         (item) =>
                           `<li class="text-muted small">✓ ${escapeHtml(
-                            item
-                          )}</li>`
+                            item,
+                          )}</li>`,
                       )
                       .join("")}
                     ${
@@ -10179,8 +10588,8 @@
                       .map(
                         (item) =>
                           `<li class="text-muted small">✓ ${escapeHtml(
-                            item
-                          )}</li>`
+                            item,
+                          )}</li>`,
                       )
                       .join("")}
                     ${
@@ -10209,8 +10618,8 @@
                       .map(
                         (item) =>
                           `<li class="text-muted small">✓ ${escapeHtml(
-                            item
-                          )}</li>`
+                            item,
+                          )}</li>`,
                       )
                       .join("")}
                     ${
@@ -10239,8 +10648,8 @@
                       .map(
                         (item) =>
                           `<li class="text-muted small">✓ ${escapeHtml(
-                            item
-                          )}</li>`
+                            item,
+                          )}</li>`,
                       )
                       .join("")}
                     ${
@@ -10303,7 +10712,7 @@
       if (!silent) {
         showToast(
           "⚠️ Falta información: módulo, año o capítulo no definido",
-          "error"
+          "error",
         );
       }
       console.error("Contexto incompleto:", {
@@ -10322,7 +10731,10 @@
         applyTemplateRowsOrder(previewRows, { silent: true });
       }
     } catch (orderSyncError) {
-      console.warn("[saveLayout] No se pudo sincronizar orden visual", orderSyncError);
+      console.warn(
+        "[saveLayout] No se pudo sincronizar orden visual",
+        orderSyncError,
+      );
     }
 
     // Generar resumen de cambios
@@ -10370,13 +10782,13 @@
             empresaId: obtenerEmpresaIdApi(),
             cuentas: state.cuentas,
           }),
-        }
+        },
       );
 
       if (!accResponse.ok) {
         const errorData = await accResponse.json().catch(() => ({}));
         throw new Error(
-          errorData.mensaje || `Error ${accResponse.status} al guardar cuentas`
+          errorData.mensaje || `Error ${accResponse.status} al guardar cuentas`,
         );
       }
 
@@ -10388,9 +10800,8 @@
       // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
       const operacionesOrdenadas = sortOperations(state.operaciones);
       state.operaciones = operacionesOrdenadas;
-      const operacionesParaGuardar = buildOperacionesParaGuardar(
-        operacionesOrdenadas
-      );
+      const operacionesParaGuardar =
+        buildOperacionesParaGuardar(operacionesOrdenadas);
       const opResponse = await fetch(
         `${API_BASE}/${encodeURIComponent(state.modulo)}/${
           state.anio
@@ -10406,14 +10817,14 @@
             capitulo: state.capitulo,
             operaciones: operacionesParaGuardar,
           }),
-        }
+        },
       );
 
       if (!opResponse.ok) {
         const errorData = await opResponse.json().catch(() => ({}));
         throw new Error(
           errorData.mensaje ||
-            `Error ${opResponse.status} al guardar operaciones`
+            `Error ${opResponse.status} al guardar operaciones`,
         );
       }
 
@@ -10429,7 +10840,7 @@
       // Registrar en bitácora
       await addToBitacora(
         "GUARDAR",
-        `Se guardaron ${changesSummary.total} cambios en ${state.modulo} ${state.anio}: ${changesSummary.summary}`
+        `Se guardaron ${changesSummary.total} cambios en ${state.modulo} ${state.anio}: ${changesSummary.summary}`,
       );
       return true;
     } catch (error) {
@@ -10457,9 +10868,11 @@
 
   async function fetchLayoutVersions({ limit = 30 } = {}) {
     const base = `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/${encodeURIComponent(
-      state.capitulo
+      state.capitulo,
     )}/versions`;
-    const url = agregarEmpresaIdQuery(`${base}?limit=${encodeURIComponent(limit)}`);
+    const url = agregarEmpresaIdQuery(
+      `${base}?limit=${encodeURIComponent(limit)}`,
+    );
     const response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -10472,7 +10885,7 @@
   async function restoreLayoutVersion(versionId, { motivo = "" } = {}) {
     if (!versionId) return false;
     const url = `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/${encodeURIComponent(
-      state.capitulo
+      state.capitulo,
     )}/versions/${encodeURIComponent(versionId)}/restore`;
     const response = await fetch(url, {
       method: "POST",
@@ -10517,7 +10930,12 @@
       ? versions
           .map((v) => {
             const created = formatVersionTimestamp(v.created_at);
-            const user = (v.nombre_usuario || v.usuario || v.usuario_id || "").toString();
+            const user = (
+              v.nombre_usuario ||
+              v.usuario ||
+              v.usuario_id ||
+              ""
+            ).toString();
             const source = (v.source || "").toString();
             const motivo = (v.motivo || "").toString();
             return `
@@ -10529,7 +10947,7 @@
                 <td>${escapeHtml(motivo)}</td>
                 <td class="text-end">
                   <button type="button" class="btn btn-sm btn-outline-primary" data-action="restore" data-version-id="${escapeAttr(
-                    String(v.id)
+                    String(v.id),
                   )}">
                     Restaurar
                   </button>
@@ -10550,8 +10968,8 @@
           <div class="modal-header">
             <h5 class="modal-title">
               Historial de versiones · ${escapeHtml(state.modulo)} ${escapeHtml(
-      String(state.anio)
-    )} · ${escapeHtml(state.capitulo)}
+                String(state.anio),
+              )} · ${escapeHtml(state.capitulo)}
             </h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
@@ -10597,14 +11015,16 @@
       if (!versionId) return;
 
       const ok = confirm(
-        `¿Restaurar la versión ${versionId}?\\n\\nEsto reemplaza cuentas + operaciones del capítulo "${state.capitulo}".`
+        `¿Restaurar la versión ${versionId}?\\n\\nEsto reemplaza cuentas + operaciones del capítulo "${state.capitulo}".`,
       );
       if (!ok) return;
 
       btn.disabled = true;
       btn.textContent = "Restaurando...";
       try {
-        await restoreLayoutVersion(versionId, { motivo: `Restaurar versión ${versionId}` });
+        await restoreLayoutVersion(versionId, {
+          motivo: `Restaurar versión ${versionId}`,
+        });
         showToast("✅ Versión restaurada. Recargando...", "success");
         bsModal.hide();
         await loadLayout();
@@ -10643,116 +11063,117 @@
     }
     try {
       // Cargar estructura desde JSON
-      const estructuraUrl = window.location.protocol === "file:"
-        ? "http://localhost:3005/ESTRUCTURA_OPERACIONES_RESUMEN_2025.json"
-        : `${window.location.origin}/ESTRUCTURA_OPERACIONES_RESUMEN_2025.json`;
+      const estructuraUrl =
+        window.location.protocol === "file:"
+          ? "http://localhost:3005/ESTRUCTURA_OPERACIONES_RESUMEN_2025.json"
+          : `${window.location.origin}/ESTRUCTURA_OPERACIONES_RESUMEN_2025.json`;
 
       showToast("Cargando estructura predefinida...", "info");
-      
+
       const response = await fetch(estructuraUrl);
       if (!response.ok) {
         throw new Error("No se pudo cargar la estructura predefinida");
       }
 
-    const estructura = await response.json();
-    const operaciones = estructura.operaciones_orden_aparicion;
+      const estructura = await response.json();
+      const operaciones = estructura.operaciones_orden_aparicion;
 
-    // Convertir operaciones al formato del sistema
-    state.operaciones = operaciones.map((op, index) => {
-      const newOp = {
-        OperacionId: op.id,
-        Clase: op.nombre,
-        orden: op.orden || index + 1,
-        orden_presentacion: op.orden || index + 1,
-        CAPITULO: state.capitulo || "CIUDAD DE MÉXICO",
-        visible: op.visible !== false,
-      };
+      // Convertir operaciones al formato del sistema
+      state.operaciones = operaciones.map((op, index) => {
+        const newOp = {
+          OperacionId: op.id,
+          Clase: op.nombre,
+          orden: op.orden || index + 1,
+          orden_presentacion: op.orden || index + 1,
+          CAPITULO: state.capitulo || "CIUDAD DE MÉXICO",
+          visible: op.visible !== false,
+        };
 
-      // Asignar tipo de fila
-      switch (op.tipo) {
-        case "sum-row":
-          newOp["sum-row"] = op.nombre;
-          break;
-        case "sum-row-sumavarios":
-          newOp["sum-row-sumavarios"] = op.nombre;
-          break;
-        case "sum-row-sumavarios-consolidado":
-          newOp["sum-row-sumavarios-consolidado"] = op.nombre;
-          break;
-        case "sum-row-operativo":
-          newOp["sum-row-operativo"] = op.nombre;
-          break;
-        case "result-row":
-          newOp["result-row"] = op.nombre;
-          break;
-        case "net-row":
-          newOp["net-row"] = op.nombre;
-          break;
-        case "result-net-row":
-          newOp["result-net-row"] = op.nombre;
-          break;
-        default:
-          newOp[op.tipo] = op.nombre;
-      }
-
-      // Asignar formula_terms
-      const buildSigns = (terms = []) => {
-        newOp.signos = {};
-        terms.forEach((term, idx) => {
-          const key = `seccion_${idx + 1}`;
-          newOp[key] = term.value;
-          newOp.signos[key] = term.operator === "-" ? -1 : 1;
-        });
-      };
-
-      if (op.formula_terms && op.formula_terms.length > 0) {
-        newOp.formula_terms = op.formula_terms.map((term, idx) => ({
-          id: Date.now() + idx,
-          operator: term.operator || "+",
-          type: term.type || "section",
-          value: term.value,
-        }));
-        buildSigns(newOp.formula_terms);
-      } else if (op.cuentas && op.cuentas.length > 0) {
-        newOp.formula_terms = op.cuentas.map((cuenta, idx) => ({
-          id: Date.now() + idx,
-          operator: "+",
-          type: "account",
-          value: cuenta,
-        }));
-        buildSigns(newOp.formula_terms);
-        newOp.SECCION = op.cuentas.join(" + ");
-      } else if (op.formula) {
-        const parsed = [];
-        const cleaned = op.formula.replace(/[()]/g, " ");
-        let currentOp = "+";
-        cleaned
-          .split(/(?=[+-])/)
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .forEach((chunk, idx2) => {
-            let operator = currentOp;
-            if (chunk.startsWith("+") || chunk.startsWith("-")) {
-              operator = chunk[0];
-              chunk = chunk.slice(1).trim();
-            }
-            if (!chunk) return;
-            parsed.push({
-              id: Date.now() + idx2,
-              operator: operator || "+",
-              type: "operation",
-              value: chunk,
-            });
-            currentOp = operator;
-          });
-        if (parsed.length) {
-          newOp.formula_terms = parsed;
-          buildSigns(parsed);
+        // Asignar tipo de fila
+        switch (op.tipo) {
+          case "sum-row":
+            newOp["sum-row"] = op.nombre;
+            break;
+          case "sum-row-sumavarios":
+            newOp["sum-row-sumavarios"] = op.nombre;
+            break;
+          case "sum-row-sumavarios-consolidado":
+            newOp["sum-row-sumavarios-consolidado"] = op.nombre;
+            break;
+          case "sum-row-operativo":
+            newOp["sum-row-operativo"] = op.nombre;
+            break;
+          case "result-row":
+            newOp["result-row"] = op.nombre;
+            break;
+          case "net-row":
+            newOp["net-row"] = op.nombre;
+            break;
+          case "result-net-row":
+            newOp["result-net-row"] = op.nombre;
+            break;
+          default:
+            newOp[op.tipo] = op.nombre;
         }
-      }
 
-      return newOp;
-    });
+        // Asignar formula_terms
+        const buildSigns = (terms = []) => {
+          newOp.signos = {};
+          terms.forEach((term, idx) => {
+            const key = `seccion_${idx + 1}`;
+            newOp[key] = term.value;
+            newOp.signos[key] = term.operator === "-" ? -1 : 1;
+          });
+        };
+
+        if (op.formula_terms && op.formula_terms.length > 0) {
+          newOp.formula_terms = op.formula_terms.map((term, idx) => ({
+            id: Date.now() + idx,
+            operator: term.operator || "+",
+            type: term.type || "section",
+            value: term.value,
+          }));
+          buildSigns(newOp.formula_terms);
+        } else if (op.cuentas && op.cuentas.length > 0) {
+          newOp.formula_terms = op.cuentas.map((cuenta, idx) => ({
+            id: Date.now() + idx,
+            operator: "+",
+            type: "account",
+            value: cuenta,
+          }));
+          buildSigns(newOp.formula_terms);
+          newOp.SECCION = op.cuentas.join(" + ");
+        } else if (op.formula) {
+          const parsed = [];
+          const cleaned = op.formula.replace(/[()]/g, " ");
+          let currentOp = "+";
+          cleaned
+            .split(/(?=[+-])/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .forEach((chunk, idx2) => {
+              let operator = currentOp;
+              if (chunk.startsWith("+") || chunk.startsWith("-")) {
+                operator = chunk[0];
+                chunk = chunk.slice(1).trim();
+              }
+              if (!chunk) return;
+              parsed.push({
+                id: Date.now() + idx2,
+                operator: operator || "+",
+                type: "operation",
+                value: chunk,
+              });
+              currentOp = operator;
+            });
+          if (parsed.length) {
+            newOp.formula_terms = parsed;
+            buildSigns(parsed);
+          }
+        }
+
+        return newOp;
+      });
 
       // Guardar el layout
       const layoutData = {
@@ -10763,37 +11184,42 @@
         cuentas: state.cuentas || [],
       };
 
-      const saveResponse = await fetch(`${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
+      const saveResponse = await fetch(
+        `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify(layoutData),
         },
-        body: JSON.stringify(layoutData),
-      });
+      );
 
       if (!saveResponse.ok) {
         throw new Error("No se pudo guardar el layout");
       }
 
-      showToast(`Layout RESUMEN 2025 creado con ${operaciones.length} operaciones`, "success");
+      showToast(
+        `Layout RESUMEN 2025 creado con ${operaciones.length} operaciones`,
+        "success",
+      );
 
       // Registrar en bitácora
       await addToBitacora(
         "CREAR",
-        `Se generó layout RESUMEN 2025 con estructura completa de ${operaciones.length} operaciones`
+        `Se generó layout RESUMEN 2025 con estructura completa de ${operaciones.length} operaciones`,
       );
 
       // Recargar layout
       await loadLayout();
-
     } catch (error) {
       console.error("Error creando RESUMEN 2025:", error);
       showToast(`Error: ${error.message}`, "error");
-      
+
       // Fallback: crear manualmente
       const usarManual = confirm(
-        "No se pudo cargar la estructura automáticamente. ¿Deseas crear manualmente las operaciones básicas?"
+        "No se pudo cargar la estructura automáticamente. ¿Deseas crear manualmente las operaciones básicas?",
       );
       if (usarManual) {
         await createResumen2025Manual();
@@ -10856,7 +11282,11 @@
         Clase: "CONSOLIDATED NET RESULTS",
         "result-net-row": "CONSOLIDATED NET RESULTS",
         formula_terms: [
-          { value: "CONSOLIDATED_OPERATING_RESULTS", operator: "+", type: "operation" },
+          {
+            value: "CONSOLIDATED_OPERATING_RESULTS",
+            operator: "+",
+            type: "operation",
+          },
         ],
         orden: 6,
       },
@@ -10864,7 +11294,10 @@
 
     state.operaciones = operacionesBasicas;
 
-    showToast("6 operaciones básicas creadas. Edita para agregar más.", "success");
+    showToast(
+      "6 operaciones básicas creadas. Edita para agregar más.",
+      "success",
+    );
     renderLayout();
   }
 
@@ -10885,10 +11318,10 @@
       type === "success"
         ? "check-circle text-success"
         : type === "error"
-        ? "x-circle text-danger"
-        : type === "warning"
-        ? "exclamation-triangle text-warning"
-        : "info-circle text-primary"
+          ? "x-circle text-danger"
+          : type === "warning"
+            ? "exclamation-triangle text-warning"
+            : "info-circle text-primary"
     } me-2`;
 
     const toast = new bootstrap.Toast(dom.toastNotification);
@@ -10969,13 +11402,18 @@
             "- SECCION: " +
             (op.SECCION || "ninguno") +
             "\n\n" +
-            "Usa el botón de editar para configurar la fórmula."
+            "Usa el botón de editar para configurar la fórmula.",
         );
         return;
       }
     }
 
-    console.log("Mostrando mapa para:", getOperationLabel(op) || operationId, "términos:", op.formula_terms);
+    console.log(
+      "Mostrando mapa para:",
+      getOperationLabel(op) || operationId,
+      "términos:",
+      op.formula_terms,
+    );
 
     // Usar FormulaBuilder para mostrar el mapa
     if (
@@ -11005,7 +11443,9 @@
       .forEach((r) => r.classList.remove("selected"));
     row.classList.add("selected");
     const accountId =
-      row?.dataset?.accountId || row?.getAttribute?.("data-account-id") || codigo;
+      row?.dataset?.accountId ||
+      row?.getAttribute?.("data-account-id") ||
+      codigo;
     const account =
       resolveAccountByIdOrCode(accountId) || resolveAccountByIdOrCode(codigo);
     const codigoCuenta =
@@ -11019,7 +11459,7 @@
     updateSelectionInfo();
   };
 
-// Exponer funciones de movimiento para los botones onclick
+  // Exponer funciones de movimiento para los botones onclick
   window.moveSectionOrder = moveSectionOrder;
   window.moveSubsectionOrder = moveSubsectionOrder;
   window.moveAccountOrder = moveAccountOrder;
@@ -11038,7 +11478,7 @@
     label,
     opId,
     kind,
-    direction
+    direction,
   ) {
     if (event) {
       event.preventDefault();
@@ -11047,7 +11487,7 @@
     moveOperationOrder(label, opId, kind, direction);
   };
 
-window.editSection = function (name) {
+  window.editSection = function (name) {
     if (!requireEditMode()) return;
     // En modo 100% manual: el lápiz renombra la sección (NO crea operaciones automáticas).
     if (typeof window._editSectionOriginal === "function") {
@@ -11058,13 +11498,13 @@ window.editSection = function (name) {
       _editSectionInternalOld(name);
     }
   };
-  
+
   window._editSectionOriginal = function (name) {
     dom.formEditar.innerHTML = `
       <div class="mb-3">
         <label class="form-label">Nombre de la Sección</label>
         <input type="text" class="form-control" id="editNombreSeccion" value="${escapeHtml(
-          name
+          name,
         )}" />
       </div>
       <div class="alert alert-warning small">
@@ -11082,7 +11522,7 @@ window.editSection = function (name) {
     if (!requireEditMode()) return;
     if (
       !confirm(
-        `¿Eliminar la sección "${name}" y TODAS sus cuentas? Esta acción no se puede deshacer.`
+        `¿Eliminar la sección "${name}" y TODAS sus cuentas? Esta acción no se puede deshacer.`,
       )
     )
       return;
@@ -11113,19 +11553,19 @@ window.editSection = function (name) {
     }
     showToast("Editor de subsecciones no disponible", "warning");
   };
-  
+
   window._editSubsectionOriginal = function (principal, name) {
     dom.formEditar.innerHTML = `
       <div class="mb-3">
         <label class="form-label">Sección Principal</label>
         <input type="text" class="form-control" value="${escapeHtml(
-          principal
+          principal,
         )}" readonly disabled />
       </div>
       <div class="mb-3">
         <label class="form-label">Nombre de la Subsección</label>
         <input type="text" class="form-control" id="editNombreSubseccion" value="${escapeHtml(
-          name
+          name,
         )}" />
       </div>
       <div class="alert alert-warning small">
@@ -11143,7 +11583,7 @@ window.editSection = function (name) {
     if (!requireEditMode()) return;
     if (
       !confirm(
-        `¿Eliminar la subsección "${name}" y TODAS sus cuentas? Esta acción no se puede deshacer.`
+        `¿Eliminar la subsección "${name}" y TODAS sus cuentas? Esta acción no se puede deshacer.`,
       )
     )
       return;
@@ -11172,7 +11612,7 @@ window.editSection = function (name) {
   window.addToSection = function (principal) {
     if (!requireEditMode()) return;
     document.querySelector(
-      'input[name="tipoElemento"][value="cuenta"]'
+      'input[name="tipoElemento"][value="cuenta"]',
     ).checked = true;
     updateAddForm();
     setTimeout(() => {
@@ -11224,7 +11664,9 @@ window.editSection = function (name) {
     const principalNames = getManualSectionNames();
     if (
       seccionPrincipal &&
-      !principalNames.some((name) => normalizeKey(name) === normalizeKey(seccionPrincipal))
+      !principalNames.some(
+        (name) => normalizeKey(name) === normalizeKey(seccionPrincipal),
+      )
     ) {
       principalNames.unshift(seccionPrincipal);
     }
@@ -11232,7 +11674,9 @@ window.editSection = function (name) {
       .filter(Boolean)
       .map((name) => {
         const selected =
-          normalizeKey(name) === normalizeKey(seccionPrincipal) ? "selected" : "";
+          normalizeKey(name) === normalizeKey(seccionPrincipal)
+            ? "selected"
+            : "";
         return `<option value="${escapeAttr(name)}" ${selected}>${escapeHtml(name)}</option>`;
       })
       .join("");
@@ -11240,7 +11684,9 @@ window.editSection = function (name) {
     const subsectionNames = getManualSubsectionNames(seccionPrincipal);
     if (
       seccionSecundaria &&
-      !subsectionNames.some((name) => normalizeKey(name) === normalizeKey(seccionSecundaria))
+      !subsectionNames.some(
+        (name) => normalizeKey(name) === normalizeKey(seccionSecundaria),
+      )
     ) {
       subsectionNames.unshift(seccionSecundaria);
     }
@@ -11248,7 +11694,9 @@ window.editSection = function (name) {
       .filter(Boolean)
       .map((name) => {
         const selected =
-          normalizeKey(name) === normalizeKey(seccionSecundaria) ? "selected" : "";
+          normalizeKey(name) === normalizeKey(seccionSecundaria)
+            ? "selected"
+            : "";
         return `<option value="${escapeAttr(name)}" ${selected}>${escapeHtml(name)}</option>`;
       })
       .join("");
@@ -11257,13 +11705,13 @@ window.editSection = function (name) {
       <div class="mb-3">
         <label class="form-label">Código</label>
         <input type="text" class="form-control" id="editCodigo" value="${escapeHtml(
-          codigoCuenta
+          codigoCuenta,
         )}" />
       </div>
       <div class="mb-3">
         <label class="form-label">Nombre</label>
         <input type="text" class="form-control" id="editNombre" value="${escapeHtml(
-          cuenta.NOMBRE || ""
+          cuenta.NOMBRE || "",
         )}" />
       </div>
       <div class="mb-3">
@@ -11283,13 +11731,13 @@ window.editSection = function (name) {
       <div class="mb-3">
         <label class="form-label">Signo/Factor</label>
         <input type="text" class="form-control" id="editFactor" placeholder="1 suma, -1 resta" value="${escapeHtml(
-          factorValue === 1 ? "" : String(factorValue)
+          factorValue === 1 ? "" : String(factorValue),
         )}" />
         <div class="form-text">Aplica a todas las columnas (real, presupuesto y comparativo).</div>
       </div>
       <div class="mb-3">
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="editVisible" ${cuenta.visible !== false ? 'checked' : ''} />
+          <input class="form-check-input" type="checkbox" id="editVisible" ${cuenta.visible !== false ? "checked" : ""} />
           <label class="form-check-label" for="editVisible">Visible</label>
         </div>
       </div>
@@ -11306,7 +11754,7 @@ window.editSection = function (name) {
   };
 
   // Función auxiliar para actualizar opciones de subsección al cambiar la sección principal
-  window.updateEditSubsectionOptions = function() {
+  window.updateEditSubsectionOptions = function () {
     const principalSelect = document.getElementById("editSeccionPrincipal");
     const secondarySelect = document.getElementById("editSeccionSecundaria");
     if (!principalSelect || !secondarySelect) return;
@@ -11353,11 +11801,11 @@ window.editSection = function (name) {
           .filter(
             (c) =>
               normalizeKey(getAccountPrincipalName(c) || "") ===
-              normalizeKey(selectedPrincipal)
+              normalizeKey(selectedPrincipal),
           )
           .map((c) => (getAccountSecondaryName(c) || "").toString().trim())
-          .filter(Boolean)
-      )
+          .filter(Boolean),
+      ),
     ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
 
     let options = '<option value="">Sin subsección</option>';
@@ -11369,7 +11817,9 @@ window.editSection = function (name) {
 
     if (
       currentSub &&
-      subsections.some((name) => normalizeKey(name) === normalizeKey(currentSub))
+      subsections.some(
+        (name) => normalizeKey(name) === normalizeKey(currentSub),
+      )
     ) {
       secondarySelect.value = currentSub;
     }
@@ -11386,18 +11836,22 @@ window.editSection = function (name) {
 
     if (accountId) {
       state.cuentas = state.cuentas.filter(
-        (c) => getAccountRowId(c) !== accountId
+        (c) => getAccountRowId(c) !== accountId,
       );
     } else {
       state.cuentas = state.cuentas.filter((c) => c.CUENTA !== codigo);
     }
     state.unsavedChanges = true;
     updateButtonStates();
-    logChange("delete", `Cuenta ${codigoCuenta}${nombre ? " - " + nombre : ""}`, {
-      codigo: codigoCuenta,
-      nombre,
-      accountId,
-    });
+    logChange(
+      "delete",
+      `Cuenta ${codigoCuenta}${nombre ? " - " + nombre : ""}`,
+      {
+        codigo: codigoCuenta,
+        nombre,
+        accountId,
+      },
+    );
     renderLayout();
     updateStats();
     scheduleAutoSave("delete");
@@ -11439,7 +11893,7 @@ window.editSection = function (name) {
       return secondary === sectionLower || primary === sectionLower;
     });
     matchingAccounts = matchingAccounts.filter(
-      (account) => !isPlaceholderAccount(account)
+      (account) => !isPlaceholderAccount(account),
     );
 
     // If no exact match, try partial match
@@ -11472,13 +11926,13 @@ window.editSection = function (name) {
         );
       });
       matchingAccounts = matchingAccounts.filter(
-        (account) => !isPlaceholderAccount(account)
+        (account) => !isPlaceholderAccount(account),
       );
     }
 
     if (matchingAccounts.length === 0) {
       return `<span class="text-muted">No se encontraron cuentas en la sección "${escapeHtml(
-        sectionName
+        sectionName,
       )}" (${state.cuentas.length} cuentas en total)</span>`;
     }
 
@@ -11489,10 +11943,10 @@ window.editSection = function (name) {
         <i class="bi bi-journal-text text-primary me-2"></i>
         <code class="me-2">${escapeHtml(c.CUENTA)}</code>
         <span class="text-muted small">${escapeHtml(
-          c.NOMBRE || c.nombre || ""
+          c.NOMBRE || c.nombre || "",
         )}</span>
       </div>
-    `
+    `,
       )
       .join("");
   }
@@ -11586,22 +12040,22 @@ window.editSection = function (name) {
           <div class="table-preview-item bg-${
             table.color
           } bg-opacity-10 border-${
-              table.color
-            } border-start border-3 p-2 rounded mb-2">
+            table.color
+          } border-start border-3 p-2 rounded mb-2">
             <div class="d-flex align-items-center gap-2">
               <i class="bi ${table.icon} text-${table.color} fs-5"></i>
               <div class="flex-grow-1">
                 <div class="fw-semibold text-${table.color}">${
-              table.label
-            }</div>
+                  table.label
+                }</div>
                 <div class="small text-muted">Como: <code class="text-dark">${escapeHtml(
-                  table.value
+                  table.value,
                 )}</code></div>
               </div>
               <span class="badge bg-${table.color}">Visible</span>
             </div>
           </div>
-        `
+        `,
           )
           .join("")}
       </div>
@@ -11617,7 +12071,12 @@ window.editSection = function (name) {
       if (match.operations.length === 1) {
         op = match.operations[0];
       } else if (match.operations.length > 1) {
-        editConsolidatedLabel(operationId, match.field || "sum-row");
+        editConsolidatedLabel(
+          operationId,
+          match.field || "sum-row",
+          "",
+          match.operations,
+        );
         return;
       } else {
         showToast("Operacion no encontrada", "warning");
@@ -11638,13 +12097,21 @@ window.editSection = function (name) {
       if (opPredefinida) {
         const knownOperations = new Set();
         operacionesContexto.forEach((item) => {
-          if (item?.nombre) knownOperations.add(normalizeOperacionKey(item.nombre));
+          if (item?.nombre)
+            knownOperations.add(normalizeOperacionKey(item.nombre));
           if (item?.id) knownOperations.add(normalizeOperacionKey(item.id));
-          if (item?.identificador) knownOperations.add(normalizeOperacionKey(item.identificador));
+          if (item?.identificador)
+            knownOperations.add(normalizeOperacionKey(item.identificador));
         });
-        applyPredefinedToExisting(op, opPredefinida, op.orden, knownOperations, {
-          force: true,
-        });
+        applyPredefinedToExisting(
+          op,
+          opPredefinida,
+          op.orden,
+          knownOperations,
+          {
+            force: true,
+          },
+        );
       }
     }
 
@@ -11666,10 +12133,11 @@ window.editSection = function (name) {
         return;
       }
       if (opItem.id) operationKeys.add(normalizeOperationMatch(opItem.id));
-      if (opItem.label) operationKeys.add(normalizeOperationMatch(opItem.label));
+      if (opItem.label)
+        operationKeys.add(normalizeOperationMatch(opItem.label));
     });
     const sectionNames = availableElements.sections.map((s) =>
-      normalizeOperationMatch(s)
+      normalizeOperationMatch(s),
     );
     const extractedFromFields = extractFormulaTerms(op);
 
@@ -11691,7 +12159,7 @@ window.editSection = function (name) {
 
       // Check case-insensitive partial match in sections
       const sectionMatch = sectionNames.find(
-        (s) => s.includes(lower) || lower.includes(s)
+        (s) => s.includes(lower) || lower.includes(s),
       );
       if (sectionMatch) {
         return "section";
@@ -11755,7 +12223,7 @@ window.editSection = function (name) {
 
     if (formulaTerms.length === 0) {
       const derivedFromParent = buildFormulaTermsFromParent(
-        op.SECCION || op.Clase
+        op.SECCION || op.Clase,
       );
       if (derivedFromParent.length) {
         formulaTerms = derivedFromParent;
@@ -11822,10 +12290,10 @@ window.editSection = function (name) {
         <div class="col-md-6">
           <label class="form-label small text-muted"${tooltipAttr}>${row.label}</label>
           <input type="text" class="form-control" id="${rowLabelInputId(
-            row.field
+            row.field,
           )}" value="${escapeHtml(op[row.field] || "")}" placeholder="${
-        row.placeholder
-      }"${tooltipAttr} />
+            row.placeholder
+          }"${tooltipAttr} />
         </div>
       `;
     }).join("");
@@ -11840,7 +12308,7 @@ window.editSection = function (name) {
       <div class="mb-3">
         <label class="form-label">Etiqueta de la Operación</label>
         <input type="text" class="form-control" id="editClaseOp" value="${escapeHtml(
-          opLabelInput
+          opLabelInput,
         )}" />
       </div>
 
@@ -11848,14 +12316,12 @@ window.editSection = function (name) {
         <label class="form-label d-flex align-items-center gap-2">
           Tipo de fila
           <i class="bi bi-info-circle text-muted" data-aparicion-help="true" title="${escapeAttr(
-            tipoTooltip
+            tipoTooltip,
           )}"></i>
         </label>
         <select class="form-select" id="editOperacionTipo" data-aparicion-select="true" data-initial-tipo="${escapeAttr(
-          tipoSeleccionado
-        )}" title="${escapeAttr(
-          tipoTooltip
-        )}">
+          tipoSeleccionado,
+        )}" title="${escapeAttr(tipoTooltip)}">
           ${tipoOptions}
         </select>
         <div class="form-text">
@@ -11889,10 +12355,7 @@ window.editSection = function (name) {
     // Asegurar que op tenga formula_terms poblados antes de pasarlo a FormulaBuilder
     console.log("📝 editOperation - formulaTerms construidos:", formulaTerms);
     let termsForBuilder = formulaTerms;
-    if (
-      termsForBuilder.length === 1 &&
-      termsForBuilder[0].type === "section"
-    ) {
+    if (termsForBuilder.length === 1 && termsForBuilder[0].type === "section") {
       const expanded = expandSectionTerms(termsForBuilder);
       if (expanded.some((term) => term.type === "account")) {
         termsForBuilder = expanded;
@@ -11942,7 +12405,7 @@ window.editSection = function (name) {
       (o) =>
         (buildOperationDedupeKey(o) ||
           normalizeOperationKey(getOperationId(o) || getOperationLabel(o))) ===
-        key
+        key,
     );
     const mensaje =
       duplicados.length > 1
@@ -11954,7 +12417,7 @@ window.editSection = function (name) {
       (o) =>
         (buildOperationDedupeKey(o) ||
           normalizeOperationKey(getOperationId(o) || getOperationLabel(o))) !==
-        key
+        key,
     );
 
     const identificadoresServidor = Array.from(
@@ -11963,8 +12426,8 @@ window.editSection = function (name) {
           .flatMap((item) => [getOperationId(item), getOperationLabel(item)])
           .map((value) => (value || "").toString().trim())
           .filter(Boolean)
-          .map((value) => [normalizeOperationMatch(value), value])
-      ).values()
+          .map((value) => [normalizeOperationMatch(value), value]),
+      ).values(),
     );
     if (!identificadoresServidor.length) {
       identificadoresServidor.push(opId || label || operationId);
@@ -11977,7 +12440,7 @@ window.editSection = function (name) {
         clase: label,
         operacionId: opId,
         duplicados: duplicados.length,
-      }
+      },
     );
     renderLayout();
     updateStats();
@@ -11992,7 +12455,7 @@ window.editSection = function (name) {
         let eliminacionRemotaOk = false;
         for (const identificador of identificadoresServidor) {
           const claseToDelete = encodeURIComponent(
-            identificador || opId || label || operationId
+            identificador || opId || label || operationId,
           );
           const url = `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/operacion/${claseToDelete}?${params.toString()}`;
           const resp = await fetch(url, {
@@ -12021,7 +12484,12 @@ window.editSection = function (name) {
   };
 
   // Edit a consolidated label (shows all contributing operations and accounts)
-  window.editConsolidatedLabel = function (label, field) {
+  window.editConsolidatedLabel = function (
+    label,
+    field,
+    parentSection = "",
+    sourceOperations = [],
+  ) {
     if (!requireEditMode()) return;
     const modalTitle = dom.modalEditar?.querySelector(".modal-title");
     if (modalTitle) {
@@ -12030,9 +12498,56 @@ window.editSection = function (name) {
 
     const match = findOperationsByRowLabel(label, field);
     const resolvedField = match.field || field;
-    const affectedOps = match.operations.length
+    let affectedOps = match.operations.length
       ? match.operations
       : state.operaciones.filter((op) => op[resolvedField] === label);
+
+    if (
+      !affectedOps.length &&
+      Array.isArray(sourceOperations) &&
+      sourceOperations.length
+    ) {
+      affectedOps = sourceOperations.slice();
+    }
+
+    if (!affectedOps.length) {
+      const targetKey = normalizeOperationMatch(label || "");
+      const parentKey = normalizeOperationMatch(parentSection || "");
+      let fallback = (state.operaciones || []).filter((op) => {
+        const byIdOrLabel =
+          normalizeOperationMatch(getOperationId(op)) === targetKey ||
+          normalizeOperationMatch(getOperationLabel(op)) === targetKey;
+        if (byIdOrLabel) return true;
+        return getOperationPlacementCandidates(op).some(
+          (candidate) => normalizeOperationMatch(candidate) === targetKey,
+        );
+      });
+
+      if (parentKey) {
+        const narrowed = fallback.filter((op) =>
+          getOperationParentCandidates(op).some(
+            (candidate) => normalizeOperationMatch(candidate) === parentKey,
+          ),
+        );
+        if (narrowed.length) {
+          fallback = narrowed;
+        }
+      }
+      affectedOps = fallback;
+    }
+
+    if (affectedOps.length > 1) {
+      const seen = new Set();
+      affectedOps = affectedOps.filter((op) => {
+        const key = normalizeOperationMatch(
+          getOperationId(op) || getOperationLabel(op) || "",
+        );
+        if (!key) return true;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
 
     if (affectedOps.length === 0) {
       showToast("No se encontraron operaciones para esta etiqueta", "error");
@@ -12072,7 +12587,7 @@ window.editSection = function (name) {
       <div class="mb-3">
         <label class="form-label">Etiqueta Consolidada</label>
         <input type="text" class="form-control" id="editConsolidatedLabelName" value="${escapeHtml(
-          label
+          label,
         )}" />
         <small class="text-muted">Tipo: ${escapeHtml(resolvedField)}</small>
       </div>
@@ -12089,7 +12604,7 @@ window.editSection = function (name) {
               <i class="bi bi-arrow-right-short text-muted me-1"></i>
               <span class="small">${escapeHtml(op.Clase || op.SECCION)}</span>
             </div>
-          `
+          `,
             )
             .join("")}
         </div>
@@ -12148,7 +12663,7 @@ window.editSection = function (name) {
 
     if (
       !confirm(
-        `¿Eliminar la etiqueta "${label}" de ${affectedOps.length} operaciones?\n\nOperaciones afectadas: ${opsList}${more}`
+        `¿Eliminar la etiqueta "${label}" de ${affectedOps.length} operaciones?\n\nOperaciones afectadas: ${opsList}${more}`,
       )
     )
       return;
@@ -12164,7 +12679,7 @@ window.editSection = function (name) {
     updateStats();
     showToast(
       `Etiqueta "${label}" eliminada de ${affectedOps.length} operaciones`,
-      "success"
+      "success",
     );
   };
 
@@ -12186,7 +12701,7 @@ window.editSection = function (name) {
         .filter(Boolean)
         .map(
           (name) =>
-            `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`
+            `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`,
         )
         .join("");
   };
@@ -12256,8 +12771,7 @@ window.editSection = function (name) {
     const markInvalid = (input, message) => {
       if (!input) return;
       input.classList.add("is-invalid");
-      const feedback =
-        input.parentElement?.querySelector(".invalid-feedback");
+      const feedback = input.parentElement?.querySelector(".invalid-feedback");
       if (feedback && message) feedback.textContent = message;
     };
     const clearInvalid = (input) => {
@@ -12269,7 +12783,7 @@ window.editSection = function (name) {
       const cuenta =
         state.selectedElement.cuenta ||
         resolveAccountByIdOrCode(
-          state.selectedElement.accountId || state.selectedElement.codigo
+          state.selectedElement.accountId || state.selectedElement.codigo,
         );
       if (!cuenta) return;
       state.selectedElement.cuenta = cuenta;
@@ -12277,8 +12791,12 @@ window.editSection = function (name) {
       const oldNombre = cuenta.NOMBRE;
       const newCodigo = document.getElementById("editCodigo")?.value?.trim();
       const newNombre = document.getElementById("editNombre")?.value?.trim();
-      const newSeccionPrincipal = document.getElementById("editSeccionPrincipal")?.value?.trim();
-      const newSeccionSecundaria = document.getElementById("editSeccionSecundaria")?.value?.trim();
+      const newSeccionPrincipal = document
+        .getElementById("editSeccionPrincipal")
+        ?.value?.trim();
+      const newSeccionSecundaria = document
+        .getElementById("editSeccionSecundaria")
+        ?.value?.trim();
       const newFactorRaw = document.getElementById("editFactor")?.value?.trim();
       const newVisible = document.getElementById("editVisible")?.checked;
 
@@ -12299,7 +12817,7 @@ window.editSection = function (name) {
         logChange(
           "edit",
           `Cuenta ${cuenta.CUENTA}: "${oldNombre}" → "${newNombre}"`,
-          { codigo: cuenta.CUENTA, oldNombre, newNombre }
+          { codigo: cuenta.CUENTA, oldNombre, newNombre },
         );
         changed = true;
       }
@@ -12308,11 +12826,15 @@ window.editSection = function (name) {
       const oldPrincipal = getAccountPrincipalName(cuenta);
       if (newSeccionPrincipal !== oldPrincipal) {
         setAccountPrincipalName(cuenta, newSeccionPrincipal);
-        logChange("edit", `Cuenta ${cuenta.CUENTA}: sección "${oldPrincipal}" → "${newSeccionPrincipal}"`, {
-          codigo: cuenta.CUENTA,
-          oldPrincipal,
-          newPrincipal: newSeccionPrincipal,
-        });
+        logChange(
+          "edit",
+          `Cuenta ${cuenta.CUENTA}: sección "${oldPrincipal}" → "${newSeccionPrincipal}"`,
+          {
+            codigo: cuenta.CUENTA,
+            oldPrincipal,
+            newPrincipal: newSeccionPrincipal,
+          },
+        );
         changed = true;
       }
 
@@ -12320,11 +12842,15 @@ window.editSection = function (name) {
       const oldSecundaria = getAccountSecondaryName(cuenta);
       if (newSeccionSecundaria !== oldSecundaria) {
         setAccountSecondaryName(cuenta, newSeccionSecundaria);
-        logChange("edit", `Cuenta ${cuenta.CUENTA}: subsección "${oldSecundaria}" → "${newSeccionSecundaria}"`, {
-          codigo: cuenta.CUENTA,
-          oldSecundaria,
-          newSecundaria: newSeccionSecundaria,
-        });
+        logChange(
+          "edit",
+          `Cuenta ${cuenta.CUENTA}: subsección "${oldSecundaria}" → "${newSeccionSecundaria}"`,
+          {
+            codigo: cuenta.CUENTA,
+            oldSecundaria,
+            newSecundaria: newSeccionSecundaria,
+          },
+        );
         changed = true;
       }
 
@@ -12339,16 +12865,19 @@ window.editSection = function (name) {
       const factorActual = Number.isFinite(Number(factorActualRaw))
         ? Number(factorActualRaw)
         : 1;
-      const factorNuevo = newFactorRaw === "" || newFactorRaw == null
-        ? 1
-        : Number(newFactorRaw);
+      const factorNuevo =
+        newFactorRaw === "" || newFactorRaw == null ? 1 : Number(newFactorRaw);
       const factorNuevoFinal = Number.isFinite(factorNuevo) ? factorNuevo : 1;
       if (factorNuevoFinal !== factorActual) {
         cuenta.operacion_factor = factorNuevoFinal;
         logChange(
           "edit",
           `Cuenta ${cuenta.CUENTA}: factor ${factorActual} → ${factorNuevoFinal}`,
-          { codigo: cuenta.CUENTA, factorActual, factorNuevo: factorNuevoFinal }
+          {
+            codigo: cuenta.CUENTA,
+            factorActual,
+            factorNuevo: factorNuevoFinal,
+          },
         );
         changed = true;
       }
@@ -12404,7 +12933,7 @@ window.editSection = function (name) {
 
           if (Array.isArray(op.secciones) && op.secciones.length) {
             op.secciones = op.secciones.map((value) =>
-              normalizeOperationMatch(value || "") === oldKey ? newName : value
+              normalizeOperationMatch(value || "") === oldKey ? newName : value,
             );
           }
 
@@ -12446,7 +12975,7 @@ window.editSection = function (name) {
             });
             if (changed) {
               op.formula_json = JSON.stringify(
-                normalizeFormulaTerms(op.formula_terms)
+                normalizeFormulaTerms(op.formula_terms),
               );
             }
           }
@@ -12455,12 +12984,12 @@ window.editSection = function (name) {
         logChange(
           "rename",
           `Sección "${oldName}" → "${newName}" (${affectedCount} cuentas afectadas)`,
-          { oldName, newName, affectedCount }
+          { oldName, newName, affectedCount },
         );
         renderLayout();
         showToast(
           `✅ Sección renombrada (${affectedCount} cuentas actualizadas)`,
-          "success"
+          "success",
         );
       }
     } else if (state.selectedElement.type === "subsection") {
@@ -12499,7 +13028,9 @@ window.editSection = function (name) {
         const oldKey = normalizeOperationMatch(oldName || "");
         state.operaciones.forEach((op) => {
           if (!op) return;
-          const opPrincipalKey = normalizeOperationMatch(op.parentSection || "");
+          const opPrincipalKey = normalizeOperationMatch(
+            op.parentSection || "",
+          );
           const opSubKey = normalizeOperationMatch(op.parentSubsection || "");
           if (opPrincipalKey === principalKey && opSubKey === oldKey) {
             op.parentSubsection = newName;
@@ -12509,7 +13040,9 @@ window.editSection = function (name) {
               if (op.seccion !== undefined) op.seccion = newName;
               if (Array.isArray(op.secciones) && op.secciones.length) {
                 op.secciones = op.secciones.map((value) =>
-                  normalizeOperationMatch(value || "") === oldKey ? newName : value
+                  normalizeOperationMatch(value || "") === oldKey
+                    ? newName
+                    : value,
                 );
               }
             }
@@ -12531,15 +13064,24 @@ window.editSection = function (name) {
               if (!term) return term;
               if (term.type !== "section" || !term.value) return term;
               const termKey = normalizeOperationMatch(term.value);
-              const termParentKey = normalizeOperationMatch(term.parentSection || "");
+              const termParentKey = normalizeOperationMatch(
+                term.parentSection || "",
+              );
               if (termKey !== oldKey) return term;
               // Si hay parentSection, respetarlo para no renombrar homónimos en otras secciones.
-              if (term.parentSection && termParentKey !== principalKey) return term;
+              if (term.parentSection && termParentKey !== principalKey)
+                return term;
               changed = true;
-              return { ...term, value: newName, parentSection: principal || term.parentSection };
+              return {
+                ...term,
+                value: newName,
+                parentSection: principal || term.parentSection,
+              };
             });
             if (changed) {
-              op.formula_json = JSON.stringify(normalizeFormulaTerms(op.formula_terms));
+              op.formula_json = JSON.stringify(
+                normalizeFormulaTerms(op.formula_terms),
+              );
               affectedFormula++;
             }
           }
@@ -12548,12 +13090,19 @@ window.editSection = function (name) {
         logChange(
           "rename",
           `Subsección "${principal} / ${oldName}" → "${newName}" (${affectedCount} cuentas)`,
-          { principal, oldName, newName, affectedCount, affectedOps, affectedFormula }
+          {
+            principal,
+            oldName,
+            newName,
+            affectedCount,
+            affectedOps,
+            affectedFormula,
+          },
         );
         renderLayout();
         showToast(
           `✅ Subsección renombrada (${affectedCount} cuentas actualizadas)`,
-          "success"
+          "success",
         );
       }
     } else if (state.selectedElement.type === "operation") {
@@ -12567,17 +13116,20 @@ window.editSection = function (name) {
       if (!newClase && !newIdInput) {
         markInvalid(
           claseInput,
-          "Este campo es obligatorio (o indica un ID interno)."
+          "Este campo es obligatorio (o indica un ID interno).",
         );
         markInvalid(idInput, "Indica un ID si no hay nombre visible.");
-        showToast("Completa al menos el nombre visible o el ID interno.", "error");
+        showToast(
+          "Completa al menos el nombre visible o el ID interno.",
+          "error",
+        );
         return;
       }
 
       const oldId = getOperationId(op);
       const oldLabel = getOperationLabel(op);
       const desiredId = normalizeOperationId(
-        newIdInput || oldId || newClase || oldLabel
+        newIdInput || oldId || newClase || oldLabel,
       );
 
       if (!desiredId) {
@@ -12589,7 +13141,7 @@ window.editSection = function (name) {
         (o) =>
           o !== op &&
           normalizeOperationMatch(getOperationId(o)) ===
-            normalizeOperationMatch(desiredId)
+            normalizeOperationMatch(desiredId),
       );
       if (idConflict) {
         showToast("El identificador ya existe en otra operacion", "error");
@@ -12625,7 +13177,7 @@ window.editSection = function (name) {
           });
           if (changed) {
             other.formula_json = JSON.stringify(
-              normalizeFormulaTerms(other.formula_terms)
+              normalizeFormulaTerms(other.formula_terms),
             );
           }
         });
@@ -12675,7 +13227,7 @@ window.editSection = function (name) {
       if (visibleInput) {
         op.visible = Boolean(visibleInput.checked);
       }
-      
+
       // Guardar estilo visual de la fila
       const estiloFilaInput = document.getElementById("editOperacionEstilo");
       if (estiloFilaInput?.value) {
@@ -12685,8 +13237,9 @@ window.editSection = function (name) {
 
       const formulaPanel = dom.operationEditorPanel;
       const formulaMode =
-        formulaPanel?.querySelector('input[name="operationFormulaMode"]:checked')
-          ?.value || "layout";
+        formulaPanel?.querySelector(
+          'input[name="operationFormulaMode"]:checked',
+        )?.value || "layout";
       const manualText =
         formulaPanel?.querySelector("#operationFormulaManual")?.value || "";
       const selectedTerms =
@@ -12729,11 +13282,13 @@ window.editSection = function (name) {
       // Flujo de inserción masiva: aplicar fórmula en la fila del modal Agregar
       // sin tocar el layout persistido hasta confirmar "Agregar".
       if (op?._bulkFormulaInput) {
-        const bulkTerms = Array.isArray(op.formula_terms) ? op.formula_terms : [];
+        const bulkTerms = Array.isArray(op.formula_terms)
+          ? op.formula_terms
+          : [];
         const bulkText = buildFormulaPreviewText(bulkTerms);
         op._bulkFormulaInput.value = bulkText === "Sin fórmula" ? "" : bulkText;
         op._bulkFormulaInput.dispatchEvent(
-          new Event("change", { bubbles: true })
+          new Event("change", { bubbles: true }),
         );
         if (typeof window._bulkFormulaEditorCallback === "function") {
           window._bulkFormulaEditorCallback(bulkTerms);
@@ -12760,7 +13315,7 @@ window.editSection = function (name) {
         });
         showToast(
           `Etiqueta actualizada en ${affectedOps.length} operaciones`,
-          "success"
+          "success",
         );
       }
 
@@ -12768,7 +13323,7 @@ window.editSection = function (name) {
       const hasExistingFormula = affectedOps.some(
         (op) =>
           (Array.isArray(op.formula_terms) && op.formula_terms.length > 0) ||
-          Boolean(op.formula_json)
+          Boolean(op.formula_json),
       );
 
       if (normalizedTerms.length > 0 || hasExistingFormula) {
@@ -12806,7 +13361,7 @@ window.editSection = function (name) {
 
         showToast(
           `Fórmula actualizada en ${affectedOps.length} operaciones`,
-          "success"
+          "success",
         );
       }
     }
@@ -12818,7 +13373,10 @@ window.editSection = function (name) {
     scheduleAutoSave("edit");
 
     // Si hay un callback de bulk formula editor, llamarlo con los términos actualizados
-    if (typeof window._bulkFormulaEditorCallback === 'function' && formulaTerms) {
+    if (
+      typeof window._bulkFormulaEditorCallback === "function" &&
+      formulaTerms
+    ) {
       window._bulkFormulaEditorCallback(formulaTerms);
     }
 
@@ -12836,7 +13394,7 @@ window.editSection = function (name) {
       const cuenta =
         state.selectedElement.cuenta ||
         resolveAccountByIdOrCode(
-          state.selectedElement.accountId || state.selectedElement.codigo
+          state.selectedElement.accountId || state.selectedElement.codigo,
         );
       const codigo =
         cuenta?.CUENTA ||
@@ -12846,7 +13404,7 @@ window.editSection = function (name) {
         const accountId = cuenta ? getAccountRowId(cuenta) : "";
         if (accountId) {
           state.cuentas = state.cuentas.filter(
-            (c) => getAccountRowId(c) !== accountId
+            (c) => getAccountRowId(c) !== accountId,
           );
         } else {
           state.cuentas = state.cuentas.filter((c) => c.CUENTA !== codigo);
@@ -12857,7 +13415,7 @@ window.editSection = function (name) {
       const name = state.selectedElement.name;
       if (
         confirm(
-          `Eliminar la seccion "${name}" y TODAS sus cuentas? Esta accion no se puede deshacer.`
+          `Eliminar la seccion "${name}" y TODAS sus cuentas? Esta accion no se puede deshacer.`,
         )
       ) {
         state.cuentas = state.cuentas.filter((c) => {
@@ -12877,7 +13435,7 @@ window.editSection = function (name) {
       const label = getOperationLabel(op);
       if (opId && confirm(`Eliminar la operacion "${label}"?`)) {
         state.operaciones = state.operaciones.filter(
-          (o) => getOperationId(o) !== opId
+          (o) => getOperationId(o) !== opId,
         );
         finalizeDeletion();
       }
@@ -12899,8 +13457,9 @@ window.editSection = function (name) {
    * Guarda los cambios de una operación desde el panel lateral
    */
   function saveOperationFromPanel() {
-    if (!state.selectedElement || state.selectedElement.type !== "operation") return;
-    
+    if (!state.selectedElement || state.selectedElement.type !== "operation")
+      return;
+
     const op = state.selectedElement.op;
     if (!op) return;
     const isBulkOp = Boolean(op?._bulkFormulaInput || op?._bulkRow);
@@ -12910,10 +13469,12 @@ window.editSection = function (name) {
     const formulaMode =
       formulaPanel?.querySelector('input[name="operationFormulaMode"]:checked')
         ?.value || "layout";
-    const manualText = formulaPanel?.querySelector("#operationFormulaManual")?.value || "";
-    const selectedTerms = formulaMode === "manual"
-      ? parseFormulaText(manualText)
-      : collectFormulaTermsFromLayout(formulaPanel);
+    const manualText =
+      formulaPanel?.querySelector("#operationFormulaManual")?.value || "";
+    const selectedTerms =
+      formulaMode === "manual"
+        ? parseFormulaText(manualText)
+        : collectFormulaTermsFromLayout(formulaPanel);
 
     // VALIDACIÓN FLEXIBLE: Las operaciones pueden existir sin fórmula (modo 100% manual)
     // Solo advertir, no bloquear
@@ -12930,7 +13491,9 @@ window.editSection = function (name) {
       if (op._bulkFormulaInput) {
         const bulkText = buildFormulaPreviewText(normalized);
         op._bulkFormulaInput.value = bulkText === "Sin fórmula" ? "" : bulkText;
-        op._bulkFormulaInput.dispatchEvent(new Event("change", { bubbles: true }));
+        op._bulkFormulaInput.dispatchEvent(
+          new Event("change", { bubbles: true }),
+        );
       }
       if (typeof window._bulkFormulaEditorCallback === "function") {
         window._bulkFormulaEditorCallback(normalized);
@@ -12946,12 +13509,13 @@ window.editSection = function (name) {
     const idInput = document.getElementById("editOperacionId");
     const newClase = claseInput?.value?.trim() || "";
     const newIdInput = idInput?.value?.trim() || "";
-    
+
     // VALIDACIÓN MÁS FLEXIBLE: Permitir nombres cortos o generar ID automático
     // Si no hay nombre, usar el existente o generar uno
     const fallbackName = `Operación ${Date.now() % 10000}`;
     const effectiveClase = newClase || op.Clase || fallbackName;
-    const effectiveId = newIdInput || op.OperacionId || normalizeOperationId(effectiveClase);
+    const effectiveId =
+      newIdInput || op.OperacionId || normalizeOperationId(effectiveClase);
 
     const oldId = getOperationId(op);
     const oldLabel = getOperationLabel(op);
@@ -12966,16 +13530,23 @@ window.editSection = function (name) {
     // Resolver conflictos de ID automáticamente (en lugar de bloquear)
     let finalId = desiredId;
     let counter = 1;
-    while (state.operaciones.some(
-      (o) => o !== op && normalizeOperationMatch(getOperationId(o)) === normalizeOperationMatch(finalId)
-    )) {
+    while (
+      state.operaciones.some(
+        (o) =>
+          o !== op &&
+          normalizeOperationMatch(getOperationId(o)) ===
+            normalizeOperationMatch(finalId),
+      )
+    ) {
       finalId = `${desiredId}_${counter}`;
       counter++;
       if (counter > 100) break; // Protección contra loops infinitos
     }
 
     if (finalId !== desiredId) {
-      console.log(`🔄 ID ajustado de "${desiredId}" a "${finalId}" para evitar conflicto`);
+      console.log(
+        `🔄 ID ajustado de "${desiredId}" a "${finalId}" para evitar conflicto`,
+      );
     }
 
     // Actualizar datos básicos - MODO FLEXIBLE
@@ -12987,9 +13558,13 @@ window.editSection = function (name) {
     // Ubicación (manual): sección/subsección donde aparece la operación.
     // Nota: La fórmula se guarda en `formula_json`; `SECCION` se usa como compat/placement.
     const placementSectionEl = document.getElementById("editOpParentSection");
-    const placementSubsectionEl = document.getElementById("editOpParentSubsection");
+    const placementSubsectionEl = document.getElementById(
+      "editOpParentSubsection",
+    );
     if (placementSectionEl) {
-      const placementSection = (placementSectionEl.value || "").toString().trim();
+      const placementSection = (placementSectionEl.value || "")
+        .toString()
+        .trim();
       const placementSubsection = placementSubsectionEl
         ? (placementSubsectionEl.value || "").toString().trim()
         : "";
@@ -13095,13 +13670,13 @@ window.editSection = function (name) {
     if (selectedTerms && selectedTerms.length > 0) {
       op.formula_terms = normalizeFormulaTerms(selectedTerms);
       op.formula_json = JSON.stringify(op.formula_terms);
-      
+
       // Legacy format
       op.signos = {};
       for (let i = 1; i <= 20; i++) {
         delete op[`seccion_${i}`];
       }
-      
+
       op.formula_terms.forEach((term, i) => {
         const key = `seccion_${i + 1}`;
         op[key] = term.value;
@@ -13119,7 +13694,7 @@ window.editSection = function (name) {
     if (visibleInput) {
       op.visible = Boolean(visibleInput.checked);
     }
-    
+
     const estiloFilaInput = document.getElementById("editOperacionEstilo");
     if (estiloFilaInput?.value) {
       op.rowStyle = estiloFilaInput.value;
@@ -13158,9 +13733,13 @@ window.editSection = function (name) {
 
     // 1) parentName coincide con una sección principal: sugerir sus subsecciones
     const principalMatch = sections.find(
-      (s) => normalizeOperationMatch(s?.name || "") === parentKey
+      (s) => normalizeOperationMatch(s?.name || "") === parentKey,
     );
-    if (principalMatch && Array.isArray(principalMatch.subsections) && principalMatch.subsections.length) {
+    if (
+      principalMatch &&
+      Array.isArray(principalMatch.subsections) &&
+      principalMatch.subsections.length
+    ) {
       const seen = new Set();
       const terms = [];
       let counter = 0;
@@ -13190,7 +13769,11 @@ window.editSection = function (name) {
         const subName = (sub?.name || "").toString().trim();
         const subKey = normalizeOperationMatch(subName);
         if (!subKey) return;
-        if (subKey === parentKey || subKey.includes(parentKey) || parentKey.includes(subKey)) {
+        if (
+          subKey === parentKey ||
+          subKey.includes(parentKey) ||
+          parentKey.includes(subKey)
+        ) {
           matches.push({ parent, name: subName });
         }
       });
@@ -13240,7 +13823,10 @@ window.editSection = function (name) {
           const principal = (section?.name || "").toString().trim();
           if (!principal) return;
           const secLower = principal.toLowerCase();
-          if ((isIncome && secLower.includes("income")) || (isExpense && secLower.includes("expense"))) {
+          if (
+            (isIncome && secLower.includes("income")) ||
+            (isExpense && secLower.includes("expense"))
+          ) {
             matchingSections.push(principal);
           }
         });
@@ -13369,15 +13955,15 @@ window.editSection = function (name) {
           ? Number.isFinite(Number(t.constant))
             ? Number(t.constant)
             : Number.isFinite(Number(t.value))
-            ? Number(t.value)
-            : null
+              ? Number(t.value)
+              : null
           : null;
       const value =
         type === "operation"
           ? resolveOperationId(t.value || "")
           : type === "constant"
-          ? t.value || (constantValue !== null ? String(constantValue) : "")
-          : t.value || "";
+            ? t.value || (constantValue !== null ? String(constantValue) : "")
+            : t.value || "";
       const normalized = {
         operator: t.operator || "+",
         type,
@@ -13629,16 +14215,16 @@ window.editSection = function (name) {
       operator === "+"
         ? "bg-success"
         : operator === "-"
-        ? "bg-danger"
-        : operator === "±"
-        ? "bg-secondary"
-        : operator === "*"
-        ? "bg-warning text-dark"
-        : operator === "/"
-        ? "bg-info"
-        : "bg-secondary";
+          ? "bg-danger"
+          : operator === "±"
+            ? "bg-secondary"
+            : operator === "*"
+              ? "bg-warning text-dark"
+              : operator === "/"
+                ? "bg-info"
+                : "bg-secondary";
     return `<span class="badge ${className} ${extraClass}">${escapeHtml(
-      label
+      label,
     )}</span>`;
   }
 
@@ -13650,7 +14236,8 @@ window.editSection = function (name) {
 
     terms.forEach((term, idx) => {
       if (!term) return;
-      const operator = term.operator && term.operator !== "" ? term.operator : "+";
+      const operator =
+        term.operator && term.operator !== "" ? term.operator : "+";
       const value = (term.value || "").toString().trim();
       if (!value) return;
 
@@ -13662,15 +14249,15 @@ window.editSection = function (name) {
       const account = getAccountByCode(value);
       if (account && isPlaceholderAccount(account)) return;
 
-      const principal =
-        (account && getAccountPrincipalName(account)) || "";
-      const secondary =
-        (account && getAccountSecondaryName(account)) || "";
+      const principal = (account && getAccountPrincipalName(account)) || "";
+      const secondary = (account && getAccountSecondaryName(account)) || "";
       const principalName = (principal || "Sin sección").toString().trim();
       const secondaryName = principal ? secondary.toString().trim() : "";
 
       const principalKey = normalizeKey(principalName);
-      const secondaryKey = secondaryName ? normalizeKey(secondaryName) : "__NO_SUB__";
+      const secondaryKey = secondaryName
+        ? normalizeKey(secondaryName)
+        : "__NO_SUB__";
       const sectionOrder = sectionIndex.get(principalKey);
 
       if (!sectionsMap.has(principalKey)) {
@@ -13734,12 +14321,12 @@ window.editSection = function (name) {
               (account) => ({
                 ...account,
                 sign: summarizeOperatorSet(account.operators),
-              })
+              }),
             );
             accounts.sort(
               (a, b) =>
                 a.order - b.order ||
-                a.code.localeCompare(b.code, "es", { sensitivity: "base" })
+                a.code.localeCompare(b.code, "es", { sensitivity: "base" }),
             );
             return {
               ...subsection,
@@ -13752,12 +14339,12 @@ window.editSection = function (name) {
               a.order - b.order ||
               a.displayName.localeCompare(b.displayName, "es", {
                 sensitivity: "base",
-              })
+              }),
           );
 
         const accountCount = subsections.reduce(
           (total, sub) => total + (sub.accounts || []).length,
-          0
+          0,
         );
 
         return { ...section, subsections, accountCount };
@@ -13765,7 +14352,7 @@ window.editSection = function (name) {
       .sort(
         (a, b) =>
           a.order - b.order ||
-          a.name.localeCompare(b.name, "es", { sensitivity: "base" })
+          a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
       );
 
     return { sections, misc };
@@ -13793,7 +14380,7 @@ window.editSection = function (name) {
           section.subsections.length > 1 || hasNamedSubsections;
 
         const accountsForSection = section.subsections.flatMap(
-          (sub) => sub.accounts || []
+          (sub) => sub.accounts || [],
         );
 
         const accountsHtml = (accountsForSection || [])
@@ -13805,12 +14392,12 @@ window.editSection = function (name) {
                 ${
                   account.name
                     ? `<span class="text-muted">${escapeHtml(
-                        account.name
+                        account.name,
                       )}</span>`
                     : ""
                 }
               </div>
-            `
+            `,
           )
           .join("");
 
@@ -13825,12 +14412,12 @@ window.editSection = function (name) {
                     ${
                       account.name
                         ? `<span class="text-muted">${escapeHtml(
-                            account.name
+                            account.name,
                           )}</span>`
                         : ""
                     }
                   </div>
-                `
+                `,
               )
               .join("");
 
@@ -13876,8 +14463,8 @@ window.editSection = function (name) {
                 term.type === "operation"
                   ? formatOperationReference(term.value)
                   : term.type === "constant"
-                  ? String(term.constant ?? term.value ?? "")
-                  : term.value || "";
+                    ? String(term.constant ?? term.value ?? "")
+                    : term.value || "";
               return `
                 <div class="d-flex align-items-center gap-2 ms-2 small">
                   ${renderOperatorBadge(item.operator, "me-1")}
@@ -13936,11 +14523,11 @@ window.editSection = function (name) {
             .map(
               (acc) => `
             <option value="${escapeAttr(acc.code)}" ${
-                term.value === acc.code ? "selected" : ""
-              }>
+              term.value === acc.code ? "selected" : ""
+            }>
               ${escapeHtml(acc.display)}
             </option>
-          `
+          `,
             )
             .join("")}
         </select>
@@ -13981,7 +14568,9 @@ window.editSection = function (name) {
         const operator =
           i === 0 ? (opSymbol === "-" ? "-" : "") : ` ${opSymbol} `;
         return `${operator}<code class="text-primary fw-bold">${escapeHtml(
-          term.type === "operation" ? formatOperationReference(term.value) : (term.value || "???")
+          term.type === "operation"
+            ? formatOperationReference(term.value)
+            : term.value || "???",
         )}</code>`;
       })
       .join("");
@@ -14000,7 +14589,8 @@ window.editSection = function (name) {
   window.updateTermOperator = function (termId, operator) {
     const term = formulaTerms.find((t) => t.id === termId);
     if (term) {
-      term.operator = operator && ["+", "-"].includes(operator) ? operator : "+";
+      term.operator =
+        operator && ["+", "-"].includes(operator) ? operator : "+";
       updateFormulaPreview();
     }
   };
@@ -14009,7 +14599,7 @@ window.editSection = function (name) {
   window.updateTermType = function (termId, newType) {
     // No-op: tipo siempre es "account" ahora
     console.warn(
-      "updateTermType is deprecated - all terms are now account type"
+      "updateTermType is deprecated - all terms are now account type",
     );
   };
 
@@ -14044,7 +14634,7 @@ window.editSection = function (name) {
         renderFormulaTerms();
         showToast(
           `Sección "${value}" expandida a ${sectionAccounts.length} cuentas`,
-          "success"
+          "success",
         );
         return;
       }
@@ -14082,7 +14672,10 @@ window.editSection = function (name) {
       const key = normalizeOperationMatch(code);
       if (!key || seenAccounts.has(key)) return;
       seenAccounts.add(key);
-      accounts.push({ code, name: (c.NOMBRE || c.nombre || code).toString().trim() });
+      accounts.push({
+        code,
+        name: (c.NOMBRE || c.nombre || code).toString().trim(),
+      });
     });
 
     // Operaciones - identificadores unicos (excepto la que se esta editando)
@@ -14139,7 +14732,7 @@ window.editSection = function (name) {
     if (
       formulaTerms.length > 0 &&
       !confirm(
-        "¿Reemplazar los términos actuales por las sub-secciones detectadas?"
+        "¿Reemplazar los términos actuales por las sub-secciones detectadas?",
       )
     ) {
       return;
@@ -14197,7 +14790,7 @@ window.editSection = function (name) {
           (c) =>
             `<option value="${c.CUENTA}" label="${c.NOMBRE || c.CUENTA}">${
               c.CUENTA
-            } - ${c.NOMBRE || ""}</option>`
+            } - ${c.NOMBRE || ""}</option>`,
         )
         .join("");
       return;
@@ -14218,7 +14811,7 @@ window.editSection = function (name) {
         });
         const response = await fetch(
           `/api/cuentas-activas?${params.toString()}`,
-          { headers }
+          { headers },
         );
         if (!response.ok) {
           return;
@@ -14231,7 +14824,7 @@ window.editSection = function (name) {
             (c) =>
               `<option value="${c.CUENTA}" label="${c.NOMBRE || c.CUENTA}">${
                 c.CUENTA
-              } - ${c.NOMBRE || ""}</option>`
+              } - ${c.NOMBRE || ""}</option>`,
           )
           .join("");
       } catch (err) {
@@ -14271,9 +14864,8 @@ window.editSection = function (name) {
   function showPreview() {
     if (!state.cuentas.length) return;
 
-    document.getElementById(
-      "previewContextInfo"
-    ).textContent = `${state.modulo} · ${state.anio} · ${state.capitulo}`;
+    document.getElementById("previewContextInfo").textContent =
+      `${state.modulo} · ${state.anio} · ${state.capitulo}`;
     const modal = new bootstrap.Modal(dom.modalPreview);
     modal.show();
 
@@ -14310,7 +14902,10 @@ window.editSection = function (name) {
     const renderWithOptions = (options) => {
       currentOptions = { ...options };
       dom.previewContainer.innerHTML =
-        window.LayoutControls.renderRealisticPreview(layoutData, currentOptions);
+        window.LayoutControls.renderRealisticPreview(
+          layoutData,
+          currentOptions,
+        );
       bindPreviewControls();
       bindPreviewTableEvents();
     };
@@ -14324,7 +14919,8 @@ window.editSection = function (name) {
           renderWithOptions({
             ...currentOptions,
             showHiddenRows: e.target.checked,
-            showSampleData: toggleData?.checked ?? currentOptions.showSampleData,
+            showSampleData:
+              toggleData?.checked ?? currentOptions.showSampleData,
           });
         });
       }
@@ -14333,7 +14929,8 @@ window.editSection = function (name) {
         toggleData.addEventListener("change", (e) => {
           renderWithOptions({
             ...currentOptions,
-            showHiddenRows: toggleHidden?.checked ?? currentOptions.showHiddenRows,
+            showHiddenRows:
+              toggleHidden?.checked ?? currentOptions.showHiddenRows,
             showSampleData: e.target.checked,
           });
         });
@@ -14411,9 +15008,9 @@ window.editSection = function (name) {
         headerIndex[key] = idx;
       }
     });
-    const rows = lines.slice(1).map((line) =>
-      line.split(",").map((col) => col.trim())
-    );
+    const rows = lines
+      .slice(1)
+      .map((line) => line.split(",").map((col) => col.trim()));
     return { headerIndex, rows };
   };
 
@@ -14488,7 +15085,10 @@ window.editSection = function (name) {
       cargarOperacionesDesdeJSON(),
       cargarOperacionesDesdeSumasCSV(),
     ]).then(([jsonMap, sumasMap]) => {
-      OPERACIONES_PREDEFINIDAS = mergeOperacionesMap(jsonMap || {}, sumasMap || {});
+      OPERACIONES_PREDEFINIDAS = mergeOperacionesMap(
+        jsonMap || {},
+        sumasMap || {},
+      );
       return OPERACIONES_PREDEFINIDAS;
     });
     return operacionesPredefinidasPromise;
@@ -14510,7 +15110,12 @@ window.editSection = function (name) {
     const key = normalizeOperacionKey(value);
     if (!key) return "";
     if (key === "INGRESO" || key === "INGRESOS") return "INCOME";
-    if (key === "GASTO" || key === "GASTOS" || key === "COSTO" || key === "COSTOS") {
+    if (
+      key === "GASTO" ||
+      key === "GASTOS" ||
+      key === "COSTO" ||
+      key === "COSTOS"
+    ) {
       return "EXPENSE";
     }
     return key;
@@ -14547,7 +15152,7 @@ window.editSection = function (name) {
     }
 
     const prefixMatch = String(clase || "").match(
-      /^(income|expense|ingreso|gasto|costos?|cost)[-_\s]+(.+)$/i
+      /^(income|expense|ingreso|gasto|costos?|cost)[-_\s]+(.+)$/i,
     );
     if (prefixMatch) {
       const prefixKey = normalizeSectionName(prefixMatch[1]);
@@ -14586,7 +15191,7 @@ window.editSection = function (name) {
     const opKeys = buildOperationMatchKeys(op);
     return (
       operaciones.find((predef) =>
-        buildPredefMatchKeys(predef).some((key) => opKeys.has(key))
+        buildPredefMatchKeys(predef).some((key) => opKeys.has(key)),
       ) || null
     );
   };
@@ -14597,7 +15202,7 @@ window.editSection = function (name) {
     if (op.formula_json) return true;
     return Object.keys(op).some(
       (key) =>
-        /^(seccion|operacion|cuenta)_\d+$/i.test(key) && Boolean(op[key])
+        /^(seccion|operacion|cuenta)_\d+$/i.test(key) && Boolean(op[key]),
     );
   };
 
@@ -14689,10 +15294,7 @@ window.editSection = function (name) {
         ];
       }
     }
-    const parsed = parseFormulaTermsFromString(
-      predef.formula,
-      knownOperations
-    );
+    const parsed = parseFormulaTermsFromString(predef.formula, knownOperations);
     if (parsed.length) return parsed;
     if (predef.formula) {
       return [{ operator: "+", type: "section", value: predef.formula }];
@@ -14775,8 +15377,8 @@ window.editSection = function (name) {
       placementLabels && Object.keys(placementLabels).length
         ? Object.keys(placementLabels)
         : Array.isArray(predef.aparece) && predef.aparece.length
-        ? predef.aparece
-        : ["sum-row"];
+          ? predef.aparece
+          : ["sum-row"];
     let changed = false;
 
     if (force) {
@@ -14807,10 +15409,10 @@ window.editSection = function (name) {
   const createOperationFromPredefined = (
     predef,
     orderIndex,
-    knownOperations
+    knownOperations,
   ) => {
     const opId = buildUniqueOperationId(
-      predef.id || predef.identificador || predef.nombre
+      predef.id || predef.identificador || predef.nombre,
     );
     const orderValue = Number.isFinite(predef.orden)
       ? predef.orden
@@ -14845,7 +15447,7 @@ window.editSection = function (name) {
     predef,
     orderIndex,
     knownOperations,
-    { force = false } = {}
+    { force = false } = {},
   ) => {
     let changed = false;
     const existingPlacement = (
@@ -14876,17 +15478,29 @@ window.editSection = function (name) {
       changed = true;
     }
 
-    if (parentSubsection && canUpdateSection && (force || op.parentSubsection !== parentSubsection)) {
+    if (
+      parentSubsection &&
+      canUpdateSection &&
+      (force || op.parentSubsection !== parentSubsection)
+    ) {
       op.parentSubsection = parentSubsection;
       changed = true;
     }
 
-    if (parentSection && canUpdateSection && (force || op.parentSection !== parentSection)) {
+    if (
+      parentSection &&
+      canUpdateSection &&
+      (force || op.parentSection !== parentSection)
+    ) {
       op.parentSection = parentSection;
       changed = true;
     }
 
-    if (parentSubsection && canUpdateSection && (!Array.isArray(op.secciones) || force)) {
+    if (
+      parentSubsection &&
+      canUpdateSection &&
+      (!Array.isArray(op.secciones) || force)
+    ) {
       op.secciones = [parentSubsection];
       changed = true;
     }
@@ -14947,15 +15561,18 @@ window.editSection = function (name) {
         const byName = list.find(
           (op) =>
             normalizeOperacionKey(getOperationLabel(op)) === nameKey ||
-            normalizeOperacionKey(getOperationDisplayName(op)) === nameKey
+            normalizeOperacionKey(getOperationDisplayName(op)) === nameKey,
         );
         if (byName) return byName;
 
-        const sectionKey = normalizeSectionName(predef?.section || predef?.seccion || "");
+        const sectionKey = normalizeSectionName(
+          predef?.section || predef?.seccion || "",
+        );
         if (sectionKey) {
           const bySection = list.find(
             (op) =>
-              normalizeSectionName(op?.SECCION || op?.seccion || "") === sectionKey
+              normalizeSectionName(op?.SECCION || op?.seccion || "") ===
+              sectionKey,
           );
           if (bySection) return bySection;
         }
@@ -14969,7 +15586,8 @@ window.editSection = function (name) {
     operaciones.forEach((op) => {
       if (op?.nombre) knownOperations.add(normalizeOperacionKey(op.nombre));
       if (op?.id) knownOperations.add(normalizeOperacionKey(op.id));
-      if (op?.identificador) knownOperations.add(normalizeOperacionKey(op.identificador));
+      if (op?.identificador)
+        knownOperations.add(normalizeOperacionKey(op.identificador));
     });
 
     let added = 0;
@@ -14983,7 +15601,7 @@ window.editSection = function (name) {
         const newOp = createOperationFromPredefined(
           predef,
           orderIndex,
-          knownOperations
+          knownOperations,
         );
         state.operaciones.push(newOp);
         registerExisting(newOp);
@@ -14992,9 +15610,15 @@ window.editSection = function (name) {
       }
 
       if (
-        applyPredefinedToExisting(existing, predef, orderIndex, knownOperations, {
-          force,
-        })
+        applyPredefinedToExisting(
+          existing,
+          predef,
+          orderIndex,
+          knownOperations,
+          {
+            force,
+          },
+        )
       ) {
         updated += 1;
       }
@@ -15032,7 +15656,7 @@ window.editSection = function (name) {
     if (operaciones.length === 0) {
       showToast(
         `No hay operaciones predefinidas para ${state.modulo} en ${state.capitulo}`,
-        "info"
+        "info",
       );
       return;
     }
@@ -15056,8 +15680,8 @@ window.editSection = function (name) {
                 operaciones.length
               } operaciones</strong> predefinidas para 
               <strong>${state.modulo}</strong> en <strong>${
-      state.capitulo
-    }</strong>
+                state.capitulo
+              }</strong>
             </div>
             <div class="list-group">
               ${operaciones
@@ -15068,7 +15692,7 @@ window.editSection = function (name) {
                     <div>
                       <h6 class="mb-1">${escapeHtml(op.nombre)}</h6>
                       <small class="text-muted"><code>${escapeHtml(
-                        op.formula
+                        op.formula,
                       )}</code></small>
                     </div>
                     <button class="btn btn-sm btn-outline-primary" onclick="window.poblarOperacion(${idx})">
@@ -15076,7 +15700,7 @@ window.editSection = function (name) {
                     </button>
                   </div>
                 </div>
-              `
+              `,
                 )
                 .join("")}
             </div>
@@ -15118,10 +15742,15 @@ window.editSection = function (name) {
     operaciones.forEach((item) => {
       if (item?.nombre) knownOperations.add(normalizeOperacionKey(item.nombre));
       if (item?.id) knownOperations.add(normalizeOperacionKey(item.id));
-      if (item?.identificador) knownOperations.add(normalizeOperacionKey(item.identificador));
+      if (item?.identificador)
+        knownOperations.add(normalizeOperacionKey(item.identificador));
     });
     const orderIndex = Number.isFinite(op.orden) ? op.orden : index;
-    const newOp = createOperationFromPredefined(op, orderIndex, knownOperations);
+    const newOp = createOperationFromPredefined(
+      op,
+      orderIndex,
+      knownOperations,
+    );
 
     state.operaciones.push(newOp);
     state.operaciones = sortOperations(state.operaciones);
@@ -15157,7 +15786,7 @@ window.editSection = function (name) {
    * Recorre la preview table y extrae elementos en orden DOM
    */
   window.updateAvailableElementsFromTable = function (
-    tableSelector = "#layoutPreview"
+    tableSelector = "#layoutPreview",
   ) {
     const container =
       document.querySelector(tableSelector) || dom.layoutPreview;
@@ -15219,7 +15848,9 @@ window.editSection = function (name) {
 
     // Extraer de subsecciones renderizadas
     container
-      .querySelectorAll(".subsection-header .subsection-title > span:not(.badge)")
+      .querySelectorAll(
+        ".subsection-header .subsection-title > span:not(.badge)",
+      )
       .forEach((el) => {
         const text = el.textContent.trim();
         if (text) registerSection(text);
@@ -15235,7 +15866,7 @@ window.editSection = function (name) {
     // Extraer de operaciones renderizadas
     container
       .querySelectorAll(
-        ".operation-row, .inline-operation-row, .operation-card"
+        ".operation-row, .inline-operation-row, .operation-card",
       )
       .forEach((row) => {
         const opId = row.getAttribute("data-operation-id")?.trim();
@@ -15299,7 +15930,7 @@ window.editSection = function (name) {
       typeof window.FormulaBuilder.updateAvailableTerms === "function"
     ) {
       window.FormulaBuilder.updateAvailableTerms(
-        availableElements.orderedLabels
+        availableElements.orderedLabels,
       );
     }
 
@@ -15364,58 +15995,82 @@ window.editSection = function (name) {
   // ==========================================
   // IMPORTACIÓN/EXPORTACIÓN MASIVA
   // ==========================================
-  
+
   function descargarPlantillaImportacion() {
     const plantilla = {
-      "_instrucciones": {
-        "descripcion": "Plantilla para importación masiva de elementos al Gestor de Plantillas",
-        "contexto": `${state.modulo} - ${state.anio} - ${state.capitulo}`,
-        "formato": "Llena las secciones, subsecciones, cuentas y operaciones, luego importa este archivo",
-        "campos_obligatorios": {
-          "secciones": ["nombre"],
-          "subsecciones": ["nombre", "seccion_principal"],
-          "cuentas": ["cuenta", "nombre", "seccion_principal", "seccion_secundaria"],
-          "operaciones": ["operacion_id", "clase", "formula"]
-        }
+      _instrucciones: {
+        descripcion:
+          "Plantilla para importación masiva de elementos al Gestor de Plantillas",
+        contexto: `${state.modulo} - ${state.anio} - ${state.capitulo}`,
+        formato:
+          "Llena las secciones, subsecciones, cuentas y operaciones, luego importa este archivo",
+        campos_obligatorios: {
+          secciones: ["nombre"],
+          subsecciones: ["nombre", "seccion_principal"],
+          cuentas: [
+            "cuenta",
+            "nombre",
+            "seccion_principal",
+            "seccion_secundaria",
+          ],
+          operaciones: ["operacion_id", "clase", "formula"],
+        },
       },
-      "secciones": extractSecciones(),
-      "subsecciones": extractSubsecciones(),
-      "cuentas": extractCuentas(),
-      "operaciones": extractOperaciones(),
-      "_notas": {
-        "formula_formato": "Ejemplos: '400-000-000-00 + 401-000-000-00' o 'OPERACION_1 - OPERACION_2'",
-        "estilo_fila_opciones": ["sum-row", "sum-row-principal", "highlight-primary", "highlight-secondary", "highlight-bright", "subsection-row", "operation-row"],
-        "tipo_operacion_opciones": ["libre", "seccion", "subseccion", "consolidacion"]
-      }
+      secciones: extractSecciones(),
+      subsecciones: extractSubsecciones(),
+      cuentas: extractCuentas(),
+      operaciones: extractOperaciones(),
+      _notas: {
+        formula_formato:
+          "Ejemplos: '400-000-000-00 + 401-000-000-00' o 'OPERACION_1 - OPERACION_2'",
+        estilo_fila_opciones: [
+          "sum-row",
+          "sum-row-principal",
+          "highlight-primary",
+          "highlight-secondary",
+          "highlight-bright",
+          "subsection-row",
+          "operation-row",
+        ],
+        tipo_operacion_opciones: [
+          "libre",
+          "seccion",
+          "subseccion",
+          "consolidacion",
+        ],
+      },
     };
-    
+
     const json = JSON.stringify(plantilla, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
+    const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `plantilla_${state.modulo}_${state.anio}_${state.capitulo}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
-    showToast('✅ Plantilla descargada. Ábrela en Excel o editor de texto, llena los datos e importa.', 'success');
+
+    showToast(
+      "✅ Plantilla descargada. Ábrela en Excel o editor de texto, llena los datos e importa.",
+      "success",
+    );
   }
-  
+
   function extractSecciones() {
     const secciones = new Set();
-    state.cuentas.forEach(c => {
+    state.cuentas.forEach((c) => {
       const seccion = getAccountPrincipalName(c);
       if (seccion) secciones.add(seccion);
     });
-    return Array.from(secciones).map(nombre => ({ nombre, descripcion: "" }));
+    return Array.from(secciones).map((nombre) => ({ nombre, descripcion: "" }));
   }
-  
+
   function extractSubsecciones() {
     const subsecciones = [];
     const seen = new Set();
-    state.cuentas.forEach(c => {
+    state.cuentas.forEach((c) => {
       const principal = getAccountPrincipalName(c);
       const secundaria = getAccountSecondaryName(c);
       if (principal && secundaria) {
@@ -15425,34 +16080,38 @@ window.editSection = function (name) {
           subsecciones.push({
             nombre: secundaria,
             seccion_principal: principal,
-            descripcion: ""
+            descripcion: "",
           });
         }
       }
     });
     return subsecciones;
   }
-  
+
   function extractCuentas() {
-    return state.cuentas.map(c => ({
+    return state.cuentas.map((c) => ({
       cuenta: c.CUENTA || c.cuenta || "",
       nombre: c.NOMBRE || c.nombre || "",
       seccion_principal: getAccountPrincipalName(c) || "",
       seccion_secundaria: getAccountSecondaryName(c) || "",
       visible: c.visible !== false,
       capturable: c.capturable !== false,
-      tipo_saldo: c.TIPO_SALDO || c.tipo_saldo || "Deudor"
+      tipo_saldo: c.TIPO_SALDO || c.tipo_saldo || "Deudor",
     }));
   }
-  
+
   function extractOperaciones() {
-    return (state.operaciones || []).map(op => {
+    return (state.operaciones || []).map((op) => {
       const formulaTerms = extractFormulaTerms(op);
-      const formulaStr = formulaTerms.map(t => {
-        const prefix = t.operator === '-' ? '- ' : (t.operator === '+' ? '+ ' : '');
-        return prefix + t.value;
-      }).join(' ').trim();
-      
+      const formulaStr = formulaTerms
+        .map((t) => {
+          const prefix =
+            t.operator === "-" ? "- " : t.operator === "+" ? "+ " : "";
+          return prefix + t.value;
+        })
+        .join(" ")
+        .trim();
+
       return {
         operacion_id: getOperationId(op) || "",
         clase: getOperationDisplayName(op) || "",
@@ -15461,7 +16120,7 @@ window.editSection = function (name) {
         formula: formulaStr,
         estilo_fila: op.rowStyle || op.estilo_fila || "operation-row",
         visible: op.visible !== false,
-        descripcion: ""
+        descripcion: "",
       };
     });
   }
@@ -15517,10 +16176,15 @@ window.editSection = function (name) {
       .map((row) => normalizeImportRow(row))
       .map((row) => ({
         nombre: String(
-          pickImportValue(row, ["nombre", "seccion", "section", "seccionprincipal"])
+          pickImportValue(row, [
+            "nombre",
+            "seccion",
+            "section",
+            "seccionprincipal",
+          ]),
         ).trim(),
         descripcion: String(
-          pickImportValue(row, ["descripcion", "description"])
+          pickImportValue(row, ["descripcion", "description"]),
         ).trim(),
       }))
       .filter((row) => row.nombre);
@@ -15530,7 +16194,7 @@ window.editSection = function (name) {
       .map((row) => normalizeImportRow(row))
       .map((row) => ({
         nombre: String(
-          pickImportValue(row, ["nombre", "subseccion", "subsection"])
+          pickImportValue(row, ["nombre", "subseccion", "subsection"]),
         ).trim(),
         seccion_principal: String(
           pickImportValue(row, [
@@ -15539,10 +16203,10 @@ window.editSection = function (name) {
             "principal",
             "seccion",
             "section",
-          ])
+          ]),
         ).trim(),
         descripcion: String(
-          pickImportValue(row, ["descripcion", "description"])
+          pickImportValue(row, ["descripcion", "description"]),
         ).trim(),
       }))
       .filter((row) => row.nombre && row.seccion_principal);
@@ -15552,10 +16216,10 @@ window.editSection = function (name) {
       .map((row) => normalizeImportRow(row))
       .map((row) => ({
         cuenta: String(
-          pickImportValue(row, ["cuenta", "codigo", "account", "accountcode"])
+          pickImportValue(row, ["cuenta", "codigo", "account", "accountcode"]),
         ).trim(),
         nombre: String(
-          pickImportValue(row, ["nombre", "descripcion", "name", "label"])
+          pickImportValue(row, ["nombre", "descripcion", "name", "label"]),
         ).trim(),
         seccion_principal: String(
           pickImportValue(row, [
@@ -15564,7 +16228,7 @@ window.editSection = function (name) {
             "principal",
             "seccion",
             "section",
-          ])
+          ]),
         ).trim(),
         seccion_secundaria: String(
           pickImportValue(row, [
@@ -15573,21 +16237,27 @@ window.editSection = function (name) {
             "subseccion",
             "subsection",
             "secundaria",
-          ])
+          ]),
         ).trim(),
         visible: toImportBoolean(
           pickImportValue(row, ["visible", "show", "enabled"]),
-          true
+          true,
         ),
         capturable: toImportBoolean(
           pickImportValue(row, ["capturable", "capture", "editable"]),
-          true
+          true,
         ),
-        tipo_saldo: String(
-          pickImportValue(row, ["tipo_saldo", "tiposaldo", "saldo", "typesaldo"])
-        ).trim() || "Deudor",
+        tipo_saldo:
+          String(
+            pickImportValue(row, [
+              "tipo_saldo",
+              "tiposaldo",
+              "saldo",
+              "typesaldo",
+            ]),
+          ).trim() || "Deudor",
         factor: Number(
-          pickImportValue(row, ["factor", "operacion_factor", "signo", "sign"])
+          pickImportValue(row, ["factor", "operacion_factor", "signo", "sign"]),
         ),
       }))
       .filter((row) => row.cuenta);
@@ -15597,33 +16267,46 @@ window.editSection = function (name) {
       .map((row) => normalizeImportRow(row))
       .map((row) => ({
         operacion_id: String(
-          pickImportValue(row, ["operacion_id", "operacionid", "id", "operationid"])
+          pickImportValue(row, [
+            "operacion_id",
+            "operacionid",
+            "id",
+            "operationid",
+          ]),
         ).trim(),
         clase: String(
-          pickImportValue(row, ["clase", "nombre", "label", "name"])
+          pickImportValue(row, ["clase", "nombre", "label", "name"]),
         ).trim(),
         seccion: String(
-          pickImportValue(row, ["seccion", "section", "seccion_principal"])
+          pickImportValue(row, ["seccion", "section", "seccion_principal"]),
         ).trim(),
         subseccion: String(
-          pickImportValue(row, ["subseccion", "subsection", "seccion_secundaria"])
+          pickImportValue(row, [
+            "subseccion",
+            "subsection",
+            "seccion_secundaria",
+          ]),
         ).trim(),
-        tipo_operacion: String(
-          pickImportValue(row, ["tipo_operacion", "tipo", "operationtype"])
-        ).trim() || "libre",
+        tipo_operacion:
+          String(
+            pickImportValue(row, ["tipo_operacion", "tipo", "operationtype"]),
+          ).trim() || "libre",
         formula: String(
-          pickImportValue(row, ["formula", "expresion", "expression"])
+          pickImportValue(row, ["formula", "expresion", "expression"]),
         ).trim(),
         formula_json: pickImportValue(row, ["formula_json", "formulajson"]),
-        estilo_fila: String(
-          pickImportValue(row, ["estilo_fila", "estilofila", "rowstyle"])
-        ).trim() || "operation-row",
+        estilo_fila:
+          String(
+            pickImportValue(row, ["estilo_fila", "estilofila", "rowstyle"]),
+          ).trim() || "operation-row",
         visible: toImportBoolean(
           pickImportValue(row, ["visible", "show", "enabled"]),
-          true
+          true,
         ),
       }))
-      .filter((row) => row.operacion_id || row.clase || row.seccion || row.subseccion);
+      .filter(
+        (row) => row.operacion_id || row.clase || row.seccion || row.subseccion,
+      );
 
   const parseSheetRows = (workbook, sheetName) => {
     if (!workbook || !sheetName) return [];
@@ -15633,10 +16316,12 @@ window.editSection = function (name) {
   };
 
   const findSheetByAliases = (sheetNames = [], aliases = []) => {
-    const aliasSet = new Set(aliases.map((alias) => normalizeImportHeader(alias)));
+    const aliasSet = new Set(
+      aliases.map((alias) => normalizeImportHeader(alias)),
+    );
     return (
       (sheetNames || []).find((name) =>
-        aliasSet.has(normalizeImportHeader(name))
+        aliasSet.has(normalizeImportHeader(name)),
       ) || null
     );
   };
@@ -15644,13 +16329,15 @@ window.editSection = function (name) {
   const parseExcelImportPayload = async (file) => {
     if (!window.XLSX) {
       throw new Error(
-        "No se encontró la librería XLSX en esta vista. Recarga la página e intenta de nuevo."
+        "No se encontró la librería XLSX en esta vista. Recarga la página e intenta de nuevo.",
       );
     }
 
     const buffer = await file.arrayBuffer();
     const workbook = window.XLSX.read(buffer, { type: "array" });
-    const sheetNames = Array.isArray(workbook?.SheetNames) ? workbook.SheetNames : [];
+    const sheetNames = Array.isArray(workbook?.SheetNames)
+      ? workbook.SheetNames
+      : [];
     if (!sheetNames.length) {
       throw new Error("El archivo Excel no contiene hojas.");
     }
@@ -15676,22 +16363,29 @@ window.editSection = function (name) {
       "operations",
     ]);
 
-    if (seccionesSheet || subseccionesSheet || cuentasSheet || operacionesSheet) {
+    if (
+      seccionesSheet ||
+      subseccionesSheet ||
+      cuentasSheet ||
+      operacionesSheet
+    ) {
       return {
-        secciones: normalizeImportSecciones(parseSheetRows(workbook, seccionesSheet)),
+        secciones: normalizeImportSecciones(
+          parseSheetRows(workbook, seccionesSheet),
+        ),
         subsecciones: normalizeImportSubsecciones(
-          parseSheetRows(workbook, subseccionesSheet)
+          parseSheetRows(workbook, subseccionesSheet),
         ),
         cuentas: normalizeImportCuentas(parseSheetRows(workbook, cuentasSheet)),
         operaciones: normalizeImportOperaciones(
-          parseSheetRows(workbook, operacionesSheet)
+          parseSheetRows(workbook, operacionesSheet),
         ),
       };
     }
 
     // Fallback: una sola hoja con columna "tipo".
     const rows = parseSheetRows(workbook, sheetNames[0]).map((row) =>
-      normalizeImportRow(row)
+      normalizeImportRow(row),
     );
     const grouped = {
       secciones: [],
@@ -15702,10 +16396,14 @@ window.editSection = function (name) {
 
     rows.forEach((row) => {
       const tipo = normalizeImportHeader(
-        pickImportValue(row, ["tipo", "type", "elemento"])
+        pickImportValue(row, ["tipo", "type", "elemento"]),
       );
       if (!tipo) return;
-      if (tipo.includes("seccionprincipal") || tipo === "seccion" || tipo === "section") {
+      if (
+        tipo.includes("seccionprincipal") ||
+        tipo === "seccion" ||
+        tipo === "section"
+      ) {
         grouped.secciones.push(row);
         return;
       }
@@ -15774,33 +16472,44 @@ window.editSection = function (name) {
     if (!principalClean) return;
     addPrincipalSectionByName(principalClean, { silent: true });
     if (secundariaClean) {
-      addSecondarySectionByName(principalClean, secundariaClean, { silent: true });
+      addSecondarySectionByName(principalClean, secundariaClean, {
+        silent: true,
+      });
     }
   };
-  
+
   async function importarDesdeArchivo(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     try {
       const data = await parseImportPayloadFromFile(file);
-      
-      if (!data.secciones && !data.subsecciones && !data.cuentas && !data.operaciones) {
-        showToast('⚠️ El archivo no tiene el formato correcto. Descarga la plantilla primero.', 'warning');
+
+      if (
+        !data.secciones &&
+        !data.subsecciones &&
+        !data.cuentas &&
+        !data.operaciones
+      ) {
+        showToast(
+          "⚠️ El archivo no tiene el formato correcto. Descarga la plantilla primero.",
+          "warning",
+        );
         return;
       }
-      
-      const confirmMsg = `¿Importar datos desde ${file.name}?\n\nSe agregarán:\n` +
+
+      const confirmMsg =
+        `¿Importar datos desde ${file.name}?\n\nSe agregarán:\n` +
         `- ${(data.secciones || []).length} secciones\n` +
         `- ${(data.subsecciones || []).length} subsecciones\n` +
         `- ${(data.cuentas || []).length} cuentas\n` +
         `- ${(data.operaciones || []).length} operaciones`;
-      
+
       if (!confirm(confirmMsg)) {
-        event.target.value = '';
+        event.target.value = "";
         return;
       }
-      
+
       let importados = 0;
       let actualizados = 0;
 
@@ -15829,53 +16538,59 @@ window.editSection = function (name) {
           }
         });
       }
-      
+
       // Importar cuentas
       if (data.cuentas && Array.isArray(data.cuentas)) {
-        data.cuentas.forEach(c => {
+        data.cuentas.forEach((c) => {
           const cuentaCodigo = (c.cuenta || "").toString().trim();
           if (!cuentaCodigo) return;
           const principal = (c.seccion_principal || "").toString().trim();
           const secundaria = (c.seccion_secundaria || "").toString().trim();
           ensureSectionPath(principal, secundaria);
-          
+
           // Verificar si ya existe
-          const existe = state.cuentas.some(existing => 
-            normalizeOperationMatch(existing.CUENTA || existing.cuenta) ===
-              normalizeOperationMatch(cuentaCodigo)
+          const existe = state.cuentas.some(
+            (existing) =>
+              normalizeOperationMatch(existing.CUENTA || existing.cuenta) ===
+              normalizeOperationMatch(cuentaCodigo),
           );
-          
+
           if (!existe) {
             state.cuentas.push({
               CUENTA: cuentaCodigo,
               cuenta: cuentaCodigo,
               NOMBRE: c.nombre,
               nombre: c.nombre,
-              'SECCION PRINCIPAL': principal,
-              'SECCION Secundaria': secundaria,
+              "SECCION PRINCIPAL": principal,
+              "SECCION Secundaria": secundaria,
               visible: c.visible !== false,
               capturable: c.capturable !== false,
-              TIPO_SALDO: c.tipo_saldo || 'Deudor',
-              operacion_factor: Number.isFinite(Number(c.factor)) ? Number(c.factor) : 1,
+              TIPO_SALDO: c.tipo_saldo || "Deudor",
+              operacion_factor: Number.isFinite(Number(c.factor))
+                ? Number(c.factor)
+                : 1,
               HOJA: state.modulo,
-              CAPITULO: state.capitulo
+              CAPITULO: state.capitulo,
             });
             importados++;
           } else {
-            const existing = state.cuentas.find((acc) =>
-              normalizeOperationMatch(acc.CUENTA || acc.cuenta) ===
-              normalizeOperationMatch(cuentaCodigo)
+            const existing = state.cuentas.find(
+              (acc) =>
+                normalizeOperationMatch(acc.CUENTA || acc.cuenta) ===
+                normalizeOperationMatch(cuentaCodigo),
             );
             if (existing) {
               existing.CUENTA = cuentaCodigo;
               existing.cuenta = cuentaCodigo;
-              existing.NOMBRE = c.nombre || existing.NOMBRE || existing.nombre || "";
+              existing.NOMBRE =
+                c.nombre || existing.NOMBRE || existing.nombre || "";
               existing.nombre = existing.NOMBRE;
               setAccountPrincipalName(existing, principal);
               setAccountSecondaryName(existing, secundaria);
               existing.visible = c.visible !== false;
               existing.capturable = c.capturable !== false;
-              existing.TIPO_SALDO = c.tipo_saldo || existing.TIPO_SALDO || "Deudor";
+              existing.TIPO_SALDO =
+                c.tipo_saldo || existing.TIPO_SALDO || "Deudor";
               if (Number.isFinite(Number(c.factor))) {
                 existing.operacion_factor = Number(c.factor);
               }
@@ -15884,10 +16599,10 @@ window.editSection = function (name) {
           }
         });
       }
-      
+
       // Importar operaciones
       if (data.operaciones && Array.isArray(data.operaciones)) {
-        data.operaciones.forEach(op => {
+        data.operaciones.forEach((op) => {
           const rawId = (op.operacion_id || "").toString().trim();
           const rawClase = (op.clase || rawId || "").toString().trim();
           const sectionPrincipal = (op.seccion || "").toString().trim();
@@ -15895,8 +16610,12 @@ window.editSection = function (name) {
           if (!rawId && !rawClase) return;
 
           ensureSectionPath(sectionPrincipal, sectionSub);
-          const placement = (sectionSub || sectionPrincipal || "").toString().trim();
-          const parentSection = sectionSub ? sectionPrincipal : sectionPrincipal || null;
+          const placement = (sectionSub || sectionPrincipal || "")
+            .toString()
+            .trim();
+          const parentSection = sectionSub
+            ? sectionPrincipal
+            : sectionPrincipal || null;
           const parentSubsection = sectionSub || null;
           const formulaTerms = parseImportedFormulaTerms(op);
 
@@ -15907,7 +16626,7 @@ window.editSection = function (name) {
           if (!existing && placement) {
             existing = findOperationBySectionName(
               placement,
-              parentSection || ""
+              parentSection || "",
             );
           }
           if (!existing && rawClase) {
@@ -15924,7 +16643,7 @@ window.editSection = function (name) {
                 (item) =>
                   item !== existing &&
                   normalizeOperationMatch(getOperationId(item)) ===
-                    normalizeOperationMatch(rawId)
+                    normalizeOperationMatch(rawId),
               );
               existing.OperacionId = idConflict
                 ? buildUniqueOperationId(rawId, existing)
@@ -15935,8 +16654,10 @@ window.editSection = function (name) {
             existing.parentSection = parentSection;
             existing.parentSubsection = parentSubsection;
             existing.secciones = placement ? [placement] : [];
-            existing.tipo_operacion = op.tipo_operacion || existing.tipo_operacion || "libre";
-            existing.rowStyle = op.estilo_fila || existing.rowStyle || "operation-row";
+            existing.tipo_operacion =
+              op.tipo_operacion || existing.tipo_operacion || "libre";
+            existing.rowStyle =
+              op.estilo_fila || existing.rowStyle || "operation-row";
             existing.estilo_fila = existing.rowStyle;
             existing.visible = op.visible !== false;
             if (formulaTerms.length || String(op.formula || "").trim()) {
@@ -15980,24 +16701,26 @@ window.editSection = function (name) {
       dedupeTemplateStructure({ silent: true });
       state.operaciones = sortOperations(state.operaciones);
       ensureOperationIds();
-      
+
       if (importados > 0 || actualizados > 0) {
         state.unsavedChanges = true;
         renderLayout();
         updateButtonStates();
         showToast(
           `✅ Importación completada. Nuevos: ${importados}, actualizados: ${actualizados}. Recuerda GUARDAR los cambios.`,
-          'success'
+          "success",
         );
       } else {
-        showToast('ℹ️ No se importó nada nuevo (todos los elementos ya existen)', 'info');
+        showToast(
+          "ℹ️ No se importó nada nuevo (todos los elementos ya existen)",
+          "info",
+        );
       }
-      
     } catch (error) {
-      console.error('Error al importar:', error);
-      showToast(`❌ Error al importar: ${error.message}`, 'error');
+      console.error("Error al importar:", error);
+      showToast(`❌ Error al importar: ${error.message}`, "error");
     } finally {
-      event.target.value = '';
+      event.target.value = "";
     }
   }
 
