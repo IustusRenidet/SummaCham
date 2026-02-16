@@ -1122,6 +1122,7 @@
       },
     },
     manualOnly: true,
+    deletedChartIds: [],
     customCharts: [
       {
         id: "manual-operating",
@@ -1302,18 +1303,49 @@
   };
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
-  const mergeDefaultCustomCharts = (charts = []) => {
+  const CHART_ID_ALIASES = Object.freeze({
+    ingreso: "ingreso-capitulo",
+    "ingreso-capitulo": "ingreso-capitulo",
+    operativo: "operativo-panel",
+    "operativo-panel": "operativo-panel",
+    "gastos-rendimientos": "gg-rendimientos",
+    "gg-rendimientos": "gg-rendimientos",
+    "gastos-plusvalia": "gg-plusvalia",
+    "gg-plusvalia": "gg-plusvalia",
+  });
+
+  const canonicalizeChartId = (value) => {
+    const id = String(value || "").trim();
+    if (!id) return "";
+    return CHART_ID_ALIASES[id] || id;
+  };
+
+  const normalizeDeletedChartIds = (values = []) =>
+    Array.from(
+      new Set(
+        (Array.isArray(values) ? values : [])
+          .map((value) => canonicalizeChartId(value))
+          .filter(Boolean)
+      )
+    );
+
+  const mergeDefaultCustomCharts = (charts = [], deletedIds = []) => {
+    const deletedSet = new Set(normalizeDeletedChartIds(deletedIds));
     const merged = new Map();
     (Array.isArray(DEFAULT_GRAFICAS_CONFIG.customCharts)
       ? DEFAULT_GRAFICAS_CONFIG.customCharts
       : []
     ).forEach((chart) => {
       if (!chart?.id) return;
-      merged.set(String(chart.id), clone(chart));
+      const key = canonicalizeChartId(chart.id);
+      if (!key || deletedSet.has(key)) return;
+      merged.set(key, clone(chart));
     });
     (Array.isArray(charts) ? charts : []).forEach((chart) => {
       if (!chart?.id) return;
-      merged.set(String(chart.id), chart);
+      const key = canonicalizeChartId(chart.id);
+      if (!key || deletedSet.has(key)) return;
+      merged.set(key, chart);
     });
     return Array.from(merged.values());
   };
@@ -1519,6 +1551,7 @@
     }
 
     base.manualOnly = true;
+    base.deletedChartIds = normalizeDeletedChartIds(config.deletedChartIds);
 
     if (config.charts && typeof config.charts === "object") {
       ["operating", "net", "consolidated"].forEach((key) => {
@@ -1656,14 +1689,40 @@
       ? normalizeCustomCharts(config.customCharts)
       : [];
 
+    const deletedSet = new Set(base.deletedChartIds || []);
+    const filteredCustomCharts = normalizedCustomCharts.filter((chart) => {
+      const key = canonicalizeChartId(chart?.id);
+      if (!key) return true;
+      return !deletedSet.has(key);
+    });
+
     if (resetToManualFlow || normalizedCustomCharts.length === 0) {
-      base.customCharts = mergeDefaultCustomCharts(normalizedCustomCharts);
+      base.customCharts = mergeDefaultCustomCharts(
+        filteredCustomCharts,
+        base.deletedChartIds
+      );
     } else {
-      base.customCharts = normalizedCustomCharts;
+      base.customCharts = filteredCustomCharts;
     }
 
     if (!hasEnabledManualCharts(base.customCharts)) {
-      base.customCharts = mergeDefaultCustomCharts([]);
+      base.customCharts = mergeDefaultCustomCharts([], base.deletedChartIds);
+    }
+
+    if (deletedSet.has("summary-operating")) {
+      base.charts.operating.enabled = false;
+    }
+    if (deletedSet.has("summary-net")) {
+      base.charts.net.enabled = false;
+    }
+    if (deletedSet.has("summary-consolidated")) {
+      base.charts.consolidated.enabled = false;
+    }
+    if (deletedSet.has("ingreso-capitulo")) {
+      base.ingreso.enabled = false;
+    }
+    if (deletedSet.has("ingreso-nacional")) {
+      base.ingresoNacional.enabled = false;
     }
 
     return base;

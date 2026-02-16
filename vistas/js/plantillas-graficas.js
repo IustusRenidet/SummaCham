@@ -3715,9 +3715,6 @@
     return defs.filter((definition) => {
       const defId = canonicalizeChartId(definition?.chartId || definition?.id);
       if (!defId) return true;
-      const isCustom =
-        definition?.previewKind === "custom" || defId.startsWith("custom-");
-      if (!isCustom) return true;
       return !deletedIds.has(defId);
     });
   };

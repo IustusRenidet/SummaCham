@@ -1163,6 +1163,31 @@
       base.customCharts = mergeDefaultCustomCharts([], base.deletedChartIds);
     }
 
+    if (deletedSet.has("summary-operating")) {
+      base.charts.operating.enabled = false;
+    }
+    if (deletedSet.has("summary-net")) {
+      base.charts.net.enabled = false;
+    }
+    if (deletedSet.has("summary-consolidated")) {
+      base.charts.consolidated.enabled = false;
+    }
+    if (deletedSet.has("ingreso-capitulo")) {
+      base.ingreso.enabled = false;
+    }
+    if (deletedSet.has("ingreso-nacional")) {
+      base.ingresoNacional.enabled = false;
+    }
+    if (deletedSet.has("operativo-panel")) {
+      base.operativo.enabled = false;
+    }
+    if (deletedSet.has("gg-rendimientos")) {
+      base.gastosGenerales.charts.rendimientos.enabled = false;
+    }
+    if (deletedSet.has("gg-plusvalia")) {
+      base.gastosGenerales.charts.plusvalia.enabled = false;
+    }
+
     return base;
   };
 

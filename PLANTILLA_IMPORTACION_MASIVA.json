@@ -3,14 +3,38 @@
     "descripcion": "Plantilla para importación masiva de elementos al Gestor de Plantillas",
     "formato": "Exporta este JSON a Excel, llena las filas, importa el Excel de vuelta",
     "campos_obligatorios": {
-      "secciones": ["nombre"],
-      "subsecciones": ["nombre", "seccion_principal"],
-      "cuentas": ["cuenta", "nombre", "seccion_principal", "seccion_secundaria"],
-      "operaciones": ["operacion_id", "clase", "formula"]
+      "secciones": [
+        "nombre"
+      ],
+      "subsecciones": [
+        "nombre",
+        "seccion_principal"
+      ],
+      "cuentas": [
+        "cuenta",
+        "nombre",
+        "seccion_principal",
+        "seccion_secundaria"
+      ],
+      "operaciones": [
+        "operacion_id",
+        "clase",
+        "formula"
+      ]
     },
     "campos_opcionales": {
-      "cuentas": ["visible", "capturable", "tipo_saldo"],
-      "operaciones": ["visible", "tipo_operacion", "estilo_fila", "seccion", "subseccion"]
+      "cuentas": [
+        "visible",
+        "capturable",
+        "tipo_saldo"
+      ],
+      "operaciones": [
+        "visible",
+        "tipo_operacion",
+        "estilo_fila",
+        "seccion",
+        "subseccion"
+      ]
     }
   },
   "secciones": [

@@ -201,14 +201,6 @@
                 </button>
                 <button
                   type="button"
-                  id="btnReordenar"
-                  class="btn btn-outline-secondary"
-                  disabled
-                >
-                  <i class="bi bi-arrows-move me-1"></i> Reordenar
-                </button>
-                <button
-                  type="button"
                   id="btnPreview"
                   class="btn btn-outline-secondary"
                   disabled
@@ -3505,6 +3497,7 @@
     <script src="js/operation-debugger.js"></script>
     <script src="js/plantillas-reordenar.js?v=20260212193000"></script>
     <script src="js/importar-estructura-resumen.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="js/graficas-config.js?v=20260212193000"></script>
 
@@ -5207,7 +5200,7 @@
                 "Filtra secciones, cuentas y operaciones sin perder el contexto del layout.",
             },
             {
-              selector: ["#btnAgregar", "#btnReordenar", "#btnPreview"],
+              selector: ["#btnAgregar", "#btnPreview"],
               title: "Edicion de estructura",
               description:
                 "Usa estos botones para agregar elementos, reordenar y validar la vista previa.",

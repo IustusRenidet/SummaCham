@@ -19,6 +19,7 @@
   const MANUAL_ORDER_ONLY = true;
   const FORCE_EDIT_MODE = true;
   const FORCE_MODAL_EDITOR = false; // SIEMPRE FALSE: usar panel lateral moderno
+  const INLINE_ORDER_UI_ENABLED = true; // Mostrar botón/modo "Ordenar" en Elementos de la plantilla
   let bulkRowCounter = 0;
 
   // ==========================================
@@ -871,6 +872,7 @@
       // para que las operaciones aparezcan bajo su sección/subsección al cargar.
       hydrateOperationPlacement();
       ensureOperationIds(); // Solo asegurar IDs si faltan
+      dedupeTemplateStructure({ silent: true });
       // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
       // normalizePresentationOrders(); // No recalcular órdenes
       state.selectedElement = null;
@@ -1465,6 +1467,12 @@
       op["SECCION Principal"],
       op.seccion_principal,
     ];
+    if (Array.isArray(op.formula_terms)) {
+      op.formula_terms.forEach((term) => {
+        if (!term || term.type !== "section") return;
+        if (term.parentSection) candidates.push(term.parentSection);
+      });
+    }
     return candidates.filter(Boolean);
   }
 
@@ -1478,6 +1486,12 @@
     ];
     if (Array.isArray(op.secciones)) {
       candidates.push(...op.secciones);
+    }
+    if (Array.isArray(op.formula_terms)) {
+      op.formula_terms.forEach((term) => {
+        if (!term || term.type !== "section") return;
+        if (term.value) candidates.push(term.value);
+      });
     }
     return candidates.filter(Boolean);
   }
@@ -1565,14 +1579,18 @@
     if (!label) return;
     const match = getRowOperationMatch(label, preferredField, parentSection);
     if (!match.operations.length) {
+      const confirmed = window.confirm(
+        `No se encontró una operación ligada a "${label}".\n\n¿Deseas crear una nueva operación para esta fila?`
+      );
+      if (!confirmed) return;
       openAddOperationForRow(label, parentSection, preferredField);
       return;
     }
     if (match.operations.length > 1) {
-      showToast(
-        `Hay ${match.operations.length} operaciones para "${label}". Abriendo la primera.`,
-        "info"
-      );
+      if (typeof window.editConsolidatedLabel === "function") {
+        window.editConsolidatedLabel(label, match.field || preferredField || "sum-row");
+        return;
+      }
     }
     const op = match.operations[0];
     const opId = getOperationId(op) || getOperationDisplayName(op) || label;
@@ -1897,6 +1915,9 @@
   }
 
   function renderLayout() {
+    if (!INLINE_ORDER_UI_ENABLED && state.inlineOrderMode) {
+      state.inlineOrderMode = false;
+    }
     ensureAccountIds(state.cuentas);
     dom.layoutPreview.innerHTML = renderEditableLayout();
     bindLayoutEvents();
@@ -1949,12 +1970,8 @@
 
   function renderEditableLayoutPiloto() {
     const rows = buildPreviewRowsForEditor();
-    return `
-      <div class="template-pilot">
-        ${renderTemplateSummary(rows, [])}
-        <div class="card mb-3">
-          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2 template-items-sticky">
-            <span>Elementos de la plantilla</span>
+    const inlineOrderHeader = INLINE_ORDER_UI_ENABLED
+      ? `
             <div class="template-table-actions">
               <div class="form-check form-switch m-0">
                 <input
@@ -1969,6 +1986,15 @@
                 </label>
               </div>
             </div>
+        `
+      : "";
+    return `
+      <div class="template-pilot">
+        ${renderTemplateSummary(rows, [])}
+        <div class="card mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2 template-items-sticky">
+            <span>Elementos de la plantilla</span>
+            ${inlineOrderHeader}
           </div>
           <div class="card-body">
             ${renderTemplateListView(rows)}
@@ -3899,7 +3925,7 @@
   function bindTemplateTableEvents() {
     const isPiloto = isModuloPiloto();
     const inlineToggle = dom.layoutPreview?.querySelector("#toggleInlineOrder");
-    if (isPiloto) {
+    if (isPiloto && INLINE_ORDER_UI_ENABLED) {
       inlineToggle?.addEventListener("change", (event) => {
         state.inlineOrderMode = Boolean(event.target.checked);
         renderLayout();
@@ -8835,13 +8861,25 @@
   }
 
   function addPrincipalSectionByName(nombre, { silent = false } = {}) {
+    const cleanName = (nombre || "").toString().trim();
+    if (!cleanName) return false;
+    const sectionKey = normalizeOperationMatch(cleanName);
+    const alreadyExists = (state.cuentas || []).some(
+      (cuenta) => normalizeOperationMatch(getAccountPrincipalName(cuenta) || "") === sectionKey
+    );
+    if (alreadyExists) {
+      if (!silent) {
+        showToast(`La sección "${cleanName}" ya existe`, "info");
+      }
+      return false;
+    }
     const order = getNextAccountOrder();
     const newAccount = {
-      "SECCIÓN Principal": nombre,
+      "SECCIÓN Principal": cleanName,
       "SECCION Secundaria": "",
-      SECCION: nombre,
+      SECCION: cleanName,
       CUENTA: "",
-      NOMBRE: `[Sección: ${nombre}]`,
+      NOMBRE: `[Sección: ${cleanName}]`,
       orden: order,
       orden_presentacion: order,
       visible: false,
@@ -8851,23 +8889,40 @@
 
     assignAccountRowId(newAccount);
     state.cuentas.push(newAccount);
-    logChange("add", `Sección Principal "${nombre}"`, {
-      nombre,
+    logChange("add", `Sección Principal "${cleanName}"`, {
+      nombre: cleanName,
       type: "section",
     });
     if (!silent) {
-      showToast(`Sección "${nombre}" creada`, "success");
+      showToast(`Sección "${cleanName}" creada`, "success");
     }
+    return true;
   }
 
   function addSecondarySectionByName(principal, nombre, { silent = false } = {}) {
+    const principalClean = (principal || "").toString().trim();
+    const nombreClean = (nombre || "").toString().trim();
+    if (!principalClean || !nombreClean) return false;
+    const principalKey = normalizeOperationMatch(principalClean);
+    const secundariaKey = normalizeOperationMatch(nombreClean);
+    const exists = (state.cuentas || []).some((cuenta) => {
+      const p = normalizeOperationMatch(getAccountPrincipalName(cuenta) || "");
+      const s = normalizeOperationMatch(getAccountSecondaryName(cuenta) || "");
+      return p === principalKey && s === secundariaKey;
+    });
+    if (exists) {
+      if (!silent) {
+        showToast(`La subsección "${nombreClean}" ya existe en "${principalClean}"`, "info");
+      }
+      return false;
+    }
     const order = getNextAccountOrder();
     const newAccount = {
-      "SECCIÓN Principal": principal,
-      "SECCION Secundaria": nombre,
-      SECCION: principal,
+      "SECCIÓN Principal": principalClean,
+      "SECCION Secundaria": nombreClean,
+      SECCION: principalClean,
       CUENTA: "",
-      NOMBRE: `[Subsección: ${nombre}]`,
+      NOMBRE: `[Subsección: ${nombreClean}]`,
       orden: order,
       orden_presentacion: order,
       visible: false,
@@ -8877,14 +8932,15 @@
 
     assignAccountRowId(newAccount);
     state.cuentas.push(newAccount);
-    logChange("add", `Subsección "${nombre}" en ${principal}`, {
-      nombre,
-      principal,
+    logChange("add", `Subsección "${nombreClean}" en ${principalClean}`, {
+      nombre: nombreClean,
+      principal: principalClean,
       type: "subsection",
     });
     if (!silent) {
-      showToast(`Subsección "${nombre}" creada`, "success");
+      showToast(`Subsección "${nombreClean}" creada`, "success");
     }
+    return true;
   }
 
   function addAccountEntry(
@@ -8924,11 +8980,84 @@
     { nombre, seccion, subseccion, signo, formulaTerms, rowLabels = {} },
     { silent = false } = {}
   ) {
-    const opIdBase = normalizeOperationId(nombre || "OPERACION");
-    const operacionId = buildUniqueOperationId(opIdBase);
     const parentSection = seccion || "";
     const parentSubsection = subseccion || "";
     const rowSection = subseccion || seccion || "";
+    const normalizedLabel = normalizeOperationMatch(nombre || "");
+    const sectionKey = normalizeOperationMatch(rowSection);
+    const parentKey = normalizeOperationMatch(parentSection);
+
+    let existing = null;
+    if (rowSection) {
+      existing = findOperationBySectionName(rowSection, parentSection || "");
+    }
+    if (!existing && normalizedLabel) {
+      existing = (state.operaciones || []).find((item) => {
+        if (!item) return false;
+        const itemLabel = normalizeOperationMatch(
+          getOperationDisplayName(item) ||
+            getOperationLabel(item) ||
+            getOperationId(item)
+        );
+        if (!itemLabel || itemLabel !== normalizedLabel) return false;
+        if (!sectionKey) return true;
+        const matchesPlacement = getOperationPlacementCandidates(item).some(
+          (candidate) => normalizeOperationMatch(candidate) === sectionKey
+        );
+        if (!matchesPlacement) return false;
+        if (!parentKey) return true;
+        return getOperationParentCandidates(item).some(
+          (candidate) => normalizeOperationMatch(candidate) === parentKey
+        );
+      });
+    }
+
+    if (existing) {
+      if (nombre) {
+        existing.Clase = nombre;
+        existing.operacion_etiqueta = nombre;
+      }
+      existing.SECCION = rowSection;
+      existing.seccion = rowSection;
+      existing.tipo = Array.isArray(formulaTerms) && formulaTerms.length
+        ? "custom-formula"
+        : existing.tipo || "sum-sections";
+      existing.secciones = rowSection ? [rowSection] : [];
+      existing.parentSection = parentSection || null;
+      existing.parentSubsection = parentSubsection || null;
+      if (Number.isFinite(Number(signo))) {
+        existing.signo = Number(signo);
+        existing.signos = existing.signos || {};
+        existing.signos["sum-row"] = Number(signo);
+      }
+      if (Array.isArray(formulaTerms) && formulaTerms.length) {
+        const normalized = normalizeFormulaTerms(formulaTerms);
+        existing.formula_terms = normalized;
+        existing.formula_json = JSON.stringify(normalized);
+      }
+      if (rowLabels && typeof rowLabels === "object") {
+        Object.entries(rowLabels).forEach(([field, label]) => {
+          if (!label) return;
+          existing[field] = label;
+        });
+      }
+
+      logChange("edit", `Operación "${nombre}" actualizada`, {
+        nombre,
+        type: "operation",
+      });
+
+      if (!silent) {
+        state.operaciones = sortOperations(state.operaciones);
+        ensureOperationIds();
+        renderLayout();
+        showToast(`Operación "${nombre}" actualizada`, "success");
+      }
+      return { created: false, updated: true, operation: existing };
+    }
+
+    const opIdBase = normalizeOperationId(nombre || "OPERACION");
+    const operacionId = buildUniqueOperationId(opIdBase);
 
     const op = {
       CAPITULO: state.capitulo || "DEFAULT",
@@ -8979,6 +9108,7 @@
       renderLayout();
       showToast(`Operación "${nombre}" creada`, "success");
     }
+    return { created: true, updated: false, operation: op };
   }
 
   function collectAddOperationRowLabels(defaultLabel) {
@@ -9052,6 +9182,7 @@
       subsecciones: 0,
       cuentas: 0,
       operaciones: 0,
+      operacionesActualizadas: 0,
     };
     const errores = [];
 
@@ -9106,25 +9237,27 @@
               ? parseFormulaText(row.formula)
               : [];
             
-            // VALIDACIÓN: Las operaciones deben tener fórmula
-            if (formulaTerms.length === 0) {
-              throw new Error(`La operación "${nombre}" debe tener una fórmula. Usa el botón de calculadora para definirla.`);
-            }
-            
             const aparicion = (row.aparicion || "libre").trim();
             const rowLabels =
               aparicion && aparicion !== "libre"
                 ? { [aparicion]: nombre }
                 : {};
-            addOperationEntry({
-              nombre,
-              seccion: row.seccion,
-              subseccion: row.subseccion,
-              signo: Number.isFinite(sign) ? sign : null,
-              formulaTerms,
-              rowLabels,
-            }, { silent: true });
-            counters.operaciones += 1;
+            const opResult = addOperationEntry(
+              {
+                nombre,
+                seccion: row.seccion,
+                subseccion: row.subseccion,
+                signo: Number.isFinite(sign) ? sign : null,
+                formulaTerms,
+                rowLabels,
+              },
+              { silent: true }
+            );
+            if (opResult?.created) {
+              counters.operaciones += 1;
+            } else if (opResult?.updated) {
+              counters.operacionesActualizadas += 1;
+            }
             break;
           }
           default:
@@ -9139,6 +9272,7 @@
       counters.secciones +
         counters.subsecciones +
         counters.cuentas +
+        counters.operacionesActualizadas +
         counters.operaciones ===
         0 &&
       errores.length
@@ -9146,7 +9280,7 @@
       throw new Error(errores[0]);
     }
 
-    if (counters.operaciones > 0) {
+    if (counters.operaciones > 0 || counters.operacionesActualizadas > 0) {
       state.operaciones = sortOperations(state.operaciones);
       ensureOperationIds();
       // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
@@ -9179,7 +9313,7 @@
     resetBulkInsertTable({ focus: true });
 
     showToast(
-      `Agregadas: ${counters.secciones} secciones, ${counters.subsecciones} subsecciones, ${counters.cuentas} cuentas, ${counters.operaciones} operaciones.`,
+      `Agregadas: ${counters.secciones} secciones, ${counters.subsecciones} subsecciones, ${counters.cuentas} cuentas, ${counters.operaciones} operaciones.${counters.operacionesActualizadas ? ` Actualizadas: ${counters.operacionesActualizadas} operaciones.` : ""}`,
       "success"
     );
   }
@@ -9356,6 +9490,7 @@
 
     state.operaciones = sortOperations(state.operaciones);
     ensureOperationIds();
+    dedupeTemplateStructure({ silent: true });
     // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
     renderLayout();
     showToast(`Operación "${resolvedClase}" guardada`, "success");
@@ -9603,6 +9738,85 @@
     }
 
     return { removed };
+  }
+
+  function dedupeTemplateStructure({ silent = false } = {}) {
+    const cuentasOrdenadas = sortAccountsByOrder(state.cuentas || []);
+    const seenAccountCodes = new Set();
+    const seenPrincipalPlaceholders = new Set();
+    const seenSecondaryPlaceholders = new Set();
+    const cuentasUnicas = [];
+    let removedAccounts = 0;
+    let removedPlaceholders = 0;
+
+    cuentasOrdenadas.forEach((cuenta) => {
+      if (!cuenta) return;
+      const principal = (getAccountPrincipalName(cuenta) || "").toString().trim();
+      const secundaria = (getAccountSecondaryName(cuenta) || "").toString().trim();
+
+      if (isPlaceholderAccount(cuenta)) {
+        if (secundaria) {
+          const key = `${normalizeOperationMatch(principal)}||${normalizeOperationMatch(secundaria)}`;
+          if (!key || seenSecondaryPlaceholders.has(key)) {
+            removedPlaceholders += 1;
+            return;
+          }
+          seenSecondaryPlaceholders.add(key);
+        } else {
+          const key = normalizeOperationMatch(principal);
+          if (!key || seenPrincipalPlaceholders.has(key)) {
+            removedPlaceholders += 1;
+            return;
+          }
+          seenPrincipalPlaceholders.add(key);
+        }
+        cuentasUnicas.push(cuenta);
+        return;
+      }
+
+      const cuentaCodigo = (cuenta.CUENTA || cuenta.cuenta || "").toString().trim();
+      const accountKey = normalizeOperationMatch(cuentaCodigo);
+      if (accountKey) {
+        if (seenAccountCodes.has(accountKey)) {
+          removedAccounts += 1;
+          return;
+        }
+        seenAccountCodes.add(accountKey);
+      }
+
+      if (principal) {
+        seenPrincipalPlaceholders.add(normalizeOperationMatch(principal));
+      }
+      if (principal && secundaria) {
+        seenSecondaryPlaceholders.add(
+          `${normalizeOperationMatch(principal)}||${normalizeOperationMatch(secundaria)}`
+        );
+      }
+      cuentasUnicas.push(cuenta);
+    });
+
+    state.cuentas = cuentasUnicas;
+    const dedupeOps = dedupeOperations({ silent: true });
+    const removedOps = Number(dedupeOps?.removed || 0);
+    const totalRemoved = removedAccounts + removedPlaceholders + removedOps;
+
+    if (totalRemoved > 0) {
+      state.unsavedChanges = true;
+      if (!silent) {
+        updateButtonStates();
+        showToast(
+          `Se limpiaron duplicados: ${removedAccounts} cuentas, ${removedPlaceholders} secciones/subsecciones, ${removedOps} operaciones.`,
+          "warning"
+        );
+      }
+    }
+
+    return {
+      removedAccounts,
+      removedPlaceholders,
+      removedOps,
+      totalRemoved,
+    };
   }
 
   function resolveOperationParentSection(op, primaryIndex) {
@@ -10138,6 +10352,9 @@
     setStatus(silent ? "Guardando automatico..." : "Guardando...");
 
     try {
+      // Sanear estructura antes de persistir: evita secciones/operaciones duplicadas.
+      dedupeTemplateStructure({ silent: true });
+
       // Save accounts
       const accResponse = await fetch(
         `${API_BASE}/${encodeURIComponent(state.modulo)}/${
@@ -10167,7 +10384,6 @@
       // MODO 100% MANUAL: desactivar funciones automáticas
       // hydrateOperationsFromParents(); // No inferir ubicaciones
       // hydrateOperationPlacement(); // No inferir placement
-      // dedupeOperations({ silent: true }); // No eliminar duplicados automáticamente
       ensureOperationIds(); // Solo asegurar IDs si faltan
       // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
       const operacionesOrdenadas = sortOperations(state.operaciones);
@@ -12069,6 +12285,7 @@ window.editSection = function (name) {
       let changed = false;
       if (newCodigo && newCodigo !== oldCodigo) {
         cuenta.CUENTA = newCodigo;
+        cuenta.cuenta = newCodigo;
         logChange("edit", `Cuenta ${oldCodigo} → ${newCodigo}`, {
           oldCodigo,
           newCodigo,
@@ -12078,6 +12295,7 @@ window.editSection = function (name) {
       }
       if (newNombre && newNombre !== oldNombre) {
         cuenta.NOMBRE = newNombre;
+        cuenta.nombre = newNombre;
         logChange(
           "edit",
           `Cuenta ${cuenta.CUENTA}: "${oldNombre}" → "${newNombre}"`,
@@ -12089,11 +12307,7 @@ window.editSection = function (name) {
       // Actualizar sección principal
       const oldPrincipal = getAccountPrincipalName(cuenta);
       if (newSeccionPrincipal !== oldPrincipal) {
-        // Actualizar en todos los campos posibles
-        if (cuenta["SECCIÓN Principal"] !== undefined) cuenta["SECCIÓN Principal"] = newSeccionPrincipal;
-        else if (cuenta["SECCION Principal"] !== undefined) cuenta["SECCION Principal"] = newSeccionPrincipal;
-        else if (cuenta.seccion_principal !== undefined) cuenta.seccion_principal = newSeccionPrincipal;
-        else cuenta["SECCIÓN Principal"] = newSeccionPrincipal;
+        setAccountPrincipalName(cuenta, newSeccionPrincipal);
         logChange("edit", `Cuenta ${cuenta.CUENTA}: sección "${oldPrincipal}" → "${newSeccionPrincipal}"`, {
           codigo: cuenta.CUENTA,
           oldPrincipal,
@@ -12105,10 +12319,7 @@ window.editSection = function (name) {
       // Actualizar sección secundaria
       const oldSecundaria = getAccountSecondaryName(cuenta);
       if (newSeccionSecundaria !== oldSecundaria) {
-        if (cuenta["SECCION Secundaria"] !== undefined) cuenta["SECCION Secundaria"] = newSeccionSecundaria;
-        else if (cuenta["SECCIÓN Secundaria"] !== undefined) cuenta["SECCIÓN Secundaria"] = newSeccionSecundaria;
-        else if (cuenta.seccion_secundaria !== undefined) cuenta.seccion_secundaria = newSeccionSecundaria;
-        else cuenta["SECCION Secundaria"] = newSeccionSecundaria;
+        setAccountSecondaryName(cuenta, newSeccionSecundaria);
         logChange("edit", `Cuenta ${cuenta.CUENTA}: subsección "${oldSecundaria}" → "${newSeccionSecundaria}"`, {
           codigo: cuenta.CUENTA,
           oldSecundaria,
@@ -12272,15 +12483,11 @@ window.editSection = function (name) {
           const s =
             c["SECCION Secundaria"] ||
             c["SECCIÓN Secundaria"] ||
+            c.seccion_secundaria ||
             c.seccion_secondary;
 
           if (p === principal && s === oldName) {
-            if (c["SECCION Secundaria"] !== undefined)
-              c["SECCION Secundaria"] = newName;
-            if (c["SECCIÓN Secundaria"] !== undefined)
-              c["SECCIÓN Secundaria"] = newName;
-            if (c.seccion_secondary !== undefined)
-              c.seccion_secondary = newName;
+            setAccountSecondaryName(c, newName);
             affectedCount++;
           }
         });
@@ -12488,17 +12695,9 @@ window.editSection = function (name) {
           : collectFormulaTermsFromLayout(formulaPanel);
       formulaTerms = selectedTerms;
 
-      // VALIDACIÓN: Las operaciones deben tener fórmula
-      if (!formulaTerms || formulaTerms.length === 0) {
-        showToast("⚠️ La operación debe tener una fórmula. Usa la pestaña 'Fórmula' para definirla.", "error");
-        
-        // Cambiar a la pestaña de fórmula
-        const formulaTab = document.querySelector('[data-bs-target="#editorTabFormula"]');
-        if (formulaTab && window.bootstrap?.Tab) {
-          const tab = new window.bootstrap.Tab(formulaTab);
-          tab.show();
-        }
-        return;
+      // Fórmula completamente editable: se permite dejarla vacía si así lo requiere la plantilla.
+      if (!Array.isArray(formulaTerms)) {
+        formulaTerms = [];
       }
 
       // Limpiar campos legacy
@@ -15266,14 +15465,325 @@ window.editSection = function (name) {
       };
     });
   }
+
+  const normalizeImportHeader = (value) =>
+    (value || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/gi, "")
+      .toLowerCase();
+
+  const toImportBoolean = (value, fallback = true) => {
+    if (value === undefined || value === null || value === "") return fallback;
+    if (typeof value === "boolean") return value;
+    const text = String(value).trim().toLowerCase();
+    if (!text) return fallback;
+    if (["1", "true", "si", "sí", "yes", "y", "ok", "on"].includes(text)) {
+      return true;
+    }
+    if (["0", "false", "no", "n", "off"].includes(text)) {
+      return false;
+    }
+    return fallback;
+  };
+
+  const normalizeImportRow = (row = {}) => {
+    const normalized = {};
+    Object.entries(row || {}).forEach(([rawKey, value]) => {
+      const key = normalizeImportHeader(rawKey);
+      if (!key) return;
+      normalized[key] = value;
+    });
+    return normalized;
+  };
+
+  const pickImportValue = (normalizedRow = {}, candidates = []) => {
+    for (const rawKey of candidates) {
+      const key = normalizeImportHeader(rawKey);
+      if (!key) continue;
+      if (!Object.prototype.hasOwnProperty.call(normalizedRow, key)) continue;
+      const value = normalizedRow[key];
+      if (value === undefined || value === null) continue;
+      const text = typeof value === "string" ? value.trim() : value;
+      if (text === "") continue;
+      return text;
+    }
+    return "";
+  };
+
+  const normalizeImportSecciones = (rows = []) =>
+    (Array.isArray(rows) ? rows : [])
+      .map((row) => normalizeImportRow(row))
+      .map((row) => ({
+        nombre: String(
+          pickImportValue(row, ["nombre", "seccion", "section", "seccionprincipal"])
+        ).trim(),
+        descripcion: String(
+          pickImportValue(row, ["descripcion", "description"])
+        ).trim(),
+      }))
+      .filter((row) => row.nombre);
+
+  const normalizeImportSubsecciones = (rows = []) =>
+    (Array.isArray(rows) ? rows : [])
+      .map((row) => normalizeImportRow(row))
+      .map((row) => ({
+        nombre: String(
+          pickImportValue(row, ["nombre", "subseccion", "subsection"])
+        ).trim(),
+        seccion_principal: String(
+          pickImportValue(row, [
+            "seccion_principal",
+            "seccionprincipal",
+            "principal",
+            "seccion",
+            "section",
+          ])
+        ).trim(),
+        descripcion: String(
+          pickImportValue(row, ["descripcion", "description"])
+        ).trim(),
+      }))
+      .filter((row) => row.nombre && row.seccion_principal);
+
+  const normalizeImportCuentas = (rows = []) =>
+    (Array.isArray(rows) ? rows : [])
+      .map((row) => normalizeImportRow(row))
+      .map((row) => ({
+        cuenta: String(
+          pickImportValue(row, ["cuenta", "codigo", "account", "accountcode"])
+        ).trim(),
+        nombre: String(
+          pickImportValue(row, ["nombre", "descripcion", "name", "label"])
+        ).trim(),
+        seccion_principal: String(
+          pickImportValue(row, [
+            "seccion_principal",
+            "seccionprincipal",
+            "principal",
+            "seccion",
+            "section",
+          ])
+        ).trim(),
+        seccion_secundaria: String(
+          pickImportValue(row, [
+            "seccion_secundaria",
+            "seccionsecundaria",
+            "subseccion",
+            "subsection",
+            "secundaria",
+          ])
+        ).trim(),
+        visible: toImportBoolean(
+          pickImportValue(row, ["visible", "show", "enabled"]),
+          true
+        ),
+        capturable: toImportBoolean(
+          pickImportValue(row, ["capturable", "capture", "editable"]),
+          true
+        ),
+        tipo_saldo: String(
+          pickImportValue(row, ["tipo_saldo", "tiposaldo", "saldo", "typesaldo"])
+        ).trim() || "Deudor",
+        factor: Number(
+          pickImportValue(row, ["factor", "operacion_factor", "signo", "sign"])
+        ),
+      }))
+      .filter((row) => row.cuenta);
+
+  const normalizeImportOperaciones = (rows = []) =>
+    (Array.isArray(rows) ? rows : [])
+      .map((row) => normalizeImportRow(row))
+      .map((row) => ({
+        operacion_id: String(
+          pickImportValue(row, ["operacion_id", "operacionid", "id", "operationid"])
+        ).trim(),
+        clase: String(
+          pickImportValue(row, ["clase", "nombre", "label", "name"])
+        ).trim(),
+        seccion: String(
+          pickImportValue(row, ["seccion", "section", "seccion_principal"])
+        ).trim(),
+        subseccion: String(
+          pickImportValue(row, ["subseccion", "subsection", "seccion_secundaria"])
+        ).trim(),
+        tipo_operacion: String(
+          pickImportValue(row, ["tipo_operacion", "tipo", "operationtype"])
+        ).trim() || "libre",
+        formula: String(
+          pickImportValue(row, ["formula", "expresion", "expression"])
+        ).trim(),
+        formula_json: pickImportValue(row, ["formula_json", "formulajson"]),
+        estilo_fila: String(
+          pickImportValue(row, ["estilo_fila", "estilofila", "rowstyle"])
+        ).trim() || "operation-row",
+        visible: toImportBoolean(
+          pickImportValue(row, ["visible", "show", "enabled"]),
+          true
+        ),
+      }))
+      .filter((row) => row.operacion_id || row.clase || row.seccion || row.subseccion);
+
+  const parseSheetRows = (workbook, sheetName) => {
+    if (!workbook || !sheetName) return [];
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet || !window.XLSX?.utils?.sheet_to_json) return [];
+    return window.XLSX.utils.sheet_to_json(sheet, { defval: "" });
+  };
+
+  const findSheetByAliases = (sheetNames = [], aliases = []) => {
+    const aliasSet = new Set(aliases.map((alias) => normalizeImportHeader(alias)));
+    return (
+      (sheetNames || []).find((name) =>
+        aliasSet.has(normalizeImportHeader(name))
+      ) || null
+    );
+  };
+
+  const parseExcelImportPayload = async (file) => {
+    if (!window.XLSX) {
+      throw new Error(
+        "No se encontró la librería XLSX en esta vista. Recarga la página e intenta de nuevo."
+      );
+    }
+
+    const buffer = await file.arrayBuffer();
+    const workbook = window.XLSX.read(buffer, { type: "array" });
+    const sheetNames = Array.isArray(workbook?.SheetNames) ? workbook.SheetNames : [];
+    if (!sheetNames.length) {
+      throw new Error("El archivo Excel no contiene hojas.");
+    }
+
+    const seccionesSheet = findSheetByAliases(sheetNames, [
+      "secciones",
+      "seccion",
+      "sections",
+    ]);
+    const subseccionesSheet = findSheetByAliases(sheetNames, [
+      "subsecciones",
+      "subseccion",
+      "subsections",
+    ]);
+    const cuentasSheet = findSheetByAliases(sheetNames, [
+      "cuentas",
+      "cuenta",
+      "accounts",
+    ]);
+    const operacionesSheet = findSheetByAliases(sheetNames, [
+      "operaciones",
+      "operacion",
+      "operations",
+    ]);
+
+    if (seccionesSheet || subseccionesSheet || cuentasSheet || operacionesSheet) {
+      return {
+        secciones: normalizeImportSecciones(parseSheetRows(workbook, seccionesSheet)),
+        subsecciones: normalizeImportSubsecciones(
+          parseSheetRows(workbook, subseccionesSheet)
+        ),
+        cuentas: normalizeImportCuentas(parseSheetRows(workbook, cuentasSheet)),
+        operaciones: normalizeImportOperaciones(
+          parseSheetRows(workbook, operacionesSheet)
+        ),
+      };
+    }
+
+    // Fallback: una sola hoja con columna "tipo".
+    const rows = parseSheetRows(workbook, sheetNames[0]).map((row) =>
+      normalizeImportRow(row)
+    );
+    const grouped = {
+      secciones: [],
+      subsecciones: [],
+      cuentas: [],
+      operaciones: [],
+    };
+
+    rows.forEach((row) => {
+      const tipo = normalizeImportHeader(
+        pickImportValue(row, ["tipo", "type", "elemento"])
+      );
+      if (!tipo) return;
+      if (tipo.includes("seccionprincipal") || tipo === "seccion" || tipo === "section") {
+        grouped.secciones.push(row);
+        return;
+      }
+      if (tipo.includes("subseccion") || tipo.includes("subsection")) {
+        grouped.subsecciones.push(row);
+        return;
+      }
+      if (tipo.includes("cuenta") || tipo.includes("account")) {
+        grouped.cuentas.push(row);
+        return;
+      }
+      if (tipo.includes("operacion") || tipo.includes("operation")) {
+        grouped.operaciones.push(row);
+      }
+    });
+
+    return {
+      secciones: normalizeImportSecciones(grouped.secciones),
+      subsecciones: normalizeImportSubsecciones(grouped.subsecciones),
+      cuentas: normalizeImportCuentas(grouped.cuentas),
+      operaciones: normalizeImportOperaciones(grouped.operaciones),
+    };
+  };
+
+  const parseImportPayloadFromFile = async (file) => {
+    const fileName = (file?.name || "").toLowerCase();
+    if (fileName.endsWith(".json")) {
+      const text = await file.text();
+      const raw = JSON.parse(text);
+      return {
+        secciones: normalizeImportSecciones(raw?.secciones),
+        subsecciones: normalizeImportSubsecciones(raw?.subsecciones),
+        cuentas: normalizeImportCuentas(raw?.cuentas),
+        operaciones: normalizeImportOperaciones(raw?.operaciones),
+      };
+    }
+    if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+      return parseExcelImportPayload(file);
+    }
+    throw new Error("Formato no soportado. Usa JSON o Excel (.xlsx/.xls).");
+  };
+
+  const parseImportedFormulaTerms = (op = {}) => {
+    if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
+      return normalizeFormulaTerms(op.formula_terms);
+    }
+    if (op.formula_json) {
+      try {
+        const parsed = JSON.parse(String(op.formula_json));
+        if (Array.isArray(parsed) && parsed.length) {
+          return normalizeFormulaTerms(parsed);
+        }
+      } catch (_) {
+        // fallback a formula texto
+      }
+    }
+    if (op.formula) {
+      return normalizeFormulaTerms(parseFormulaText(op.formula));
+    }
+    return [];
+  };
+
+  const ensureSectionPath = (principal = "", secundaria = "") => {
+    const principalClean = (principal || "").toString().trim();
+    const secundariaClean = (secundaria || "").toString().trim();
+    if (!principalClean) return;
+    addPrincipalSectionByName(principalClean, { silent: true });
+    if (secundariaClean) {
+      addSecondarySectionByName(principalClean, secundariaClean, { silent: true });
+    }
+  };
   
   async function importarDesdeArchivo(event) {
     const file = event.target.files[0];
     if (!file) return;
     
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
+      const data = await parseImportPayloadFromFile(file);
       
       if (!data.secciones && !data.subsecciones && !data.cuentas && !data.operaciones) {
         showToast('⚠️ El archivo no tiene el formato correcto. Descarga la plantilla primero.', 'warning');
@@ -15292,32 +15802,85 @@ window.editSection = function (name) {
       }
       
       let importados = 0;
+      let actualizados = 0;
+
+      // Importar secciones
+      if (Array.isArray(data.secciones)) {
+        data.secciones.forEach((s) => {
+          const nombre = (s?.nombre || "").toString().trim();
+          if (!nombre) return;
+          if (addPrincipalSectionByName(nombre, { silent: true })) {
+            importados += 1;
+          }
+        });
+      }
+
+      // Importar subsecciones
+      if (Array.isArray(data.subsecciones)) {
+        data.subsecciones.forEach((s) => {
+          const principal = (s?.seccion_principal || "").toString().trim();
+          const nombre = (s?.nombre || "").toString().trim();
+          if (!principal || !nombre) return;
+          if (addPrincipalSectionByName(principal, { silent: true })) {
+            importados += 1;
+          }
+          if (addSecondarySectionByName(principal, nombre, { silent: true })) {
+            importados += 1;
+          }
+        });
+      }
       
       // Importar cuentas
       if (data.cuentas && Array.isArray(data.cuentas)) {
         data.cuentas.forEach(c => {
-          if (!c.cuenta) return;
+          const cuentaCodigo = (c.cuenta || "").toString().trim();
+          if (!cuentaCodigo) return;
+          const principal = (c.seccion_principal || "").toString().trim();
+          const secundaria = (c.seccion_secundaria || "").toString().trim();
+          ensureSectionPath(principal, secundaria);
           
           // Verificar si ya existe
           const existe = state.cuentas.some(existing => 
-            (existing.CUENTA || existing.cuenta) === c.cuenta
+            normalizeOperationMatch(existing.CUENTA || existing.cuenta) ===
+              normalizeOperationMatch(cuentaCodigo)
           );
           
           if (!existe) {
             state.cuentas.push({
-              CUENTA: c.cuenta,
-              cuenta: c.cuenta,
+              CUENTA: cuentaCodigo,
+              cuenta: cuentaCodigo,
               NOMBRE: c.nombre,
               nombre: c.nombre,
-              'SECCION PRINCIPAL': c.seccion_principal,
-              'SECCION Secundaria': c.seccion_secundaria,
+              'SECCION PRINCIPAL': principal,
+              'SECCION Secundaria': secundaria,
               visible: c.visible !== false,
               capturable: c.capturable !== false,
               TIPO_SALDO: c.tipo_saldo || 'Deudor',
+              operacion_factor: Number.isFinite(Number(c.factor)) ? Number(c.factor) : 1,
               HOJA: state.modulo,
               CAPITULO: state.capitulo
             });
             importados++;
+          } else {
+            const existing = state.cuentas.find((acc) =>
+              normalizeOperationMatch(acc.CUENTA || acc.cuenta) ===
+              normalizeOperationMatch(cuentaCodigo)
+            );
+            if (existing) {
+              existing.CUENTA = cuentaCodigo;
+              existing.cuenta = cuentaCodigo;
+              existing.NOMBRE = c.nombre || existing.NOMBRE || existing.nombre || "";
+              existing.nombre = existing.NOMBRE;
+              setAccountPrincipalName(existing, principal);
+              setAccountSecondaryName(existing, secundaria);
+              existing.visible = c.visible !== false;
+              existing.capturable = c.capturable !== false;
+              existing.TIPO_SALDO = c.tipo_saldo || existing.TIPO_SALDO || "Deudor";
+              if (Number.isFinite(Number(c.factor))) {
+                existing.operacion_factor = Number(c.factor);
+              }
+              actualizados++;
+            }
           }
         });
       }
@@ -15325,40 +15888,107 @@ window.editSection = function (name) {
       // Importar operaciones
       if (data.operaciones && Array.isArray(data.operaciones)) {
         data.operaciones.forEach(op => {
-          if (!op.operacion_id || !op.formula) return;
-          
-          // Verificar si ya existe
-          const existe = state.operaciones.some(existing => 
-            getOperationId(existing) === op.operacion_id
-          );
-          
-          if (!existe) {
-            // Parsear fórmula
-            const formulaTerms = parseFormulaText(op.formula);
-            
-            state.operaciones.push({
-              OperacionId: op.operacion_id,
-              Clase: op.clase || op.operacion_id,
-              SECCION: op.seccion || "",
-              tipo_operacion: op.tipo_operacion || "libre",
-              formula_terms: formulaTerms,
-              formula_json: JSON.stringify(formulaTerms),
-              rowStyle: op.estilo_fila || "operation-row",
-              estilo_fila: op.estilo_fila || "operation-row",
-              visible: op.visible !== false,
-              HOJA: state.modulo,
-              CAPITULO: state.capitulo
-            });
-            importados++;
+          const rawId = (op.operacion_id || "").toString().trim();
+          const rawClase = (op.clase || rawId || "").toString().trim();
+          const sectionPrincipal = (op.seccion || "").toString().trim();
+          const sectionSub = (op.subseccion || "").toString().trim();
+          if (!rawId && !rawClase) return;
+
+          ensureSectionPath(sectionPrincipal, sectionSub);
+          const placement = (sectionSub || sectionPrincipal || "").toString().trim();
+          const parentSection = sectionSub ? sectionPrincipal : sectionPrincipal || null;
+          const parentSubsection = sectionSub || null;
+          const formulaTerms = parseImportedFormulaTerms(op);
+
+          let existing = null;
+          if (rawId) {
+            existing = findOperationByIdStrict(rawId);
           }
+          if (!existing && placement) {
+            existing = findOperationBySectionName(
+              placement,
+              parentSection || ""
+            );
+          }
+          if (!existing && rawClase) {
+            existing = findOperationByIdOrLabel(rawClase);
+          }
+
+          if (existing) {
+            if (rawClase) {
+              existing.Clase = rawClase;
+              existing.operacion_etiqueta = rawClase;
+            }
+            if (rawId) {
+              const idConflict = state.operaciones.some(
+                (item) =>
+                  item !== existing &&
+                  normalizeOperationMatch(getOperationId(item)) ===
+                    normalizeOperationMatch(rawId)
+              );
+              existing.OperacionId = idConflict
+                ? buildUniqueOperationId(rawId, existing)
+                : rawId;
+            }
+            existing.SECCION = placement;
+            existing.seccion = placement;
+            existing.parentSection = parentSection;
+            existing.parentSubsection = parentSubsection;
+            existing.secciones = placement ? [placement] : [];
+            existing.tipo_operacion = op.tipo_operacion || existing.tipo_operacion || "libre";
+            existing.rowStyle = op.estilo_fila || existing.rowStyle || "operation-row";
+            existing.estilo_fila = existing.rowStyle;
+            existing.visible = op.visible !== false;
+            if (formulaTerms.length || String(op.formula || "").trim()) {
+              existing.formula_terms = formulaTerms;
+              existing.formula_json = JSON.stringify(formulaTerms);
+            }
+            actualizados++;
+            return;
+          }
+
+          const newOpId = buildUniqueOperationId(rawId || rawClase);
+          const newOp = {
+            OperacionId: newOpId,
+            Clase: rawClase || newOpId,
+            SECCION: placement,
+            seccion: placement,
+            tipo_operacion: op.tipo_operacion || "libre",
+            formula_terms: formulaTerms,
+            formula_json: JSON.stringify(formulaTerms),
+            rowStyle: op.estilo_fila || "operation-row",
+            estilo_fila: op.estilo_fila || "operation-row",
+            visible: op.visible !== false,
+            parentSection,
+            parentSubsection,
+            secciones: placement ? [placement] : [],
+            HOJA: state.modulo,
+            CAPITULO: state.capitulo,
+            orden: nextOperationOrder(),
+            orden_presentacion: nextOperationOrder(),
+          };
+          if (parentSubsection) {
+            newOp["sum-row"] = parentSubsection;
+          } else if (parentSection) {
+            newOp["sum-row-sumavarios"] = parentSection;
+          }
+          state.operaciones.push(newOp);
+          importados++;
         });
       }
+
+      dedupeTemplateStructure({ silent: true });
+      state.operaciones = sortOperations(state.operaciones);
+      ensureOperationIds();
       
-      if (importados > 0) {
+      if (importados > 0 || actualizados > 0) {
         state.unsavedChanges = true;
         renderLayout();
         updateButtonStates();
-        showToast(`✅ Importados ${importados} elementos. Recuerda GUARDAR los cambios.`, 'success');
+        showToast(
+          `✅ Importación completada. Nuevos: ${importados}, actualizados: ${actualizados}. Recuerda GUARDAR los cambios.`,
+          'success'
+        );
       } else {
         showToast('ℹ️ No se importó nada nuevo (todos los elementos ya existen)', 'info');
       }
