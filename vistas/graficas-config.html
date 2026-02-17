@@ -24,7 +24,13 @@
             <h1 class="fw-bold mb-2">Gestor de Graficas</h1>
             <p class="mb-0 text-white-50">Titulos, etiquetas y colores.</p>
           </div>
-          <span class="option-pill">Simple</span>
+          <div class="d-flex flex-wrap align-items-center justify-content-start justify-content-lg-end gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <label for="grafYearSelect" class="text-white-50 small mb-0">Año</label>
+              <select id="grafYearSelect" class="form-select form-select-sm" style="width: 110px"></select>
+            </div>
+            <span class="option-pill">Simple</span>
+          </div>
         </div>
       </div>
 
@@ -42,7 +48,12 @@
                   <p class="section-subtitle small mb-0">Aplica a graficas, PDF y Excel.</p>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
-                  <a class="btn btn-outline-primary btn-sm" href="Graficas.html">Ver graficas</a>
+                  <a
+                    class="btn btn-outline-primary btn-sm"
+                    id="graficasConfigVerGraficasLink"
+                    href="Graficas.html"
+                    >Ver graficas</a
+                  >
                   <button type="button" class="btn btn-outline-secondary btn-sm" id="graficasConfigReset">Restaurar</button>
                   <button type="submit" class="btn btn-primary btn-sm" id="graficasConfigSave">Guardar</button>
                 </div>
@@ -190,7 +201,136 @@
     <script src="js/verificar-sesion.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/guided-tour.js"></script>
-    <script src="js/graficas-config.js"></script>
+    <script>
+      (() => {
+        const select = document.getElementById("grafYearSelect");
+        if (!select) return;
+
+        const getAuthHeaders = () => {
+          if (
+            window.Sesion &&
+            typeof window.Sesion.headersAutenticacion === "function"
+          ) {
+            return window.Sesion.headersAutenticacion();
+          }
+          return {};
+        };
+
+        const resolveEmpresaId = () => {
+          try {
+            const fromSesion = window.Sesion?.obtenerEmpresaActiva?.()?.id;
+            if (fromSesion) return String(fromSesion);
+          } catch (_) {
+            // ignore
+          }
+
+          try {
+            const params = new URLSearchParams(window.location.search || "");
+            const fromUrl =
+              params.get("empresa") ||
+              params.get("empresaId") ||
+              params.get("empresa_id");
+            if (fromUrl) return String(fromUrl);
+          } catch (_) {
+            // ignore
+          }
+
+          return "EMPRESA01";
+        };
+
+        const resolveAnioPreferido = () => {
+          const parseYear = (value) => {
+            const parsed = Number(value);
+            return Number.isInteger(parsed) ? parsed : null;
+          };
+
+          try {
+            const params = new URLSearchParams(window.location.search || "");
+            const fromUrl = parseYear(params.get("anio") || params.get("year"));
+            if (fromUrl != null) return fromUrl;
+          } catch (_) {
+            // ignore
+          }
+
+          try {
+            const ctx = window.Sesion?.obtenerContextoPlaneacion?.() || {};
+            const fromSesion = parseYear(ctx?.anio);
+            if (fromSesion != null) return fromSesion;
+          } catch (_) {
+            // ignore
+          }
+
+          return new Date().getFullYear();
+        };
+
+        const setVerGraficasHref = (anio) => {
+          const link = document.getElementById("graficasConfigVerGraficasLink");
+          if (!link) return;
+          const params = new URLSearchParams();
+          params.set("anio", String(anio));
+          link.setAttribute("href", `Graficas.html?${params.toString()}`);
+        };
+
+        const preferredYear = resolveAnioPreferido();
+        select.innerHTML = "";
+        select.appendChild(new Option(String(preferredYear), String(preferredYear)));
+        select.value = String(preferredYear);
+        setVerGraficasHref(preferredYear);
+
+        const empresaId = resolveEmpresaId();
+        select.disabled = true;
+
+        fetch(`/api/saldos/anios?empresaId=${encodeURIComponent(empresaId)}`, {
+          method: "GET",
+          headers: getAuthHeaders(),
+          credentials: "include",
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("No fue posible obtener años disponibles.");
+            }
+            return response.json();
+          })
+          .then((payload) => {
+            const yearsRaw = Array.isArray(payload?.anios) ? payload.anios : [];
+            const years = Array.from(
+              new Set(
+                yearsRaw
+                  .map((y) => Number(y))
+                  .filter((y) => Number.isInteger(y) && y >= 2000 && y <= 2100)
+              )
+            ).sort((a, b) => b - a);
+
+            if (!years.includes(preferredYear)) {
+              years.unshift(preferredYear);
+            }
+
+            select.innerHTML = "";
+            years.forEach((year) => {
+              select.appendChild(new Option(String(year), String(year)));
+            });
+            select.value = String(preferredYear);
+            setVerGraficasHref(preferredYear);
+          })
+          .catch(() => {
+            // Mantener año preferido como fallback.
+          })
+          .finally(() => {
+            select.disabled = false;
+          });
+
+        select.addEventListener("change", () => {
+          const selected = Number(select.value);
+          if (!Number.isInteger(selected)) return;
+          setVerGraficasHref(selected);
+
+          const params = new URLSearchParams(window.location.search || "");
+          params.set("anio", String(selected));
+          window.location.href = `${window.location.pathname}?${params.toString()}`;
+        });
+      })();
+    </script>
+    <script src="js/graficas-config.js?v=20260217193000"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         if (!window.GuidedTour) return;

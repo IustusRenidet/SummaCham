@@ -4770,6 +4770,23 @@
     : "Acceso restringido a administradores.";
   setStatus(statusMessage, adminAllowed ? "muted" : "danger");
 
+  const normalizeEmpresaId = (value) => {
+    const raw = (value || "").toString().trim();
+    if (!raw) return "";
+    const compact = raw.replace(/\s+/g, "").toUpperCase();
+    const matchCanon = compact.match(/^EMPRESA0*([1-9][0-9]*)$/i);
+    if (matchCanon) {
+      const num = Number.parseInt(matchCanon[1], 10);
+      if (Number.isInteger(num)) return `empresa${num}`;
+    }
+    const matchEmpresa = raw.match(/empresa\s*0*([1-9][0-9]*)/i);
+    if (matchEmpresa) {
+      const num = Number.parseInt(matchEmpresa[1], 10);
+      if (Number.isInteger(num)) return `empresa${num}`;
+    }
+    return raw;
+  };
+
   window.addEventListener("graficas-config-updated", (event) => {
     const nextConfig = event?.detail?.config;
     if (!nextConfig) return;
@@ -4784,9 +4801,10 @@
     ) {
       return;
     }
-    const eventEmpresa = (event?.detail?.empresaId || "").toString().trim();
-    const currentEmpresa =
-      window.Sesion?.obtenerEmpresaActiva?.()?.id?.toString().trim() || "";
+    const eventEmpresa = normalizeEmpresaId(event?.detail?.empresaId);
+    const currentEmpresa = normalizeEmpresaId(
+      window.Sesion?.obtenerEmpresaActiva?.()?.id
+    );
     if (eventEmpresa && currentEmpresa && eventEmpresa !== currentEmpresa) {
       return;
     }

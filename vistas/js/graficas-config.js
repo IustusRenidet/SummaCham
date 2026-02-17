@@ -1212,11 +1212,35 @@
     );
   };
 
+  const normalizeEmpresaId = (value) => {
+    const raw = (value || "").toString().trim();
+    if (!raw) return "";
+    // Canonical: EMPRESA01 -> empresa1
+    const matchCanon = raw.match(/^EMPRESA0*([1-9][0-9]*)$/i);
+    if (matchCanon) {
+      const num = Number.parseInt(matchCanon[1], 10);
+      if (Number.isInteger(num)) return `empresa${num}`;
+    }
+    // Canonical: empresa01 / Empresa 01 -> empresa1
+    const matchEmpresa = raw.match(/empresa\s*0*([1-9][0-9]*)/i);
+    if (matchEmpresa) {
+      const num = Number.parseInt(matchEmpresa[1], 10);
+      if (Number.isInteger(num)) return `empresa${num}`;
+    }
+    return raw;
+  };
+
   const resolveEmpresaId = (override) => {
-    if (override) return String(override);
+    if (override) {
+      const normalized = normalizeEmpresaId(override);
+      return normalized || String(override);
+    }
     try {
       const fromSesion = window.Sesion?.obtenerEmpresaActiva?.()?.id;
-      if (fromSesion) return String(fromSesion);
+      if (fromSesion) {
+        const normalized = normalizeEmpresaId(fromSesion);
+        return normalized || String(fromSesion);
+      }
     } catch (_) {
       // ignore
     }
@@ -1224,24 +1248,60 @@
       const params = new URLSearchParams(window.location.search || "");
       const fromUrl =
         params.get("empresa") || params.get("empresaId") || params.get("empresa_id");
-      if (fromUrl) return String(fromUrl);
+      if (fromUrl) {
+        const normalized = normalizeEmpresaId(fromUrl);
+        return normalized || String(fromUrl);
+      }
     } catch (_) {
       // ignore
     }
-    return "EMPRESA01";
+    return normalizeEmpresaId("EMPRESA01") || "EMPRESA01";
   };
 
   const resolveAnio = (override) => {
-    const parsedOverride = Number(override);
-    if (Number.isInteger(parsedOverride)) return parsedOverride;
+    const parseYear = (value) => {
+      const text = (value ?? "").toString().trim();
+      if (!text) return null;
+      const parsed = Number(text);
+      if (!Number.isInteger(parsed)) return null;
+      if (parsed < 2000 || parsed > 2100) return null;
+      return parsed;
+    };
 
-    const select = document.getElementById("anioSelect");
-    const parsedSelect = Number(select?.value);
-    if (Number.isInteger(parsedSelect)) return parsedSelect;
+    const parseYearFromSelect = (select) => {
+      if (!select) return null;
+      const parsedValue = parseYear(select.value);
+      if (parsedValue != null) return parsedValue;
+      const parsedFirst = parseYear(select.options?.[0]?.value);
+      if (parsedFirst != null) return parsedFirst;
+      return null;
+    };
 
-    const label = document.getElementById("anioLabel")?.textContent || "";
-    const parsedLabel = Number(label);
-    if (Number.isInteger(parsedLabel)) return parsedLabel;
+    const parsedOverride = parseYear(override);
+    if (parsedOverride != null) return parsedOverride;
+
+    const selectIds = ["anioSelect", "grafYearSelect", "resumenYearSelect"];
+    for (const id of selectIds) {
+      const parsed = parseYearFromSelect(document.getElementById(id));
+      if (parsed != null) return parsed;
+    }
+
+    // Compat: vistas departamentales usan distintos ids, pero suelen terminar en "YearSelect".
+    try {
+      const selects = Array.from(document.querySelectorAll('select[id$="YearSelect"]'));
+      for (const select of selects) {
+        const parsed = parseYearFromSelect(select);
+        if (parsed != null) return parsed;
+      }
+    } catch (_) {
+      // ignore
+    }
+
+    const labelIds = ["anioLabel", "yearLabel"];
+    for (const id of labelIds) {
+      const parsed = parseYear(document.getElementById(id)?.textContent || "");
+      if (parsed != null) return parsed;
+    }
 
     try {
       const ctx = window.Sesion?.obtenerContextoPlaneacion?.() || {};
@@ -1253,7 +1313,7 @@
 
     try {
       const params = new URLSearchParams(window.location.search || "");
-      const yearFromUrl = Number(params.get("year"));
+      const yearFromUrl = Number(params.get("anio") || params.get("year"));
       if (Number.isInteger(yearFromUrl)) return yearFromUrl;
     } catch (_) {
       // ignore
@@ -1313,6 +1373,9 @@
     if (ctx?.anio != null) {
       params.set("anio", String(ctx.anio));
     }
+    if (ctx?.empresaId) {
+      params.set("empresaId", String(ctx.empresaId));
+    }
     const qs = params.toString();
     return qs ? `${API_ENDPOINT}?${qs}` : API_ENDPOINT;
   };
@@ -1342,7 +1405,7 @@
         ...obtenerHeadersAuth(),
       },
       credentials: "include",
-      body: JSON.stringify({ config, anio: ctx?.anio }),
+      body: JSON.stringify({ config, anio: ctx?.anio, empresaId: ctx?.empresaId }),
     });
     if (response.status === 404) {
       return null;

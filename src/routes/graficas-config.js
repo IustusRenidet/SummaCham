@@ -3,7 +3,30 @@ const router = express.Router();
 const { db } = require("../db/sqlite");
 const { requireAuth, extraerEmpresaActiva } = require("../middleware/auth");
 
-const obtenerEmpresa = (req) => extraerEmpresaActiva(req) || "EMPRESA01";
+const normalizarEmpresaId = (value) => {
+  const raw = (value || "").toString().trim();
+  if (!raw) return "";
+  const compact = raw.replace(/\s+/g, "").toUpperCase();
+  const matchCanon = compact.match(/^EMPRESA0*([1-9][0-9]*)$/i);
+  if (matchCanon) {
+    const num = Number.parseInt(matchCanon[1], 10);
+    if (Number.isInteger(num)) return `empresa${num}`;
+  }
+  const matchEmpresa = raw.match(/empresa\s*0*([1-9][0-9]*)/i);
+  if (matchEmpresa) {
+    const num = Number.parseInt(matchEmpresa[1], 10);
+    if (Number.isInteger(num)) return `empresa${num}`;
+  }
+  return raw;
+};
+
+const obtenerEmpresa = (req) => {
+  const raw = extraerEmpresaActiva(req) || "EMPRESA01";
+  return {
+    raw,
+    normalizada: normalizarEmpresaId(raw) || raw,
+  };
+};
 
 const obtenerAnio = (req) => {
   const raw =
@@ -50,10 +73,29 @@ const leerConfig = (empresaId, anio = null) => {
 
 router.get("/", requireAuth, (req, res) => {
   try {
-    const empresaId = obtenerEmpresa(req);
+    const empresa = obtenerEmpresa(req);
     const anio = obtenerAnio(req);
-    const { config, source } = leerConfig(empresaId, anio);
-    return res.json({ success: true, empresaId, anio, source, config });
+    const empresaIds = Array.from(
+      new Set([empresa.normalizada, empresa.raw].filter(Boolean))
+    );
+    let result = { config: null, source: anio != null ? "missing" : "legacy" };
+    for (const empresaId of empresaIds) {
+      const { config, source } = leerConfig(empresaId, anio);
+      if (config) {
+        result = { config, source, empresaIdEncontrada: empresaId };
+        break;
+      }
+      result = { config: null, source };
+    }
+    return res.json({
+      success: true,
+      empresaId: empresa.normalizada,
+      empresaIdOriginal: empresa.raw,
+      empresaIdEncontrada: result.empresaIdEncontrada || null,
+      anio,
+      source: result.source,
+      config: result.config,
+    });
   } catch (error) {
     console.error("Error al cargar graficas-config:", error);
     return res.status(500).json({
@@ -71,7 +113,8 @@ router.post("/", requireAuth, (req, res) => {
     });
   }
   try {
-    const empresaId = obtenerEmpresa(req);
+    const empresa = obtenerEmpresa(req);
+    const empresaId = empresa.normalizada;
     const anio = obtenerAnio(req);
     const config = req.body?.config;
     if (!config || typeof config !== "object") {
@@ -123,15 +166,23 @@ router.delete("/", requireAuth, (req, res) => {
     });
   }
   try {
-    const empresaId = obtenerEmpresa(req);
+    const empresa = obtenerEmpresa(req);
+    const empresaId = empresa.normalizada;
+    const empresaIds = Array.from(
+      new Set([empresa.normalizada, empresa.raw].filter(Boolean))
+    );
     const anio = obtenerAnio(req);
     if (anio != null) {
-      db.prepare(
-        "DELETE FROM graficas_config_anio WHERE empresa_id = ? AND anio = ?"
-      ).run(empresaId, anio);
+      empresaIds.forEach((id) => {
+        db.prepare(
+          "DELETE FROM graficas_config_anio WHERE empresa_id = ? AND anio = ?"
+        ).run(id, anio);
+      });
       return res.json({ success: true, empresaId, anio, source: "anio" });
     }
-    db.prepare("DELETE FROM graficas_config WHERE empresa_id = ?").run(empresaId);
+    empresaIds.forEach((id) => {
+      db.prepare("DELETE FROM graficas_config WHERE empresa_id = ?").run(id);
+    });
     return res.json({ success: true, empresaId, anio: null, source: "legacy" });
   } catch (error) {
     console.error("Error al reiniciar graficas-config:", error);
