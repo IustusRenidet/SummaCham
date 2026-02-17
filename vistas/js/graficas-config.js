@@ -1305,16 +1305,16 @@
 
     try {
       const ctx = window.Sesion?.obtenerContextoPlaneacion?.() || {};
-      const ctxYear = Number(ctx?.anio);
-      if (Number.isInteger(ctxYear)) return ctxYear;
+      const ctxYear = parseYear(ctx?.anio);
+      if (ctxYear != null) return ctxYear;
     } catch (_) {
       // ignore
     }
 
     try {
       const params = new URLSearchParams(window.location.search || "");
-      const yearFromUrl = Number(params.get("anio") || params.get("year"));
-      if (Number.isInteger(yearFromUrl)) return yearFromUrl;
+      const yearFromUrl = parseYear(params.get("anio") || params.get("year"));
+      if (yearFromUrl != null) return yearFromUrl;
     } catch (_) {
       // ignore
     }

@@ -3598,16 +3598,25 @@
           };
 
           const resolveAnio = () => {
+            const parseYear = (value) => {
+              const text = (value ?? "").toString().trim();
+              if (!text) return null;
+              const parsed = Number(text);
+              if (!Number.isInteger(parsed)) return null;
+              if (parsed < 2000 || parsed > 2100) return null;
+              return parsed;
+            };
+
             const select = document.getElementById("anioSelect");
-            const parsedSelect = Number(select?.value);
-            if (Number.isInteger(parsedSelect)) return parsedSelect;
+            const parsedSelect = parseYear(select?.value);
+            if (parsedSelect != null) return parsedSelect;
             const label = document.getElementById("anioLabel")?.textContent || "";
-            const parsedLabel = Number(label);
-            if (Number.isInteger(parsedLabel)) return parsedLabel;
+            const parsedLabel = parseYear(label);
+            if (parsedLabel != null) return parsedLabel;
             try {
               const ctx = window.Sesion?.obtenerContextoPlaneacion?.() || {};
-              const parsedCtx = Number(ctx?.anio);
-              if (Number.isInteger(parsedCtx)) return parsedCtx;
+              const parsedCtx = parseYear(ctx?.anio);
+              if (parsedCtx != null) return parsedCtx;
             } catch (_) {
               // ignore
             }

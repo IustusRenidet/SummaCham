@@ -4792,13 +4792,17 @@
     if (!nextConfig) return;
 
     // Si el update viene de otro año/empresa (por cargas asíncronas), ignorarlo.
-    const eventYear = Number(event?.detail?.anio);
-    const currentYear = Number(getSelectedAnio());
-    if (
-      Number.isInteger(eventYear) &&
-      Number.isInteger(currentYear) &&
-      eventYear !== currentYear
-    ) {
+    const parseYear = (value) => {
+      const text = (value ?? "").toString().trim();
+      if (!text) return null;
+      const parsed = Number(text);
+      if (!Number.isInteger(parsed)) return null;
+      if (parsed < 2000 || parsed > 2100) return null;
+      return parsed;
+    };
+    const eventYear = parseYear(event?.detail?.anio);
+    const currentYear = parseYear(getSelectedAnio());
+    if (eventYear != null && currentYear != null && eventYear !== currentYear) {
       return;
     }
     const eventEmpresa = normalizeEmpresaId(event?.detail?.empresaId);

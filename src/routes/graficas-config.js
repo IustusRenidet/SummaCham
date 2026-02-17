@@ -20,6 +20,26 @@ const normalizarEmpresaId = (value) => {
   return raw;
 };
 
+const expandirEmpresaIds = (value) => {
+  const raw = (value || "").toString().trim();
+  if (!raw) return [];
+  const normalizada = normalizarEmpresaId(raw);
+  const ids = new Set([raw, normalizada].filter(Boolean));
+
+  const match = (normalizada || raw).match(/^empresa([1-9][0-9]*)$/i);
+  if (match) {
+    const num = Number.parseInt(match[1], 10);
+    if (Number.isInteger(num)) {
+      const padded = num < 10 ? `0${num}` : String(num);
+      ids.add(`EMPRESA${padded}`);
+      ids.add(`EMPRESA${num}`);
+      if (num < 10) ids.add(`empresa0${num}`);
+    }
+  }
+
+  return Array.from(ids);
+};
+
 const obtenerEmpresa = (req) => {
   const raw = extraerEmpresaActiva(req) || "EMPRESA01";
   return {
@@ -36,7 +56,9 @@ const obtenerAnio = (req) => {
     req.body?.year ??
     null;
   const parsed = Number(raw);
-  return Number.isInteger(parsed) ? parsed : null;
+  if (!Number.isInteger(parsed)) return null;
+  if (parsed < 2000 || parsed > 2100) return null;
+  return parsed;
 };
 
 const parseConfigJson = (value) => {
@@ -76,7 +98,11 @@ router.get("/", requireAuth, (req, res) => {
     const empresa = obtenerEmpresa(req);
     const anio = obtenerAnio(req);
     const empresaIds = Array.from(
-      new Set([empresa.normalizada, empresa.raw].filter(Boolean))
+      new Set(
+        [...expandirEmpresaIds(empresa.normalizada), ...expandirEmpresaIds(empresa.raw)].filter(
+          Boolean
+        )
+      )
     );
     let result = { config: null, source: anio != null ? "missing" : "legacy" };
     for (const empresaId of empresaIds) {
@@ -169,7 +195,11 @@ router.delete("/", requireAuth, (req, res) => {
     const empresa = obtenerEmpresa(req);
     const empresaId = empresa.normalizada;
     const empresaIds = Array.from(
-      new Set([empresa.normalizada, empresa.raw].filter(Boolean))
+      new Set(
+        [...expandirEmpresaIds(empresa.normalizada), ...expandirEmpresaIds(empresa.raw)].filter(
+          Boolean
+        )
+      )
     );
     const anio = obtenerAnio(req);
     if (anio != null) {
