@@ -2714,6 +2714,7 @@ const construirReporteResumen = (
         layout.push({
           type: 'secundaria',
           label: secundariaLabel,
+          parentSection: principalLabel,
           order: Number.isFinite(Number(secundaria.orden))
             ? Number(secundaria.orden)
             : Number.isFinite(Number(principal.orden)) ? Number(principal.orden) : 0,
@@ -2744,6 +2745,8 @@ const construirReporteResumen = (
           cuenta: cuenta.cuenta,
           order: cuentaOrden,
           orderIndex: cuenta.ordenIndex ?? 0,
+          parentSection: principalLabel,
+          parentSubsection: secundariaLabel,
           totals: {
             actualMonth: cuenta.actualMonth,
             planMonth: cuenta.planMonth,

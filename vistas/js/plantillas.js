@@ -4777,6 +4777,26 @@
       return;
     }
 
+    // Remove stale closure-based handlers from previous edits (account, subsection, etc.)
+    if (dom.btnEditorSave) {
+      const fresh = dom.btnEditorSave.cloneNode(true);
+      dom.btnEditorSave.replaceWith(fresh);
+      dom.btnEditorSave = fresh;
+      // Re-attach global save dispatcher
+      dom.btnEditorSave.addEventListener("click", () => {
+        if (state.selectedElement?.type === "operation") {
+          saveOperationFromPanel();
+        } else {
+          confirmEdit();
+        }
+      });
+    }
+    if (dom.btnEditorDelete) {
+      const fresh = dom.btnEditorDelete.cloneNode(true);
+      dom.btnEditorDelete.replaceWith(fresh);
+      dom.btnEditorDelete = fresh;
+    }
+
     const safeName = (sectionName || "").toString().trim();
     state.selectedElement = {
       type: "section",
@@ -4848,6 +4868,25 @@
     if (!dom.operationEditorPanel) {
       showToast("Panel de edición no disponible", "error");
       return;
+    }
+
+    // Remove stale closure-based handlers from previous edits
+    if (dom.btnEditorSave) {
+      const fresh = dom.btnEditorSave.cloneNode(true);
+      dom.btnEditorSave.replaceWith(fresh);
+      dom.btnEditorSave = fresh;
+      dom.btnEditorSave.addEventListener("click", () => {
+        if (state.selectedElement?.type === "operation") {
+          saveOperationFromPanel();
+        } else {
+          confirmEdit();
+        }
+      });
+    }
+    if (dom.btnEditorDelete) {
+      const fresh = dom.btnEditorDelete.cloneNode(true);
+      dom.btnEditorDelete.replaceWith(fresh);
+      dom.btnEditorDelete = fresh;
     }
 
     const safeSection = (sectionName || "").toString().trim();

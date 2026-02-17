@@ -4212,51 +4212,95 @@
           recalcularPrincipales(layout);
           recalcularConsolidados(layout, capituloName);
         }
+        // Pre-build maps of principal/secundaria totals keyed by label
+        const principalTotalsMap = new Map();
+        const subsectionTotalsMap = new Map();
+        layout.forEach((block) => {
+          if (block.type === "principal" && block.label) {
+            principalTotalsMap.set(block.label, block);
+          } else if (block.type === "secundaria" && block.label) {
+            const key = (block.parentSection || "") + "::" + block.label;
+            subsectionTotalsMap.set(key, block);
+            // Also store by label-only as fallback
+            if (!subsectionTotalsMap.has(block.label)) {
+              subsectionTotalsMap.set(block.label, block);
+            }
+          }
+        });
+
+        // Track current section context for deriving headers from cuenta transitions
+        let currentPrincipal = null;
+        let currentSubsection = null;
+
+        // Helper: render a principal header row
+        const renderPrincipalHeader = (label) => {
+          const pBlock = principalTotalsMap.get(label) || {};
+          const principalRow = createResumenTotalsRow(pBlock.totals || {}, {
+            label: label,
+            rowRole: "principal",
+            rowClass: "section-header-row table-info fw-bold text-center",
+            rowContext: {
+              label: label,
+              sections: (pBlock.children || []).map((ch) => ch.label || ""),
+              sign: 1,
+            },
+          });
+          tablaBody.appendChild(principalRow);
+        };
+
+        // Helper: render a secundaria header row
+        const renderSubsectionHeader = (label, parentSection) => {
+          const key = (parentSection || "") + "::" + label;
+          const sBlock = subsectionTotalsMap.get(key) || subsectionTotalsMap.get(label) || {};
+          const secRowClass =
+            "subsection-row bg-light fw-semibold text-center collapsible-section";
+          const secRow = createResumenTotalsRow(sBlock.totals || {}, {
+            label: label,
+            rowRole: "section",
+            rowClass: secRowClass,
+            rowContext: {
+              label: label,
+              principal: parentSection || "",
+              cuentas: sBlock.cuentas || [],
+            },
+          });
+          const cells = secRow.querySelectorAll("td");
+          if (cells[6]) {
+            cells[6].innerHTML = `<i class="bi bi-chevron-down collapse-icon me-2" style="cursor:pointer;"></i>${
+              label
+            }`;
+            cells[6].style.cursor = "pointer";
+            cells[6].classList.add("collapse-trigger");
+            secRow.dataset.sectionName = label;
+          }
+          tablaBody.appendChild(secRow);
+        };
+
         layout.forEach((block) => {
           const blockType = block.type || "";
 
-          // PRINCIPAL: Header de sección principal
-          if (blockType === "principal") {
-            const principalRow = createResumenTotalsRow(block.totals || {}, {
-              label: block.label || "",
-              rowRole: "principal",
-              rowClass: "section-header-row table-info fw-bold text-center",
-              rowContext: {
-                label: block.label || "",
-                sections: (block.children || []).map((ch) => ch.label || ""),
-                sign: 1,
-              },
-            });
-            tablaBody.appendChild(principalRow);
+          // Skip standalone principal/secundaria blocks — they are now
+          // rendered on-demand when a cuenta's parentSection changes.
+          if (blockType === "principal" || blockType === "secundaria") {
+            return;
           }
-          // SECUNDARIA: Header de subsección
-          else if (blockType === "secundaria") {
-            const secRowClass =
-              "subsection-row bg-light fw-semibold text-center collapsible-section";
-            const secRow = createResumenTotalsRow(block.totals || {}, {
-              label: block.label || "",
-              rowRole: "section",
-              rowClass: secRowClass,
-              rowContext: {
-                label: block.label || "",
-                principal: "",
-                cuentas: block.cuentas || [],
-              },
-            });
-            // Agregar icono de colapso en la primera celda con texto
-            const cells = secRow.querySelectorAll("td");
-            if (cells[6]) {
-              cells[6].innerHTML = `<i class="bi bi-chevron-down collapse-icon me-2" style="cursor:pointer;"></i>${
-                block.label || ""
-              }`;
-              cells[6].style.cursor = "pointer";
-              cells[6].classList.add("collapse-trigger");
-              secRow.dataset.sectionName = block.label || "";
-            }
-            tablaBody.appendChild(secRow);
-          }
-          // CUENTA: Fila de datos
+          // CUENTA: Fila de datos — insert section headers on transitions
           else if (blockType === "cuenta") {
+            const acctPrincipal = block.parentSection || "";
+            const acctSubsection = block.parentSubsection || "";
+
+            // If principal changed, render new principal header
+            if (acctPrincipal && acctPrincipal !== currentPrincipal) {
+              currentPrincipal = acctPrincipal;
+              currentSubsection = null; // reset subsection on principal change
+              renderPrincipalHeader(acctPrincipal);
+            }
+
+            // If subsection changed, render new subsection header
+            if (acctSubsection && acctSubsection !== currentSubsection) {
+              currentSubsection = acctSubsection;
+              renderSubsectionHeader(acctSubsection, currentPrincipal);
+            }
             const cta = block.totals || {};
             const varPlan = calculateVar(cta.actualMonth, cta.planMonth);
             const varPrev = calculateVar(cta.actualMonth, cta.prevMonth);
