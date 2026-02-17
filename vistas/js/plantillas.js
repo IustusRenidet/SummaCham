@@ -4569,10 +4569,18 @@
     );
   }
 
-  function buildHeaderOperationDraft(kind, sectionName = "", subsectionName = "") {
+  function buildHeaderOperationDraft(
+    kind,
+    sectionName = "",
+    subsectionName = "",
+  ) {
     const safeSection = (sectionName || "").toString().trim();
     const safeSubsection = (subsectionName || "").toString().trim();
-    const existing = getHeaderLinkedOperation(kind, safeSection, safeSubsection);
+    const existing = getHeaderLinkedOperation(
+      kind,
+      safeSection,
+      safeSubsection,
+    );
     if (existing) return existing;
 
     if (kind === "section") {
@@ -4622,7 +4630,8 @@
     if (formulaMode === "manual") {
       const parsed = parseFormulaExpressionV2(manualText, {
         parentSection: opContext?.parentSection || "",
-        defaultParentSection: opContext?.parentSection || "",
+        defaultParentSection:
+          opContext?.defaultParentSection || opContext?.parentSection || "",
       });
       if (!parsed.valid) {
         return {
@@ -4646,7 +4655,11 @@
     return {
       valid: true,
       terms,
-      tokens: convertLegacyTermsToV2Tokens(terms, opContext || null),
+      // En modo "Layout" la selección ya trae contexto (parentSection) en los
+      // rows de subsección; NO debemos inferir parentSection desde el contexto
+      // del editor porque eso puede convertir secciones principales en
+      // subsecciones (p.ej. al editar INCOME y seleccionar "Membership").
+      tokens: convertLegacyTermsToV2Tokens(terms, null),
       error: "",
     };
   }
@@ -6293,20 +6306,21 @@
     return lista.map((op) => {
       // No persistir solo metadatos efímeros de UI.
       // parentSection/parentSubsection sí se conservan para resolver homónimos.
-      const {
-        parent,
-        section,
-        subsection,
-        __orden,
-        __meta,
-        ...rest
-      } = op || {};
+      const { parent, section, subsection, __orden, __meta, ...rest } =
+        op || {};
 
-      // Evitar persistir campos legacy de fórmula (seccion_1/operacion_1, etc.) como si fueran
-      // "operacion_tipo" en SQLite. La fuente de verdad es `formula_json`.
+      // Los campos seccion_N y signos son necesarios para la compatibilidad
+      // y se regeneran en applyStrictFormulaTermsToOperation.
+      // Solo eliminamos operacion_N que puede causar conflictos.
       const sanitized = { ...rest };
+
+      // Asegurar que signos existe para extractFormulaTokens
+      if (!sanitized.signos) {
+        sanitized.signos = {};
+      }
+
       Object.keys(sanitized).forEach((key) => {
-        if (/^(seccion|operacion)_\d+$/i.test(key)) {
+        if (/^operacion_\d+$/i.test(key)) {
           delete sanitized[key];
         }
       });
@@ -7687,9 +7701,9 @@
   function isFormulaV2Object(value) {
     return Boolean(
       value &&
-        typeof value === "object" &&
-        Number(value.version) === FORMULA_V2_VERSION &&
-        Array.isArray(value.tokens),
+      typeof value === "object" &&
+      Number(value.version) === FORMULA_V2_VERSION &&
+      Array.isArray(value.tokens),
     );
   }
 
@@ -7705,7 +7719,9 @@
 
   function createRefTokenFromTerm(term = {}, opContext = null) {
     const type = (term.type || "").toString().toLowerCase();
-    const valueRaw = (term.value ?? term.cuenta ?? term.id ?? "").toString().trim();
+    const valueRaw = (term.value ?? term.cuenta ?? term.id ?? "")
+      .toString()
+      .trim();
     const parentFromTerm = (term.parentSection || "").toString().trim();
     if (!valueRaw && type !== "constant") return null;
 
@@ -7741,19 +7757,47 @@
     }
 
     const parsedSelection = parseSectionSelection(valueRaw);
-    const parentHint =
-      parsedSelection.parent ||
-      parentFromTerm ||
-      (opContext?.parentSection || "").toString().trim();
     const sectionValue = parsedSelection.section || valueRaw;
 
-    if (parentHint) {
-      const refId = buildSubsectionRefId(parentHint, sectionValue);
+    const explicitParent =
+      (parsedSelection.parent || "").toString().trim() || parentFromTerm;
+    const contextParent = (opContext?.parentSection || "").toString().trim();
+
+    // Si el usuario especifica parent||sub (o el término ya trae parentSection),
+    // es una subsección explícita.
+    if (explicitParent) {
+      const refId = buildSubsectionRefId(explicitParent, sectionValue);
       return {
         kind: FORMULA_KIND_REF,
         refType: "subsection",
         refId,
         label: sectionValue,
+        parentSection: explicitParent,
+        unresolved: !refId,
+      };
+    }
+
+    // Si coincide con una sección principal conocida, NO inferir subsección por contexto.
+    if (isKnownPrincipalSection(sectionValue)) {
+      const refId = buildSectionRefId(sectionValue);
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "section",
+        refId,
+        label: sectionValue,
+        unresolved: !refId,
+      };
+    }
+
+    // Fallback: usar contexto del editor para desambiguar subsecciones.
+    if (contextParent) {
+      const refId = buildSubsectionRefId(contextParent, sectionValue);
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "subsection",
+        refId,
+        label: sectionValue,
+        parentSection: contextParent,
         unresolved: !refId,
       };
     }
@@ -7893,6 +7937,8 @@
           operator: currentOperator,
           type,
           value: token.label || token.refId || "",
+          parentSection: token.parentSection || "",
+          parentSubsection: token.parentSubsection || "",
         });
         currentOperator = "+";
       }
@@ -7932,7 +7978,9 @@
           }
           if (token.kind === FORMULA_KIND_REF) {
             const label = token.label || token.refId || "???";
-            if ((token.refType || "").toString().toLowerCase() === "operation") {
+            if (
+              (token.refType || "").toString().toLowerCase() === "operation"
+            ) {
               return formatOperationReference(label);
             }
             return label;
@@ -9287,7 +9335,9 @@
       OperacionId: "TEMP_BULK_" + Date.now(),
       Clase: nombreOperacion,
       formula_terms: formulaTerms,
-      formula_json: serializeFormulaV2(convertLegacyTermsToV2Tokens(formulaTerms)),
+      formula_json: serializeFormulaV2(
+        convertLegacyTermsToV2Tokens(formulaTerms),
+      ),
     };
 
     // Guardar referencia a la fila para actualizar después
@@ -9380,7 +9430,13 @@
     for (let i = 0; i < source.length; i += 1) {
       const ch = source[i];
       const opChar = ch === "×" ? "*" : ch === "÷" ? "/" : ch;
-      if (opChar === "+" || opChar === "*" || opChar === "/" || opChar === "(" || opChar === ")") {
+      if (
+        opChar === "+" ||
+        opChar === "*" ||
+        opChar === "/" ||
+        opChar === "(" ||
+        opChar === ")"
+      ) {
         flush();
         tokens.push({ kind: "op", value: opChar });
         continue;
@@ -9432,6 +9488,7 @@
     const readValue = (term) =>
       (term?.value ?? term?.cuenta ?? term?.id ?? "").toString().trim();
     const isChunk = (value) => /^\d{1,3}$/.test(value);
+    const isZeroChunk = (value) => /^0{1,3}$/.test(value);
     const buildCode = (a, b, c, d) =>
       `${String(a).padStart(3, "0")}-${String(b).padStart(3, "0")}-${String(
         c,
@@ -9444,15 +9501,46 @@
       const t1 = list[i + 1];
       const t2 = list[i + 2];
       const t3 = list[i + 3];
+      const t4 = list[i + 4];
       const v0 = readValue(t0);
       const v1 = readValue(t1);
       const v2 = readValue(t2);
       const v3 = readValue(t3);
+      const v4 = readValue(t4);
       const op1 = (t1?.operator || "").toString().trim();
       const op2 = (t2?.operator || "").toString().trim();
       const op3 = (t3?.operator || "").toString().trim();
+      const op4 = (t4?.operator || "").toString().trim();
 
-      const mergeable =
+      // Caso 1: "000 - 416 - 000 - 000 - 00" => "000 - (416-000-000-00)"
+      const mergeable5WithZero =
+        isAccount(t0) &&
+        isAccount(t1) &&
+        isAccount(t2) &&
+        isAccount(t3) &&
+        isAccount(t4) &&
+        isZeroChunk(v0) &&
+        isChunk(v1) &&
+        isChunk(v2) &&
+        isChunk(v3) &&
+        isChunk(v4) &&
+        op1 === "-" &&
+        op2 === "-" &&
+        op3 === "-" &&
+        op4 === "-";
+
+      if (mergeable5WithZero) {
+        out.push(t0);
+        out.push({
+          ...t1,
+          type: "account",
+          value: buildCode(v1, v2, v3, v4),
+        });
+        i += 4;
+        continue;
+      }
+
+      const mergeable4 =
         isAccount(t0) &&
         isAccount(t1) &&
         isAccount(t2) &&
@@ -9465,7 +9553,7 @@
         op2 === "-" &&
         op3 === "-";
 
-      if (mergeable) {
+      if (mergeable4) {
         out.push({
           ...t0,
           type: "account",
@@ -9507,10 +9595,7 @@
     if (!value) return null;
 
     const numericValue = Number(value);
-    if (
-      Number.isFinite(numericValue) &&
-      /^[-+]?\d+(\.\d+)?$/.test(value)
-    ) {
+    if (Number.isFinite(numericValue) && /^[-+]?\d+(\.\d+)?$/.test(value)) {
       return {
         kind: FORMULA_KIND_CONST,
         value: numericValue,
@@ -9542,25 +9627,23 @@
     }
 
     const parsedSection = parseSectionSelection(value);
-    const parentHintRaw =
-      parsedSection.parent ||
-      options.parentSection ||
-      options.defaultParentSection ||
-      "";
     const sectionLabel = parsedSection.section || value;
-    const parentHint = (parentHintRaw || "").toString().trim();
+    const explicitParent = (parsedSection.parent || "").toString().trim();
 
-    if (parentHint) {
-      const refId = buildSubsectionRefId(parentHint, sectionLabel);
+    // Si el usuario escribe "PARENT||SUB", es una subsección explícita.
+    if (explicitParent) {
+      const refId = buildSubsectionRefId(explicitParent, sectionLabel);
       return {
         kind: FORMULA_KIND_REF,
         refType: "subsection",
         refId,
         label: sectionLabel,
+        parentSection: explicitParent,
         unresolved: !refId,
       };
     }
 
+    // Si coincide con una sección principal conocida, NO inferir subsección por contexto.
     if (isKnownPrincipalSection(sectionLabel)) {
       const refId = buildSectionRefId(sectionLabel);
       return {
@@ -9568,6 +9651,23 @@
         refType: "section",
         refId,
         label: sectionLabel,
+        unresolved: !refId,
+      };
+    }
+
+    const parentHintRaw =
+      options.parentSection || options.defaultParentSection || "";
+    const parentHint = (parentHintRaw || "").toString().trim();
+
+    // Si estamos dentro de una sección (contexto), asumir subsección cuando NO es una sección principal.
+    if (parentHint) {
+      const refId = buildSubsectionRefId(parentHint, sectionLabel);
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "subsection",
+        refId,
+        label: sectionLabel,
+        parentSection: parentHint,
         unresolved: !refId,
       };
     }
@@ -9580,6 +9680,7 @@
         refType: "subsection",
         refId,
         label: sectionLabel,
+        parentSection: inferredParent,
         unresolved: !refId,
       };
     }
@@ -10865,7 +10966,8 @@
           (token) =>
             token &&
             typeof token === "object" &&
-            (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST),
+            (token.kind === FORMULA_KIND_REF ||
+              token.kind === FORMULA_KIND_CONST),
         ).length
       : 0;
     const raw = (op.formula_json == null ? "" : String(op.formula_json)).trim();
@@ -10932,7 +11034,8 @@
       }
     } else {
       if (
-        (!Array.isArray(base.formula_terms) || base.formula_terms.length === 0) &&
+        (!Array.isArray(base.formula_terms) ||
+          base.formula_terms.length === 0) &&
         Array.isArray(extra.formula_terms) &&
         extra.formula_terms.length
       ) {
@@ -13674,7 +13777,9 @@
         changed = true;
       }
 
-      const valorPlantillaActual = Number.isFinite(Number(cuenta.valor_plantilla))
+      const valorPlantillaActual = Number.isFinite(
+        Number(cuenta.valor_plantilla),
+      )
         ? Number(cuenta.valor_plantilla)
         : 0;
       const valorPlantillaNuevo =
@@ -14117,7 +14222,9 @@
           if (changed) {
             applyStrictFormulaTermsToOperation(
               other,
-              normalizeFormulaTerms(convertV2TokensToLegacyTerms(updatedTokens)),
+              normalizeFormulaTerms(
+                convertV2TokensToLegacyTerms(updatedTokens),
+              ),
               updatedTokens,
             );
           }
@@ -14232,6 +14339,21 @@
           "success",
         );
       }
+
+      // Leer fórmula del editor (igual que para operaciones normales)
+      const formulaPayload = readEditorFormulaPayload({
+        parentSection: affectedOps[0]?.parentSection || "",
+        defaultParentSection: affectedOps[0]?.parentSection || "",
+      });
+
+      if (!formulaPayload.valid) {
+        showToast(`Fórmula inválida: ${formulaPayload.error}`, "error");
+        return;
+      }
+
+      formulaTerms = Array.isArray(formulaPayload.terms)
+        ? formulaPayload.terms
+        : [];
 
       const normalizedTerms = normalizeFormulaTerms(formulaTerms);
       const hasExistingFormula = affectedOps.some(
@@ -16177,7 +16299,8 @@
         (token) =>
           token &&
           typeof token === "object" &&
-          (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST),
+          (token.kind === FORMULA_KIND_REF ||
+            token.kind === FORMULA_KIND_CONST),
       )
     ) {
       return true;
@@ -17075,21 +17198,21 @@
     return (state.operaciones || [])
       .filter((op) => !isColumnConfigOperation(op))
       .map((op) => {
-      const formulaTokens = extractFormulaTokens(op);
-      const formulaStr = formatFormula(op || {});
+        const formulaTokens = extractFormulaTokens(op);
+        const formulaStr = formatFormula(op || {});
 
-      return {
-        operacion_id: getOperationId(op) || "",
-        clase: getOperationDisplayName(op) || "",
-        seccion: op.SECCION || "",
-        subseccion: op.parentSubsection || "",
-        tipo_operacion: op.tipo_operacion || "libre",
-        formula: formulaStr,
-        formula_json: serializeFormulaV2(formulaTokens),
-        estilo_fila: op.rowStyle || op.estilo_fila || "operation-row",
-        visible: op.visible !== false,
-        descripcion: "",
-      };
+        return {
+          operacion_id: getOperationId(op) || "",
+          clase: getOperationDisplayName(op) || "",
+          seccion: op.SECCION || "",
+          subseccion: op.parentSubsection || "",
+          tipo_operacion: op.tipo_operacion || "libre",
+          formula: formulaStr,
+          formula_json: serializeFormulaV2(formulaTokens),
+          estilo_fila: op.rowStyle || op.estilo_fila || "operation-row",
+          visible: op.visible !== false,
+          descripcion: "",
+        };
       });
   }
 
@@ -17279,10 +17402,7 @@
         formula: String(
           pickImportValue(row, ["formula", "expresion", "expression"]),
         ).trim(),
-        formula_terms: pickImportValue(row, [
-          "formula_terms",
-          "formulaterms",
-        ]),
+        formula_terms: pickImportValue(row, ["formula_terms", "formulaterms"]),
         formula_json: pickImportValue(row, ["formula_json", "formulajson"]),
         estilo_fila:
           String(
@@ -17439,7 +17559,10 @@
     const termsFromInput = Array.isArray(op.formula_terms)
       ? op.formula_terms
       : (() => {
-          if (typeof op.formula_terms !== "string" || !op.formula_terms.trim()) {
+          if (
+            typeof op.formula_terms !== "string" ||
+            !op.formula_terms.trim()
+          ) {
             return [];
           }
           try {
@@ -17461,7 +17584,9 @@
         const parsed = JSON.parse(String(op.formula_json));
         if (isFormulaV2Object(parsed)) {
           const tokens = Array.isArray(parsed.tokens) ? parsed.tokens : [];
-          const terms = normalizeFormulaTerms(convertV2TokensToLegacyTerms(tokens));
+          const terms = normalizeFormulaTerms(
+            convertV2TokensToLegacyTerms(tokens),
+          );
           return { terms, tokens };
         }
         if (Array.isArray(parsed) && parsed.length) {
@@ -17733,7 +17858,11 @@
           } else if (parentSection) {
             newOp["sum-row-sumavarios"] = parentSection;
           }
-          applyStrictFormulaTermsToOperation(newOp, formulaTerms, formulaTokens);
+          applyStrictFormulaTermsToOperation(
+            newOp,
+            formulaTerms,
+            formulaTokens,
+          );
           state.operaciones.push(newOp);
           importados++;
         });

@@ -309,6 +309,7 @@ const repararTerminosLegacyCuentaFragmentada = (terms = []) => {
   const readValue = (term) =>
     (term?.value ?? term?.cuenta ?? term?.id ?? "").toString().trim();
   const isChunk = (value) => /^\d{1,3}$/.test(value);
+  const isZeroChunk = (value) => /^0{1,3}$/.test(value);
   const buildAccountCode = (a, b, c, d) =>
     `${String(a).padStart(3, "0")}-${String(b).padStart(3, "0")}-${String(
       c
@@ -321,15 +322,46 @@ const repararTerminosLegacyCuentaFragmentada = (terms = []) => {
     const t1 = list[i + 1];
     const t2 = list[i + 2];
     const t3 = list[i + 3];
+    const t4 = list[i + 4];
     const v0 = readValue(t0);
     const v1 = readValue(t1);
     const v2 = readValue(t2);
     const v3 = readValue(t3);
+    const v4 = readValue(t4);
     const op1 = (t1?.operator || "").toString().trim();
     const op2 = (t2?.operator || "").toString().trim();
     const op3 = (t3?.operator || "").toString().trim();
+    const op4 = (t4?.operator || "").toString().trim();
 
-    const mergeable =
+    // Caso 1: "000 - 416 - 000 - 000 - 00" => "000 - (416-000-000-00)"
+    const mergeable5WithZero =
+      isAccount(t0) &&
+      isAccount(t1) &&
+      isAccount(t2) &&
+      isAccount(t3) &&
+      isAccount(t4) &&
+      isZeroChunk(v0) &&
+      isChunk(v1) &&
+      isChunk(v2) &&
+      isChunk(v3) &&
+      isChunk(v4) &&
+      op1 === "-" &&
+      op2 === "-" &&
+      op3 === "-" &&
+      op4 === "-";
+
+    if (mergeable5WithZero) {
+      out.push(t0);
+      out.push({
+        ...t1,
+        type: "account",
+        value: buildAccountCode(v1, v2, v3, v4),
+      });
+      i += 4;
+      continue;
+    }
+
+    const mergeable4 =
       isAccount(t0) &&
       isAccount(t1) &&
       isAccount(t2) &&
@@ -342,7 +374,7 @@ const repararTerminosLegacyCuentaFragmentada = (terms = []) => {
       op2 === "-" &&
       op3 === "-";
 
-    if (mergeable) {
+    if (mergeable4) {
       out.push({
         ...t0,
         type: "account",

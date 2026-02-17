@@ -79,11 +79,14 @@
     return codigos;
   }
 
-  const TOKEN_REGEX = /[A-Za-z_][\w]*\.[A-Za-z_][\w]*|\d+\.\d+|\d+|[()+\-*/]/g;
+  const TOKEN_REGEX = /[A-Za-z_][\w]*\.[A-Za-z_][\w]*|\d{3}-\d{3}-\d{3}-\d{2}|\d+\.\d+|\d+|[()+\-*/]/g;
   const PREC = { '+': 1, '-': 1, '*': 2, '/': 2 };
 
-  function evaluateFormula(expresion, rowsOut) {
+  function evaluateFormula(expresion, rowsOut, defaultColumn) {
     if (!expresion || typeof expresion !== 'string') return 0;
+    
+    // Normalizar tokens para soportar IDs de cuenta con guiones
+    const TOKEN_REGEX = /[A-Za-z_][\w]*\.[A-Za-z_][\w]*|\d{3}-\d{3}-\d{3}-\d{2}|[A-Za-z_][\w]*|\d+\.\d+|\d+|[()+\-*/]/g;
     const tokens = expresion.match(TOKEN_REGEX) || [];
     const output = [];
     const operadores = [];
@@ -130,10 +133,17 @@
         else if (token === '*') pila.push(a * b);
         else if (token === '/') pila.push(safeDiv(a, b));
       } else if (/^[A-Za-z_][\w]*\.[A-Za-z_][\w]*$/.test(token)) {
+        // Formato ID.Campo
         const [id, campo] = token.split('.');
         const fila = rowsOut && rowsOut[id] ? rowsOut[id] : {};
         pila.push(toNumber(fila[campo]));
+      } else if (rowsOut && rowsOut[token] && defaultColumn) {
+        // Formato ID solamente (usar columna por defecto)
+        // Esto cubre secciones (ej: "membership") y cuentas (ej: "416-000-000-00")
+        const fila = rowsOut[token];
+        pila.push(toNumber(fila[defaultColumn]));
       } else {
+        // Numero literal
         pila.push(toNumber(token));
       }
     });
@@ -236,11 +246,11 @@
         const factor = nodo.factor != null ? Number(nodo.factor) : 1;
         if (nodo.formula) {
           const columna = nodo.columnaYtd || nodo.columna || 'acumuladoActual';
-          metrics[columna] = factor * evaluateFormula(nodo.formula, contexto);
+          metrics[columna] = factor * evaluateFormula(nodo.formula, contexto, columna);
         }
         if (nodo.formulaMes) {
           const columnaMes = nodo.columnaMes || 'mesActual';
-          metrics[columnaMes] = factor * evaluateFormula(nodo.formulaMes, contexto);
+          metrics[columnaMes] = factor * evaluateFormula(nodo.formulaMes, contexto, columnaMes);
         }
         ensureAlias(metrics);
         meta.tipoFila = 'kpi';

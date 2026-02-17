@@ -1,47 +1,63 @@
-const { obtenerDatosPlaneacionResumen } = require('../planeacionCuentasService');
-const { MESES } = require('../saldosService');
-const layoutService = require('../layoutService');
+const {
+  obtenerDatosPlaneacionResumen,
+} = require("../planeacionCuentasService");
+const { MESES } = require("../saldosService");
+const layoutService = require("../layoutService");
 
 // Claves estables: mayúsculas + sin tildes/diacríticos.
 // Evita duplicados por diferencias como "Comités" vs "Comites" y por
 // caracteres invisibles/controles que suelen colarse desde Excel/CSV.
-const LIMPIAR_CLAVE = (valor = '') => valor
-  .toString()
-  .replace(/\u0000/g, '') // null bytes (e.g. Firebird exports)
-  .replace(/[\u200B-\u200D\uFEFF]/g, '') // zero-width & BOM
-  .replace(/\s+/g, ' ')
-  .trim();
-const NORMALIZAR_CLAVE = (valor = '') => LIMPIAR_CLAVE(valor)
-  .toUpperCase()
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '');
-const NORMALIZAR_CAPITULO = (valor = '') => NORMALIZAR_CLAVE(valor);
+const LIMPIAR_CLAVE = (valor = "") =>
+  valor
+    .toString()
+    .replace(/\u0000/g, "") // null bytes (e.g. Firebird exports)
+    .replace(/[\u200B-\u200D\uFEFF]/g, "") // zero-width & BOM
+    .replace(/\s+/g, " ")
+    .trim();
+const NORMALIZAR_CLAVE = (valor = "") =>
+  LIMPIAR_CLAVE(valor)
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+const NORMALIZAR_CAPITULO = (valor = "") => NORMALIZAR_CLAVE(valor);
 
 /**
  * Cargar definiciones desde SQLite
  */
-function cargarDefinicionesModulo(modulo, empresaId = 'EMPRESA01', anio = new Date().getFullYear()) {
+function cargarDefinicionesModulo(
+  modulo,
+  empresaId = "EMPRESA01",
+  anio = new Date().getFullYear(),
+) {
   try {
-    const capitulos = layoutService.obtenerCapitulos({ empresaId, modulo, anio });
+    const capitulos = layoutService.obtenerCapitulos({
+      empresaId,
+      modulo,
+      anio,
+    });
 
     if (capitulos && capitulos.length > 0) {
       const definiciones = {};
       const operacionesGlobales = [];
 
       for (const cap of capitulos) {
-        const capituloEtiqueta = (cap && typeof cap === 'object') ? cap.capitulo : cap;
+        const capituloEtiqueta =
+          cap && typeof cap === "object" ? cap.capitulo : cap;
         if (!capituloEtiqueta) continue;
 
         const layout = layoutService.obtenerLayout({
           empresaId,
           modulo,
           anio,
-          capitulo: capituloEtiqueta
+          capitulo: capituloEtiqueta,
         });
 
-        const cuentasLayout = (layout && Array.isArray(layout.cuentas))
-          ? layout.cuentas
-          : (layout && Array.isArray(layout[modulo])) ? layout[modulo] : [];
+        const cuentasLayout =
+          layout && Array.isArray(layout.cuentas)
+            ? layout.cuentas
+            : layout && Array.isArray(layout[modulo])
+              ? layout[modulo]
+              : [];
 
         definiciones[capituloEtiqueta] = cuentasLayout.map((cuenta) => ({
           CAPITULO: capituloEtiqueta,
@@ -49,30 +65,30 @@ function cargarDefinicionesModulo(modulo, empresaId = 'EMPRESA01', anio = new Da
           NOMBRE: cuenta.NOMBRE,
           orden: cuenta.orden,
           orden_presentacion: cuenta.orden_presentacion,
-          'SECCIÓN Principal':
-            cuenta['SECCIÓN Principal'] ||
-            cuenta['SECCION Principal'] ||
-            cuenta['SECCIàN Principal'] ||
-            '',
-          'SECCION Secundaria':
-            cuenta['SECCION Secundaria'] ||
-            cuenta['SECCIÓN Secundaria'] ||
-            ''
+          "SECCIÓN Principal":
+            cuenta["SECCIÓN Principal"] ||
+            cuenta["SECCION Principal"] ||
+            cuenta["SECCIàN Principal"] ||
+            "",
+          "SECCION Secundaria":
+            cuenta["SECCION Secundaria"] || cuenta["SECCIÓN Secundaria"] || "",
         }));
 
         const operacionesLayout = Array.isArray(layout && layout.operaciones)
           ? layout.operaciones
-          : Array.isArray(layout && layout['SUMA DE VARIAS SECCIONES'])
-            ? layout['SUMA DE VARIAS SECCIONES']
+          : Array.isArray(layout && layout["SUMA DE VARIAS SECCIONES"])
+            ? layout["SUMA DE VARIAS SECCIONES"]
             : [];
 
         if (operacionesLayout.length) {
-          operacionesLayout.forEach((operacion) => operacionesGlobales.push(operacion));
+          operacionesLayout.forEach((operacion) =>
+            operacionesGlobales.push(operacion),
+          );
         }
       }
 
       if (operacionesGlobales.length) {
-        definiciones['SUMA DE VARIAS SECCIONES'] = operacionesGlobales;
+        definiciones["SUMA DE VARIAS SECCIONES"] = operacionesGlobales;
       }
 
       return definiciones;
@@ -80,46 +96,45 @@ function cargarDefinicionesModulo(modulo, empresaId = 'EMPRESA01', anio = new Da
   } catch (error) {
     console.error(
       `[planeacionReportesEngine] No se pudo cargar layout ${modulo} / ${empresaId} / ${anio} desde SQLite:`,
-      error && error.message ? error.message : error
+      error && error.message ? error.message : error,
     );
   }
 
   throw new Error(
-    `No existen capitulos definidos en SQLite para ${modulo} / ${empresaId} / ${anio}`
+    `No existen capitulos definidos en SQLite para ${modulo} / ${empresaId} / ${anio}`,
   );
 }
 
+const normalizarCuentaCanonica = (valor = "") => {
+  const limpio = valor.toString().replace(/[^0-9]/g, "");
+  if (!limpio) return "";
 
-const normalizarCuentaCanonica = (valor = '') => {
-  const limpio = valor.toString().replace(/[^0-9]/g, '');
-  if (!limpio) return '';
-
-  const visible = limpio.slice(0, 11).padEnd(11, '0');
+  const visible = limpio.slice(0, 11).padEnd(11, "0");
   const b = visible.slice(3, 6);
   const c = visible.slice(6, 9);
   const d = visible.slice(9, 11);
 
   const nivel = (() => {
-    if (b === '000' && c === '000' && d === '00') return '1';
-    if (c === '000' && d === '00') return '2';
-    if (d === '00') return '3';
-    return '4';
+    if (b === "000" && c === "000" && d === "00") return "1";
+    if (c === "000" && d === "00") return "2";
+    if (d === "00") return "3";
+    return "4";
   })();
 
   if (limpio.length >= 21) {
     const cuenta = limpio.slice(0, 21);
     const last = cuenta.slice(-1);
-    if (['1', '2', '3', '4'].includes(last)) {
+    if (["1", "2", "3", "4"].includes(last)) {
       return cuenta;
     }
-    return visible.padEnd(20, '0') + nivel;
+    return visible.padEnd(20, "0") + nivel;
   }
 
-  return visible.padEnd(20, '0') + nivel;
+  return visible.padEnd(20, "0") + nivel;
 };
 
-const cuentaVisibleDesdeCanonica = (cuentaCanonica = '') => {
-  const base = cuentaCanonica.toString().padStart(21, '0');
+const cuentaVisibleDesdeCanonica = (cuentaCanonica = "") => {
+  const base = cuentaCanonica.toString().padStart(21, "0");
   const visible = base.slice(0, 11);
   return `${visible.slice(0, 3)}-${visible.slice(3, 6)}-${visible.slice(6, 9)}-${visible.slice(9, 11)}`;
 };
@@ -127,14 +142,18 @@ const cuentaVisibleDesdeCanonica = (cuentaCanonica = '') => {
 /**
  * Cargar definiciones (usa SQLite con fallback a JSON)
  */
-const cargarDefiniciones = (modulo = 'SUMMARY', empresaId = 'EMPRESA01', anio = new Date().getFullYear()) => {
+const cargarDefiniciones = (
+  modulo = "SUMMARY",
+  empresaId = "EMPRESA01",
+  anio = new Date().getFullYear(),
+) => {
   return cargarDefinicionesModulo(modulo, empresaId, anio);
 };
 
 const extraerCapitulos = (lista = []) => {
   const vistos = new Map();
   lista.forEach((item) => {
-    const etiqueta = (item.CAPITULO || '').toString().trim();
+    const etiqueta = (item.CAPITULO || "").toString().trim();
     if (!etiqueta) return;
     const clave = NORMALIZAR_CAPITULO(etiqueta);
     if (!vistos.has(clave)) {
@@ -145,18 +164,18 @@ const extraerCapitulos = (lista = []) => {
 };
 
 const NOMBRES_MESES = [
-  'enero',
-  'febrero',
-  'marzo',
-  'abril',
-  'mayo',
-  'junio',
-  'julio',
-  'agosto',
-  'septiembre',
-  'octubre',
-  'noviembre',
-  'diciembre'
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
 ];
 
 const normalizarClaveMes = (mesEntrada) => {
@@ -171,10 +190,10 @@ const normalizarClaveMes = (mesEntrada) => {
 
   const coincidencia = MESES.find(({ alias, clave }, idx) => {
     return (
-      alias.toLowerCase() === texto
-      || clave.toLowerCase() === texto
-      || NOMBRES_MESES[idx] === texto
-      || NOMBRES_MESES[idx].startsWith(texto)
+      alias.toLowerCase() === texto ||
+      clave.toLowerCase() === texto ||
+      NOMBRES_MESES[idx] === texto ||
+      NOMBRES_MESES[idx].startsWith(texto)
     );
   });
 
@@ -194,7 +213,8 @@ const calcularTotales = (cuentas, planeacionData, definicion = new Map()) => {
     (acc, cuenta) => {
       const actual = planeacionData.find((p) => p.cuenta === cuenta);
       const meta = definicion.get(cuenta) || {};
-      const factorRaw = meta.operacion_factor ?? meta.operacionFactor ?? meta.factor;
+      const factorRaw =
+        meta.operacion_factor ?? meta.operacionFactor ?? meta.factor;
       const factor = Number.isFinite(Number(factorRaw)) ? Number(factorRaw) : 1;
       acc.actualMonth += factor * Number(actual?.actualMonth ?? 0);
       acc.planMonth += factor * Number(actual?.planMonth ?? 0);
@@ -204,7 +224,14 @@ const calcularTotales = (cuentas, planeacionData, definicion = new Map()) => {
       acc.prevYTD += factor * Number(actual?.prevYTD ?? 0);
       return acc;
     },
-    { actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 }
+    {
+      actualMonth: 0,
+      planMonth: 0,
+      prevMonth: 0,
+      actualYTD: 0,
+      planYTD: 0,
+      prevYTD: 0,
+    },
   );
 };
 
@@ -214,32 +241,35 @@ const crearAcumulador = () => ({
   prevMonth: 0,
   actualYTD: 0,
   planYTD: 0,
-  prevYTD: 0
+  prevYTD: 0,
 });
 
-const normalizarTexto = (valor = '') => LIMPIAR_CLAVE(valor)
-  .toUpperCase()
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '');
+const normalizarTexto = (valor = "") =>
+  LIMPIAR_CLAVE(valor)
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 
 const CAMPOS_FILA_OPERACION = [
-  'sum-row',
-  'sum-row-sumavarios',
-  'sum-row-sumavarios2',
-  'sum-row-sumavarios-consolidado',
-  'sum-row-operativo',
-  'sum-row-operativo-consolidado',
-  'result-row',
-  'net-row',
-  'result-net-row'
+  "sum-row",
+  "sum-row-sumavarios",
+  "sum-row-sumavarios2",
+  "sum-row-sumavarios-consolidado",
+  "sum-row-operativo",
+  "sum-row-operativo-consolidado",
+  "result-row",
+  "net-row",
+  "result-net-row",
 ];
 
-const COLUMN_CONFIG_ID = 'COLUMN_CONFIG';
+const COLUMN_CONFIG_ID = "COLUMN_CONFIG";
 const esOperacionConfigColumnas = (op = {}) => {
-  const rawId = op.OperacionId || op.operacion_id || op.Clase || op.clase || op.id || '';
+  const rawId =
+    op.OperacionId || op.operacion_id || op.Clase || op.clase || op.id || "";
   const id = rawId.toString().trim().toUpperCase();
   if (id === COLUMN_CONFIG_ID) return true;
-  if (op['column-config'] || op['columnas-config'] || op.column_config) return true;
+  if (op["column-config"] || op["columnas-config"] || op.column_config)
+    return true;
   return false;
 };
 
@@ -247,54 +277,62 @@ const esOperacionLibre = (op = {}) =>
   !CAMPOS_FILA_OPERACION.some((campo) => Boolean(op?.[campo]));
 
 const obtenerNombreOperacion = (op = {}) =>
-  op.operacion_etiqueta || op.Clase || op.clase || op.OperacionId || op.operacion_id || op.id || 'Operacion';
+  op.operacion_etiqueta ||
+  op.Clase ||
+  op.clase ||
+  op.OperacionId ||
+  op.operacion_id ||
+  op.id ||
+  "Operacion";
 
 const FORMULA_V2_VERSION = 2;
-const FORMULA_KIND_REF = 'ref';
-const FORMULA_KIND_CONST = 'const';
-const FORMULA_KIND_OP = 'op';
-const FORMULA_OPERATORS = new Set(['+', '-', '*', '/', '(', ')']);
-const FORMULA_OPERATORS_ARITH = new Set(['+', '-', '*', '/']);
+const FORMULA_KIND_REF = "ref";
+const FORMULA_KIND_CONST = "const";
+const FORMULA_KIND_OP = "op";
+const FORMULA_OPERATORS = new Set(["+", "-", "*", "/", "(", ")"]);
+const FORMULA_OPERATORS_ARITH = new Set(["+", "-", "*", "/"]);
 
-const normalizarIdSegmento = (valor = '') => LIMPIAR_CLAVE(valor)
-  .toUpperCase()
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .replace(/[^A-Z0-9]+/g, '_')
-  .replace(/_+/g, '_')
-  .replace(/^_+|_+$/g, '');
+const normalizarIdSegmento = (valor = "") =>
+  LIMPIAR_CLAVE(valor)
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
 
-const normalizarCuentaRef = (valor = '') => LIMPIAR_CLAVE(valor)
-  .toUpperCase()
-  .replace(/\s+/g, '')
-  .replace(/[^0-9A-Z]+/g, '-')
-  .replace(/-+/g, '-')
-  .replace(/^-+|-+$/g, '');
+const normalizarCuentaRef = (valor = "") =>
+  LIMPIAR_CLAVE(valor)
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/[^0-9A-Z]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
-const construirRefIdSeccion = (principal = '') => {
+const construirRefIdSeccion = (principal = "") => {
   const key = normalizarIdSegmento(principal);
-  return key ? `SEC::${key}` : '';
+  return key ? `SEC::${key}` : "";
 };
 
-const construirRefIdSubseccion = (principal = '', subseccion = '') => {
+const construirRefIdSubseccion = (principal = "", subseccion = "") => {
   const p = normalizarIdSegmento(principal);
   const s = normalizarIdSegmento(subseccion);
-  return p && s ? `SUB::${p}::${s}` : '';
+  return p && s ? `SUB::${p}::${s}` : "";
 };
 
-const construirRefIdCuenta = (cuenta = '') => {
+const construirRefIdCuenta = (cuenta = "") => {
   const key = normalizarCuentaRef(cuenta);
-  return key ? `ACC::${key}` : '';
+  return key ? `ACC::${key}` : "";
 };
 
-const construirRefIdOperacion = (operationId = '') => {
+const construirRefIdOperacion = (operationId = "") => {
   const key = normalizarIdSegmento(operationId);
-  return key ? `OP::${key}` : '';
+  return key ? `OP::${key}` : "";
 };
 
 const parseJsonSeguro = (raw) => {
-  if (raw == null || raw === '') return null;
-  if (typeof raw === 'object') return raw;
+  if (raw == null || raw === "") return null;
+  if (typeof raw === "object") return raw;
   try {
     return JSON.parse(String(raw));
   } catch (_) {
@@ -305,33 +343,71 @@ const parseJsonSeguro = (raw) => {
 const repararTerminosLegacyCuentaFragmentada = (terms = []) => {
   const list = Array.isArray(terms) ? terms : [];
   const out = [];
-  const toType = (term) => (term?.type || '').toString().toLowerCase();
+  const toType = (term) => (term?.type || "").toString().toLowerCase();
   const isAccount = (term) => {
     const t = toType(term);
-    return t === 'account' || t === 'cuenta';
+    return t === "account" || t === "cuenta";
   };
-  const readValue = (term) => (term?.value ?? term?.cuenta ?? term?.id ?? '').toString().trim();
+  const readValue = (term) =>
+    (term?.value ?? term?.cuenta ?? term?.id ?? "").toString().trim();
   const isChunk = (value) => /^\d{1,3}$/.test(value);
+  const isZeroChunk = (value) => /^0{1,3}$/.test(value);
 
   const buildAccountCode = (a, b, c, d) =>
-    `${String(a).padStart(3, '0')}-${String(b).padStart(3, '0')}-${String(c).padStart(3, '0')}-${String(d).padStart(2, '0')}`;
+    `${String(a).padStart(3, "0")}-${String(b).padStart(3, "0")}-${String(c).padStart(3, "0")}-${String(d).padStart(2, "0")}`;
 
   for (let i = 0; i < list.length; i += 1) {
     const t0 = list[i];
-    if (!t0 || typeof t0 !== 'object') continue;
+    if (!t0 || typeof t0 !== "object") continue;
 
     const t1 = list[i + 1];
     const t2 = list[i + 2];
     const t3 = list[i + 3];
+    const t4 = list[i + 4];
     const v0 = readValue(t0);
     const v1 = readValue(t1);
     const v2 = readValue(t2);
     const v3 = readValue(t3);
-    const op1 = (t1?.operator || '').toString().trim();
-    const op2 = (t2?.operator || '').toString().trim();
-    const op3 = (t3?.operator || '').toString().trim();
+    const v4 = readValue(t4);
+    const op1 = (t1?.operator || "").toString().trim();
+    const op2 = (t2?.operator || "").toString().trim();
+    const op3 = (t3?.operator || "").toString().trim();
+    const op4 = (t4?.operator || "").toString().trim();
 
-    const mergeable =
+    // Caso 1: 5 fragmentos donde el primero es 000 (cero "helper") y los otros 4 forman una cuenta.
+    // Ejemplo: 000 - 416 - 000 - 000 - 00 => 000 - (416-000-000-00)
+    const mergeable5WithZero =
+      isAccount(t0) &&
+      isAccount(t1) &&
+      isAccount(t2) &&
+      isAccount(t3) &&
+      isAccount(t4) &&
+      isZeroChunk(v0) &&
+      isChunk(v1) &&
+      isChunk(v2) &&
+      isChunk(v3) &&
+      isChunk(v4) &&
+      op1 === "-" &&
+      op2 === "-" &&
+      op3 === "-" &&
+      op4 === "-";
+
+    if (mergeable5WithZero) {
+      // Mantener el "000" como término (suele representar 0) y aplicar el operador real
+      // de la cuenta (t1.operator), que es el que expresa la resta "0 - 416-000-000-00".
+      out.push(t0);
+      out.push({
+        ...t1,
+        type: "account",
+        value: buildAccountCode(v1, v2, v3, v4),
+      });
+      i += 4;
+      continue;
+    }
+
+    // Caso 2: 4 fragmentos normales
+    // Ejemplo: 901 - 020 - 000 - 00 => 901-020-000-00
+    const mergeable4 =
       isAccount(t0) &&
       isAccount(t1) &&
       isAccount(t2) &&
@@ -340,15 +416,15 @@ const repararTerminosLegacyCuentaFragmentada = (terms = []) => {
       isChunk(v1) &&
       isChunk(v2) &&
       isChunk(v3) &&
-      op1 === '-' &&
-      op2 === '-' &&
-      op3 === '-';
+      op1 === "-" &&
+      op2 === "-" &&
+      op3 === "-";
 
-    if (mergeable) {
+    if (mergeable4) {
       out.push({
         ...t0,
-        type: 'account',
-        value: buildAccountCode(v0, v1, v2, v3)
+        type: "account",
+        value: buildAccountCode(v0, v1, v2, v3),
       });
       i += 3;
       continue;
@@ -365,43 +441,55 @@ const convertirTerminosLegacyATokensV2 = (terms = []) => {
   const list = repararTerminosLegacyCuentaFragmentada(terms);
 
   list.forEach((term, idx) => {
-    if (!term || typeof term !== 'object') return;
-    const opRaw = (term.operator || '+').toString().trim();
-    const operator = opRaw === '×' ? '*' : opRaw === '÷' ? '/' : FORMULA_OPERATORS.has(opRaw) ? opRaw : '+';
-    const tipoRaw = (term.type || '').toString().toLowerCase();
-    const valueRaw = (term.value ?? term.cuenta ?? term.id ?? '').toString().trim();
+    if (!term || typeof term !== "object") return;
+    const opRaw = (term.operator || "+").toString().trim();
+    const operator =
+      opRaw === "×"
+        ? "*"
+        : opRaw === "÷"
+          ? "/"
+          : FORMULA_OPERATORS.has(opRaw)
+            ? opRaw
+            : "+";
+    const tipoRaw = (term.type || "").toString().toLowerCase();
+    const valueRaw = (term.value ?? term.cuenta ?? term.id ?? "")
+      .toString()
+      .trim();
 
     let refToken = null;
-    if (tipoRaw === 'constant' || tipoRaw === 'constante') {
-      const num = term.constant != null ? Number(term.constant) : Number(valueRaw);
+    if (tipoRaw === "constant" || tipoRaw === "constante") {
+      const num =
+        term.constant != null ? Number(term.constant) : Number(valueRaw);
       refToken = {
         kind: FORMULA_KIND_CONST,
-        value: Number.isFinite(num) ? num : 0
+        value: Number.isFinite(num) ? num : 0,
       };
     } else {
-      const refType = tipoRaw === 'operation' || tipoRaw === 'operacion'
-        ? 'operation'
-        : tipoRaw === 'account' || tipoRaw === 'cuenta'
-          ? 'account'
-          : 'section';
-      const refId = refType === 'operation'
-        ? construirRefIdOperacion(valueRaw)
-        : refType === 'account'
-          ? construirRefIdCuenta(valueRaw)
-          : construirRefIdSeccion(valueRaw);
+      const refType =
+        tipoRaw === "operation" || tipoRaw === "operacion"
+          ? "operation"
+          : tipoRaw === "account" || tipoRaw === "cuenta"
+            ? "account"
+            : "section";
+      const refId =
+        refType === "operation"
+          ? construirRefIdOperacion(valueRaw)
+          : refType === "account"
+            ? construirRefIdCuenta(valueRaw)
+            : construirRefIdSeccion(valueRaw);
       refToken = {
         kind: FORMULA_KIND_REF,
         refType,
         refId,
         label: valueRaw || refId,
-        unresolved: !refId && Boolean(valueRaw)
+        unresolved: !refId && Boolean(valueRaw),
       };
     }
 
     if (idx === 0) {
-      if (operator === '-') {
+      if (operator === "-") {
         tokens.push({ kind: FORMULA_KIND_CONST, value: 0 });
-        tokens.push({ kind: FORMULA_KIND_OP, value: '-' });
+        tokens.push({ kind: FORMULA_KIND_OP, value: "-" });
       }
     } else {
       tokens.push({ kind: FORMULA_KIND_OP, value: operator });
@@ -412,15 +500,15 @@ const convertirTerminosLegacyATokensV2 = (terms = []) => {
   return tokens;
 };
 
-const tokenizarFormulaTexto = (formula = '') => {
-  const source = (formula || '').toString();
+const tokenizarFormulaTexto = (formula = "") => {
+  const source = (formula || "").toString();
   const tokens = [];
-  let buffer = '';
+  let buffer = "";
 
   const flush = () => {
     const value = buffer.trim();
-    if (value) tokens.push({ kind: 'value', value });
-    buffer = '';
+    if (value) tokens.push({ kind: "value", value });
+    buffer = "";
   };
 
   const getPrevNonSpace = (idx) => {
@@ -428,7 +516,7 @@ const tokenizarFormulaTexto = (formula = '') => {
       const ch = source[i];
       if (!/\s/.test(ch)) return ch;
     }
-    return '';
+    return "";
   };
 
   const getNextNonSpace = (idx) => {
@@ -436,30 +524,30 @@ const tokenizarFormulaTexto = (formula = '') => {
       const ch = source[i];
       if (!/\s/.test(ch)) return ch;
     }
-    return '';
+    return "";
   };
 
   for (let i = 0; i < source.length; i += 1) {
     const ch = source[i];
-    const op = ch === '×' ? '*' : ch === '÷' ? '/' : ch;
-    if (op === '+' || op === '*' || op === '/' || op === '(' || op === ')') {
+    const op = ch === "×" ? "*" : ch === "÷" ? "/" : ch;
+    if (op === "+" || op === "*" || op === "/" || op === "(" || op === ")") {
       flush();
       tokens.push({ kind: FORMULA_KIND_OP, value: op });
       continue;
     }
-    if (op === '-') {
+    if (op === "-") {
       const prev = getPrevNonSpace(i);
       const next = getNextNonSpace(i);
       const isOperatorDash =
         !prev ||
         !next ||
-        /\s/.test(source[i - 1] || '') ||
-        /\s/.test(source[i + 1] || '') ||
-        ['+', '-', '*', '/', '('].includes(prev) ||
-        next === '(';
+        /\s/.test(source[i - 1] || "") ||
+        /\s/.test(source[i + 1] || "") ||
+        ["+", "-", "*", "/", "("].includes(prev) ||
+        next === "(";
       if (isOperatorDash) {
         flush();
-        tokens.push({ kind: FORMULA_KIND_OP, value: '-' });
+        tokens.push({ kind: FORMULA_KIND_OP, value: "-" });
         continue;
       }
     }
@@ -469,20 +557,20 @@ const tokenizarFormulaTexto = (formula = '') => {
   return tokens;
 };
 
-const parsearSeleccionFormulaTexto = (value = '') => {
-  const raw = (value || '').toString().trim();
-  if (!raw) return { label: '', parent: '' };
-  const parts = raw.split('||');
+const parsearSeleccionFormulaTexto = (value = "") => {
+  const raw = (value || "").toString().trim();
+  if (!raw) return { label: "", parent: "" };
+  const parts = raw.split("||");
   if (parts.length > 1) {
-    const parent = parts[0]?.trim() || '';
-    const label = parts.slice(1).join('||').trim();
+    const parent = parts[0]?.trim() || "";
+    const label = parts.slice(1).join("||").trim();
     return { label, parent };
   }
-  return { label: raw, parent: '' };
+  return { label: raw, parent: "" };
 };
 
-const construirTokenTextoFormula = (valueRaw = '') => {
-  const raw = (valueRaw || '').toString().trim();
+const construirTokenTextoFormula = (valueRaw = "") => {
+  const raw = (valueRaw || "").toString().trim();
   if (!raw) return null;
 
   const numericValue = Number(raw);
@@ -494,44 +582,44 @@ const construirTokenTextoFormula = (valueRaw = '') => {
   }
 
   const upper = raw.toUpperCase();
-  if (upper.startsWith('OP::')) {
+  if (upper.startsWith("OP::")) {
     return {
       token: {
         kind: FORMULA_KIND_REF,
-        refType: 'operation',
+        refType: "operation",
         refId: raw,
         label: raw.slice(4) || raw,
       },
       unresolved: false,
     };
   }
-  if (upper.startsWith('ACC::')) {
+  if (upper.startsWith("ACC::")) {
     return {
       token: {
         kind: FORMULA_KIND_REF,
-        refType: 'account',
+        refType: "account",
         refId: raw,
         label: raw.slice(5) || raw,
       },
       unresolved: false,
     };
   }
-  if (upper.startsWith('SUB::')) {
+  if (upper.startsWith("SUB::")) {
     return {
       token: {
         kind: FORMULA_KIND_REF,
-        refType: 'subsection',
+        refType: "subsection",
         refId: raw,
-        label: raw.split('::').slice(-1)[0] || raw,
+        label: raw.split("::").slice(-1)[0] || raw,
       },
       unresolved: false,
     };
   }
-  if (upper.startsWith('SEC::')) {
+  if (upper.startsWith("SEC::")) {
     return {
       token: {
         kind: FORMULA_KIND_REF,
-        refType: 'section',
+        refType: "section",
         refId: raw,
         label: raw.slice(5) || raw,
       },
@@ -544,7 +632,7 @@ const construirTokenTextoFormula = (valueRaw = '') => {
     return {
       token: {
         kind: FORMULA_KIND_REF,
-        refType: 'account',
+        refType: "account",
         refId,
         label: raw,
         unresolved: !refId,
@@ -559,7 +647,7 @@ const construirTokenTextoFormula = (valueRaw = '') => {
     return {
       token: {
         kind: FORMULA_KIND_REF,
-        refType: 'subsection',
+        refType: "subsection",
         refId,
         label: selection.label,
         parentSection: selection.parent,
@@ -573,8 +661,8 @@ const construirTokenTextoFormula = (valueRaw = '') => {
   return {
     token: {
       kind: FORMULA_KIND_REF,
-      refType: 'generic',
-      refId: '',
+      refType: "generic",
+      refId: "",
       label: raw,
       unresolved: false,
     },
@@ -582,8 +670,8 @@ const construirTokenTextoFormula = (valueRaw = '') => {
   };
 };
 
-const parsearFormulaTextoATokensV2 = (formulaRaw = '') => {
-  const raw = (formulaRaw || '').toString().trim();
+const parsearFormulaTextoATokensV2 = (formulaRaw = "") => {
+  const raw = (formulaRaw || "").toString().trim();
   if (!raw) return { valid: true, tokens: [], unresolved: 0 };
 
   const lexical = tokenizarFormulaTexto(raw);
@@ -597,31 +685,31 @@ const parsearFormulaTextoATokensV2 = (formulaRaw = '') => {
     if (!item) continue;
 
     if (item.kind === FORMULA_KIND_OP) {
-      const opValue = (item.value || '').toString().trim();
+      const opValue = (item.value || "").toString().trim();
       if (!FORMULA_OPERATORS.has(opValue)) {
         return { valid: false, tokens: [], unresolved: 0 };
       }
 
-      if (opValue === '(') {
+      if (opValue === "(") {
         if (!expectingValue) return { valid: false, tokens: [], unresolved: 0 };
         balance += 1;
-        tokens.push({ kind: FORMULA_KIND_OP, value: '(' });
+        tokens.push({ kind: FORMULA_KIND_OP, value: "(" });
         expectingValue = true;
         continue;
       }
 
-      if (opValue === ')') {
+      if (opValue === ")") {
         if (expectingValue || balance <= 0) {
           return { valid: false, tokens: [], unresolved: 0 };
         }
         balance -= 1;
-        tokens.push({ kind: FORMULA_KIND_OP, value: ')' });
+        tokens.push({ kind: FORMULA_KIND_OP, value: ")" });
         expectingValue = false;
         continue;
       }
 
       if (expectingValue) {
-        if (opValue === '+' || opValue === '-') {
+        if (opValue === "+" || opValue === "-") {
           tokens.push({ kind: FORMULA_KIND_OP, value: opValue });
           expectingValue = true;
           continue;
@@ -655,7 +743,7 @@ const extraerTokensFormulaOperacion = (op = {}) => {
   const fromJson = parseJsonSeguro(op.formula_json);
   if (
     fromJson &&
-    typeof fromJson === 'object' &&
+    typeof fromJson === "object" &&
     Number(fromJson.version) === FORMULA_V2_VERSION &&
     Array.isArray(fromJson.tokens)
   ) {
@@ -667,7 +755,7 @@ const extraerTokensFormulaOperacion = (op = {}) => {
   }
 
   if (!fromJson) {
-    const rawText = (op?.formula_json || '').toString().trim();
+    const rawText = (op?.formula_json || "").toString().trim();
     if (rawText) {
       const parsedText = parsearFormulaTextoATokensV2(rawText);
       if (parsedText.valid && parsedText.tokens.length) {
@@ -681,24 +769,24 @@ const extraerTokensFormulaOperacion = (op = {}) => {
   }
 
   const terms = [];
-  if (op.signos && typeof op.signos === 'object') {
+  if (op.signos && typeof op.signos === "object") {
     Object.entries(op.signos).forEach(([clave, signo]) => {
-      if (!clave || !clave.startsWith('seccion_')) return;
+      if (!clave || !clave.startsWith("seccion_")) return;
       const valor = op[clave];
       if (!valor) return;
       terms.push({
-        operator: Number(signo) < 0 ? '-' : '+',
-        type: 'section',
-        value: valor
+        operator: Number(signo) < 0 ? "-" : "+",
+        type: "section",
+        value: valor,
       });
     });
   }
 
   if (!terms.length && op.SECCION) {
     terms.push({
-      operator: '+',
-      type: 'section',
-      value: op.SECCION
+      operator: "+",
+      type: "section",
+      value: op.SECCION,
     });
   }
 
@@ -711,11 +799,11 @@ const extraerTokensFormulaOperacion = (op = {}) => {
 
 const tokensV2ATerminosLegacy = (tokens = []) => {
   const terms = [];
-  let operator = '+';
+  let operator = "+";
   (Array.isArray(tokens) ? tokens : []).forEach((token) => {
-    if (!token || typeof token !== 'object') return;
+    if (!token || typeof token !== "object") return;
     if (token.kind === FORMULA_KIND_OP) {
-      const raw = (token.value || '').toString().trim();
+      const raw = (token.value || "").toString().trim();
       if (FORMULA_OPERATORS_ARITH.has(raw)) {
         operator = raw;
       }
@@ -725,26 +813,27 @@ const tokensV2ATerminosLegacy = (tokens = []) => {
       const num = Number(token.value);
       terms.push({
         operator,
-        type: 'constant',
+        type: "constant",
         value: String(Number.isFinite(num) ? num : 0),
-        constant: Number.isFinite(num) ? num : 0
+        constant: Number.isFinite(num) ? num : 0,
       });
-      operator = '+';
+      operator = "+";
       return;
     }
     if (token.kind === FORMULA_KIND_REF) {
-      const refType = (token.refType || '').toString().toLowerCase();
-      const type = refType === 'operation'
-        ? 'operation'
-        : refType === 'account'
-          ? 'account'
-          : 'section';
+      const refType = (token.refType || "").toString().toLowerCase();
+      const type =
+        refType === "operation"
+          ? "operation"
+          : refType === "account"
+            ? "account"
+            : "section";
       terms.push({
         operator,
         type,
-        value: token.label || token.refId || ''
+        value: token.label || token.refId || "",
       });
-      operator = '+';
+      operator = "+";
     }
   });
   return terms;
@@ -754,11 +843,11 @@ const obtenerTerminosOperacion = (op = {}) =>
   tokensV2ATerminosLegacy(extraerTokensFormulaOperacion(op));
 
 const normalizarTerminoTipo = (term) => {
-  if (!term) return 'section';
-  const tipo = (term.type || '').toString().toLowerCase();
+  if (!term) return "section";
+  const tipo = (term.type || "").toString().toLowerCase();
   if (tipo) return tipo;
-  const valor = term.value ?? term.cuenta ?? term.id ?? '';
-  return normalizarCuentaCanonica(valor) ? 'account' : 'section';
+  const valor = term.value ?? term.cuenta ?? term.id ?? "";
+  return normalizarCuentaCanonica(valor) ? "account" : "section";
 };
 
 const sumarTotales = (destino, origen, factor = 1) => {
@@ -773,10 +862,10 @@ const sumarTotales = (destino, origen, factor = 1) => {
 };
 
 const normalizarOperador = (valor) => {
-  const raw = (valor || '+').toString().trim();
-  if (raw === '×') return '*';
-  if (raw === '÷') return '/';
-  return raw || '+';
+  const raw = (valor || "+").toString().trim();
+  if (raw === "×") return "*";
+  if (raw === "÷") return "/";
+  return raw || "+";
 };
 
 const numeroSeguro = (valor) => {
@@ -832,15 +921,15 @@ const dividirTotales = (a, b) => {
 const aplicarOperacionTotales = (acumulado, origen, operador) => {
   const op = normalizarOperador(operador);
   if (!acumulado) {
-    if (op === '-') return escalarTotales(origen, -1);
+    if (op === "-") return escalarTotales(origen, -1);
     return clonarTotales(origen);
   }
   switch (op) {
-    case '-':
+    case "-":
       return sumarTotales(acumulado, origen, -1);
-    case '*':
+    case "*":
       return multiplicarTotales(acumulado, origen);
-    case '/':
+    case "/":
       return dividirTotales(acumulado, origen);
     default:
       return sumarTotales(acumulado, origen, 1);
@@ -852,11 +941,11 @@ const aplicarOperacionBinariaTotales = (izquierda, derecha, operador) => {
   const left = clonarTotales(izquierda);
   const right = clonarTotales(derecha);
   switch (op) {
-    case '-':
+    case "-":
       return sumarTotales(left, right, -1);
-    case '*':
+    case "*":
       return multiplicarTotales(left, right);
-    case '/':
+    case "/":
       return dividirTotales(left, right);
     default:
       return sumarTotales(left, right, 1);
@@ -867,9 +956,9 @@ const normalizarOperadorExpresion = (operador, index = 0) => {
   const op = normalizarOperador(operador);
   if (index === 0) {
     // El primer término solo admite signo unario (+/-).
-    return op === '-' ? '-' : '+';
+    return op === "-" ? "-" : "+";
   }
-  return ['+', '-', '*', '/'].includes(op) ? op : '+';
+  return ["+", "-", "*", "/"].includes(op) ? op : "+";
 };
 
 const evaluarFormulaTotalesConJerarquia = (terminos = []) => {
@@ -880,7 +969,7 @@ const evaluarFormulaTotalesConJerarquia = (terminos = []) => {
 
   const firstOp = normalizarOperadorExpresion(terms[0].operator, 0);
   let primerValor = clonarTotales(terms[0].totals);
-  if (firstOp === '-') {
+  if (firstOp === "-") {
     primerValor = escalarTotales(primerValor, -1);
   }
 
@@ -890,10 +979,10 @@ const evaluarFormulaTotalesConJerarquia = (terminos = []) => {
   for (let i = 1; i < terms.length; i += 1) {
     const op = normalizarOperadorExpresion(terms[i].operator, i);
     const valor = clonarTotales(terms[i].totals);
-    if (op === '*' || op === '/') {
+    if (op === "*" || op === "/") {
       const anterior = valoresColapsados.pop() || crearAcumulador();
       valoresColapsados.push(
-        aplicarOperacionBinariaTotales(anterior, valor, op)
+        aplicarOperacionBinariaTotales(anterior, valor, op),
       );
       continue;
     }
@@ -913,38 +1002,40 @@ const evaluarFormulaTotalesConJerarquia = (terminos = []) => {
 
 const normalizarTokensConUnarios = (tokens = []) => {
   const out = [];
-  let prevKind = 'start';
+  let prevKind = "start";
 
   (Array.isArray(tokens) ? tokens : []).forEach((token) => {
-    if (!token || typeof token !== 'object') return;
+    if (!token || typeof token !== "object") return;
     if (token.kind === FORMULA_KIND_OP) {
-      const op = (token.value || '').toString().trim();
+      const op = (token.value || "").toString().trim();
       if (!FORMULA_OPERATORS.has(op)) return;
-      const unary = (op === '+' || op === '-') && (prevKind === 'start' || prevKind === 'op' || prevKind === 'open');
+      const unary =
+        (op === "+" || op === "-") &&
+        (prevKind === "start" || prevKind === "op" || prevKind === "open");
       if (unary) {
-        if (op === '-') {
+        if (op === "-") {
           out.push({ kind: FORMULA_KIND_CONST, value: 0 });
-          out.push({ kind: FORMULA_KIND_OP, value: '-' });
-          prevKind = 'op';
+          out.push({ kind: FORMULA_KIND_OP, value: "-" });
+          prevKind = "op";
         }
         return;
       }
       out.push({ kind: FORMULA_KIND_OP, value: op });
-      prevKind = op === '(' ? 'open' : op === ')' ? 'close' : 'op';
+      prevKind = op === "(" ? "open" : op === ")" ? "close" : "op";
       return;
     }
     if (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST) {
       out.push(token);
-      prevKind = 'value';
+      prevKind = "value";
     }
   });
 
   return out;
 };
 
-const precedenciaOperador = (op = '') => {
-  if (op === '*' || op === '/') return 2;
-  if (op === '+' || op === '-') return 1;
+const precedenciaOperador = (op = "") => {
+  if (op === "*" || op === "/") return 2;
+  if (op === "+" || op === "-") return 1;
   return 0;
 };
 
@@ -953,24 +1044,24 @@ const convertirInfijoARpn = (tokens = []) => {
   const stack = [];
 
   (Array.isArray(tokens) ? tokens : []).forEach((token) => {
-    if (!token || typeof token !== 'object') return;
+    if (!token || typeof token !== "object") return;
     if (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST) {
       output.push(token);
       return;
     }
     if (token.kind !== FORMULA_KIND_OP) return;
-    const op = (token.value || '').toString().trim();
+    const op = (token.value || "").toString().trim();
     if (!FORMULA_OPERATORS.has(op)) return;
 
-    if (op === '(') {
+    if (op === "(") {
       stack.push(token);
       return;
     }
-    if (op === ')') {
-      while (stack.length && stack[stack.length - 1].value !== '(') {
+    if (op === ")") {
+      while (stack.length && stack[stack.length - 1].value !== "(") {
         output.push(stack.pop());
       }
-      if (stack.length && stack[stack.length - 1].value === '(') {
+      if (stack.length && stack[stack.length - 1].value === "(") {
         stack.pop();
       }
       return;
@@ -978,8 +1069,8 @@ const convertirInfijoARpn = (tokens = []) => {
 
     while (stack.length) {
       const top = stack[stack.length - 1];
-      const topOp = (top?.value || '').toString().trim();
-      if (topOp === '(') break;
+      const topOp = (top?.value || "").toString().trim();
+      if (topOp === "(") break;
       if (precedenciaOperador(topOp) >= precedenciaOperador(op)) {
         output.push(stack.pop());
       } else {
@@ -991,7 +1082,7 @@ const convertirInfijoARpn = (tokens = []) => {
 
   while (stack.length) {
     const top = stack.pop();
-    if ((top?.value || '').toString().trim() === '(') continue;
+    if ((top?.value || "").toString().trim() === "(") continue;
     output.push(top);
   }
 
@@ -1005,16 +1096,15 @@ const evaluarTokensFormula = (tokens = [], resolverToken) => {
   const stack = [];
 
   (Array.isArray(rpn) ? rpn : []).forEach((token) => {
-    if (!token || typeof token !== 'object') return;
+    if (!token || typeof token !== "object") return;
     if (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST) {
-      const totals = typeof resolverToken === 'function'
-        ? resolverToken(token)
-        : null;
+      const totals =
+        typeof resolverToken === "function" ? resolverToken(token) : null;
       stack.push(clonarTotales(totals || crearAcumulador()));
       return;
     }
     if (token.kind !== FORMULA_KIND_OP) return;
-    const op = (token.value || '').toString().trim();
+    const op = (token.value || "").toString().trim();
     if (!FORMULA_OPERATORS_ARITH.has(op)) return;
     const right = stack.pop() || crearAcumulador();
     const left = stack.pop() || crearAcumulador();
@@ -1032,7 +1122,7 @@ const construirNodoSeccion = ({
   planeacionData,
   usarTotalesAutomaticos = true,
   orden = 0,
-  ordenIndex = 0
+  ordenIndex = 0,
 }) => {
   const totales = usarTotalesAutomaticos
     ? calcularTotales(cuentas, planeacionData, definicion)
@@ -1052,14 +1142,14 @@ const construirNodoSeccion = ({
       cuentaCanonica: cuentaId,
       orden: metadataCuenta.orden,
       ordenIndex: metadataCuenta.ordenIndex ?? 0,
-      descripcion: metadataCuenta.descripcion || '',
+      descripcion: metadataCuenta.descripcion || "",
       actualMonth: factor * Number(actual.actualMonth ?? 0),
       planMonth: factor * Number(actual.planMonth ?? 0),
       prevMonth: factor * Number(actual.prevMonth ?? 0),
       actualYTD: factor * Number(actual.actualYTD ?? 0),
       planYTD: factor * Number(actual.planYTD ?? 0),
       prevYTD: factor * Number(actual.prevYTD ?? 0),
-      factor
+      factor,
     };
   });
 
@@ -1074,7 +1164,7 @@ const construirNodoSeccion = ({
     totalActualYTD: totales.actualYTD,
     totalPlanYTD: totales.planYTD,
     totalPrevYTD: totales.prevYTD,
-    total: totales.actualYTD
+    total: totales.actualYTD,
   };
 };
 
@@ -1083,12 +1173,12 @@ const construirReporteResumen = (
   configAgrupacion,
   capituloSeleccionado,
   planeacionData,
-  opciones = {}
+  opciones = {},
 ) => {
   const definicionCuentas = new Map();
   const principalMap = new Map();
 
-  const capituloClave = NORMALIZAR_CAPITULO(capituloSeleccionado || '');
+  const capituloClave = NORMALIZAR_CAPITULO(capituloSeleccionado || "");
   const manualOrderRequested = Boolean(opciones?.ordenManualTotal);
   // Modo estricto: headers (principal/secundaria) y operaciones sin fórmula no se calculan automáticamente.
   const modoFormulaEstricto = Boolean(opciones?.modoFormulaEstricto);
@@ -1130,7 +1220,7 @@ const construirReporteResumen = (
   };
 
   const normalizarConfigValor = (valor) => {
-    if (valor == null) return '';
+    if (valor == null) return "";
     return valor.toString().trim();
   };
 
@@ -1140,18 +1230,22 @@ const construirReporteResumen = (
     configAgrupacion.forEach((cfg, idx) => {
       const cap = NORMALIZAR_CAPITULO(cfg.CAPITULO);
       if (cap !== capituloClave) return;
-      const seccion = (cfg.SECCION || '').toString().trim();
+      const seccion = (cfg.SECCION || "").toString().trim();
       const ordenConfig = obtenerOrden(cfg, idx);
 
-      const sumRow = normalizarConfigValor(cfg['sum-row']);
-      const principal = normalizarConfigValor(cfg['sum-row-sumavarios']);
-      const consolidado = normalizarConfigValor(cfg['sum-row-sumavarios-consolidado']);
-      const operativo = normalizarConfigValor(cfg['sum-row-operativo']);
-      const operativoConsolidado = normalizarConfigValor(cfg['sum-row-operativo-consolidado']);
-      const resultRow = normalizarConfigValor(cfg['result-row']);
-      const netRow = normalizarConfigValor(cfg['net-row']);
-      const netRowAdicional = normalizarConfigValor(cfg['net-row-adicional']);
-      const resultNetRow = normalizarConfigValor(cfg['result-net-row']);
+      const sumRow = normalizarConfigValor(cfg["sum-row"]);
+      const principal = normalizarConfigValor(cfg["sum-row-sumavarios"]);
+      const consolidado = normalizarConfigValor(
+        cfg["sum-row-sumavarios-consolidado"],
+      );
+      const operativo = normalizarConfigValor(cfg["sum-row-operativo"]);
+      const operativoConsolidado = normalizarConfigValor(
+        cfg["sum-row-operativo-consolidado"],
+      );
+      const resultRow = normalizarConfigValor(cfg["result-row"]);
+      const netRow = normalizarConfigValor(cfg["net-row"]);
+      const netRowAdicional = normalizarConfigValor(cfg["net-row-adicional"]);
+      const resultNetRow = normalizarConfigValor(cfg["result-net-row"]);
       const clase = normalizarConfigValor(cfg.Clase);
 
       const registrarOrden = (mapa, label) => {
@@ -1233,7 +1327,7 @@ const construirReporteResumen = (
         resultNetRow,
         clase,
         orden: ordenConfig,
-        seccionLabel: seccion
+        seccionLabel: seccion,
       };
       const principalBase = configEntry.principal;
       configEntry.principalLabel = principalBase;
@@ -1257,14 +1351,14 @@ const construirReporteResumen = (
 
   const definicionesOrdenadas = Array.isArray(definiciones)
     ? definiciones
-      .map((item, idx) => ({ item, idx }))
-      .sort((a, b) => {
-        const ordenA = obtenerOrden(a.item, a.idx);
-        const ordenB = obtenerOrden(b.item, b.idx);
-        if (ordenA !== ordenB) return ordenA - ordenB;
-        return a.idx - b.idx;
-      })
-      .map(({ item }) => item)
+        .map((item, idx) => ({ item, idx }))
+        .sort((a, b) => {
+          const ordenA = obtenerOrden(a.item, a.idx);
+          const ordenB = obtenerOrden(b.item, b.idx);
+          if (ordenA !== ordenB) return ordenA - ordenB;
+          return a.idx - b.idx;
+        })
+        .map(({ item }) => item)
     : [];
 
   // Procesar definiciones RESPETANDO el orden de presentación
@@ -1287,33 +1381,35 @@ const construirReporteResumen = (
   };
 
   definicionesOrdenadas.forEach((item, idx) => {
-    const capReal = NORMALIZAR_CAPITULO(item.CAPITULO || '');
+    const capReal = NORMALIZAR_CAPITULO(item.CAPITULO || "");
     if (capReal !== capituloClave) return;
     const cuentaOrden = obtenerOrden(item, idx);
 
     const seccion = (
-      item['SECCION Secundaria'] ||
-      item['SECCIÓN Secundaria'] ||
-      item['Sección'] ||
-      item['SECCION'] ||
-      ''
-    ).toString().trim();
+      item["SECCION Secundaria"] ||
+      item["SECCIÓN Secundaria"] ||
+      item["Sección"] ||
+      item["SECCION"] ||
+      ""
+    )
+      .toString()
+      .trim();
     const keyConfig = `${capituloClave}|${seccion.toUpperCase()}`;
     let config = configPorSeccion.get(keyConfig) || {};
 
     let principalLabel =
-      item['SECCIÓN Principal'] ||
-      item['SECCION Principal'] ||
-      item['SECCIàN Principal'] ||
-      (!manualOrderRequested ? (config.principal || 'GENERAL') : '');
+      item["SECCIÓN Principal"] ||
+      item["SECCION Principal"] ||
+      item["SECCIàN Principal"] ||
+      (!manualOrderRequested ? config.principal || "GENERAL" : "");
     if (!config || !Object.keys(config).length) {
       const principalKeyFallback = `${capituloClave}|PRINCIPAL|${principalLabel.toUpperCase()}`;
       config = configPorPrincipal.get(principalKeyFallback) || {};
       const itemPrincipalValor =
-        item['SECCIÓN Principal'] ||
-        item['SECCION Principal'] ||
-        item['SECCIàN Principal'] ||
-        '';
+        item["SECCIÓN Principal"] ||
+        item["SECCION Principal"] ||
+        item["SECCIàN Principal"] ||
+        "";
       if (
         !manualOrderRequested &&
         (!itemPrincipalValor || !itemPrincipalValor.toString().trim()) &&
@@ -1322,13 +1418,16 @@ const construirReporteResumen = (
         principalLabel = config.principal;
       }
     }
-    principalLabel = (principalLabel || '').toString().trim();
-    const principalKey = principalLabel ? NORMALIZAR_CLAVE(principalLabel) : '__ROOT__';
+    principalLabel = (principalLabel || "").toString().trim();
+    const principalKey = principalLabel
+      ? NORMALIZAR_CLAVE(principalLabel)
+      : "__ROOT__";
 
     let cuentaCanonica = normalizarCuentaCanonica(item.CUENTA);
-    const cuentaOriginal = (item.CUENTA || '').toString().trim();
+    const cuentaOriginal = (item.CUENTA || "").toString().trim();
     const esCuentaVirtual =
-      !cuentaCanonica && (!cuentaOriginal || cuentaOriginal === '-' || cuentaOriginal === '0');
+      !cuentaCanonica &&
+      (!cuentaOriginal || cuentaOriginal === "-" || cuentaOriginal === "0");
     if (esCuentaVirtual) {
       cuentaCanonica = `VIRTUAL|${capituloClave}|${principalLabel}|${seccion}|${idx}`;
       item.__esVirtual = true;
@@ -1337,18 +1436,19 @@ const construirReporteResumen = (
     if (!cuentaCanonica) return;
 
     const cuentaVisible = esCuentaVirtual
-      ? (item.NOMBRE || seccion || principalLabel)
+      ? item.NOMBRE || seccion || principalLabel
       : cuentaVisibleDesdeCanonica(cuentaCanonica);
-    const factorRaw = item.operacion_factor ?? item.operacionFactor ?? item.factor;
+    const factorRaw =
+      item.operacion_factor ?? item.operacionFactor ?? item.factor;
     const factor = Number.isFinite(Number(factorRaw)) ? Number(factorRaw) : 1;
 
     definicionCuentas.set(cuentaCanonica, {
-      descripcion: item.NOMBRE || '',
+      descripcion: item.NOMBRE || "",
       visible: cuentaVisible,
       orden: cuentaOrden,
       ordenIndex: idx,
       esVirtual: esCuentaVirtual,
-      operacion_factor: factor
+      operacion_factor: factor,
     });
 
     // Registrar la primera aparición de cada Principal (orden mínimo)
@@ -1356,34 +1456,36 @@ const construirReporteResumen = (
       principalFirstAppearance,
       principalKey,
       cuentaOrden,
-      idx
+      idx,
     );
 
     if (!principalMap.has(principalKey)) {
       principalMap.set(principalKey, {
         key: principalKey,
         label: principalLabel,
-        clase: (config.clase || '').toString(),
-        consolidadoLabel: config.consolidado || '',
-        operativoLabel: config.operativo || '',
-        operativoConsolidado: config.operativoConsolidado || '',
-        resultRow: config.resultRow || '',
-        netRow: config.netRow || '',
-        netRowAdicional: config.netRowAdicional || '',
-        resultNetRow: config.resultNetRow || '',
+        clase: (config.clase || "").toString(),
+        consolidadoLabel: config.consolidado || "",
+        operativoLabel: config.operativo || "",
+        operativoConsolidado: config.operativoConsolidado || "",
+        resultRow: config.resultRow || "",
+        netRow: config.netRow || "",
+        netRowAdicional: config.netRowAdicional || "",
+        resultNetRow: config.resultNetRow || "",
         orden: principalFirstAppearance.get(principalKey)?.orden ?? 0,
         ordenIndex: principalFirstAppearance.get(principalKey)?.idx ?? 0,
-        secciones: new Map()
+        secciones: new Map(),
       });
     }
 
     const principalNode = principalMap.get(principalKey);
     // En modo manual: subsección sin principal no existe -> tratar como "libre" (sin sección).
-    let seccionLabel = seccion || '';
+    let seccionLabel = seccion || "";
     if (manualOrderRequested && !principalLabel) {
-      seccionLabel = '';
+      seccionLabel = "";
     }
-    const seccionKey = seccionLabel ? NORMALIZAR_CLAVE(seccionLabel) : '__SECTION_LEVEL__';
+    const seccionKey = seccionLabel
+      ? NORMALIZAR_CLAVE(seccionLabel)
+      : "__SECTION_LEVEL__";
     const seccionOrderKey = `${principalKey}||${seccionKey}`;
 
     // Registrar la primera aparición de cada Secundaria (orden mínimo)
@@ -1391,7 +1493,7 @@ const construirReporteResumen = (
       seccionFirstAppearance,
       seccionOrderKey,
       cuentaOrden,
-      idx
+      idx,
     );
 
     if (config.consolidado && !principalNode.consolidadoLabel) {
@@ -1421,7 +1523,7 @@ const construirReporteResumen = (
         label: seccionLabel,
         cuentas: [],
         orden: seccionFirstAppearance.get(seccionOrderKey)?.orden ?? 0,
-        ordenIndex: seccionFirstAppearance.get(seccionOrderKey)?.idx ?? 0
+        ordenIndex: seccionFirstAppearance.get(seccionOrderKey)?.idx ?? 0,
       });
     }
 
@@ -1429,22 +1531,34 @@ const construirReporteResumen = (
     principalNode.secciones.get(seccionKey).cuentas.push(cuentaCanonica);
   });
 
-  const asegurarPrincipalDesdeConfig = (cfg = {}, etiquetaPrincipal = '') => {
-    const principalLabel = (etiquetaPrincipal || cfg.principalLabel || cfg.principal || '')
+  const asegurarPrincipalDesdeConfig = (cfg = {}, etiquetaPrincipal = "") => {
+    const principalLabel = (
+      etiquetaPrincipal ||
+      cfg.principalLabel ||
+      cfg.principal ||
+      ""
+    )
       .toString()
       .trim();
     if (!principalLabel) return null;
     const principalKey = NORMALIZAR_CLAVE(principalLabel);
     const existente = principalMap.get(principalKey);
     if (existente) {
-      if (!existente.clase && cfg.clase) existente.clase = (cfg.clase || '').toString();
-      if (!existente.consolidadoLabel && cfg.consolidado) existente.consolidadoLabel = cfg.consolidado;
-      if (!existente.operativoLabel && cfg.operativo) existente.operativoLabel = cfg.operativo;
-      if (!existente.operativoConsolidado && cfg.operativoConsolidado) existente.operativoConsolidado = cfg.operativoConsolidado;
-      if (!existente.resultRow && cfg.resultRow) existente.resultRow = cfg.resultRow;
+      if (!existente.clase && cfg.clase)
+        existente.clase = (cfg.clase || "").toString();
+      if (!existente.consolidadoLabel && cfg.consolidado)
+        existente.consolidadoLabel = cfg.consolidado;
+      if (!existente.operativoLabel && cfg.operativo)
+        existente.operativoLabel = cfg.operativo;
+      if (!existente.operativoConsolidado && cfg.operativoConsolidado)
+        existente.operativoConsolidado = cfg.operativoConsolidado;
+      if (!existente.resultRow && cfg.resultRow)
+        existente.resultRow = cfg.resultRow;
       if (!existente.netRow && cfg.netRow) existente.netRow = cfg.netRow;
-      if (!existente.netRowAdicional && cfg.netRowAdicional) existente.netRowAdicional = cfg.netRowAdicional;
-      if (!existente.resultNetRow && cfg.resultNetRow) existente.resultNetRow = cfg.resultNetRow;
+      if (!existente.netRowAdicional && cfg.netRowAdicional)
+        existente.netRowAdicional = cfg.netRowAdicional;
+      if (!existente.resultNetRow && cfg.resultNetRow)
+        existente.resultNetRow = cfg.resultNetRow;
       return existente;
     }
     const ordenCfg = Number.isFinite(Number(cfg?.orden))
@@ -1458,18 +1572,18 @@ const construirReporteResumen = (
     const principal = {
       key: principalKey,
       label: principalLabel,
-      clase: (cfg.clase || '').toString(),
-      consolidadoLabel: cfg.consolidado || '',
-      operativoLabel: cfg.operativo || '',
-      operativoConsolidado: cfg.operativoConsolidado || '',
-      resultRow: cfg.resultRow || '',
-      netRow: cfg.netRow || '',
-      netRowAdicional: cfg.netRowAdicional || '',
-      resultNetRow: cfg.resultNetRow || '',
+      clase: (cfg.clase || "").toString(),
+      consolidadoLabel: cfg.consolidado || "",
+      operativoLabel: cfg.operativo || "",
+      operativoConsolidado: cfg.operativoConsolidado || "",
+      resultRow: cfg.resultRow || "",
+      netRow: cfg.netRow || "",
+      netRowAdicional: cfg.netRowAdicional || "",
+      resultNetRow: cfg.resultNetRow || "",
       orden: ordenPrincipal,
       ordenIndex: principalMap.size + principalOrden.size,
       secciones: new Map(),
-      esVirtual: true
+      esVirtual: true,
     };
     principalMap.set(principalKey, principal);
     return principal;
@@ -1479,7 +1593,7 @@ const construirReporteResumen = (
   // creados a partir de configAgrupacion. Solo deben existir si hay cuentas reales.
   // manualOrderRequested ya está declarado al inicio de la función
   const includeEmptyConfiguredSections = Boolean(
-    opciones?.includeEmptyConfiguredSections ?? !manualOrderRequested
+    opciones?.includeEmptyConfiguredSections ?? !manualOrderRequested,
   );
 
   if (includeEmptyConfiguredSections) {
@@ -1492,17 +1606,19 @@ const construirReporteResumen = (
     // Asegurar que todas las secciones configuradas existan aunque estén vacías.
     // Nota: no forzamos 'GENERAL' si la config no define principal; eso genera secciones duplicadas no deseadas.
     configPorSeccion.forEach((cfg = {}) => {
-      const seccionLabel = normalizarConfigValor(cfg.seccionLabel || '');
+      const seccionLabel = normalizarConfigValor(cfg.seccionLabel || "");
       if (!seccionLabel) return;
 
       const principalLabel = normalizarConfigValor(
-        cfg.principalLabel || cfg.principal || ''
+        cfg.principalLabel || cfg.principal || "",
       );
       if (!principalLabel) return;
 
       const principal = asegurarPrincipalDesdeConfig(cfg, principalLabel);
       if (!principal) return;
-      const seccionKey = seccionLabel ? NORMALIZAR_CLAVE(seccionLabel) : '__SECTION_LEVEL__';
+      const seccionKey = seccionLabel
+        ? NORMALIZAR_CLAVE(seccionLabel)
+        : "__SECTION_LEVEL__";
       if (principal.secciones.has(seccionKey)) return;
 
       const ordenSeccion = Number.isFinite(Number(cfg?.orden))
@@ -1511,10 +1627,10 @@ const construirReporteResumen = (
           ? seccionOrden.get(seccionLabel)
           : principal.secciones.size;
       principal.secciones.set(seccionKey, {
-        label: seccionLabel || '',
+        label: seccionLabel || "",
         cuentas: [],
         orden: ordenSeccion,
-        ordenIndex: principal.secciones.size
+        ordenIndex: principal.secciones.size,
       });
     });
   }
@@ -1527,7 +1643,7 @@ const construirReporteResumen = (
     principalMap.forEach((principal) => {
       if (!principal?.label) return;
       principal.secciones?.forEach((sec) => {
-        const label = (sec?.label || '').toString().trim();
+        const label = (sec?.label || "").toString().trim();
         if (!label) return;
         const key = normalizarTexto(label);
         if (!key) return;
@@ -1539,7 +1655,7 @@ const construirReporteResumen = (
     });
 
     const ensurePrincipalNode = (label) => {
-      const clean = (label || '').toString().trim();
+      const clean = (label || "").toString().trim();
       if (!clean) return null;
       const key = NORMALIZAR_CLAVE(clean);
       if (!key) return null;
@@ -1548,14 +1664,14 @@ const construirReporteResumen = (
         principalMap.set(key, {
           key,
           label: clean,
-          clase: '',
-          consolidadoLabel: '',
-          operativoLabel: '',
-          operativoConsolidado: '',
-          resultRow: '',
-          netRow: '',
-          netRowAdicional: '',
-          resultNetRow: '',
+          clase: "",
+          consolidadoLabel: "",
+          operativoLabel: "",
+          operativoConsolidado: "",
+          resultRow: "",
+          netRow: "",
+          netRowAdicional: "",
+          resultNetRow: "",
           orden: principalFirstAppearance.get(key)?.orden ?? 0,
           ordenIndex: principalFirstAppearance.get(key)?.idx ?? 0,
           secciones: new Map(),
@@ -1567,30 +1683,37 @@ const construirReporteResumen = (
 
     const ensureSeccionNode = (principalNode, seccionLabel) => {
       if (!principalNode) return null;
-      const label = (seccionLabel || '').toString().trim();
-      const seccionKey = label ? NORMALIZAR_CLAVE(label) : '__SECTION_LEVEL__';
+      const label = (seccionLabel || "").toString().trim();
+      const seccionKey = label ? NORMALIZAR_CLAVE(label) : "__SECTION_LEVEL__";
       if (!principalNode.secciones.has(seccionKey)) {
         const orderKey = `${principalNode.key}||${seccionKey}`;
         principalNode.secciones.set(seccionKey, {
-          label: label || '',
+          label: label || "",
           cuentas: [],
-          orden: seccionFirstAppearance.get(orderKey)?.orden ?? principalNode.orden ?? 0,
-          ordenIndex: seccionFirstAppearance.get(orderKey)?.idx ?? principalNode.secciones.size,
+          orden:
+            seccionFirstAppearance.get(orderKey)?.orden ??
+            principalNode.orden ??
+            0,
+          ordenIndex:
+            seccionFirstAppearance.get(orderKey)?.idx ??
+            principalNode.secciones.size,
         });
       }
       return principalNode.secciones.get(seccionKey);
     };
 
-    const opsOrdenadas = (Array.isArray(configAgrupacion) ? configAgrupacion : [])
+    const opsOrdenadas = (
+      Array.isArray(configAgrupacion) ? configAgrupacion : []
+    )
       .filter((op) => NORMALIZAR_CAPITULO(op.CAPITULO) === capituloClave)
       .filter((op) => !esOperacionConfigColumnas(op))
       .map((op, idx) => ({ op, idx, orden: obtenerOrden(op, idx) }))
-      .sort((a, b) => (a.orden - b.orden) || (a.idx - b.idx));
+      .sort((a, b) => a.orden - b.orden || a.idx - b.idx);
 
     opsOrdenadas.forEach(({ op, idx, orden }) => {
-      const placement = (op?.SECCION || op?.seccion || '').toString().trim();
-      const parentSection = (op?.parentSection || '').toString().trim();
-      const parentSubsection = (op?.parentSubsection || '').toString().trim();
+      const placement = (op?.SECCION || op?.seccion || "").toString().trim();
+      const parentSection = (op?.parentSection || "").toString().trim();
+      const parentSubsection = (op?.parentSubsection || "").toString().trim();
 
       let principalLabel = parentSection;
       let seccionLabel = parentSubsection;
@@ -1599,7 +1722,7 @@ const construirReporteResumen = (
         // placement puede ser principal o subsección (secundaria)
         const placementKey = normalizarTexto(placement);
         const principalMatch = Array.from(principalMap.values()).find(
-          (p) => normalizarTexto(p?.label || '') === placementKey
+          (p) => normalizarTexto(p?.label || "") === placementKey,
         );
         if (principalMatch?.label) {
           principalLabel = principalMatch.label;
@@ -1615,14 +1738,19 @@ const construirReporteResumen = (
       if (principalLabel && !seccionLabel && placement) {
         const placementKey = normalizarTexto(placement);
         if (placementKey && normalizarTexto(principalLabel) !== placementKey) {
-          const principalNode = principalMap.get(NORMALIZAR_CLAVE(principalLabel));
+          const principalNode = principalMap.get(
+            NORMALIZAR_CLAVE(principalLabel),
+          );
           const hasSecInPrincipal = principalNode
             ? Array.from(principalNode.secciones.values()).some(
-              (sec) => normalizarTexto(sec?.label || '') === placementKey
-            )
+                (sec) => normalizarTexto(sec?.label || "") === placementKey,
+              )
             : false;
           const candidates = principalPorSubseccion.get(placementKey);
-          if (hasSecInPrincipal || (candidates && candidates.has(principalLabel))) {
+          if (
+            hasSecInPrincipal ||
+            (candidates && candidates.has(principalLabel))
+          ) {
             seccionLabel = placement;
           }
         }
@@ -1637,7 +1765,12 @@ const construirReporteResumen = (
       // Las operaciones de config (sum-row, result-row, etc.) tienen orden_presentacion=0
       // y contaminan principalFirstAppearance haciendo que todos los principales tengan orden=0.
       if (esOperacionLibre(op)) {
-        actualizarPrimeraAparicion(principalFirstAppearance, principalKey, orden, idx);
+        actualizarPrimeraAparicion(
+          principalFirstAppearance,
+          principalKey,
+          orden,
+          idx,
+        );
       }
       const principalNode = ensurePrincipalNode(principalLabel);
 
@@ -1645,7 +1778,12 @@ const construirReporteResumen = (
         const seccionKey = NORMALIZAR_CLAVE(seccionLabel);
         const seccionOrderKey = `${principalKey}||${seccionKey}`;
         if (esOperacionLibre(op)) {
-          actualizarPrimeraAparicion(seccionFirstAppearance, seccionOrderKey, orden, idx);
+          actualizarPrimeraAparicion(
+            seccionFirstAppearance,
+            seccionOrderKey,
+            orden,
+            idx,
+          );
         }
         ensureSeccionNode(principalNode, seccionLabel);
       }
@@ -1673,71 +1811,81 @@ const construirReporteResumen = (
     const ordenA = Number.isFinite(Number(a.orden)) ? Number(a.orden) : 0;
     const ordenB = Number.isFinite(Number(b.orden)) ? Number(b.orden) : 0;
     if (ordenA !== ordenB) return ordenA - ordenB;
-    const idxA = Number.isFinite(Number(a.ordenIndex)) ? Number(a.ordenIndex) : 0;
-    const idxB = Number.isFinite(Number(b.ordenIndex)) ? Number(b.ordenIndex) : 0;
+    const idxA = Number.isFinite(Number(a.ordenIndex))
+      ? Number(a.ordenIndex)
+      : 0;
+    const idxB = Number.isFinite(Number(b.ordenIndex))
+      ? Number(b.ordenIndex)
+      : 0;
     return idxA - idxB;
   };
 
-  let principalList = Array.from(principalMap.values()).map((principal) => {
-    const seccionesOrdenadas = Array.from(principal.secciones.values()).sort(sortByOrden);
-    const children = seccionesOrdenadas.map((sec) => {
-      const cuentasOrdenadas = (sec.cuentas || [])
-        .slice()
-        .sort(
-          (a, b) =>
-            (definicionCuentas.get(a)?.orden ?? 0) -
-            (definicionCuentas.get(b)?.orden ?? 0) ||
-            (definicionCuentas.get(a)?.ordenIndex ?? 0) -
-            (definicionCuentas.get(b)?.ordenIndex ?? 0)
-        );
-      return construirNodoSeccion({
-        seccion: sec.label,
-        cuentas: cuentasOrdenadas,
-        definicion: definicionCuentas,
-        planeacionData,
-        usarTotalesAutomaticos: !modoFormulaEstricto,
-        orden: sec.orden,
-        ordenIndex: sec.ordenIndex ?? 0
-      });
-    });
-
-    const totalesPrincipal = modoFormulaEstricto
-      ? crearAcumulador()
-      : children.reduce(
-        (acc, nodo) => ({
-          actualMonth: acc.actualMonth + nodo.totalActualMonth,
-          planMonth: acc.planMonth + nodo.totalPlanMonth,
-          prevMonth: acc.prevMonth + nodo.totalPrevMonth,
-          actualYTD: acc.actualYTD + nodo.totalActualYTD,
-          planYTD: acc.planYTD + nodo.totalPlanYTD,
-          prevYTD: acc.prevYTD + nodo.totalPrevYTD
-        }),
-        crearAcumulador()
+  let principalList = Array.from(principalMap.values())
+    .map((principal) => {
+      const seccionesOrdenadas = Array.from(principal.secciones.values()).sort(
+        sortByOrden,
       );
+      const children = seccionesOrdenadas.map((sec) => {
+        const cuentasOrdenadas = (sec.cuentas || [])
+          .slice()
+          .sort(
+            (a, b) =>
+              (definicionCuentas.get(a)?.orden ?? 0) -
+                (definicionCuentas.get(b)?.orden ?? 0) ||
+              (definicionCuentas.get(a)?.ordenIndex ?? 0) -
+                (definicionCuentas.get(b)?.ordenIndex ?? 0),
+          );
+        return construirNodoSeccion({
+          seccion: sec.label,
+          cuentas: cuentasOrdenadas,
+          definicion: definicionCuentas,
+          planeacionData,
+          usarTotalesAutomaticos: !modoFormulaEstricto,
+          orden: sec.orden,
+          ordenIndex: sec.ordenIndex ?? 0,
+        });
+      });
 
-    const clase = (principal.clase || '').toLowerCase();
-    const sign = clase.includes('expense') ? -1 : 1;
+      const totalesPrincipal = modoFormulaEstricto
+        ? crearAcumulador()
+        : children.reduce(
+            (acc, nodo) => ({
+              actualMonth: acc.actualMonth + nodo.totalActualMonth,
+              planMonth: acc.planMonth + nodo.totalPlanMonth,
+              prevMonth: acc.prevMonth + nodo.totalPrevMonth,
+              actualYTD: acc.actualYTD + nodo.totalActualYTD,
+              planYTD: acc.planYTD + nodo.totalPlanYTD,
+              prevYTD: acc.prevYTD + nodo.totalPrevYTD,
+            }),
+            crearAcumulador(),
+          );
 
-    return {
-      label: principal.label ? principal.label.trim() : '',
-      children,
-      ...totalesPrincipal,
-      total: totalesPrincipal.actualYTD,
-      orden: principal.orden,
-      ordenIndex: principal.ordenIndex ?? 0,
-      consolidadoLabel: normalizarConfigValor(principal.consolidadoLabel),
-      operativoLabel: normalizarConfigValor(principal.operativoLabel),
-      operativoConsolidado: normalizarConfigValor(principal.operativoConsolidado),
-      resultRow: normalizarConfigValor(principal.resultRow),
-      netRow: normalizarConfigValor(principal.netRow),
-      netRowAdicional: normalizarConfigValor(principal.netRowAdicional),
-      resultNetRow: normalizarConfigValor(principal.resultNetRow),
-      sign,
-      esVirtual: Boolean(principal.esVirtual)
-    };
-  }).sort(sortByOrden);
+      const clase = (principal.clase || "").toLowerCase();
+      const sign = clase.includes("expense") ? -1 : 1;
 
-  const normalizarEtiqueta = (valor = '') => NORMALIZAR_CLAVE(valor);
+      return {
+        label: principal.label ? principal.label.trim() : "",
+        children,
+        ...totalesPrincipal,
+        total: totalesPrincipal.actualYTD,
+        orden: principal.orden,
+        ordenIndex: principal.ordenIndex ?? 0,
+        consolidadoLabel: normalizarConfigValor(principal.consolidadoLabel),
+        operativoLabel: normalizarConfigValor(principal.operativoLabel),
+        operativoConsolidado: normalizarConfigValor(
+          principal.operativoConsolidado,
+        ),
+        resultRow: normalizarConfigValor(principal.resultRow),
+        netRow: normalizarConfigValor(principal.netRow),
+        netRowAdicional: normalizarConfigValor(principal.netRowAdicional),
+        resultNetRow: normalizarConfigValor(principal.resultNetRow),
+        sign,
+        esVirtual: Boolean(principal.esVirtual),
+      };
+    })
+    .sort(sortByOrden);
+
+  const normalizarEtiqueta = (valor = "") => NORMALIZAR_CLAVE(valor);
 
   const principalPorEtiqueta = new Map();
   principalList.forEach((principal) => {
@@ -1754,12 +1902,12 @@ const construirReporteResumen = (
     });
   });
 
-  const obtenerPrincipalPorEtiqueta = (etiqueta = '') => {
+  const obtenerPrincipalPorEtiqueta = (etiqueta = "") => {
     const key = normalizarEtiqueta(etiqueta);
     return principalPorEtiqueta.get(key) || null;
   };
 
-  const obtenerSeccionPorEtiqueta = (etiqueta = '') => {
+  const obtenerSeccionPorEtiqueta = (etiqueta = "") => {
     const key = normalizarEtiqueta(etiqueta);
     return seccionPorEtiqueta.get(key) || null;
   };
@@ -1772,57 +1920,59 @@ const construirReporteResumen = (
       prevMonth: Number(sec.totalPrevMonth ?? 0),
       actualYTD: Number(sec.totalActualYTD ?? 0),
       planYTD: Number(sec.totalPlanYTD ?? 0),
-      prevYTD: Number(sec.totalPrevYTD ?? 0)
+      prevYTD: Number(sec.totalPrevYTD ?? 0),
     };
   };
 
-  const limpiarEtiqueta = (valor = '') => {
-    if (valor == null) return '';
-    return valor.toString().replace(/\s+/g, ' ').trim();
+  const limpiarEtiqueta = (valor = "") => {
+    if (valor == null) return "";
+    return valor.toString().replace(/\s+/g, " ").trim();
   };
-  const claveEtiqueta = (valor = '') => NORMALIZAR_CLAVE(limpiarEtiqueta(valor));
-  const etiquetaIncluye = (valor = '', texto = '') =>
+  const claveEtiqueta = (valor = "") =>
+    NORMALIZAR_CLAVE(limpiarEtiqueta(valor));
+  const etiquetaIncluye = (valor = "", texto = "") =>
     claveEtiqueta(valor).includes(claveEtiqueta(texto));
 
   const combinarTotales = (a = {}, b = {}, factor = 1) => ({
-    actualMonth: Number(a.actualMonth || 0) + factor * Number(b.actualMonth || 0),
+    actualMonth:
+      Number(a.actualMonth || 0) + factor * Number(b.actualMonth || 0),
     planMonth: Number(a.planMonth || 0) + factor * Number(b.planMonth || 0),
     prevMonth: Number(a.prevMonth || 0) + factor * Number(b.prevMonth || 0),
     actualYTD: Number(a.actualYTD || 0) + factor * Number(b.actualYTD || 0),
     planYTD: Number(a.planYTD || 0) + factor * Number(b.planYTD || 0),
-    prevYTD: Number(a.prevYTD || 0) + factor * Number(b.prevYTD || 0)
+    prevYTD: Number(a.prevYTD || 0) + factor * Number(b.prevYTD || 0),
   });
 
   // === Mapas base para fórmulas (secciones, cuentas, operaciones) ===
   const mapSecciones = new Map();
   const mapRefSecciones = new Map();
   const buildSeccionKey = (parent, label) => {
-    if (!label) return '';
+    if (!label) return "";
     if (parent) return normalizarTexto(`${parent}||${label}`);
     return normalizarTexto(label);
   };
-  const expandSectionLabelVariants = (value = '') => {
-    const raw = (value || '').toString().replace(/\s+/g, ' ').trim();
+  const expandSectionLabelVariants = (value = "") => {
+    const raw = (value || "").toString().replace(/\s+/g, " ").trim();
     const variants = new Set();
     const add = (candidate) => {
-      const clean = (candidate || '').toString().replace(/\s+/g, ' ').trim();
+      const clean = (candidate || "").toString().replace(/\s+/g, " ").trim();
       if (!clean) return;
       variants.add(clean);
     };
     if (!raw) return [];
     add(raw);
-    if (raw.includes('-')) {
-      add(raw.split('-').slice(1).join('-'));
+    if (raw.includes("-")) {
+      add(raw.split("-").slice(1).join("-"));
     }
-    if (raw.includes(':')) {
-      add(raw.split(':').slice(1).join(':'));
+    if (raw.includes(":")) {
+      add(raw.split(":").slice(1).join(":"));
     }
-    if (raw.includes('_')) {
-      add(raw.replace(/_/g, ' '));
-      const parts = raw.split('_').filter(Boolean);
+    if (raw.includes("_")) {
+      add(raw.replace(/_/g, " "));
+      const parts = raw.split("_").filter(Boolean);
       if (parts.length > 1) {
-        add(parts.slice(1).join(' '));
-        add(parts.slice(1).join('_'));
+        add(parts.slice(1).join(" "));
+        add(parts.slice(1).join("_"));
       }
     }
     return Array.from(variants);
@@ -1838,7 +1988,7 @@ const construirReporteResumen = (
         prevMonth: principal.prevMonth,
         actualYTD: principal.actualYTD,
         planYTD: principal.planYTD,
-        prevYTD: principal.prevYTD
+        prevYTD: principal.prevYTD,
       };
       mapSecciones.set(normalizarTexto(principal.label), principalTotals);
       const principalRefId = construirRefIdSeccion(principal.label);
@@ -1853,7 +2003,7 @@ const construirReporteResumen = (
           prevMonth: Number(sec.totalPrevMonth ?? 0),
           actualYTD: Number(sec.totalActualYTD ?? 0),
           planYTD: Number(sec.totalPlanYTD ?? 0),
-          prevYTD: Number(sec.totalPrevYTD ?? 0)
+          prevYTD: Number(sec.totalPrevYTD ?? 0),
         };
         mapSecciones.set(normalizarTexto(sec.label), totals);
         const keyConPadre = buildSeccionKey(principal.label, sec.label);
@@ -1867,11 +2017,11 @@ const construirReporteResumen = (
       });
     });
   };
-  const resolveSectionTotals = (label, parent = '') => {
+  const resolveSectionTotals = (label, parent = "") => {
     const labelCandidates = expandSectionLabelVariants(label);
     if (!labelCandidates.length) return null;
     const parentCandidates = expandSectionLabelVariants(parent);
-    if (!parentCandidates.length) parentCandidates.push('');
+    if (!parentCandidates.length) parentCandidates.push("");
 
     for (const parentCandidate of parentCandidates) {
       for (const labelCandidate of labelCandidates) {
@@ -1905,8 +2055,8 @@ const construirReporteResumen = (
   const mapPlaneacion = new Map(
     (Array.isArray(planeacionData) ? planeacionData : []).map((p) => [
       p.cuenta,
-      p
-    ])
+      p,
+    ]),
   );
   const mapCuentas = new Map();
   const mapRefCuentas = new Map();
@@ -1921,13 +2071,13 @@ const construirReporteResumen = (
       prevMonth: factor * Number(actual.prevMonth ?? 0),
       actualYTD: factor * Number(actual.actualYTD ?? 0),
       planYTD: factor * Number(actual.planYTD ?? 0),
-      prevYTD: factor * Number(actual.prevYTD ?? 0)
+      prevYTD: factor * Number(actual.prevYTD ?? 0),
     };
     const canonKey = normalizarTexto(cuentaCanonica);
     if (canonKey) mapCuentas.set(canonKey, totals);
     const canonRefId = construirRefIdCuenta(cuentaCanonica);
     if (canonRefId) mapRefCuentas.set(canonRefId, totals);
-    const visible = meta.visible || meta.cuenta || meta.CUENTA || '';
+    const visible = meta.visible || meta.cuenta || meta.CUENTA || "";
     const visibleKey = normalizarTexto(visible);
     if (visibleKey) mapCuentas.set(visibleKey, totals);
     const visibleRefId = construirRefIdCuenta(visible);
@@ -1945,11 +2095,13 @@ const construirReporteResumen = (
       op?.clase ||
       op?.operacion_etiqueta ||
       op?.operacion_label ||
-      op?.['sum-row-sumavarios'] ||
-      op?.['sum-row'] ||
+      op?.["sum-row-sumavarios"] ||
+      op?.["sum-row"] ||
       op?.id ||
-      ''
-    ).toString().trim();
+      ""
+    )
+      .toString()
+      .trim();
   const getOperacionKey = (op = {}) =>
     normalizarTexto(getOperacionIdentifier(op));
   const getOperacionRefId = (op = {}) =>
@@ -1961,7 +2113,9 @@ const construirReporteResumen = (
     if (opRefId) mapRefOperaciones.set(opRefId, totals);
   };
 
-  const operacionesContexto = (Array.isArray(configAgrupacion) ? configAgrupacion : [])
+  const operacionesContexto = (
+    Array.isArray(configAgrupacion) ? configAgrupacion : []
+  )
     .filter((item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave)
     .filter((item) => !esOperacionConfigColumnas(item));
   const operacionesPorKey = new Map();
@@ -1978,12 +2132,12 @@ const construirReporteResumen = (
   });
   const operacionesEnEvaluacion = new Set();
   const resolveOperacionReferenceTotals = ({
-    refId = '',
-    label = '',
-    parentHint = ''
+    refId = "",
+    label = "",
+    parentHint = "",
   } = {}) => {
-    const refIdClean = (refId || '').toString().trim();
-    const labelClean = (label || '').toString().trim();
+    const refIdClean = (refId || "").toString().trim();
+    const labelClean = (label || "").toString().trim();
     const labelKey = normalizarTexto(labelClean);
 
     if (refIdClean) {
@@ -1997,7 +2151,8 @@ const construirReporteResumen = (
 
     let targetOp = null;
     if (refIdClean) targetOp = operacionesPorRefId.get(refIdClean) || null;
-    if (!targetOp && labelKey) targetOp = operacionesPorKey.get(labelKey) || null;
+    if (!targetOp && labelKey)
+      targetOp = operacionesPorKey.get(labelKey) || null;
 
     if (targetOp) {
       const targetKey = getOperacionKey(targetOp);
@@ -2027,122 +2182,143 @@ const construirReporteResumen = (
     }
 
     try {
-    if (modoFormulaEstricto && !hasManualFormula(op)) {
-      return crearAcumulador();
-    }
-    const tokens = extraerTokensFormulaOperacion(op);
-    if (!tokens.length) return crearAcumulador();
-
-    const buildFromPlaneacion = (record) => {
-      if (!record) return null;
-      return {
-        actualMonth: Number(record.actualMonth ?? 0),
-        planMonth: Number(record.planMonth ?? 0),
-        prevMonth: Number(record.prevMonth ?? 0),
-        actualYTD: Number(record.actualYTD ?? 0),
-        planYTD: Number(record.planYTD ?? 0),
-        prevYTD: Number(record.prevYTD ?? 0)
-      };
-    };
-
-    const resolveByLabel = (tipo, label, parentHint = '') => {
-      const valor = (label || '').toString().trim();
-      if (!valor) return null;
-      const tipoNorm = (tipo || '').toString().toLowerCase();
-      if (tipoNorm === 'section' || tipoNorm === 'seccion' || tipoNorm === 'subsection' || tipoNorm === 'subseccion') {
-        return resolveSectionTotals(valor, parentHint) || null;
+      if (modoFormulaEstricto && !hasManualFormula(op)) {
+        return crearAcumulador();
       }
-      if (tipoNorm === 'account' || tipoNorm === 'cuenta') {
-        const claveCuenta = normalizarTexto(normalizarCuentaCanonica(valor) || valor);
-        let origen = mapCuentas.get(claveCuenta) || null;
-        if (origen) return origen;
-        const canon = normalizarCuentaCanonica(valor);
-        const visible = canon ? cuentaVisibleDesdeCanonica(canon) : null;
-        const record =
-          mapPlaneacion.get(valor) ||
-          (visible ? mapPlaneacion.get(visible) : null) ||
-          (canon ? mapPlaneacion.get(canon) : null);
-        origen = buildFromPlaneacion(record);
-        if (origen) return origen;
+      const tokens = extraerTokensFormulaOperacion(op);
+      if (!tokens.length) return crearAcumulador();
+
+      const buildFromPlaneacion = (record) => {
+        if (!record) return null;
+        return {
+          actualMonth: Number(record.actualMonth ?? 0),
+          planMonth: Number(record.planMonth ?? 0),
+          prevMonth: Number(record.prevMonth ?? 0),
+          actualYTD: Number(record.actualYTD ?? 0),
+          planYTD: Number(record.planYTD ?? 0),
+          prevYTD: Number(record.prevYTD ?? 0),
+        };
+      };
+
+      const resolveByLabel = (tipo, label, parentHint = "") => {
+        const valor = (label || "").toString().trim();
+        if (!valor) return null;
+        const tipoNorm = (tipo || "").toString().toLowerCase();
+        if (
+          tipoNorm === "section" ||
+          tipoNorm === "seccion" ||
+          tipoNorm === "subsection" ||
+          tipoNorm === "subseccion"
+        ) {
+          return resolveSectionTotals(valor, parentHint) || null;
+        }
+        if (tipoNorm === "account" || tipoNorm === "cuenta") {
+          const claveCuenta = normalizarTexto(
+            normalizarCuentaCanonica(valor) || valor,
+          );
+          let origen = mapCuentas.get(claveCuenta) || null;
+          if (origen) return origen;
+          const canon = normalizarCuentaCanonica(valor);
+          const visible = canon ? cuentaVisibleDesdeCanonica(canon) : null;
+          const record =
+            mapPlaneacion.get(valor) ||
+            (visible ? mapPlaneacion.get(visible) : null) ||
+            (canon ? mapPlaneacion.get(canon) : null);
+          origen = buildFromPlaneacion(record);
+          if (origen) return origen;
+          return (
+            resolveSectionTotals(valor, parentHint) ||
+            resolveOperacionReferenceTotals({ label: valor, parentHint }) ||
+            null
+          );
+        }
+        if (tipoNorm === "operation" || tipoNorm === "operacion") {
+          return resolveOperacionReferenceTotals({ label: valor, parentHint });
+        }
         return (
           resolveSectionTotals(valor, parentHint) ||
+          mapCuentas.get(
+            normalizarTexto(normalizarCuentaCanonica(valor) || valor),
+          ) ||
           resolveOperacionReferenceTotals({ label: valor, parentHint }) ||
           null
         );
-      }
-      if (tipoNorm === 'operation' || tipoNorm === 'operacion') {
-        return resolveOperacionReferenceTotals({ label: valor, parentHint });
-      }
-      return (
-        resolveSectionTotals(valor, parentHint) ||
-        mapCuentas.get(normalizarTexto(normalizarCuentaCanonica(valor) || valor)) ||
-        resolveOperacionReferenceTotals({ label: valor, parentHint }) ||
-        null
-      );
-    };
+      };
 
-    const resolverToken = (token) => {
-      if (!token || typeof token !== 'object') return crearAcumulador();
-      if (token.kind === FORMULA_KIND_CONST) {
-        const numero = Number(token.value);
-        const value = Number.isFinite(numero) ? numero : 0;
-        return {
-          actualMonth: value,
-          planMonth: value,
-          prevMonth: value,
-          actualYTD: value,
-          planYTD: value,
-          prevYTD: value
-        };
-      }
-      if (token.kind !== FORMULA_KIND_REF) return crearAcumulador();
-
-      const refType = (token.refType || '').toString().toLowerCase();
-      const refId = (token.refId || '').toString().trim();
-      const label = (token.label || token.value || '').toString().trim();
-      const parentHint = (token.parentSection || op?.parentSection || '').toString().trim();
-
-      if (refId) {
-        if (refType === 'section' || refType === 'seccion' || refType === 'subsection' || refType === 'subseccion') {
-          const byRef = mapRefSecciones.get(refId);
-          if (byRef) return byRef;
-        } else if (refType === 'account' || refType === 'cuenta') {
-          const byRef = mapRefCuentas.get(refId);
-          if (byRef) return byRef;
-        } else if (refType === 'operation' || refType === 'operacion') {
-          const byRef = resolveOperacionReferenceTotals({ refId, label, parentHint });
-          if (byRef) return byRef;
+      const resolverToken = (token) => {
+        if (!token || typeof token !== "object") return crearAcumulador();
+        if (token.kind === FORMULA_KIND_CONST) {
+          const numero = Number(token.value);
+          const value = Number.isFinite(numero) ? numero : 0;
+          return {
+            actualMonth: value,
+            planMonth: value,
+            prevMonth: value,
+            actualYTD: value,
+            planYTD: value,
+            prevYTD: value,
+          };
         }
+        if (token.kind !== FORMULA_KIND_REF) return crearAcumulador();
+
+        const refType = (token.refType || "").toString().toLowerCase();
+        const refId = (token.refId || "").toString().trim();
+        const label = (token.label || token.value || "").toString().trim();
+        const parentHint = (token.parentSection || op?.parentSection || "")
+          .toString()
+          .trim();
+
+        if (refId) {
+          if (
+            refType === "section" ||
+            refType === "seccion" ||
+            refType === "subsection" ||
+            refType === "subseccion"
+          ) {
+            const byRef = mapRefSecciones.get(refId);
+            if (byRef) return byRef;
+          } else if (refType === "account" || refType === "cuenta") {
+            const byRef = mapRefCuentas.get(refId);
+            if (byRef) return byRef;
+          } else if (refType === "operation" || refType === "operacion") {
+            const byRef = resolveOperacionReferenceTotals({
+              refId,
+              label,
+              parentHint,
+            });
+            if (byRef) return byRef;
+          }
+        }
+
+        return resolveByLabel(refType, label, parentHint) || crearAcumulador();
+      };
+
+      let totals = evaluarTokensFormula(tokens, resolverToken);
+      if (!totals) totals = crearAcumulador();
+
+      const signo = Number(op?.signo);
+      if (Number.isFinite(signo) && signo !== 1) {
+        totals.actualMonth *= signo;
+        totals.planMonth *= signo;
+        totals.prevMonth *= signo;
+        totals.actualYTD *= signo;
+        totals.planYTD *= signo;
+        totals.prevYTD *= signo;
       }
-
-      return resolveByLabel(refType, label, parentHint) || crearAcumulador();
-    };
-
-    let totals = evaluarTokensFormula(tokens, resolverToken);
-    if (!totals) totals = crearAcumulador();
-
-    const signo = Number(op?.signo);
-    if (Number.isFinite(signo) && signo !== 1) {
-      totals.actualMonth *= signo;
-      totals.planMonth *= signo;
-      totals.prevMonth *= signo;
-      totals.actualYTD *= signo;
-      totals.planYTD *= signo;
-      totals.prevYTD *= signo;
-    }
-    storeOperacionTotals(op, totals);
-    return totals;
+      storeOperacionTotals(op, totals);
+      return totals;
     } finally {
       if (opKey) operacionesEnEvaluacion.delete(opKey);
     }
   };
   const operacionLigadaAHeader = (op = {}) => {
-    const parentSection = (op.parentSection || '').toString().trim();
-    const parentSubsection = (op.parentSubsection || '').toString().trim();
-    const sumRow = (op['sum-row'] || '').toString().trim();
-    const sumPrincipal = (op['sum-row-sumavarios'] || '').toString().trim();
-    if (parentSection || parentSubsection || sumRow || sumPrincipal) return true;
-    const placement = (op.SECCION || op.seccion || '').toString().trim();
+    const parentSection = (op.parentSection || "").toString().trim();
+    const parentSubsection = (op.parentSubsection || "").toString().trim();
+    const sumRow = (op["sum-row"] || "").toString().trim();
+    const sumPrincipal = (op["sum-row-sumavarios"] || "").toString().trim();
+    if (parentSection || parentSubsection || sumRow || sumPrincipal)
+      return true;
+    const placement = (op.SECCION || op.seccion || "").toString().trim();
     if (!placement) return false;
     if (obtenerPrincipalPorEtiqueta(placement)) return true;
     if (obtenerSeccionPorEtiqueta(placement)) return true;
@@ -2154,19 +2330,26 @@ const construirReporteResumen = (
   };
   const hasManualFormula = (op = {}) => {
     const tokens = extraerTokensFormulaOperacion(op);
-    if (Array.isArray(tokens) && tokens.some((token) =>
-      token &&
-      typeof token === 'object' &&
-      (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST)
-    )) {
+    if (
+      Array.isArray(tokens) &&
+      tokens.some(
+        (token) =>
+          token &&
+          typeof token === "object" &&
+          (token.kind === FORMULA_KIND_REF ||
+            token.kind === FORMULA_KIND_CONST),
+      )
+    ) {
       return true;
     }
 
     // Legacy: fórmula expresada en campos seccion_1, seccion_2, ... (y/o signos).
     try {
       const signos = op?.signos;
-      if (signos && typeof signos === 'object') {
-        const keys = Object.keys(signos).filter((k) => k && k.startsWith('seccion_'));
+      if (signos && typeof signos === "object") {
+        const keys = Object.keys(signos).filter(
+          (k) => k && k.startsWith("seccion_"),
+        );
         if (keys.some((k) => Boolean(op?.[k]))) return true;
       }
       const ownKeys = Object.keys(op || {});
@@ -2207,12 +2390,14 @@ const construirReporteResumen = (
 
   // === Override de fórmulas en sum-row / sum-row-sumavarios (solo si se habilita) ===
   if (opciones?.permitirFormulaSecciones) {
-    const opsConFormulaBase = (Array.isArray(configAgrupacion) ? configAgrupacion : [])
+    const opsConFormulaBase = (
+      Array.isArray(configAgrupacion) ? configAgrupacion : []
+    )
       .filter((op) => NORMALIZAR_CAPITULO(op.CAPITULO) === capituloClave)
       .filter((op) => !esOperacionConfigColumnas(op))
       .map((op, idx) => ({ op, idx, orden: obtenerOrden(op, idx) }))
       .filter(({ op }) => hasManualFormula(op))
-      .sort((a, b) => (a.orden - b.orden) || (a.idx - b.idx));
+      .sort((a, b) => a.orden - b.orden || a.idx - b.idx);
     const opsConFormula = seccionesComoOperaciones
       ? opsConFormulaBase.filter(({ op }) => operacionLigadaAHeader(op))
       : opsConFormulaBase;
@@ -2221,9 +2406,9 @@ const construirReporteResumen = (
     const appliedOps = headerOverrideOps;
     const manualSeccionOps = opsConFormula;
     const manualPrincipalOps = opsConFormula.filter(({ op }) => {
-      if (op['sum-row-sumavarios']) return true;
-      const placement = (op.SECCION || op.seccion || '').toString().trim();
-      const parentSubsection = (op.parentSubsection || '').toString().trim();
+      if (op["sum-row-sumavarios"]) return true;
+      const placement = (op.SECCION || op.seccion || "").toString().trim();
+      const parentSubsection = (op.parentSubsection || "").toString().trim();
       if (parentSubsection) return false;
       return Boolean(placement && obtenerPrincipalPorEtiqueta(placement));
     });
@@ -2232,7 +2417,7 @@ const construirReporteResumen = (
       if (!label) return null;
       const labelCandidates = expandSectionLabelVariants(label);
       const parentCandidates = expandSectionLabelVariants(parent);
-      if (!parentCandidates.length) parentCandidates.push('');
+      if (!parentCandidates.length) parentCandidates.push("");
 
       for (const parentCandidate of parentCandidates) {
         for (const labelCandidate of labelCandidates) {
@@ -2258,10 +2443,10 @@ const construirReporteResumen = (
       const opKey = getOperacionKey(op);
       const totals = calcularTotalesOperacion(op);
       if (!totals) return;
-      const rowLabel = (op['sum-row'] || '').toString().trim();
-      const seccionValor = (op.SECCION || op.seccion || '').toString().trim();
-      const parentSection = (op.parentSection || '').toString().trim();
-      const parentSubsection = (op.parentSubsection || '').toString().trim();
+      const rowLabel = (op["sum-row"] || "").toString().trim();
+      const seccionValor = (op.SECCION || op.seccion || "").toString().trim();
+      const parentSection = (op.parentSection || "").toString().trim();
+      const parentSubsection = (op.parentSubsection || "").toString().trim();
 
       const sectionCandidates = [
         { label: rowLabel, parent: parentSection || seccionValor },
@@ -2290,7 +2475,7 @@ const construirReporteResumen = (
         seccionValor,
         parentSection,
         op.Clase,
-        op.operacion_etiqueta
+        op.operacion_etiqueta,
       ].filter(Boolean);
 
       for (const candidate of principalCandidates) {
@@ -2312,12 +2497,14 @@ const construirReporteResumen = (
     manualPrincipalOps.forEach(({ op }) => {
       const opKey = getOperacionKey(op);
       const label = (
-        op['sum-row-sumavarios'] ||
+        op["sum-row-sumavarios"] ||
         op.SECCION ||
         op.seccion ||
         op.parentSection ||
-        ''
-      ).toString().trim();
+        ""
+      )
+        .toString()
+        .trim();
       if (!label) return;
       const principal = obtenerPrincipalPorEtiqueta(label);
       if (!principal) return;
@@ -2333,7 +2520,7 @@ const construirReporteResumen = (
     const principalPorSubseccion = new Map();
     principalList.forEach((principal) => {
       (principal.children || []).forEach((sec) => {
-        const key = normalizarTexto(sec?.label || '');
+        const key = normalizarTexto(sec?.label || "");
         if (!key) return;
         if (!principalPorSubseccion.has(key)) {
           principalPorSubseccion.set(key, new Set());
@@ -2350,11 +2537,15 @@ const construirReporteResumen = (
       terms.forEach((term) => {
         if (!term) return;
         const tipo = normalizarTerminoTipo(term);
-        if (tipo !== 'section' && tipo !== 'seccion') return;
-        const value = (term.value ?? term.cuenta ?? term.id ?? '').toString().trim();
+        if (tipo !== "section" && tipo !== "seccion") return;
+        const value = (term.value ?? term.cuenta ?? term.id ?? "")
+          .toString()
+          .trim();
         if (!value) return;
         hasSectionTerms = true;
-        const parentHint = (term.parentSection || op?.parentSection || '').toString().trim();
+        const parentHint = (term.parentSection || op?.parentSection || "")
+          .toString()
+          .trim();
         if (parentHint) {
           const principal = obtenerPrincipalPorEtiqueta(parentHint);
           if (principal) {
@@ -2410,9 +2601,9 @@ const construirReporteResumen = (
             prevMonth: acc.prevMonth + (Number(nodo.totalPrevMonth) || 0),
             actualYTD: acc.actualYTD + (Number(nodo.totalActualYTD) || 0),
             planYTD: acc.planYTD + (Number(nodo.totalPlanYTD) || 0),
-            prevYTD: acc.prevYTD + (Number(nodo.totalPrevYTD) || 0)
+            prevYTD: acc.prevYTD + (Number(nodo.totalPrevYTD) || 0),
           }),
-          crearAcumulador()
+          crearAcumulador(),
         );
         applyTotalsToPrincipal(principal, totales);
       });
@@ -2460,7 +2651,7 @@ const construirReporteResumen = (
       .filter((op) => NORMALIZAR_CAPITULO(op.CAPITULO) === capituloClave)
       .filter((op) => !esOperacionConfigColumnas(op))
       .map((op, idx) => ({ op, idx, orden: obtenerOrden(op, idx) }))
-      .sort((a, b) => (a.orden - b.orden) || (a.idx - b.idx));
+      .sort((a, b) => a.orden - b.orden || a.idx - b.idx);
 
     anchors.forEach(({ op, orden }) => {
       const name = (obtenerNombreOperacion(op) || "").toString().trim();
@@ -2513,7 +2704,7 @@ const construirReporteResumen = (
   const describirPrincipalOperacion = (principal, factor = null) => ({
     principal: principal.label,
     factor: factor != null ? factor : principal.sign,
-    sections: (principal.children || []).map((sec) => sec.label || '')
+    sections: (principal.children || []).map((sec) => sec.label || ""),
   });
 
   const ensureAggregator = (mapa, etiqueta, ordenMapa) => {
@@ -2529,11 +2720,14 @@ const construirReporteResumen = (
         ordenIndex: mapa.size,
         totals: crearAcumulador(),
         principals: [],
-        operaciones: []
+        operaciones: [],
       });
     }
     const agregador = mapa.get(clave);
-    if (etiquetaLimpia && (!agregador.label || agregador.label !== etiquetaLimpia)) {
+    if (
+      etiquetaLimpia &&
+      (!agregador.label || agregador.label !== etiquetaLimpia)
+    ) {
       agregador.label = etiquetaLimpia;
     }
     return agregador;
@@ -2546,7 +2740,7 @@ const construirReporteResumen = (
     const consolidated = ensureAggregator(
       consolidatedMap,
       principal.consolidadoLabel,
-      consolidadoOrden
+      consolidadoOrden,
     );
     if (consolidated) {
       consolidated.principals.push(principal.label);
@@ -2555,7 +2749,11 @@ const construirReporteResumen = (
     }
 
     const operativo = participaEnOperativo(principal)
-      ? ensureAggregator(operativoRowMap, principal.operativoLabel || '', operativoOrden)
+      ? ensureAggregator(
+          operativoRowMap,
+          principal.operativoLabel || "",
+          operativoOrden,
+        )
       : null;
     if (operativo) {
       operativo.principals.push(principal.label);
@@ -2564,15 +2762,25 @@ const construirReporteResumen = (
     }
 
     const operativoConsolidado = participaEnOperativo(principal)
-      ? ensureAggregator(operativoRowMap, principal.operativoConsolidado || '', operativoOrden)
+      ? ensureAggregator(
+          operativoRowMap,
+          principal.operativoConsolidado || "",
+          operativoOrden,
+        )
       : null;
     if (operativoConsolidado) {
       operativoConsolidado.principals.push(principal.label);
-      operativoConsolidado.operaciones.push(describirPrincipalOperacion(principal));
+      operativoConsolidado.operaciones.push(
+        describirPrincipalOperacion(principal),
+      );
       sumarTotales(operativoConsolidado.totals, principal, principal.sign);
     }
 
-    const resultRow = ensureAggregator(resultRowMap, principal.resultRow, resultOrden);
+    const resultRow = ensureAggregator(
+      resultRowMap,
+      principal.resultRow,
+      resultOrden,
+    );
     if (resultRow) {
       resultRow.principals.push(principal.label);
       resultRow.operaciones.push(describirPrincipalOperacion(principal));
@@ -2589,7 +2797,7 @@ const construirReporteResumen = (
     const netRowAdicional = ensureAggregator(
       netRowMap,
       principal.netRowAdicional,
-      netOrden
+      netOrden,
     );
     if (netRowAdicional) {
       netRowAdicional.principals.push(principal.label);
@@ -2600,7 +2808,7 @@ const construirReporteResumen = (
     const finalRow = ensureAggregator(
       finalRowMap,
       principal.resultNetRow,
-      finalOrden
+      finalOrden,
     );
     if (finalRow) {
       finalRow.principals.push(principal.label);
@@ -2647,14 +2855,17 @@ const construirReporteResumen = (
       // Crear la fila con el override
       agregadorMapa.set(clave, {
         label: etiquetaLimpia,
-        orden: Number.isFinite(Number(override.order)) ? Number(override.order) :
-          Number.isFinite(Number(orden)) ? Number(orden) : agregadorMapa.size,
+        orden: Number.isFinite(Number(override.order))
+          ? Number(override.order)
+          : Number.isFinite(Number(orden))
+            ? Number(orden)
+            : agregadorMapa.size,
         ordenIndex: agregadorMapa.size,
         totals: override.totals,
         principals: [],
         operaciones: [],
         manualFormula: true,
-        esVacia: false
+        esVacia: false,
       });
     });
   };
@@ -2681,13 +2892,15 @@ const construirReporteResumen = (
     if (!principal.children || !principal.children.length) {
       return;
     }
-    const principalLabel = (principal.label || '').toString().trim();
+    const principalLabel = (principal.label || "").toString().trim();
     const shouldRenderPrincipal = Boolean(principalLabel);
     if (shouldRenderPrincipal) {
       layout.push({
-        type: 'principal',
+        type: "principal",
         label: principalLabel,
-        order: Number.isFinite(Number(principal.orden)) ? Number(principal.orden) : 0,
+        order: Number.isFinite(Number(principal.orden))
+          ? Number(principal.orden)
+          : 0,
         orderIndex: principal.ordenIndex ?? 0,
         manualFormula: Boolean(principal.__manualFormula),
         totals: {
@@ -2696,28 +2909,30 @@ const construirReporteResumen = (
           prevMonth: principal.prevMonth,
           actualYTD: principal.actualYTD,
           planYTD: principal.planYTD,
-          prevYTD: principal.prevYTD
+          prevYTD: principal.prevYTD,
         },
         children: principal.children,
         consolidadoLabel: principal.consolidadoLabel,
         operativoLabel: principal.operativoLabel,
         resultRow: principal.resultRow,
         netRow: principal.netRow,
-        netRowAdicional: principal.netRowAdicional
+        netRowAdicional: principal.netRowAdicional,
       });
     }
 
     (principal.children || []).forEach((secundaria) => {
-      const secundariaLabel = (secundaria.label || '').toString().trim();
+      const secundariaLabel = (secundaria.label || "").toString().trim();
       const shouldRenderSecundaria = Boolean(secundariaLabel);
       if (shouldRenderSecundaria) {
         layout.push({
-          type: 'secundaria',
+          type: "secundaria",
           label: secundariaLabel,
           parentSection: principalLabel,
           order: Number.isFinite(Number(secundaria.orden))
             ? Number(secundaria.orden)
-            : Number.isFinite(Number(principal.orden)) ? Number(principal.orden) : 0,
+            : Number.isFinite(Number(principal.orden))
+              ? Number(principal.orden)
+              : 0,
           orderIndex: secundaria.ordenIndex ?? 0,
           manualFormula: Boolean(secundaria.__manualFormula),
           totals: {
@@ -2726,9 +2941,9 @@ const construirReporteResumen = (
             prevMonth: secundaria.totalPrevMonth,
             actualYTD: secundaria.totalActualYTD,
             planYTD: secundaria.totalPlanYTD,
-            prevYTD: secundaria.totalPrevYTD
+            prevYTD: secundaria.totalPrevYTD,
           },
-          cuentas: secundaria.cuentas || []
+          cuentas: secundaria.cuentas || [],
         });
       }
 
@@ -2737,9 +2952,11 @@ const construirReporteResumen = (
           ? Number(cuenta.orden)
           : Number.isFinite(Number(secundaria.orden))
             ? Number(secundaria.orden)
-            : Number.isFinite(Number(principal.orden)) ? Number(principal.orden) : 0;
+            : Number.isFinite(Number(principal.orden))
+              ? Number(principal.orden)
+              : 0;
         layout.push({
-          type: 'cuenta',
+          type: "cuenta",
           label: cuenta.label,
           nombre: cuenta.descripcion || cuenta.label,
           cuenta: cuenta.cuenta,
@@ -2753,8 +2970,8 @@ const construirReporteResumen = (
             prevMonth: cuenta.prevMonth,
             actualYTD: cuenta.actualYTD,
             planYTD: cuenta.planYTD,
-            prevYTD: cuenta.prevYTD
-          }
+            prevYTD: cuenta.prevYTD,
+          },
         });
       });
     });
@@ -2767,38 +2984,44 @@ const construirReporteResumen = (
       type: tipo,
       label: row.label,
       order: Number.isFinite(Number(row.orden)) ? Number(row.orden) : 0,
-      orderIndex: Number.isFinite(Number(row.ordenIndex)) ? Number(row.ordenIndex) : 0,
+      orderIndex: Number.isFinite(Number(row.ordenIndex))
+        ? Number(row.ordenIndex)
+        : 0,
       manualFormula: Boolean(row.manualFormula),
       totals: row.totals,
       principals: row.principals || [],
-      operaciones: row.operaciones || []
+      operaciones: row.operaciones || [],
     });
   };
 
   principalList.forEach(agregarPrincipalConHijos);
 
   Array.from(consolidatedMap.values()).forEach((row) =>
-    agregarFilaConsolidacion(row, 'group')
+    agregarFilaConsolidacion(row, "group"),
   );
   Array.from(operativoRowMap.values()).forEach((row) =>
-    agregarFilaConsolidacion(row, 'result')
+    agregarFilaConsolidacion(row, "result"),
   );
   Array.from(resultRowMap.values()).forEach((row) =>
-    agregarFilaConsolidacion(row, 'result')
+    agregarFilaConsolidacion(row, "result"),
   );
   Array.from(netRowMap.values()).forEach((row) =>
-    agregarFilaConsolidacion(row, 'net')
+    agregarFilaConsolidacion(row, "net"),
   );
   Array.from(finalRowMap.values()).forEach((row) =>
-    agregarFilaConsolidacion(row, 'final')
+    agregarFilaConsolidacion(row, "final"),
   );
 
   const sortLayoutOps = (a = {}, b = {}) => {
     const orderA = Number.isFinite(Number(a.order)) ? Number(a.order) : 0;
     const orderB = Number.isFinite(Number(b.order)) ? Number(b.order) : 0;
     if (orderA !== orderB) return orderA - orderB;
-    const idxA = Number.isFinite(Number(a.orderIndex)) ? Number(a.orderIndex) : 0;
-    const idxB = Number.isFinite(Number(b.orderIndex)) ? Number(b.orderIndex) : 0;
+    const idxA = Number.isFinite(Number(a.orderIndex))
+      ? Number(a.orderIndex)
+      : 0;
+    const idxB = Number.isFinite(Number(b.orderIndex))
+      ? Number(b.orderIndex)
+      : 0;
     return idxA - idxB;
   };
 
@@ -2806,7 +3029,9 @@ const construirReporteResumen = (
   let layoutFinal = layout.concat(layoutOps);
 
   // === Operaciones libres (sin fila) ===
-  const operacionesLibres = (Array.isArray(configAgrupacion) ? configAgrupacion : [])
+  const operacionesLibres = (
+    Array.isArray(configAgrupacion) ? configAgrupacion : []
+  )
     .filter((op) => NORMALIZAR_CAPITULO(op.CAPITULO) === capituloClave)
     .filter((op) => esOperacionLibre(op))
     .filter((op) => {
@@ -2822,7 +3047,7 @@ const construirReporteResumen = (
   const ordenarLibre = (op, idx) => obtenerOrden(op, idx);
   const operacionesLibresOrdenadas = operacionesLibres
     .map((op, idx) => ({ op, idx, orden: ordenarLibre(op, idx) }))
-    .sort((a, b) => (a.orden - b.orden) || (a.idx - b.idx))
+    .sort((a, b) => a.orden - b.orden || a.idx - b.idx)
     .map((item) => item.op);
 
   const toNumberOrNull = (value) => {
@@ -2853,29 +3078,46 @@ const construirReporteResumen = (
     if (targetKey) {
       const findIndex = (type) =>
         layoutArr.findIndex(
-          (block) => block?.type === type && normalizarTexto(block.label) === targetKey
+          (block) =>
+            block?.type === type && normalizarTexto(block.label) === targetKey,
         );
 
-      let idx = findIndex('secundaria');
-      let stopTypes = new Set(['secundaria', 'principal', 'group', 'result', 'net', 'final']);
+      let idx = findIndex("secundaria");
+      let stopTypes = new Set([
+        "secundaria",
+        "principal",
+        "group",
+        "result",
+        "net",
+        "final",
+      ]);
       if (idx < 0) {
-        idx = findIndex('principal');
-        stopTypes = new Set(['principal', 'group', 'result', 'net', 'final']);
+        idx = findIndex("principal");
+        stopTypes = new Set(["principal", "group", "result", "net", "final"]);
       }
 
       if (idx >= 0) {
         let insertAt = idx + 1;
         while (insertAt < layoutArr.length) {
           const next = layoutArr[insertAt];
-          if (!next || stopTypes.has(next.type) || next.type === 'principal' || next.type === 'secundaria') {
+          if (
+            !next ||
+            stopTypes.has(next.type) ||
+            next.type === "principal" ||
+            next.type === "secundaria"
+          ) {
             break;
           }
 
           // Si ya hay operaciones en ese bloque, respetar el orden relativo de las operaciones.
-          if (next.type === 'operation') {
+          if (next.type === "operation") {
             const currentOrder = toNumberOrNull(opBlock?.order);
             const nextOrder = toNumberOrNull(next?.order);
-            if (currentOrder != null && nextOrder != null && currentOrder < nextOrder) {
+            if (
+              currentOrder != null &&
+              nextOrder != null &&
+              currentOrder < nextOrder
+            ) {
               break;
             }
           }
@@ -2911,15 +3153,19 @@ const construirReporteResumen = (
     if (!totals) return;
     const label = obtenerNombreOperacion(op);
     const opKey = normalizarTexto(
-      op?.OperacionId || op?.operacion_id || op?.Clase || op?.clase || op?.operacion_etiqueta || label || op?.id || ''
+      op?.OperacionId ||
+        op?.operacion_id ||
+        op?.Clase ||
+        op?.clase ||
+        op?.operacion_etiqueta ||
+        label ||
+        op?.id ||
+        "",
     );
     if (opKey) mapOperaciones.set(opKey, totals);
-    const rowStyle =
-      op?.rowStyle ||
-      op?.estilo_fila ||
-      "operation-row";
+    const rowStyle = op?.rowStyle || op?.estilo_fila || "operation-row";
     const opBlock = {
-      type: 'operation',
+      type: "operation",
       label,
       order: obtenerOrden(op, idx),
       orderIndex: idx,
@@ -2927,14 +3173,14 @@ const construirReporteResumen = (
       totals,
       rowStyle,
       estilo_fila: rowStyle || op?.estilo_fila,
-      tipo_operacion: op?.tipo_operacion
+      tipo_operacion: op?.tipo_operacion,
     };
     if (manualOrder) {
       opBlocks.push(opBlock);
       return;
     }
     const target =
-      op.parentSubsection || op.parentSection || op.SECCION || op.seccion || '';
+      op.parentSubsection || op.parentSection || op.SECCION || op.seccion || "";
     insertarOperacionEnLayout(layoutFinal, opBlock, target);
   });
 
@@ -2947,61 +3193,94 @@ const construirReporteResumen = (
 
   // DEBUG: diagnóstico net results
   try {
-    const fs = require('fs');
-    const path = require('path');
-    const debugFile = path.join(require('os').homedir(), 'Desktop', 'debug-net-results.txt');
-    const lines = ['=== PRINCIPALS netRow ==='];
+    const fs = require("fs");
+    const path = require("path");
+    const debugFile = path.join(
+      require("os").homedir(),
+      "Desktop",
+      "debug-net-results.txt",
+    );
+    const lines = ["=== PRINCIPALS netRow ==="];
     principalList.forEach((p) => {
-      lines.push(`  "${p.label}" netRow="${p.netRow}" resultRow="${p.resultRow}" consolidadoLabel="${p.consolidadoLabel}" resultNetRow="${p.resultNetRow}"`);
+      lines.push(
+        `  "${p.label}" netRow="${p.netRow}" resultRow="${p.resultRow}" consolidadoLabel="${p.consolidadoLabel}" resultNetRow="${p.resultNetRow}"`,
+      );
     });
-    lines.push('', '=== configPorPrincipal ===');
+    lines.push("", "=== configPorPrincipal ===");
     configPorPrincipal.forEach((cfg, key) => {
-      lines.push(`  key="${key}" principal="${cfg.principal}" netRow="${cfg.netRow}" resultRow="${cfg.resultRow}" consolidado="${cfg.consolidado}"`);
+      lines.push(
+        `  key="${key}" principal="${cfg.principal}" netRow="${cfg.netRow}" resultRow="${cfg.resultRow}" consolidado="${cfg.consolidado}"`,
+      );
     });
-    lines.push('', '=== configPorSeccion (con net-row) ===');
+    lines.push("", "=== configPorSeccion (con net-row) ===");
     configPorSeccion.forEach((cfg, key) => {
       if (cfg.netRow || cfg.resultRow || cfg.resultNetRow) {
-        lines.push(`  key="${key}" principal="${cfg.principal}" seccion="${cfg.seccionLabel}" netRow="${cfg.netRow}" resultRow="${cfg.resultRow}" resultNetRow="${cfg.resultNetRow}"`);
+        lines.push(
+          `  key="${key}" principal="${cfg.principal}" seccion="${cfg.seccionLabel}" netRow="${cfg.netRow}" resultRow="${cfg.resultRow}" resultNetRow="${cfg.resultNetRow}"`,
+        );
       }
     });
-    lines.push('', '=== configAgrupacion entries con net-row ===');
-    (Array.isArray(configAgrupacion) ? configAgrupacion : []).forEach((cfg, idx) => {
-      const nr = normalizarConfigValor(cfg['net-row']);
-      const rr = normalizarConfigValor(cfg['result-row']);
-      const rnr = normalizarConfigValor(cfg['result-net-row']);
-      if (nr || rr || rnr) {
-        lines.push(`  [${idx}] SECCION="${cfg.SECCION}" parentSection="${cfg.parentSection}" sum-row-sumavarios="${cfg['sum-row-sumavarios']}" net-row="${nr}" result-row="${rr}" result-net-row="${rnr}" orden_presentacion=${cfg.orden_presentacion}`);
-      }
-    });
-    lines.push('', '=== principalMap netRow (raw) ===');
+    lines.push("", "=== configAgrupacion entries con net-row ===");
+    (Array.isArray(configAgrupacion) ? configAgrupacion : []).forEach(
+      (cfg, idx) => {
+        const nr = normalizarConfigValor(cfg["net-row"]);
+        const rr = normalizarConfigValor(cfg["result-row"]);
+        const rnr = normalizarConfigValor(cfg["result-net-row"]);
+        if (nr || rr || rnr) {
+          lines.push(
+            `  [${idx}] SECCION="${cfg.SECCION}" parentSection="${cfg.parentSection}" sum-row-sumavarios="${cfg["sum-row-sumavarios"]}" net-row="${nr}" result-row="${rr}" result-net-row="${rnr}" orden_presentacion=${cfg.orden_presentacion}`,
+          );
+        }
+      },
+    );
+    lines.push("", "=== principalMap netRow (raw) ===");
     principalMap.forEach((p, key) => {
-      lines.push(`  key="${key}" label="${p.label}" netRow="${p.netRow}" resultRow="${p.resultRow}" consolidadoLabel="${p.consolidadoLabel}"`);
+      lines.push(
+        `  key="${key}" label="${p.label}" netRow="${p.netRow}" resultRow="${p.resultRow}" consolidadoLabel="${p.consolidadoLabel}"`,
+      );
     });
-    fs.writeFileSync(debugFile, lines.join('\n'), 'utf8');
-  } catch (e) { /* ignore */ }
+    fs.writeFileSync(debugFile, lines.join("\n"), "utf8");
+  } catch (e) {
+    /* ignore */
+  }
 
   return {
     principals: principalList,
-    layout: layoutFinal
+    layout: layoutFinal,
   };
 };
 
-
-async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, capituloSeleccionado) {
+async function generarReporte(
+  tipoReporte,
+  empresaId,
+  anio,
+  mesSeleccionado,
+  capituloSeleccionado,
+) {
   // Cargar definiciones desde SQLite (con fallback a JSON)
-  const modulo = (tipoReporte === 'RESUMEN' || tipoReporte === 'SUMMARY') ? tipoReporte : 'MODULOS';
+  const modulo =
+    tipoReporte === "RESUMEN" || tipoReporte === "SUMMARY"
+      ? tipoReporte
+      : "MODULOS";
   const definiciones = cargarDefiniciones(modulo, empresaId, anio);
 
   // Determinar el tipo real: RESUMEN usa las mismas cuentas que SUMMARY pero con diferente agrupación
-  const tipoReal = (tipoReporte === 'RESUMEN') ? 'SUMMARY' : tipoReporte;
+  const tipoReal = tipoReporte === "RESUMEN" ? "SUMMARY" : tipoReporte;
   const hojaConfig = tipoReporte; // Mantener el tipo original para filtrar configuración
 
   // Para módulos con SQLite, las cuentas están agrupadas por capítulo
   let lista = [];
-  if (definiciones && typeof definiciones === 'object' && !Array.isArray(definiciones)) {
+  if (
+    definiciones &&
+    typeof definiciones === "object" &&
+    !Array.isArray(definiciones)
+  ) {
     // Es un objeto con capítulos, aplanar todas las cuentas
-    Object.keys(definiciones).forEach(capitulo => {
-      if (capitulo !== 'SUMA DE VARIAS SECCIONES' && Array.isArray(definiciones[capitulo])) {
+    Object.keys(definiciones).forEach((capitulo) => {
+      if (
+        capitulo !== "SUMA DE VARIAS SECCIONES" &&
+        Array.isArray(definiciones[capitulo])
+      ) {
         lista = lista.concat(definiciones[capitulo]);
       }
     });
@@ -3015,33 +3294,42 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
   }
 
   // Filtrar configuración de agrupación por HOJA (SUMMARY o RESUMEN)
-  const configCompleta = definiciones['SUMA DE VARIAS SECCIONES'] || [];
+  const configCompleta = definiciones["SUMA DE VARIAS SECCIONES"] || [];
   const configAgrupacion = configCompleta
     .filter((cfg) => cfg.HOJA === hojaConfig)
     .filter((cfg) => !esOperacionConfigColumnas(cfg));
 
   const capitulosDisponibles = extraerCapitulos(lista);
-  const capituloClave = NORMALIZAR_CAPITULO(capituloSeleccionado || capitulosDisponibles[0]?.etiqueta || '');
-  const capituloEncontrado = capitulosDisponibles.find(({ clave }) => clave === capituloClave);
+  const capituloClave = NORMALIZAR_CAPITULO(
+    capituloSeleccionado || capitulosDisponibles[0]?.etiqueta || "",
+  );
+  const capituloEncontrado = capitulosDisponibles.find(
+    ({ clave }) => clave === capituloClave,
+  );
 
   // Filtrar definiciones por capítulo
   const listaFiltrada = capituloEncontrado
-    ? lista.filter((item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave)
+    ? lista.filter(
+        (item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave,
+      )
     : lista;
 
   const cuentas = listaFiltrada
     .filter((item) => !item.__esVirtual)
     .map((item) => NORMALIZAR_CLAVE(item.CUENTA))
     .filter(Boolean);
-  const claveMes = normalizarClaveMes(mesSeleccionado) || MESES[Math.min(Math.max(new Date().getMonth(), 0), 11)].clave;
-  const mesNumero = MESES.find(({ clave }) => clave === claveMes)?.periodo
-    ?? Math.min(Math.max(new Date().getMonth() + 1, 1), 12);
+  const claveMes =
+    normalizarClaveMes(mesSeleccionado) ||
+    MESES[Math.min(Math.max(new Date().getMonth(), 0), 11)].clave;
+  const mesNumero =
+    MESES.find(({ clave }) => clave === claveMes)?.periodo ??
+    Math.min(Math.max(new Date().getMonth() + 1, 1), 12);
 
   const planeacionData = await obtenerDatosPlaneacionResumen({
     empresaId,
     anio,
     mes: mesNumero,
-    cuentas
+    cuentas,
   });
 
   const { principals, layout } = construirReporteResumen(
@@ -3050,17 +3338,18 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
     capituloEncontrado?.etiqueta || capituloSeleccionado,
     planeacionData,
     {
-      permitirFormulaSecciones: tipoReporte === 'RESUMEN' || tipoReporte === 'SUMMARY',
-      ordenManualTotal: tipoReporte === 'RESUMEN' || tipoReporte === 'SUMMARY',
-      modoFormulaEstricto: tipoReporte === 'RESUMEN',
-      seccionesComoOperaciones: tipoReporte === 'RESUMEN'
-    }
+      permitirFormulaSecciones:
+        tipoReporte === "RESUMEN" || tipoReporte === "SUMMARY",
+      ordenManualTotal: tipoReporte === "RESUMEN" || tipoReporte === "SUMMARY",
+      modoFormulaEstricto: tipoReporte === "RESUMEN",
+      seccionesComoOperaciones: tipoReporte === "RESUMEN",
+    },
   );
 
   const nodoResumen = {
     label: capituloEncontrado?.etiqueta || capituloSeleccionado,
     children: principals,
-    layout
+    layout,
   };
 
   return {
@@ -3068,11 +3357,12 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
     reportKey: tipoReporte,
     anio,
     resumen: [nodoResumen],
-    capituloSeleccionado: capituloEncontrado?.etiqueta || capitulosDisponibles[0]?.etiqueta || null,
-    capitulosDisponibles
+    capituloSeleccionado:
+      capituloEncontrado?.etiqueta || capitulosDisponibles[0]?.etiqueta || null,
+    capitulosDisponibles,
   };
 }
 
 module.exports = {
-  generarReporte
+  generarReporte,
 };

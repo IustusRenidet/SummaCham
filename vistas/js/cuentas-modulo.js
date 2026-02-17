@@ -341,65 +341,517 @@
     return 0;
   };
 
-  const extraerFormulaTermsOperacion = (op) => {
-    if (!op) return [];
-    const esTerminoValido = (term) => {
-      const value = (term?.value || term?.cuenta || term?.id || "").toString();
-      if (!value) return false;
-      // Considerar válido si parece cuenta completa o sección con espacios
-      if (/\d{3,}.*-/.test(value)) return true;
-      if (value.length >= 5 && /[A-Z]/i.test(value)) return true;
-      if (value.length >= 5 && /\d/.test(value)) return true;
-      return false;
+  const FORMULA_V2_VERSION = 2;
+  const FORMULA_KIND_REF = "ref";
+  const FORMULA_KIND_CONST = "const";
+  const FORMULA_KIND_OP = "op";
+  const FORMULA_OPERATORS = new Set(["+", "-", "*", "/", "(", ")"]);
+  const FORMULA_OPERATORS_ARITH = new Set(["+", "-", "*", "/"]);
+
+  const parseJsonSeguro = (valor) => {
+    if (valor == null) return null;
+    if (typeof valor === "object") return valor;
+    const texto = String(valor || "").trim();
+    if (!texto) return null;
+    try {
+      return JSON.parse(texto);
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const normalizarCuentaFormula = (valor) =>
+    (valor || "")
+      .toString()
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "")
+      .replace(/[^0-9A-Z]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+  const normalizarTextoRefFormula = (valor) =>
+    (valor || "")
+      .toString()
+      .replace(/_/g, " ")
+      .trim();
+
+  const parsearSeleccionFormulaTexto = (value = "") => {
+    const raw = (value || "").toString().trim();
+    if (!raw) return { label: "", parent: "" };
+    const parts = raw.split("||");
+    if (parts.length > 1) {
+      const parent = parts[0]?.trim() || "";
+      const label = parts.slice(1).join("||").trim();
+      return { label, parent };
+    }
+    return { label: raw, parent: "" };
+  };
+
+  const tokenizarFormulaTexto = (formulaRaw = "") => {
+    const source = (formulaRaw || "").toString();
+    const tokens = [];
+    let buffer = "";
+
+    const flush = () => {
+      const value = buffer.trim();
+      if (value) tokens.push({ kind: "value", value });
+      buffer = "";
     };
-    const esListaCorrupta = (terms) => {
-      if (!Array.isArray(terms) || !terms.length) return true;
-      return terms.every((t) => !esTerminoValido(t));
+
+    const getPrevNonSpace = (idx) => {
+      for (let i = idx - 1; i >= 0; i -= 1) {
+        const ch = source[i];
+        if (!/\s/.test(ch)) return ch;
+      }
+      return "";
     };
-    const parsearExpresionSimple = (raw) => {
-      const texto = (raw || "").toString().trim();
-      if (!texto) return [];
-      const tokens = texto.split(/\s+/).filter(Boolean);
-      const terms = [];
-      let operador = "+";
-      tokens.forEach((token) => {
-        if (token === "+" || token === "-" || token === "*" || token === "/") {
-          operador = token;
-          return;
+
+    const getNextNonSpace = (idx) => {
+      for (let i = idx + 1; i < source.length; i += 1) {
+        const ch = source[i];
+        if (!/\s/.test(ch)) return ch;
+      }
+      return "";
+    };
+
+    for (let i = 0; i < source.length; i += 1) {
+      const ch = source[i];
+      const op = ch === "×" ? "*" : ch === "÷" ? "/" : ch;
+      if (op === "+" || op === "*" || op === "/" || op === "(" || op === ")") {
+        flush();
+        tokens.push({ kind: FORMULA_KIND_OP, value: op });
+        continue;
+      }
+      if (op === "-") {
+        const prev = getPrevNonSpace(i);
+        const next = getNextNonSpace(i);
+        const isOperatorDash =
+          !prev ||
+          !next ||
+          /\s/.test(source[i - 1] || "") ||
+          /\s/.test(source[i + 1] || "") ||
+          ["+", "-", "*", "/", "("].includes(prev) ||
+          next === "(";
+        if (isOperatorDash) {
+          flush();
+          tokens.push({ kind: FORMULA_KIND_OP, value: "-" });
+          continue;
         }
-        terms.push({
-          operator: operador,
-          type: "account",
-          value: token,
-        });
-        operador = "+";
-      });
-      return terms;
+      }
+      buffer += ch;
+    }
+
+    flush();
+    return tokens;
+  };
+
+  const construirTokenTextoFormula = (valueRaw = "") => {
+    const raw = (valueRaw || "").toString().trim();
+    if (!raw) return null;
+
+    const numericValue = Number(raw);
+    if (Number.isFinite(numericValue) && /^[-+]?\d+(\.\d+)?$/.test(raw)) {
+      return {
+        token: { kind: FORMULA_KIND_CONST, value: numericValue },
+        unresolved: false,
+      };
+    }
+
+    const upper = raw.toUpperCase();
+    if (upper.startsWith("OP::")) {
+      return {
+        token: {
+          kind: FORMULA_KIND_REF,
+          refType: "operation",
+          refId: raw,
+          label: normalizarTextoRefFormula(raw.slice(4)) || raw,
+        },
+        unresolved: false,
+      };
+    }
+    if (upper.startsWith("ACC::")) {
+      return {
+        token: {
+          kind: FORMULA_KIND_REF,
+          refType: "account",
+          refId: raw,
+          label: normalizarTextoRefFormula(raw.slice(5)) || raw,
+        },
+        unresolved: false,
+      };
+    }
+    if (upper.startsWith("SUB::")) {
+      const parts = raw.split("::");
+      const parent = normalizarTextoRefFormula(parts[1] || "");
+      const label = normalizarTextoRefFormula(parts.slice(2).join("::") || "");
+      return {
+        token: {
+          kind: FORMULA_KIND_REF,
+          refType: "subsection",
+          refId: raw,
+          label: label || raw,
+          parentSection: parent || "",
+        },
+        unresolved: false,
+      };
+    }
+    if (upper.startsWith("SEC::")) {
+      return {
+        token: {
+          kind: FORMULA_KIND_REF,
+          refType: "section",
+          refId: raw,
+          label: normalizarTextoRefFormula(raw.slice(5)) || raw,
+        },
+        unresolved: false,
+      };
+    }
+
+    if (/^\d{3}[-\d]/.test(raw)) {
+      return {
+        token: {
+          kind: FORMULA_KIND_REF,
+          refType: "account",
+          refId: `ACC::${normalizarCuentaFormula(raw)}`,
+          label: raw,
+        },
+        unresolved: false,
+      };
+    }
+
+    const selection = parsearSeleccionFormulaTexto(raw);
+    if (selection.parent && selection.label) {
+      return {
+        token: {
+          kind: FORMULA_KIND_REF,
+          refType: "subsection",
+          refId: "",
+          label: selection.label,
+          parentSection: selection.parent,
+        },
+        unresolved: false,
+      };
+    }
+
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: "generic",
+        refId: "",
+        label: raw,
+      },
+      unresolved: false,
     };
+  };
+
+  const parsearFormulaTextoATokensV2 = (formulaRaw = "") => {
+    const raw = (formulaRaw || "").toString().trim();
+    if (!raw) return { valid: true, tokens: [] };
+
+    const lexical = tokenizarFormulaTexto(raw);
+    const tokens = [];
+    let balance = 0;
+    let expectingValue = true;
+
+    for (let idx = 0; idx < lexical.length; idx += 1) {
+      const item = lexical[idx];
+      if (!item) continue;
+
+      if (item.kind === FORMULA_KIND_OP) {
+        const opValue = (item.value || "").toString().trim();
+        if (!FORMULA_OPERATORS.has(opValue)) {
+          return { valid: false, tokens: [] };
+        }
+
+        if (opValue === "(") {
+          if (!expectingValue) return { valid: false, tokens: [] };
+          balance += 1;
+          tokens.push({ kind: FORMULA_KIND_OP, value: "(" });
+          expectingValue = true;
+          continue;
+        }
+
+        if (opValue === ")") {
+          if (expectingValue || balance <= 0) return { valid: false, tokens: [] };
+          balance -= 1;
+          tokens.push({ kind: FORMULA_KIND_OP, value: ")" });
+          expectingValue = false;
+          continue;
+        }
+
+        if (expectingValue) {
+          if (opValue === "+" || opValue === "-") {
+            tokens.push({ kind: FORMULA_KIND_OP, value: opValue });
+            expectingValue = true;
+            continue;
+          }
+          return { valid: false, tokens: [] };
+        }
+
+        tokens.push({ kind: FORMULA_KIND_OP, value: opValue });
+        expectingValue = true;
+        continue;
+      }
+
+      if (!expectingValue) {
+        return { valid: false, tokens: [] };
+      }
+      const resolved = construirTokenTextoFormula(item.value);
+      if (!resolved?.token) return { valid: false, tokens: [] };
+      tokens.push(resolved.token);
+      expectingValue = false;
+    }
+
+    if (balance !== 0 || expectingValue) {
+      return { valid: false, tokens: [] };
+    }
+
+    return { valid: true, tokens };
+  };
+
+  const crearRefTokenDesdeTerminoLegacy = (term = {}) => {
+    const type = (term.type || "").toString().toLowerCase();
+    const value = (term.value ?? term.cuenta ?? term.id ?? "").toString().trim();
+    if (!value && type !== "constant") return null;
+
+    if (type === "constant") {
+      const number = term.constant != null ? Number(term.constant) : Number(value);
+      return {
+        kind: FORMULA_KIND_CONST,
+        value: Number.isFinite(number) ? number : 0,
+      };
+    }
+
+    if (type === "operation" || type === "operacion") {
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "operation",
+        refId: "",
+        label: value,
+      };
+    }
+
+    if (type === "account" || type === "cuenta") {
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "account",
+        refId: `ACC::${normalizarCuentaFormula(value)}`,
+        label: value,
+      };
+    }
+
+    if (term.parentSection) {
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "subsection",
+        refId: "",
+        label: value,
+        parentSection: term.parentSection,
+      };
+    }
+
+    return {
+      kind: FORMULA_KIND_REF,
+      refType: "section",
+      refId: "",
+      label: value,
+    };
+  };
+
+  const convertirTerminosLegacyATokensV2 = (terms = []) => {
+    const tokens = [];
+    (Array.isArray(terms) ? terms : []).forEach((term, idx) => {
+      if (!term || typeof term !== "object") return;
+      const refToken = crearRefTokenDesdeTerminoLegacy(term);
+      if (!refToken) return;
+
+      const rawOp = (term.operator || "+").toString().trim();
+      const operator = rawOp === "×" ? "*" : rawOp === "÷" ? "/" : rawOp || "+";
+
+      if (idx === 0) {
+        if (operator === "-") {
+          tokens.push({ kind: FORMULA_KIND_CONST, value: 0 });
+          tokens.push({ kind: FORMULA_KIND_OP, value: "-" });
+        }
+      } else if (FORMULA_OPERATORS_ARITH.has(operator)) {
+        tokens.push({ kind: FORMULA_KIND_OP, value: operator });
+      } else {
+        tokens.push({ kind: FORMULA_KIND_OP, value: "+" });
+      }
+
+      tokens.push(refToken);
+    });
+    return tokens;
+  };
+
+  const extraerInfoRefTokenFormula = (token = {}) => {
+    const refTypeRaw = (token.refType || "").toString().toLowerCase();
+    const refId = (token.refId || "").toString().trim();
+    const upper = refId.toUpperCase();
+    let refType = refTypeRaw;
+    let label = (token.label || "").toString().trim();
+    let parentSection = (token.parentSection || "").toString().trim();
+
+    if (upper.startsWith("ACC::")) {
+      refType = "account";
+      if (!label) label = normalizarTextoRefFormula(refId.slice(5));
+    } else if (upper.startsWith("OP::")) {
+      refType = "operation";
+      if (!label) label = normalizarTextoRefFormula(refId.slice(4));
+    } else if (upper.startsWith("SEC::")) {
+      refType = "section";
+      if (!label) label = normalizarTextoRefFormula(refId.slice(5));
+    } else if (upper.startsWith("SUB::")) {
+      refType = "subsection";
+      const parts = refId.split("::");
+      if (!parentSection) parentSection = normalizarTextoRefFormula(parts[1] || "");
+      if (!label) label = normalizarTextoRefFormula(parts.slice(2).join("::") || "");
+    }
+
+    if (!refType) refType = "generic";
+    return { refType, label: label || refId, parentSection };
+  };
+
+  const tokensV2ATerminosLegacy = (tokens = []) => {
+    const terms = [];
+    let operator = "+";
+    (Array.isArray(tokens) ? tokens : []).forEach((token) => {
+      if (!token || typeof token !== "object") return;
+      if (token.kind === FORMULA_KIND_OP) {
+        const raw = (token.value || "").toString().trim();
+        if (FORMULA_OPERATORS_ARITH.has(raw)) {
+          operator = raw;
+        }
+        return;
+      }
+      if (token.kind === FORMULA_KIND_CONST) {
+        const num = Number(token.value);
+        terms.push({
+          operator,
+          type: "constant",
+          value: String(Number.isFinite(num) ? num : 0),
+          constant: Number.isFinite(num) ? num : 0,
+        });
+        operator = "+";
+        return;
+      }
+      if (token.kind !== FORMULA_KIND_REF) return;
+
+      const info = extraerInfoRefTokenFormula(token);
+      const type =
+        info.refType === "operation"
+          ? "operation"
+          : info.refType === "account"
+            ? "account"
+            : "section";
+
+      const term = {
+        operator,
+        type,
+        value: info.label || "",
+      };
+      if (info.refType === "subsection" && info.parentSection) {
+        term.parentSection = info.parentSection;
+      }
+      terms.push(term);
+      operator = "+";
+    });
+    return terms;
+  };
+
+  const esTerminoFormulaValido = (term) => {
+    const value = (term?.value || term?.cuenta || term?.id || "").toString();
+    if (!value) return false;
+    if (/\d{3,}.*-/.test(value)) return true;
+    if (value.length >= 5 && /[A-Z]/i.test(value)) return true;
+    if (value.length >= 5 && /\d/.test(value)) return true;
+    return false;
+  };
+
+  const esListaFormulaCorrupta = (terms) => {
+    if (!Array.isArray(terms) || !terms.length) return true;
+    return terms.every((term) => !esTerminoFormulaValido(term));
+  };
+
+  const extraerTokensFormulaOperacion = (op = {}) => {
+    if (!op || typeof op !== "object") return [];
+
+    if (Array.isArray(op.formula_v2?.tokens) && op.formula_v2.tokens.length) {
+      return op.formula_v2.tokens;
+    }
+
+    const fromJson = parseJsonSeguro(op.formula_json);
+    if (
+      fromJson &&
+      typeof fromJson === "object" &&
+      Number(fromJson.version) === FORMULA_V2_VERSION &&
+      Array.isArray(fromJson.tokens)
+    ) {
+      return fromJson.tokens;
+    }
+
+    if (Array.isArray(fromJson) && fromJson.length) {
+      return convertirTerminosLegacyATokensV2(fromJson);
+    }
+
+    if (!fromJson) {
+      const rawFormulaJson = (op?.formula_json || "").toString().trim();
+      if (rawFormulaJson) {
+        const parsedText = parsearFormulaTextoATokensV2(rawFormulaJson);
+        if (parsedText.valid && parsedText.tokens.length) {
+          return parsedText.tokens;
+        }
+      }
+    }
 
     if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
-      if (!esListaCorrupta(op.formula_terms)) {
-        return op.formula_terms;
-      }
-    }
-    if (op.formula_json) {
-      try {
-        const parsed = JSON.parse(op.formula_json);
-        if (Array.isArray(parsed) && !esListaCorrupta(parsed)) return parsed;
-      } catch (err) {
-        console.warn("No se pudo leer formula_json", err);
+      if (!esListaFormulaCorrupta(op.formula_terms)) {
+        return convertirTerminosLegacyATokensV2(op.formula_terms);
       }
     }
 
-    const expresion =
-      op.cuentas ||
-      op.expresion ||
-      op.formula ||
-      op.operacion_label ||
-      "";
-    const terms = parsearExpresionSimple(expresion);
-    if (terms.length) return terms;
+    const expresion = op.cuentas || op.expresion || op.formula || op.operacion_label || "";
+    const parsedFormula = parsearFormulaTextoATokensV2(expresion);
+    if (parsedFormula.valid && parsedFormula.tokens.length) {
+      return parsedFormula.tokens;
+    }
+
+    const terms = [];
+    if (op.signos && typeof op.signos === "object") {
+      Object.entries(op.signos).forEach(([clave, signo]) => {
+        if (!clave || !/^seccion_\d+$/i.test(clave)) return;
+        const valor = op[clave];
+        if (!valor) return;
+        terms.push({
+          operator: Number(signo) < 0 ? "-" : "+",
+          type: "section",
+          value: valor,
+        });
+      });
+    }
+
+    if (terms.length) {
+      return convertirTerminosLegacyATokensV2(terms);
+    }
+
     return [];
+  };
+
+  const extraerFormulaPayloadOperacion = (op = {}) => {
+    const tokens = extraerTokensFormulaOperacion(op);
+    if (!tokens.length) {
+      return { tokens: [], terms: [] };
+    }
+    const terms = tokensV2ATerminosLegacy(tokens);
+    if (!Array.isArray(terms) || esListaFormulaCorrupta(terms)) {
+      return { tokens, terms: [] };
+    }
+    return { tokens, terms };
+  };
+
+  const extraerFormulaTermsOperacion = (op) => {
+    return extraerFormulaPayloadOperacion(op).terms;
   };
 
   const CAMPOS_FILA_OPERACION = [
@@ -5588,6 +6040,166 @@
       return Array.isArray(seccion?.sumValues) ? seccion.sumValues : null;
     };
 
+    const clonarListaFormula = (lista) =>
+      ajustarLongitud(lista).map((valor) => Number(valor) || 0);
+
+    const normalizarOperadorFormula = (valor) => {
+      const raw = (valor || "+").toString().trim();
+      if (raw === "×") return "*";
+      if (raw === "÷") return "/";
+      return raw || "+";
+    };
+
+    const dividirSeguroFormula = (numerador, denominador) => {
+      const den = Number(denominador);
+      if (!Number.isFinite(den) || den === 0) return 0;
+      const num = Number(numerador);
+      return Number.isFinite(num) ? num / den : 0;
+    };
+
+    const aplicarOperacionBinariaListas = (leftValues, rightValues, operador) => {
+      const op = normalizarOperadorFormula(operador);
+      const left = clonarListaFormula(leftValues);
+      const right = clonarListaFormula(rightValues);
+      switch (op) {
+        case "-":
+          return left.map((valor, idx) => valor - right[idx]);
+        case "*":
+          return left.map((valor, idx) => valor * right[idx]);
+        case "/":
+          return left.map((valor, idx) => dividirSeguroFormula(valor, right[idx]));
+        default:
+          return left.map((valor, idx) => valor + right[idx]);
+      }
+    };
+
+    const normalizarTokensConUnariosFormula = (tokens = []) => {
+      const out = [];
+      let prevKind = "start";
+
+      (Array.isArray(tokens) ? tokens : []).forEach((token) => {
+        if (!token || typeof token !== "object") return;
+        if (token.kind === FORMULA_KIND_OP) {
+          const op = normalizarOperadorFormula(token.value);
+          if (!FORMULA_OPERATORS.has(op)) return;
+          const unary =
+            (op === "+" || op === "-") &&
+            (prevKind === "start" || prevKind === "op" || prevKind === "open");
+          if (unary) {
+            if (op === "-") {
+              out.push({ kind: FORMULA_KIND_CONST, value: 0 });
+              out.push({ kind: FORMULA_KIND_OP, value: "-" });
+              prevKind = "op";
+            }
+            return;
+          }
+          out.push({ kind: FORMULA_KIND_OP, value: op });
+          prevKind = op === "(" ? "open" : op === ")" ? "close" : "op";
+          return;
+        }
+        if (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST) {
+          out.push(token);
+          prevKind = "value";
+        }
+      });
+
+      return out;
+    };
+
+    const precedenciaOperadorFormula = (op = "") => {
+      if (op === "*" || op === "/") return 2;
+      if (op === "+" || op === "-") return 1;
+      return 0;
+    };
+
+    const convertirInfijoARpnFormula = (tokens = []) => {
+      const output = [];
+      const stack = [];
+
+      (Array.isArray(tokens) ? tokens : []).forEach((token) => {
+        if (!token || typeof token !== "object") return;
+        if (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST) {
+          output.push(token);
+          return;
+        }
+        if (token.kind !== FORMULA_KIND_OP) return;
+        const op = normalizarOperadorFormula(token.value);
+        if (!FORMULA_OPERATORS.has(op)) return;
+
+        if (op === "(") {
+          stack.push({ kind: FORMULA_KIND_OP, value: "(" });
+          return;
+        }
+        if (op === ")") {
+          while (stack.length && stack[stack.length - 1].value !== "(") {
+            output.push(stack.pop());
+          }
+          if (stack.length && stack[stack.length - 1].value === "(") {
+            stack.pop();
+          }
+          return;
+        }
+
+        while (stack.length) {
+          const top = stack[stack.length - 1];
+          const topOp = normalizarOperadorFormula(top?.value || "");
+          if (topOp === "(") break;
+          if (precedenciaOperadorFormula(topOp) >= precedenciaOperadorFormula(op)) {
+            output.push(stack.pop());
+          } else {
+            break;
+          }
+        }
+        stack.push({ kind: FORMULA_KIND_OP, value: op });
+      });
+
+      while (stack.length) {
+        const top = stack.pop();
+        if (normalizarOperadorFormula(top?.value || "") === "(") continue;
+        output.push(top);
+      }
+
+      return output;
+    };
+
+    const evaluarTokensFormulaListas = (tokens = [], resolverToken) => {
+      const normalized = normalizarTokensConUnariosFormula(tokens);
+      if (!normalized.length) return null;
+      const rpn = convertirInfijoARpnFormula(normalized);
+      const stack = [];
+
+      (Array.isArray(rpn) ? rpn : []).forEach((token) => {
+        if (!token || typeof token !== "object") return;
+        if (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST) {
+          let valores = null;
+          if (typeof resolverToken === "function") {
+            valores = resolverToken(token);
+          }
+          if (!Array.isArray(valores)) {
+            if (token.kind === FORMULA_KIND_CONST) {
+              const numero = Number(token.value);
+              valores = obtenerCeros().map(() =>
+                Number.isFinite(numero) ? numero : 0
+              );
+            } else {
+              valores = obtenerCeros();
+            }
+          }
+          stack.push(clonarListaFormula(valores));
+          return;
+        }
+        if (token.kind !== FORMULA_KIND_OP) return;
+        const op = normalizarOperadorFormula(token.value);
+        if (!FORMULA_OPERATORS_ARITH.has(op)) return;
+        const right = stack.pop() || obtenerCeros();
+        const left = stack.pop() || obtenerCeros();
+        stack.push(aplicarOperacionBinariaListas(left, right, op));
+      });
+
+      if (!stack.length) return null;
+      return clonarListaFormula(stack[stack.length - 1]);
+    };
+
     // PASO 1: Calcular sum-row para cada secci├│n (suma vertical de todas las cuentas)
     secciones.forEach((seccion, idxSeccion) => {
       try {
@@ -5665,49 +6277,6 @@
         : [];
       const valoresPorOperacion = new Map();
       const valoresPorItem = new Map();
-      const normalizarOperador = (valor) => {
-        const raw = (valor || "+").toString().trim();
-        if (raw === "×") return "*";
-        if (raw === "÷") return "/";
-        return raw;
-      };
-      const numeroSeguro = (valor) => {
-        const num = Number(valor);
-        return Number.isFinite(num) ? num : 0;
-      };
-      const dividirSeguro = (numerador, denominador) => {
-        const den = numeroSeguro(denominador);
-        if (!den) return 0;
-        return numeroSeguro(numerador) / den;
-      };
-      const aplicarOperacion = (acumulado, termValues, operador) => {
-        const op = normalizarOperador(operador);
-        const base = Array.isArray(termValues)
-          ? termValues.map((v) => numeroSeguro(v))
-          : obtenerCeros();
-        if (!Array.isArray(acumulado)) {
-          if (op === "-") return base.map((v) => v * -1);
-          return base.slice();
-        }
-        switch (op) {
-          case "-":
-            return acumulado.map(
-              (valor, idx) => numeroSeguro(valor) - numeroSeguro(base[idx])
-            );
-          case "*":
-            return acumulado.map(
-              (valor, idx) => numeroSeguro(valor) * numeroSeguro(base[idx])
-            );
-          case "/":
-            return acumulado.map((valor, idx) =>
-              dividirSeguro(valor, base[idx])
-            );
-          default:
-            return acumulado.map(
-              (valor, idx) => numeroSeguro(valor) + numeroSeguro(base[idx])
-            );
-        }
-      };
       const obtenerClaveOperacion = (op, fila) =>
         normalizarOperacionLibreClave(
           op?.OperacionId ||
@@ -5721,7 +6290,9 @@
         if (!Array.isArray(a) || !Array.isArray(b)) return false;
         if (a.length !== b.length) return false;
         for (let i = 0; i < a.length; i += 1) {
-          if (numeroSeguro(a[i]) !== numeroSeguro(b[i])) return false;
+          const nA = Number(a[i]) || 0;
+          const nB = Number(b[i]) || 0;
+          if (nA !== nB) return false;
         }
         return true;
       };
@@ -5731,45 +6302,110 @@
         const fila = item?.fila;
         if (!op || !fila) return obtenerCeros();
         const claveOperacionActual = obtenerClaveOperacion(op, fila);
-        const terms = extraerFormulaTermsOperacion(op);
+        const formulaPayload = extraerFormulaPayloadOperacion(op);
+        const terms = formulaPayload.terms || [];
+        const tokens = formulaPayload.tokens || [];
         let valores = null;
-        terms.forEach((term) => {
-          if (!term) return;
-          const tipo = (term.type || "").toString().toLowerCase();
-          const valorTerm = term.value ?? term.cuenta ?? term.id ?? "";
-          let termValues = obtenerCeros();
-          if (tipo === "section" || tipo === "seccion") {
-            termValues = obtenerValoresSeccion(valorTerm) || obtenerCeros();
-          } else if (tipo === "account" || tipo === "cuenta") {
-            termValues = obtenerValoresCuenta(valorTerm);
-          } else if (tipo === "operation" || tipo === "operacion") {
-            const claveOp = normalizarOperacionLibreClave(valorTerm);
+        const resolverValoresReferencia = (valorReferencia = "", refType = "") => {
+          const raw = (valorReferencia || "").toString().trim();
+          if (!raw) return obtenerCeros();
+          const tipoRef = (refType || "").toLowerCase();
+          const claveOp = normalizarOperacionLibreClave(raw);
+
+          if (tipoRef === "account") {
+            return obtenerValoresCuenta(raw);
+          }
+
+          if (tipoRef === "operation") {
             if (claveOp && claveOp === claveOperacionActual) {
-              termValues = obtenerCeros();
-            } else if (claveOp && valoresPorOperacion.has(claveOp)) {
-              termValues = valoresPorOperacion.get(claveOp);
-            } else {
-              const valoresSeccion = obtenerValoresSeccion(valorTerm);
-              if (Array.isArray(valoresSeccion)) {
-                termValues = valoresSeccion;
-              } else if (convertirCuenta21(valorTerm)) {
-                termValues = obtenerValoresCuenta(valorTerm);
-              } else {
-                termValues = obtenerCeros();
-              }
+              return obtenerCeros();
             }
-          } else if (tipo === "constant") {
-            const numero =
-              term.constant != null ? Number(term.constant) : Number(valorTerm);
-            termValues = obtenerCeros().map(() =>
+            if (claveOp && valoresPorOperacion.has(claveOp)) {
+              return valoresPorOperacion.get(claveOp);
+            }
+            const valoresSeccion = obtenerValoresSeccion(raw);
+            if (Array.isArray(valoresSeccion)) {
+              return valoresSeccion;
+            }
+            if (convertirCuenta21(raw)) {
+              return obtenerValoresCuenta(raw);
+            }
+            return obtenerCeros();
+          }
+
+          const valoresSeccion = obtenerValoresSeccion(raw);
+          if (Array.isArray(valoresSeccion)) {
+            return valoresSeccion;
+          }
+
+          if (claveOp && claveOp === claveOperacionActual) {
+            return obtenerCeros();
+          }
+          if (claveOp && valoresPorOperacion.has(claveOp)) {
+            return valoresPorOperacion.get(claveOp);
+          }
+          if (convertirCuenta21(raw)) {
+            return obtenerValoresCuenta(raw);
+          }
+          return obtenerCeros();
+        };
+
+        const resolverToken = (token) => {
+          if (!token || typeof token !== "object") return obtenerCeros();
+          if (token.kind === FORMULA_KIND_CONST) {
+            const numero = Number(token.value);
+            return obtenerCeros().map(() =>
               Number.isFinite(numero) ? numero : 0
             );
-          } else {
-            const valoresSeccion = obtenerValoresSeccion(valorTerm);
-            termValues = valoresSeccion || obtenerValoresCuenta(valorTerm);
           }
-          valores = aplicarOperacion(valores, termValues, term.operator);
-        });
+          if (token.kind !== FORMULA_KIND_REF) return obtenerCeros();
+          const refInfo = extraerInfoRefTokenFormula(token);
+          return resolverValoresReferencia(refInfo.label, refInfo.refType);
+        };
+
+        if (Array.isArray(tokens) && tokens.length) {
+          valores = evaluarTokensFormulaListas(tokens, resolverToken);
+        }
+
+        if (!Array.isArray(valores)) {
+          (terms || []).forEach((term) => {
+            if (!term) return;
+            const tipo = (term.type || "").toString().toLowerCase();
+            const valorTerm = term.value ?? term.cuenta ?? term.id ?? "";
+            let termValues = obtenerCeros();
+            if (tipo === "constant") {
+              const numero =
+                term.constant != null ? Number(term.constant) : Number(valorTerm);
+              termValues = obtenerCeros().map(() =>
+                Number.isFinite(numero) ? numero : 0
+              );
+            } else {
+              const refType =
+                tipo === "operacion"
+                  ? "operation"
+                  : tipo === "cuenta"
+                    ? "account"
+                    : tipo;
+              termValues = resolverValoresReferencia(valorTerm, refType);
+            }
+
+            if (!Array.isArray(valores)) {
+              const operador = normalizarOperadorFormula(term.operator);
+              valores =
+                operador === "-"
+                  ? clonarListaFormula(termValues).map((valor) => valor * -1)
+                  : clonarListaFormula(termValues);
+              return;
+            }
+
+            valores = aplicarOperacionBinariaListas(
+              valores,
+              termValues,
+              term.operator
+            );
+          });
+        }
+
         if (!Array.isArray(valores)) {
           valores = obtenerCeros();
         }
@@ -6239,8 +6875,10 @@
           claves.forEach((key) => registerRowKey(key, fila));
         }
 
-        const terms = extraerFormulaTermsOperacion(op);
-        if (!Array.isArray(terms) || terms.length === 0) return;
+        const formulaPayload = extraerFormulaPayloadOperacion(op);
+        const hasTokens = Array.isArray(formulaPayload.tokens) && formulaPayload.tokens.length > 0;
+        const hasTerms = Array.isArray(formulaPayload.terms) && formulaPayload.terms.length > 0;
+        if (!hasTokens && !hasTerms) return;
         if (fila) addItem(op, fila);
       });
 
@@ -6250,60 +6888,19 @@
 
       const valoresPorOperacion = new Map();
       const valoresPorItem = new Map();
-      const normalizarOperador = (valor) => {
-        const raw = (valor || "+").toString().trim();
-        if (raw === "×") return "*";
-        if (raw === "÷") return "/";
-        return raw;
-      };
-      const numeroSeguro = (valor) => {
-        const num = Number(valor);
-        return Number.isFinite(num) ? num : 0;
-      };
-      const dividirSeguro = (numerador, denominador) => {
-        const den = numeroSeguro(denominador);
-        if (!den) return 0;
-        return numeroSeguro(numerador) / den;
-      };
-      const aplicarOperacion = (acumulado, termValues, operador) => {
-        const op = normalizarOperador(operador);
-        const base = Array.isArray(termValues)
-          ? termValues.map((v) => numeroSeguro(v))
-          : obtenerCeros();
-        if (!Array.isArray(acumulado)) {
-          if (op === "-") return base.map((v) => v * -1);
-          return base.slice();
-        }
-        switch (op) {
-          case "-":
-            return acumulado.map(
-              (valor, idx) => numeroSeguro(valor) - numeroSeguro(base[idx])
-            );
-          case "*":
-            return acumulado.map(
-              (valor, idx) => numeroSeguro(valor) * numeroSeguro(base[idx])
-            );
-          case "/":
-            return acumulado.map((valor, idx) =>
-              dividirSeguro(valor, base[idx])
-            );
-          default:
-            return acumulado.map(
-              (valor, idx) => numeroSeguro(valor) + numeroSeguro(base[idx])
-            );
-        }
-      };
 
       const arraysEqual = (a, b) => {
         if (!Array.isArray(a) || !Array.isArray(b)) return false;
         if (a.length !== b.length) return false;
         for (let i = 0; i < a.length; i += 1) {
-          if (numeroSeguro(a[i]) !== numeroSeguro(b[i])) return false;
+          const nA = Number(a[i]) || 0;
+          const nB = Number(b[i]) || 0;
+          if (nA !== nB) return false;
         }
         return true;
       };
 
-      const obtenerClavesOperacion = (op, fila) => {
+      function obtenerClavesOperacion(op, fila) {
         const claves = new Set();
         const push = (valor) => {
           const key = normalizarOperacionLibreClave(valor);
@@ -6321,7 +6918,7 @@
           fila?.cells?.[1]?.textContent || fila?.dataset?.operationLabel || "";
         push(textoFila);
         return claves;
-      };
+      }
 
       const obtenerValoresFila = (fila) => {
         if (!fila) return null;
@@ -6354,51 +6951,107 @@
       const calcularOperacion = (item) => {
         const op = item.op;
         const fila = item.fila;
-        const terms = extraerFormulaTermsOperacion(op);
+        const formulaPayload = extraerFormulaPayloadOperacion(op);
+        const terms = formulaPayload.terms || [];
+        const tokens = formulaPayload.tokens || [];
         const clavesPropias = obtenerClavesOperacion(op, fila);
         let valores = null;
 
-        (terms || []).forEach((term) => {
-          if (!term) return;
-          const tipo = (term.type || "").toString().toLowerCase();
-          const valorTerm = term.value ?? term.cuenta ?? term.id ?? "";
-          let termValues = obtenerCeros();
+        const resolverValoresReferencia = (valorReferencia = "", refType = "") => {
+          const raw = (valorReferencia || "").toString().trim();
+          if (!raw) return obtenerCeros();
+          const tipoRef = (refType || "").toLowerCase();
 
-          if (tipo === "section" || tipo === "seccion") {
-            termValues = obtenerValoresSeccion(valorTerm) || obtenerCeros();
-            if (!termValues || !Array.isArray(termValues)) {
-              const opValores = obtenerValoresOperacion(valorTerm, clavesPropias);
-              termValues = opValores || obtenerCeros();
-            }
-          } else if (tipo === "account" || tipo === "cuenta") {
-            termValues = obtenerValoresCuenta(valorTerm);
-          } else if (tipo === "operation" || tipo === "operacion") {
-            const opValores = obtenerValoresOperacion(valorTerm, clavesPropias);
-            if (opValores) {
-              termValues = opValores;
-            } else {
-              const valoresSeccion = obtenerValoresSeccion(valorTerm);
-              if (Array.isArray(valoresSeccion)) {
-                termValues = valoresSeccion;
-              } else if (convertirCuenta21(valorTerm)) {
-                termValues = obtenerValoresCuenta(valorTerm);
-              } else {
-                termValues = obtenerCeros();
-              }
-            }
-          } else if (tipo === "constant") {
-            const numero =
-              term.constant != null ? Number(term.constant) : Number(valorTerm);
-            termValues = obtenerCeros().map(() =>
-              Number.isFinite(numero) ? numero : 0
-            );
-          } else {
-            const valoresSeccion = obtenerValoresSeccion(valorTerm);
-            termValues = valoresSeccion || obtenerValoresCuenta(valorTerm);
+          if (tipoRef === "account") {
+            return obtenerValoresCuenta(raw);
           }
 
-          valores = aplicarOperacion(valores, termValues, term.operator);
-        });
+          if (tipoRef === "operation") {
+            const opValores = obtenerValoresOperacion(raw, clavesPropias);
+            if (opValores) {
+              return opValores;
+            }
+            const valoresSeccion = obtenerValoresSeccion(raw);
+            if (Array.isArray(valoresSeccion)) {
+              return valoresSeccion;
+            }
+            if (convertirCuenta21(raw)) {
+              return obtenerValoresCuenta(raw);
+            }
+            return obtenerCeros();
+          }
+
+          const valoresSeccion = obtenerValoresSeccion(raw);
+          if (Array.isArray(valoresSeccion)) {
+            return valoresSeccion;
+          }
+
+          const opValores = obtenerValoresOperacion(raw, clavesPropias);
+          if (opValores) {
+            return opValores;
+          }
+          if (convertirCuenta21(raw)) {
+            return obtenerValoresCuenta(raw);
+          }
+          return obtenerCeros();
+        };
+
+        const resolverToken = (token) => {
+          if (!token || typeof token !== "object") return obtenerCeros();
+          if (token.kind === FORMULA_KIND_CONST) {
+            const numero = Number(token.value);
+            return obtenerCeros().map(() =>
+              Number.isFinite(numero) ? numero : 0
+            );
+          }
+          if (token.kind !== FORMULA_KIND_REF) return obtenerCeros();
+          const refInfo = extraerInfoRefTokenFormula(token);
+          return resolverValoresReferencia(refInfo.label, refInfo.refType);
+        };
+
+        if (Array.isArray(tokens) && tokens.length) {
+          valores = evaluarTokensFormulaListas(tokens, resolverToken);
+        }
+
+        if (!Array.isArray(valores)) {
+          (terms || []).forEach((term) => {
+            if (!term) return;
+            const tipo = (term.type || "").toString().toLowerCase();
+            const valorTerm = term.value ?? term.cuenta ?? term.id ?? "";
+            let termValues = obtenerCeros();
+
+            if (tipo === "constant") {
+              const numero =
+                term.constant != null ? Number(term.constant) : Number(valorTerm);
+              termValues = obtenerCeros().map(() =>
+                Number.isFinite(numero) ? numero : 0
+              );
+            } else {
+              const refType =
+                tipo === "operacion"
+                  ? "operation"
+                  : tipo === "cuenta"
+                    ? "account"
+                    : tipo;
+              termValues = resolverValoresReferencia(valorTerm, refType);
+            }
+
+            if (!Array.isArray(valores)) {
+              const operador = normalizarOperadorFormula(term.operator);
+              valores =
+                operador === "-"
+                  ? clonarListaFormula(termValues).map((valor) => valor * -1)
+                  : clonarListaFormula(termValues);
+              return;
+            }
+
+            valores = aplicarOperacionBinariaListas(
+              valores,
+              termValues,
+              term.operator
+            );
+          });
+        }
 
         if (!Array.isArray(valores)) {
           valores = obtenerCeros();
