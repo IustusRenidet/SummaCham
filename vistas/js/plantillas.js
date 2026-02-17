@@ -891,9 +891,8 @@
         state.columnasConfigChanged = false;
       }
 
-      // En modo manual solo hidratamos ubicación (parentSection/parentSubsection) si faltan,
-      // para que las operaciones aparezcan bajo su sección/subsección al cargar.
-      hydrateOperationPlacement();
+      // Modo estricto manual: no inferir parentSection/parentSubsection.
+      // Solo se respeta lo que exista explícitamente en el layout guardado.
       ensureOperationIds(); // Solo asegurar IDs si faltan
       dedupeTemplateStructure({ silent: true });
       // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
@@ -1528,6 +1527,15 @@
     return candidates.filter(Boolean);
   }
 
+  function isHeaderLinkedOperation(op) {
+    if (!op) return false;
+    const parentSection = (op.parentSection || "").toString().trim();
+    const parentSubsection = (op.parentSubsection || "").toString().trim();
+    const sumRow = (op["sum-row"] || "").toString().trim();
+    const sumPrincipal = (op["sum-row-sumavarios"] || "").toString().trim();
+    return Boolean(parentSection || parentSubsection || sumRow || sumPrincipal);
+  }
+
   function getRowOperationMatch(
     label,
     preferredField = "",
@@ -1914,57 +1922,45 @@
   }
 
   function hydrateOperationsFromParents() {
-    state.operaciones = state.operaciones.map((op, idx) => {
-      // PRIORIDAD 1: Si ya tiene formula_terms definidos manualmente, respetarlos
-      if (op?.formula_terms?.length) {
-        // Asegurar que cada término tenga el tipo correcto
-        op.formula_terms = op.formula_terms.map((term) => ({
+    state.operaciones = state.operaciones.map((op) => {
+      if (!op) return op;
+
+      const tokens = extractFormulaTokens(op);
+      if (Array.isArray(tokens) && tokens.length > 0) {
+        const normalizedTerms = normalizeFormulaTerms(
+          convertV2TokensToLegacyTerms(tokens),
+        ).map((term) => ({
           ...term,
           type: term.type || detectTermType(term.value),
         }));
+        applyStrictFormulaTermsToOperation(op, normalizedTerms, tokens);
         return op;
       }
 
-      // PRIORIDAD 2: Si tiene formula_json guardado, parsearlo
-      if (op?.formula_json) {
-        try {
-          const parsed = JSON.parse(op.formula_json);
-          op.formula_terms = parsed.map((term) => ({
-            ...term,
-            type: term.type || detectTermType(term.value),
-          }));
-          return op;
-        } catch (e) {
-          console.warn("Error parsing formula_json:", e);
-        }
-      }
-
-      // PRIORIDAD 3: Si tiene signos explícitos en seccion_1, seccion_2, etc.
+      // Legacy de emergencia: signos explícitos en seccion_1, seccion_2, etc.
       if (op?.signos && Object.keys(op.signos).length > 0) {
         const terms = [];
         const seccionKeys = Object.keys(op.signos)
           .filter((k) => k.startsWith("seccion_"))
           .sort((a, b) => {
-            const numA = parseInt(a.split("_")[1]) || 0;
-            const numB = parseInt(b.split("_")[1]) || 0;
+            const numA = parseInt(a.split("_")[1], 10) || 0;
+            const numB = parseInt(b.split("_")[1], 10) || 0;
             return numA - numB;
           });
 
         seccionKeys.forEach((key, i) => {
           const value = op[key];
-          if (value) {
-            terms.push({
-              id: Date.now() + i,
-              operator: op.signos[key] < 0 ? "-" : "+",
-              type: detectTermType(value),
-              value: value,
-            });
-          }
+          if (!value) return;
+          terms.push({
+            id: Date.now() + i,
+            operator: op.signos[key] < 0 ? "-" : "+",
+            type: detectTermType(value),
+            value,
+          });
         });
 
         if (terms.length > 0) {
-          op.formula_terms = terms;
-          return op;
+          applyStrictFormulaTermsToOperation(op, terms);
         }
       }
 
@@ -2131,48 +2127,7 @@
   }
 
   function buildPreviewRowsForEditor() {
-    const appendMissingOperations = (rows = []) => {
-      const normalized = new Set();
-      const registerKey = (value) => {
-        const key = normalizeOperationMatch(value || "");
-        if (key) normalized.add(key);
-      };
-
-      (rows || []).forEach((row) => {
-        if (!row || row.type !== "operation") return;
-        registerKey(row.opId || row.label || "");
-      });
-
-      const extras = [];
-      (state.operaciones || []).forEach((op) => {
-        if (!op || isColumnConfigOperation(op)) return;
-        const label = getOperationDisplayName(op);
-        const opId = getOperationId(op) || label;
-        if (!label && !opId) return;
-        const keyId = normalizeOperationMatch(opId || "");
-        const keyLabel = normalizeOperationMatch(label || "");
-        if (
-          (keyId && normalized.has(keyId)) ||
-          (keyLabel && normalized.has(keyLabel))
-        ) {
-          return;
-        }
-        if (keyId) normalized.add(keyId);
-        if (keyLabel) normalized.add(keyLabel);
-        extras.push({
-          type: "operation",
-          label: label || opId || "",
-          opId: opId || label || "",
-          kind: detectOperationType(op),
-          parentSection: op.parentSection || "",
-          parentSubsection: op.parentSubsection || "",
-          visible: op.visible !== false,
-        });
-      });
-
-      if (!extras.length) return rows;
-      return [...rows, ...extras];
-    };
+    const appendMissingOperations = (rows = []) => rows;
 
     // Intentar usar LayoutControls si está disponible (a menos que forzamos orden manual)
     if (
@@ -2216,6 +2171,8 @@
     const operacionesRaw = sortOperations(state.operaciones || []).filter(
       (op) => op && !isColumnConfigOperation(op),
     );
+    const resumenSectionOpsEmbedded =
+      normalizeOperationMatch(state.modulo || "") === "resumen";
 
     const placeholderDefs = [];
     const cuentas = [];
@@ -2375,8 +2332,30 @@
       }
     });
 
+    const knownPrincipalKeys = new Set(Array.from(sectionsMap.keys()));
+    const knownSubsectionKeys = new Set();
+    sectionsMap.forEach((sectionNode) => {
+      (sectionNode?.subsectionMap || new Map()).forEach((_, subKey) => {
+        if (subKey) knownSubsectionKeys.add(subKey);
+      });
+    });
+
     // 3) Operaciones.
     operacionesRaw.forEach((op, idx) => {
+      const placementValue = (op.SECCION || op.seccion || "").toString().trim();
+      const placementKey = normalizeLabelKey(placementValue);
+      const placementLooksLikeHeader =
+        Boolean(placementKey) &&
+        (knownPrincipalKeys.has(placementKey) ||
+          knownSubsectionKeys.has(placementKey));
+      if (
+        resumenSectionOpsEmbedded &&
+        (isHeaderLinkedOperation(op) || placementLooksLikeHeader)
+      ) {
+        // En RESUMEN, sección/subsección son la operación visible.
+        // Estas operaciones se editan desde la fila de sección, no como fila aparte.
+        return;
+      }
       let principal = (op.parentSection || "").toString().trim();
       let secundaria = (op.parentSubsection || "").toString().trim();
       if (!principal) {
@@ -3336,8 +3315,7 @@
     return `
       <div class="alert alert-info alert-sm mb-3">
         <i class="bi bi-info-circle me-2"></i>
-        <strong>Modo 100% Manual:</strong> Cambia el nombre libremente. 
-        Los IDs se generan automáticamente si no los defines.
+        <strong>Modo 100% Manual:</strong> Define nombre e ID manualmente.
       </div>
       <div class="mb-3">
         <label class="form-label">Nombre visible</label>
@@ -3345,7 +3323,7 @@
                value="${escapeHtml(opLabelInput || "")}" 
                placeholder="Ej: Suma Gastos Financieros" />
         <div class="form-text">
-          Puedes usar cualquier nombre. Si está vacío, se generará uno automático.
+          Puedes usar cualquier nombre. Si lo dejas vacío, se conserva el actual.
         </div>
       </div>
       <div class="mb-3">
@@ -3390,9 +3368,9 @@
           <label class="form-label">Identificador interno (ID)</label>
           <input type="text" class="form-control" id="editOperacionId" 
                  value="${escapeHtml(opId || "")}" 
-                 placeholder="Se genera automáticamente" />
+                 placeholder="Ej: CDMX_INCOME" />
           <div class="form-text">
-            Opcional. El sistema genera un ID único si no lo defines.
+            Define un ID único manualmente.
           </div>
         </div>
       </details>
@@ -3544,6 +3522,17 @@
         <div class="alert alert-info small mb-3">
           Selecciona elementos del layout. Click una vez suma (+), otra resta (-), otra limpia.
         </div>
+        <div class="formula-layout-toolbar mb-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-formula-action="clear">
+            <i class="bi bi-eraser me-1"></i>Limpiar selección
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-formula-action="collapse">
+            <i class="bi bi-arrows-collapse me-1"></i>Colapsar todo
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-formula-action="expand">
+            <i class="bi bi-arrows-expand me-1"></i>Expandir todo
+          </button>
+        </div>
         <div id="operationFormulaLayout" class="formula-layout-list">
           ${rowsHtml || '<div class="text-muted small p-2">Sin elementos.</div>'}
         </div>
@@ -3609,20 +3598,65 @@
   function bindFormulaLayoutInteractions(panel) {
     if (!panel) return;
     const layout = panel.querySelector("#operationFormulaLayout");
+    const setToggleState = (btn, next) => {
+      if (!btn) return;
+      btn.dataset.state = next;
+      btn.textContent = next === "none" ? "" : next;
+      btn.classList.remove("is-plus", "is-minus", "is-off");
+      btn.classList.add(
+        next === "+" ? "is-plus" : next === "-" ? "is-minus" : "is-off",
+      );
+    };
+    const applyLayoutCollapsedState = () => {
+      if (!layout) return;
+      const collapsed = Boolean(state.operationFormulaLayoutCollapsed);
+      layout.classList.toggle("is-collapsed", collapsed);
+      const collapseBtn = panel.querySelector(
+        '[data-formula-action="collapse"]',
+      );
+      const expandBtn = panel.querySelector('[data-formula-action="expand"]');
+      if (collapseBtn) collapseBtn.disabled = collapsed;
+      if (expandBtn) expandBtn.disabled = !collapsed;
+    };
     if (layout) {
       layout.addEventListener("click", (event) => {
         const btn = event.target.closest(".formula-toggle");
         if (!btn) return;
         const state = btn.dataset.state || "none";
         const next = state === "none" ? "+" : state === "+" ? "-" : "none";
-        btn.dataset.state = next;
-        btn.textContent = next === "none" ? "" : next;
-        btn.classList.remove("is-plus", "is-minus", "is-off");
-        btn.classList.add(
-          next === "+" ? "is-plus" : next === "-" ? "is-minus" : "is-off",
-        );
+        setToggleState(btn, next);
         updateFormulaPreview(panel);
       });
+
+      const clearBtn = panel.querySelector('[data-formula-action="clear"]');
+      if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+          layout.querySelectorAll(".formula-toggle").forEach((btn) => {
+            setToggleState(btn, "none");
+          });
+          updateFormulaPreview(panel);
+        });
+      }
+
+      const collapseBtn = panel.querySelector(
+        '[data-formula-action="collapse"]',
+      );
+      if (collapseBtn) {
+        collapseBtn.addEventListener("click", () => {
+          state.operationFormulaLayoutCollapsed = true;
+          applyLayoutCollapsedState();
+        });
+      }
+
+      const expandBtn = panel.querySelector('[data-formula-action="expand"]');
+      if (expandBtn) {
+        expandBtn.addEventListener("click", () => {
+          state.operationFormulaLayoutCollapsed = false;
+          applyLayoutCollapsedState();
+        });
+      }
+
+      applyLayoutCollapsedState();
     }
 
     const manualInput = panel.querySelector("#operationFormulaManual");
@@ -3649,6 +3683,7 @@
           } else {
             layoutPanel.classList.remove("d-none");
             manualPanel.classList.add("d-none");
+            applyLayoutCollapsedState();
           }
         }
         updateFormulaPreview(panel);
@@ -4351,6 +4386,23 @@
           <input type="text" class="form-control" id="editSeccionSecundaria" value="${escapeHtml(getAccountSecondaryName(cuenta) || "")}" />
         </div>
         <div class="mb-3">
+          <label class="form-label">Signo/Factor</label>
+          <input type="number" step="any" class="form-control" id="editFactor" value="${escapeHtml(
+            Number.isFinite(Number(cuenta.operacion_factor))
+              ? String(Number(cuenta.operacion_factor))
+              : "1",
+          )}" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Valor plantilla</label>
+          <input type="number" step="any" class="form-control" id="editValorPlantilla" value="${escapeHtml(
+            Number.isFinite(Number(cuenta.valor_plantilla))
+              ? String(Number(cuenta.valor_plantilla))
+              : "0",
+          )}" />
+          <div class="form-text">Solo gestor/preview.</div>
+        </div>
+        <div class="mb-3">
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="editVisible" ${cuenta.visible !== false ? "checked" : ""} />
             <label class="form-check-label" for="editVisible">Visible</label>
@@ -4375,6 +4427,9 @@
           document.getElementById("editSeccionPrincipal")?.value || "";
         const seccionSecundaria =
           document.getElementById("editSeccionSecundaria")?.value || "";
+        const factorRaw = document.getElementById("editFactor")?.value || "";
+        const valorPlantillaRaw =
+          document.getElementById("editValorPlantilla")?.value || "";
         const visible = document.getElementById("editVisible")?.checked;
 
         // Actualizar cuenta
@@ -4400,6 +4455,12 @@
           cuenta["SECCIàN Secundaria"] = seccionSecundaria;
         if (cuenta.seccion_secundaria !== undefined)
           cuenta.seccion_secundaria = seccionSecundaria;
+        const factor = Number(factorRaw);
+        cuenta.operacion_factor = Number.isFinite(factor) ? factor : 1;
+        const valorPlantilla = Number(valorPlantillaRaw);
+        cuenta.valor_plantilla = Number.isFinite(valorPlantilla)
+          ? valorPlantilla
+          : 0;
         cuenta.visible = visible;
 
         // Guardar y cerrar
@@ -4463,8 +4524,250 @@
     }
   }
 
+  function getHeaderLinkedOperation(
+    kind,
+    sectionName = "",
+    subsectionName = "",
+  ) {
+    const safeSection = (sectionName || "").toString().trim();
+    const safeSubsection = (subsectionName || "").toString().trim();
+    if (kind === "section") {
+      const match = getRowOperationMatch(safeSection, "sum-row-sumavarios", "");
+      if (match.operations?.length) {
+        return match.operations[0];
+      }
+      const targetKey = normalizeOperationMatch(safeSection);
+      return (
+        (state.operaciones || []).find((op) => {
+          const parentKey = normalizeOperationMatch(op?.parentSection || "");
+          const subKey = normalizeOperationMatch(op?.parentSubsection || "");
+          const placementKey = normalizeOperationMatch(op?.SECCION || "");
+          return (
+            parentKey === targetKey &&
+            !subKey &&
+            (!placementKey || placementKey === targetKey)
+          );
+        }) || null
+      );
+    }
+    const match = getRowOperationMatch(safeSubsection, "sum-row", safeSection);
+    if (match.operations?.length) {
+      return match.operations[0];
+    }
+    const sectionKey = normalizeOperationMatch(safeSection);
+    const subsectionKey = normalizeOperationMatch(safeSubsection);
+    return (
+      (state.operaciones || []).find((op) => {
+        const parentKey = normalizeOperationMatch(op?.parentSection || "");
+        const subKey = normalizeOperationMatch(op?.parentSubsection || "");
+        const placementKey = normalizeOperationMatch(op?.SECCION || "");
+        return (
+          parentKey === sectionKey &&
+          (subKey === subsectionKey || placementKey === subsectionKey)
+        );
+      }) || null
+    );
+  }
+
+  function buildHeaderOperationDraft(kind, sectionName = "", subsectionName = "") {
+    const safeSection = (sectionName || "").toString().trim();
+    const safeSubsection = (subsectionName || "").toString().trim();
+    const existing = getHeaderLinkedOperation(kind, safeSection, safeSubsection);
+    if (existing) return existing;
+
+    if (kind === "section") {
+      return {
+        CAPITULO: state.capitulo || "DEFAULT",
+        HOJA: state.modulo || "",
+        Clase: safeSection,
+        OperacionId: normalizeOperationId(safeSection || "OPERACION"),
+        SECCION: safeSection,
+        seccion: safeSection,
+        secciones: safeSection ? [safeSection] : [],
+        parentSection: safeSection || null,
+        parentSubsection: null,
+        "sum-row-sumavarios": safeSection,
+        formula_terms: [],
+        formula_json: serializeFormulaV2([]),
+      };
+    }
+
+    return {
+      CAPITULO: state.capitulo || "DEFAULT",
+      HOJA: state.modulo || "",
+      Clase: safeSubsection,
+      OperacionId: normalizeOperationId(safeSubsection || "OPERACION"),
+      SECCION: safeSubsection,
+      seccion: safeSubsection,
+      secciones: safeSubsection ? [safeSubsection] : [],
+      parentSection: safeSection || null,
+      parentSubsection: safeSubsection || null,
+      "sum-row": safeSubsection,
+      formula_terms: [],
+      formula_json: serializeFormulaV2([]),
+    };
+  }
+
+  function readEditorFormulaPayload(opContext = null) {
+    const formulaPanel = dom.operationEditorPanel;
+    if (!formulaPanel) {
+      return { valid: true, terms: [], tokens: [], error: "" };
+    }
+    const formulaMode =
+      formulaPanel?.querySelector('input[name="operationFormulaMode"]:checked')
+        ?.value || "layout";
+    const manualText =
+      formulaPanel?.querySelector("#operationFormulaManual")?.value || "";
+
+    if (formulaMode === "manual") {
+      const parsed = parseFormulaExpressionV2(manualText, {
+        parentSection: opContext?.parentSection || "",
+        defaultParentSection: opContext?.parentSection || "",
+      });
+      if (!parsed.valid) {
+        return {
+          valid: false,
+          terms: [],
+          tokens: [],
+          error: parsed.error || "Fórmula inválida",
+        };
+      }
+      return {
+        valid: true,
+        terms: normalizeFormulaTerms(parsed.terms || []),
+        tokens: Array.isArray(parsed.tokens) ? parsed.tokens : [],
+        error: "",
+      };
+    }
+
+    const terms = normalizeFormulaTerms(
+      collectFormulaTermsFromLayout(formulaPanel),
+    );
+    return {
+      valid: true,
+      terms,
+      tokens: convertLegacyTermsToV2Tokens(terms, opContext || null),
+      error: "",
+    };
+  }
+
+  function readEditorFormulaTerms(opContext = null) {
+    const payload = readEditorFormulaPayload(opContext);
+    return payload.valid ? payload.terms : [];
+  }
+
+  function applyStrictFormulaTermsToOperation(op, terms = [], tokens = null) {
+    if (!op) return;
+    const normalizedTerms = normalizeFormulaTerms(
+      Array.isArray(terms) ? terms : [],
+    );
+    const normalizedTokens = Array.isArray(tokens)
+      ? tokens
+      : convertLegacyTermsToV2Tokens(normalizedTerms, op);
+
+    if (!op.signos || typeof op.signos !== "object") {
+      op.signos = {};
+    }
+
+    for (let i = 1; i <= 20; i += 1) {
+      const key = `seccion_${i}`;
+      delete op[key];
+      delete op.signos[key];
+    }
+
+    if (normalizedTerms.length) {
+      const now = Date.now();
+      op.formula_terms = normalizedTerms.map((term, idx) => ({
+        id: now + idx,
+        ...term,
+      }));
+      op.formula_v2 = {
+        version: FORMULA_V2_VERSION,
+        tokens: normalizedTokens,
+      };
+      op.formula_json = serializeFormulaV2(normalizedTokens);
+      op.formula_terms.forEach((term, idx) => {
+        const key = `seccion_${idx + 1}`;
+        op[key] = term.value;
+        op.signos[key] = term.operator === "-" ? -1 : 1;
+      });
+      return;
+    }
+
+    op.formula_terms = [];
+    op.formula_v2 = { version: FORMULA_V2_VERSION, tokens: [] };
+    op.formula_json = serializeFormulaV2([]);
+  }
+
+  function ensureHeaderLinkedOperation(
+    kind,
+    sectionName = "",
+    subsectionName = "",
+  ) {
+    const safeSection = (sectionName || "").toString().trim();
+    const safeSubsection = (subsectionName || "").toString().trim();
+    if (kind === "subsection" && (!safeSection || !safeSubsection)) {
+      return null;
+    }
+    if (kind === "section" && !safeSection) {
+      return null;
+    }
+
+    let op = getHeaderLinkedOperation(kind, safeSection, safeSubsection);
+    if (!op) {
+      const isSection = kind === "section";
+      const rowLabels = isSection
+        ? { "sum-row-sumavarios": safeSection }
+        : { "sum-row": safeSubsection };
+      const result = addOperationEntry(
+        {
+          nombre: isSection ? safeSection : safeSubsection,
+          seccion: safeSection,
+          subseccion: isSection ? "" : safeSubsection,
+          formulaTerms: [],
+          rowLabels,
+        },
+        { silent: true },
+      );
+      op = result?.operation || null;
+    }
+
+    if (!op) return null;
+
+    if (kind === "section") {
+      op.parentSection = safeSection || null;
+      op.parentSubsection = null;
+      op.SECCION = safeSection;
+      op.seccion = safeSection;
+      op.secciones = safeSection ? [safeSection] : [];
+      op["sum-row-sumavarios"] = safeSection;
+      delete op["sum-row"];
+    } else {
+      op.parentSection = safeSection || null;
+      op.parentSubsection = safeSubsection || null;
+      op.SECCION = safeSubsection;
+      op.seccion = safeSubsection;
+      op.secciones = safeSubsection ? [safeSubsection] : [];
+      op["sum-row"] = safeSubsection;
+      delete op["sum-row-sumavarios"];
+    }
+
+    if (!op.Clase) {
+      op.Clase = kind === "section" ? safeSection : safeSubsection;
+    }
+    if (!op.operacion_etiqueta && op.Clase) {
+      op.operacion_etiqueta = op.Clase;
+    }
+    if (!getOperationId(op)) {
+      const base = normalizeOperationId(op.Clase || "OPERACION");
+      op.OperacionId = buildUniqueOperationId(base, op);
+    }
+
+    return op;
+  }
+
   /**
-   * Editar una sección principal (LEGACY - ya no se usa)
+   * Editar una sección principal en panel lateral.
    */
   function _editSectionInternalOld(sectionName) {
     if (!sectionName) return;
@@ -4474,122 +4777,70 @@
       return;
     }
 
-    // Configurar título
+    const safeName = (sectionName || "").toString().trim();
+    state.selectedElement = {
+      type: "section",
+      name: safeName,
+      linkedOperation: getHeaderLinkedOperation("section", safeName, ""),
+    };
+    updateSelectionInfo();
+
     if (dom.operationEditorTitle) {
       dom.operationEditorTitle.textContent = "Editar Sección Principal";
     }
     if (dom.operationEditorSubtitle) {
-      dom.operationEditorSubtitle.textContent = sectionName;
+      dom.operationEditorSubtitle.textContent = safeName;
     }
 
-    // Renderizar formulario
     if (dom.editorTabDatos) {
       dom.editorTabDatos.innerHTML = `
         <div class="mb-3">
           <label class="form-label">Nombre de Sección</label>
-          <input type="text" class="form-control" id="editSectionName" value="${escapeHtml(sectionName)}" />
+          <input type="text" class="form-control" id="editNombreSeccion" value="${escapeHtml(safeName)}" />
         </div>
-        <div class="alert alert-info">
+        <div class="alert alert-info mb-0">
           <i class="bi bi-info-circle me-2"></i>
-          Cambiar el nombre de esta sección afectará todas las cuentas asociadas.
+          El cambio se aplicará también a operaciones/fórmulas que referencien esta sección.
         </div>
       `;
     }
 
-    if (dom.editorTabFormula)
-      dom.editorTabFormula.innerHTML =
-        '<p class="text-muted">No aplica para secciones</p>';
-    if (dom.editorTabAparicion)
+    if (dom.editorTabFormula) {
+      const formulaOp = buildHeaderOperationDraft("section", safeName, "");
+      dom.editorTabFormula.innerHTML = buildOperationEditorFormulaTab(
+        formulaOp,
+        buildAvailableElementsForFormula(),
+      );
+      bindFormulaLayoutInteractions(dom.operationEditorPanel);
+    }
+    if (dom.editorTabAparicion) {
       dom.editorTabAparicion.innerHTML =
-        '<p class="text-muted">No aplica para secciones</p>';
-
-    // Configurar botón de guardar
-    if (dom.btnEditorSave) {
-      const saveHandler = () => {
-        const newName = document
-          .getElementById("editSectionName")
-          ?.value?.trim();
-        if (!newName) {
-          showToast("El nombre de la sección es requerido", "warning");
-          return;
-        }
-
-        // Actualizar todas las cuentas que tienen esta sección
-        state.cuentas.forEach((cuenta) => {
-          const currentSection = getAccountPrincipalName(cuenta);
-          if (currentSection === sectionName) {
-            if (cuenta["SECCION PRINCIPAL"])
-              cuenta["SECCION PRINCIPAL"] = newName;
-            if (cuenta.seccion_principal) cuenta.seccion_principal = newName;
-          }
-        });
-
-        state.unsavedChanges = true;
-        renderLayout();
-        showToast("Sección actualizada", "success");
-
-        if (window.bootstrap?.Offcanvas) {
-          const offcanvas = window.bootstrap.Offcanvas.getInstance(
-            dom.operationEditorPanel,
-          );
-          offcanvas?.hide();
-        }
-
-        dom.btnEditorSave.removeEventListener("click", saveHandler);
-      };
-
-      dom.btnEditorSave.removeEventListener("click", saveHandler);
-      dom.btnEditorSave.addEventListener("click", saveHandler);
+        '<p class="text-muted mb-0">La aparición de la sección se controla por su fila de sección.</p>';
     }
 
-    // Configurar botón de eliminar
     if (dom.btnEditorDelete) {
       dom.btnEditorDelete.disabled = false;
       dom.btnEditorDelete.title = "Eliminar sección";
-      const deleteHandler = () => {
-        if (
-          !confirm(
-            `¿Eliminar la sección "${sectionName}" y TODAS sus cuentas? Esta acción no se puede deshacer.`,
-          )
-        )
-          return;
-
-        state.cuentas = state.cuentas.filter((c) => {
-          const principal = getAccountPrincipalName(c) || "";
-          return principal !== sectionName;
-        });
-        logChange("delete", `Sección "${sectionName}" eliminada`, {
-          sectionName,
-          type: "section",
-        });
-        renderLayout();
-        showToast("Sección eliminada", "success");
-
-        if (window.bootstrap?.Offcanvas) {
-          const offcanvas = window.bootstrap.Offcanvas.getInstance(
-            dom.operationEditorPanel,
-          );
-          offcanvas?.hide();
-        }
-
-        dom.btnEditorDelete.removeEventListener("click", deleteHandler);
-      };
-
-      dom.btnEditorDelete.removeEventListener("click", deleteHandler);
-      dom.btnEditorDelete.addEventListener("click", deleteHandler);
+    }
+    if (dom.btnEditorSave) {
+      dom.btnEditorSave.disabled = false;
+      dom.btnEditorSave.title = "Guardar cambios";
     }
 
-    // Abrir panel
+    setOperationEditorTab("editorTabDatos");
+
     if (window.bootstrap?.Offcanvas) {
       const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(
         dom.operationEditorPanel,
       );
       offcanvas.show();
+    } else {
+      openOffcanvasFallback(dom.operationEditorPanel);
     }
   }
 
   /**
-   * Editar una subsección (LEGACY - ya no se usa)
+   * Editar una subsección en panel lateral.
    */
   function _editSubsectionInternalOld(sectionName, subsectionName) {
     if (!subsectionName) return;
@@ -4599,125 +4850,79 @@
       return;
     }
 
-    // Configurar título
+    const safeSection = (sectionName || "").toString().trim();
+    const safeSubsection = (subsectionName || "").toString().trim();
+    state.selectedElement = {
+      type: "subsection",
+      principal: safeSection,
+      name: safeSubsection,
+      linkedOperation: getHeaderLinkedOperation(
+        "subsection",
+        safeSection,
+        safeSubsection,
+      ),
+    };
+    updateSelectionInfo();
+
     if (dom.operationEditorTitle) {
       dom.operationEditorTitle.textContent = "Editar Subsección";
     }
     if (dom.operationEditorSubtitle) {
-      dom.operationEditorSubtitle.textContent = `${sectionName} > ${subsectionName}`;
+      dom.operationEditorSubtitle.textContent = `${safeSection} > ${safeSubsection}`;
     }
 
-    // Renderizar formulario
     if (dom.editorTabDatos) {
       dom.editorTabDatos.innerHTML = `
         <div class="mb-3">
           <label class="form-label">Sección Principal</label>
-          <input type="text" class="form-control" value="${escapeHtml(sectionName)}" readonly />
+          <input type="text" class="form-control" value="${escapeHtml(safeSection)}" readonly />
         </div>
         <div class="mb-3">
           <label class="form-label">Nombre de Subsección</label>
-          <input type="text" class="form-control" id="editSubsectionName" value="${escapeHtml(subsectionName)}" />
+          <input type="text" class="form-control" id="editNombreSubseccion" value="${escapeHtml(safeSubsection)}" />
         </div>
-        <div class="alert alert-info">
+        <div class="alert alert-info mb-0">
           <i class="bi bi-info-circle me-2"></i>
-          Cambiar el nombre de esta subsección afectará todas las cuentas asociadas.
+          El cambio se aplicará también a operaciones/fórmulas ligadas a esta subsección.
         </div>
       `;
     }
 
-    if (dom.editorTabFormula)
-      dom.editorTabFormula.innerHTML =
-        '<p class="text-muted">No aplica para subsecciones</p>';
-    if (dom.editorTabAparicion)
+    if (dom.editorTabFormula) {
+      const formulaOp = buildHeaderOperationDraft(
+        "subsection",
+        safeSection,
+        safeSubsection,
+      );
+      dom.editorTabFormula.innerHTML = buildOperationEditorFormulaTab(
+        formulaOp,
+        buildAvailableElementsForFormula(),
+      );
+      bindFormulaLayoutInteractions(dom.operationEditorPanel);
+    }
+    if (dom.editorTabAparicion) {
       dom.editorTabAparicion.innerHTML =
-        '<p class="text-muted">No aplica para subsecciones</p>';
-
-    // Configurar botón de guardar
-    if (dom.btnEditorSave) {
-      const saveHandler = () => {
-        const newName = document
-          .getElementById("editSubsectionName")
-          ?.value?.trim();
-        if (!newName) {
-          showToast("El nombre de la subsección es requerido", "warning");
-          return;
-        }
-
-        // Actualizar todas las cuentas que tienen esta subsección
-        state.cuentas.forEach((cuenta) => {
-          const currentSubsection = getAccountSecondaryName(cuenta);
-          if (currentSubsection === subsectionName) {
-            if (cuenta["SECCION Secundaria"])
-              cuenta["SECCION Secundaria"] = newName;
-            if (cuenta["SECCION SECUNDARIA"])
-              cuenta["SECCION SECUNDARIA"] = newName;
-            if (cuenta.seccion_secundaria) cuenta.seccion_secundaria = newName;
-          }
-        });
-
-        state.unsavedChanges = true;
-        renderLayout();
-        showToast("Subsección actualizada", "success");
-
-        if (window.bootstrap?.Offcanvas) {
-          const offcanvas = window.bootstrap.Offcanvas.getInstance(
-            dom.operationEditorPanel,
-          );
-          offcanvas?.hide();
-        }
-
-        dom.btnEditorSave.removeEventListener("click", saveHandler);
-      };
-
-      dom.btnEditorSave.removeEventListener("click", saveHandler);
-      dom.btnEditorSave.addEventListener("click", saveHandler);
+        '<p class="text-muted mb-0">La aparición de la subsección se controla por su fila de subsección.</p>';
     }
 
-    // Configurar botón de eliminar
     if (dom.btnEditorDelete) {
       dom.btnEditorDelete.disabled = false;
       dom.btnEditorDelete.title = "Eliminar subsección";
-      const deleteHandler = () => {
-        if (
-          !confirm(
-            `¿Eliminar la subsección "${subsectionName}" y TODAS sus cuentas? Esta acción no se puede deshacer.`,
-          )
-        )
-          return;
-
-        state.cuentas = state.cuentas.filter((c) => {
-          const principal = getAccountPrincipalName(c) || "";
-          const secundaria = getAccountSecondaryName(c) || "";
-          return !(principal === sectionName && secundaria === subsectionName);
-        });
-        logChange("delete", `Subsección "${subsectionName}" eliminada`, {
-          sectionName,
-          subsectionName,
-          type: "subsection",
-        });
-        renderLayout();
-        showToast("Subsección eliminada", "success");
-
-        if (window.bootstrap?.Offcanvas) {
-          const offcanvas = window.bootstrap.Offcanvas.getInstance(
-            dom.operationEditorPanel,
-          );
-          offcanvas?.hide();
-        }
-
-        dom.btnEditorDelete.removeEventListener("click", deleteHandler);
-      };
-
-      dom.btnEditorDelete.removeEventListener("click", deleteHandler);
-      dom.btnEditorDelete.addEventListener("click", deleteHandler);
+    }
+    if (dom.btnEditorSave) {
+      dom.btnEditorSave.disabled = false;
+      dom.btnEditorSave.title = "Guardar cambios";
     }
 
-    // Abrir panel
+    setOperationEditorTab("editorTabDatos");
+
     if (window.bootstrap?.Offcanvas) {
       const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(
         dom.operationEditorPanel,
       );
       offcanvas.show();
+    } else {
+      openOffcanvasFallback(dom.operationEditorPanel);
     }
   }
 
@@ -6047,10 +6252,9 @@
     const capituloFinal = (state.capitulo || "").toString();
     const hojaFinal = (state.modulo || "").toString();
     return lista.map((op) => {
-      // No persistir metadatos de UI/placement (evita crear "tipos" extra en BD).
+      // No persistir solo metadatos efímeros de UI.
+      // parentSection/parentSubsection sí se conservan para resolver homónimos.
       const {
-        parentSection,
-        parentSubsection,
         parent,
         section,
         subsection,
@@ -6067,6 +6271,18 @@
           delete sanitized[key];
         }
       });
+
+      if (!isColumnConfigOperation(sanitized)) {
+        const normalizedTokens = extractFormulaTokens(sanitized);
+        const normalizedTerms = normalizeFormulaTerms(
+          convertV2TokensToLegacyTerms(normalizedTokens),
+        );
+        applyStrictFormulaTermsToOperation(
+          sanitized,
+          normalizedTerms,
+          normalizedTokens,
+        );
+      }
 
       return {
         ...sanitized,
@@ -6466,6 +6682,7 @@
         id: Date.now() + idx,
         ...term,
       }));
+      const formulaTokens = convertLegacyTermsToV2Tokens(formulaTerms);
       operaciones.push({
         CAPITULO: state.capitulo || "",
         HOJA: state.modulo || "",
@@ -6474,7 +6691,7 @@
         SECCION: "Resultado Operativo",
         "sum-row-operativo": label,
         formula_terms: formulaTerms,
-        formula_json: JSON.stringify(normalizedTerms),
+        formula_json: serializeFormulaV2(formulaTokens),
         signos: { "sum-row-operativo": 1 },
         visible: true,
         orden: grupo.orden,
@@ -7378,100 +7595,322 @@
     return renderSectionOperation(op);
   }
 
-  function extractFormulaTerms(op) {
-    if (!op) return [];
+  const FORMULA_V2_VERSION = 2;
+  const FORMULA_KIND_REF = "ref";
+  const FORMULA_KIND_CONST = "const";
+  const FORMULA_KIND_OP = "op";
+  const FORMULA_OPERATORS = new Set(["+", "-", "*", "/", "(", ")"]);
 
-    // Prefer already normalized terms
-    if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
-      const terms = op.formula_terms.map((term) => ({
-        operator: term.operator || "+",
-        type: term.type || "section",
-        value: term.value || "",
-        constant: term.constant ?? term.constValue ?? null,
-        parentSection: term.parentSection,
-      }));
-      return applyParentSectionHints(op, terms);
+  function normalizeFormulaIdSegment(value) {
+    return (value || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .replace(/_+/g, "_")
+      .toUpperCase();
+  }
+
+  function normalizeFormulaAccountSegment(value) {
+    return (value || "")
+      .toString()
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "")
+      .replace(/[^0-9A-Z]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function buildSectionRefId(name) {
+    const key = normalizeFormulaIdSegment(name);
+    return key ? `SEC::${key}` : "";
+  }
+
+  function buildSubsectionRefId(parent, name) {
+    const p = normalizeFormulaIdSegment(parent);
+    const s = normalizeFormulaIdSegment(name);
+    return p && s ? `SUB::${p}::${s}` : "";
+  }
+
+  function buildAccountRefId(code) {
+    const key = normalizeFormulaAccountSegment(code);
+    return key ? `ACC::${key}` : "";
+  }
+
+  function buildOperationRefId(operationIdOrLabel) {
+    const resolved = resolveOperationId(operationIdOrLabel || "");
+    const key = normalizeFormulaIdSegment(resolved || operationIdOrLabel || "");
+    return key ? `OP::${key}` : "";
+  }
+
+  function isFormulaV2Object(value) {
+    return Boolean(
+      value &&
+        typeof value === "object" &&
+        Number(value.version) === FORMULA_V2_VERSION &&
+        Array.isArray(value.tokens),
+    );
+  }
+
+  function parseFormulaJsonSafe(raw) {
+    if (raw == null || raw === "") return null;
+    if (typeof raw === "object") return raw;
+    try {
+      return JSON.parse(String(raw));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function createRefTokenFromTerm(term = {}, opContext = null) {
+    const type = (term.type || "").toString().toLowerCase();
+    const valueRaw = (term.value ?? term.cuenta ?? term.id ?? "").toString().trim();
+    const parentFromTerm = (term.parentSection || "").toString().trim();
+    if (!valueRaw && type !== "constant") return null;
+
+    if (type === "constant") {
+      const number =
+        term.constant != null ? Number(term.constant) : Number(valueRaw);
+      return {
+        kind: FORMULA_KIND_CONST,
+        value: Number.isFinite(number) ? number : 0,
+      };
     }
 
-    if (op.formula_json) {
-      try {
-        const parsed = JSON.parse(op.formula_json);
-        if (Array.isArray(parsed) && parsed.length) {
-          const terms = parsed.map((term) => ({
-            operator: term.operator || "+",
-            type: term.type || "section",
-            value: term.value || "",
-            constant: term.constant ?? term.constValue ?? null,
-            parentSection: term.parentSection,
-          }));
-          return applyParentSectionHints(op, terms);
+    if (type === "operation") {
+      const refId = buildOperationRefId(valueRaw);
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "operation",
+        refId,
+        label: valueRaw,
+        unresolved: !refId,
+      };
+    }
+
+    if (type === "account") {
+      const refId = buildAccountRefId(valueRaw);
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "account",
+        refId,
+        label: valueRaw,
+        unresolved: !refId,
+      };
+    }
+
+    const parsedSelection = parseSectionSelection(valueRaw);
+    const parentHint =
+      parsedSelection.parent ||
+      parentFromTerm ||
+      (opContext?.parentSection || "").toString().trim();
+    const sectionValue = parsedSelection.section || valueRaw;
+
+    if (parentHint) {
+      const refId = buildSubsectionRefId(parentHint, sectionValue);
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "subsection",
+        refId,
+        label: sectionValue,
+        unresolved: !refId,
+      };
+    }
+
+    const refId = buildSectionRefId(sectionValue);
+    return {
+      kind: FORMULA_KIND_REF,
+      refType: "section",
+      refId,
+      label: sectionValue,
+      unresolved: !refId,
+    };
+  }
+
+  function convertLegacyTermsToV2Tokens(terms = [], opContext = null) {
+    const tokens = [];
+    const repairedTerms = repairSplitAccountLegacyTerms(terms);
+    repairedTerms.forEach((term, idx) => {
+      if (!term || typeof term !== "object") return;
+      const opRaw = (term.operator || "+").toString().trim();
+      const operator =
+        opRaw === "×"
+          ? "*"
+          : opRaw === "÷"
+            ? "/"
+            : FORMULA_OPERATORS.has(opRaw)
+              ? opRaw
+              : "+";
+      const tokenValue = createRefTokenFromTerm(term, opContext);
+      if (!tokenValue) return;
+
+      if (idx === 0) {
+        if (operator === "-") {
+          tokens.push({ kind: FORMULA_KIND_CONST, value: 0 });
+          tokens.push({ kind: FORMULA_KIND_OP, value: "-" });
         }
-      } catch (error) {
-        console.warn("No se pudo leer formula_json", error);
+      } else {
+        tokens.push({ kind: FORMULA_KIND_OP, value: operator });
+      }
+      tokens.push(tokenValue);
+    });
+    return tokens;
+  }
+
+  function extractFormulaTokens(op = {}) {
+    if (!op) return [];
+
+    if (Array.isArray(op.formula_v2?.tokens)) {
+      return op.formula_v2.tokens;
+    }
+
+    const parsed = parseFormulaJsonSafe(op.formula_json);
+    if (isFormulaV2Object(parsed)) {
+      return parsed.tokens || [];
+    }
+    if (Array.isArray(parsed) && parsed.length) {
+      return convertLegacyTermsToV2Tokens(parsed, op);
+    }
+    if (!parsed) {
+      const formulaRaw = (op.formula_json || "").toString().trim();
+      if (formulaRaw) {
+        const parsedText = parseFormulaExpressionV2(formulaRaw, {
+          parentSection: (op.parentSection || "").toString().trim(),
+          defaultParentSection: (op.parentSection || "").toString().trim(),
+        });
+        if (parsedText.valid && Array.isArray(parsedText.tokens)) {
+          return parsedText.tokens;
+        }
       }
     }
 
-    const terms = [];
-
-    // Helper to sort by numeric suffix (seccion_1, operacion_2, etc.)
-    function extractIndex(key) {
-      const match = key.match(/_(\d+)/);
-      return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+    if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
+      return convertLegacyTermsToV2Tokens(op.formula_terms, op);
     }
 
-    const candidateKeys = Object.keys(op || {}).filter((k) =>
-      /^(seccion|operacion)_\d+$/i.test(k),
-    );
-
-    candidateKeys
-      .sort((a, b) => extractIndex(a) - extractIndex(b))
-      .forEach((key) => {
-        const value = op[key];
-        if (!value) return;
-
-        const signo = op.signos?.[key];
-        const operator = signo < 0 ? "-" : "+";
-        const type = key.toLowerCase().startsWith("operacion_")
-          ? "operation"
-          : "section";
-
-        terms.push({ operator, type, value });
+    const legacyTerms = [];
+    const legacyKeys = Object.keys(op || {})
+      .filter((k) => /^(seccion|operacion)_\d+$/i.test(k))
+      .sort((a, b) => {
+        const nA = Number((a.match(/_(\d+)/) || [])[1] || 0);
+        const nB = Number((b.match(/_(\d+)/) || [])[1] || 0);
+        return nA - nB;
       });
-
-    if (!terms.length && op.SECCION) {
-      terms.push({ operator: "+", type: "section", value: op.SECCION });
+    legacyKeys.forEach((key) => {
+      const value = op[key];
+      if (!value) return;
+      const signo = Number(op?.signos?.[key]);
+      legacyTerms.push({
+        operator: signo < 0 ? "-" : "+",
+        type: key.toLowerCase().startsWith("operacion_")
+          ? "operation"
+          : "section",
+        value,
+      });
+    });
+    if (legacyTerms.length) {
+      return convertLegacyTermsToV2Tokens(legacyTerms, op);
     }
 
+    return [];
+  }
+
+  function convertV2TokensToLegacyTerms(tokens = []) {
+    const terms = [];
+    let currentOperator = "+";
+    (Array.isArray(tokens) ? tokens : []).forEach((token) => {
+      if (!token || typeof token !== "object") return;
+      if (token.kind === FORMULA_KIND_OP) {
+        const op = (token.value || "").toString().trim();
+        if (op === "+" || op === "-" || op === "*" || op === "/") {
+          currentOperator = op;
+        }
+        return;
+      }
+
+      if (token.kind === FORMULA_KIND_CONST) {
+        const num = Number(token.value);
+        terms.push({
+          operator: currentOperator,
+          type: "constant",
+          value: String(Number.isFinite(num) ? num : 0),
+          constant: Number.isFinite(num) ? num : 0,
+        });
+        currentOperator = "+";
+        return;
+      }
+
+      if (token.kind === FORMULA_KIND_REF) {
+        const refType = (token.refType || "").toString().toLowerCase();
+        const type =
+          refType === "operation"
+            ? "operation"
+            : refType === "account"
+              ? "account"
+              : "section";
+        terms.push({
+          operator: currentOperator,
+          type,
+          value: token.label || token.refId || "",
+        });
+        currentOperator = "+";
+      }
+    });
+    return terms;
+  }
+
+  function serializeFormulaV2(tokens = []) {
+    return JSON.stringify({
+      version: FORMULA_V2_VERSION,
+      tokens: Array.isArray(tokens) ? tokens : [],
+    });
+  }
+
+  function extractFormulaTerms(op) {
+    if (!op) return [];
+    const tokens = extractFormulaTokens(op);
+    const terms = convertV2TokensToLegacyTerms(tokens);
     return applyParentSectionHints(op, terms);
   }
 
   function formatFormula(op) {
-    const normalizedTerms = extractFormulaTerms(op);
+    const tokens = extractFormulaTokens(op);
 
-    if (normalizedTerms.length) {
-      return normalizedTerms
-        .map((term, idx) => {
-          const prefix =
-            idx === 0
-              ? term.operator === "-"
-                ? "-"
-                : ""
-              : ` ${term.operator} `;
-          const val =
-            term.type === "operation"
-              ? formatOperationReference(term.value)
-              : term.type === "constant"
-                ? (term.constant ?? term.value ?? "0")
-                : term.value || "???";
-          return prefix + val;
+    if (tokens.length) {
+      return tokens
+        .map((token) => {
+          if (!token || typeof token !== "object") return "";
+          if (token.kind === FORMULA_KIND_OP) {
+            const opValue = (token.value || "").toString().trim();
+            if (opValue === "(" || opValue === ")") return opValue;
+            return ` ${opValue} `;
+          }
+          if (token.kind === FORMULA_KIND_CONST) {
+            const number = Number(token.value);
+            return String(Number.isFinite(number) ? number : 0);
+          }
+          if (token.kind === FORMULA_KIND_REF) {
+            const label = token.label || token.refId || "???";
+            if ((token.refType || "").toString().toLowerCase() === "operation") {
+              return formatOperationReference(label);
+            }
+            return label;
+          }
+          return "";
         })
-        .join("");
+        .join("")
+        .replace(/\s+/g, " ")
+        .replace(/\(\s+/g, "(")
+        .replace(/\s+\)/g, ")")
+        .trim();
     }
 
-    if (op.SECCION) {
-      return op.SECCION;
+    if (typeof op?.formula === "string" && op.formula.trim()) {
+      return op.formula.trim();
     }
-    return "Consolidado";
+    return "";
   }
 
   function groupBySections(cuentas) {
@@ -8809,7 +9248,7 @@
       OperacionId: "TEMP_BULK_" + Date.now(),
       Clase: nombreOperacion,
       formula_terms: formulaTerms,
-      formula_json: JSON.stringify(formulaTerms),
+      formula_json: serializeFormulaV2(convertLegacyTermsToV2Tokens(formulaTerms)),
     };
 
     // Guardar referencia a la fila para actualizar después
@@ -8870,60 +9309,56 @@
       });
   }
 
-  function parseFormulaText(formula = "") {
-    const raw = (formula || "").trim();
-    if (!raw) return [];
-    const terms = [];
+  function tokenizeFormulaExpression(formula = "") {
+    const source = (formula || "").toString();
+    const tokens = [];
     let buffer = "";
-    let operator = "+";
-    const operatorMap = {
-      "+": "+",
-      "-": "-",
-      "*": "*",
-      "/": "/",
-      "×": "*",
-      "÷": "/",
-    };
 
     const flush = () => {
-      const token = buffer.trim();
-      if (!token) return;
-      if (token.includes("||")) {
-        const parsed = parseSectionSelection(token);
-        if (parsed.section) {
-          terms.push({
-            operator,
-            type: "section",
-            value: parsed.section,
-            parentSection: parsed.parent,
-          });
-          return;
-        }
+      const value = buffer.trim();
+      if (value) {
+        tokens.push({ kind: "value", value });
       }
-      const type = detectTermType(token);
-      const term = { operator, type, value: token };
-      if (type === "constant" && Number.isFinite(Number(token))) {
-        term.constant = Number(token);
-      }
-      terms.push(term);
+      buffer = "";
     };
 
-    for (let i = 0; i < raw.length; i += 1) {
-      const ch = raw[i];
-      const mapped = operatorMap[ch];
-      if (mapped) {
-        if (i === 0) {
-          operator = mapped;
-          continue;
-        }
-        const prev = raw[i - 1];
-        const next = raw[i + 1];
-        const prevIsSpace = !prev || /\s/.test(prev);
-        const nextIsSpace = !next || /\s/.test(next);
-        if (prevIsSpace && nextIsSpace) {
+    const getPrevNonSpace = (idx) => {
+      for (let i = idx - 1; i >= 0; i -= 1) {
+        const ch = source[i];
+        if (!/\s/.test(ch)) return ch;
+      }
+      return "";
+    };
+
+    const getNextNonSpace = (idx) => {
+      for (let i = idx + 1; i < source.length; i += 1) {
+        const ch = source[i];
+        if (!/\s/.test(ch)) return ch;
+      }
+      return "";
+    };
+
+    for (let i = 0; i < source.length; i += 1) {
+      const ch = source[i];
+      const opChar = ch === "×" ? "*" : ch === "÷" ? "/" : ch;
+      if (opChar === "+" || opChar === "*" || opChar === "/" || opChar === "(" || opChar === ")") {
+        flush();
+        tokens.push({ kind: "op", value: opChar });
+        continue;
+      }
+      if (opChar === "-") {
+        const prev = getPrevNonSpace(i);
+        const next = getNextNonSpace(i);
+        const dashAsOperator =
+          !prev ||
+          !next ||
+          /\s/.test(source[i - 1] || "") ||
+          /\s/.test(source[i + 1] || "") ||
+          ["+", "-", "*", "/", "("].includes(prev) ||
+          next === "(";
+        if (dashAsOperator) {
           flush();
-          buffer = "";
-          operator = mapped;
+          tokens.push({ kind: "op", value: "-" });
           continue;
         }
       }
@@ -8931,7 +9366,320 @@
     }
     flush();
 
-    return normalizeFormulaTerms(terms);
+    return tokens;
+  }
+
+  function normalizeInlineAccountCodeSegments(formula = "") {
+    const source = (formula || "").toString();
+    // Permite capturar cuentas con guiones aunque estén escritas con espacios:
+    // "413 - 000 - 000 - 00" => "413-000-000-00"
+    return source.replace(
+      /(^|[^0-9])(\d{1,3})\s*-\s*(\d{1,3})\s*-\s*(\d{1,3})\s*-\s*(\d{1,3})(?=$|[^0-9])/g,
+      (_, prefix, a, b, c, d) =>
+        `${prefix}${String(a).padStart(3, "0")}-${String(b).padStart(3, "0")}-${String(
+          c,
+        ).padStart(3, "0")}-${String(d).padStart(2, "0")}`,
+    );
+  }
+
+  function repairSplitAccountLegacyTerms(terms = []) {
+    const list = Array.isArray(terms) ? terms : [];
+    const out = [];
+    const readType = (term) => (term?.type || "").toString().toLowerCase();
+    const isAccount = (term) => {
+      const type = readType(term);
+      return type === "account" || type === "cuenta";
+    };
+    const readValue = (term) =>
+      (term?.value ?? term?.cuenta ?? term?.id ?? "").toString().trim();
+    const isChunk = (value) => /^\d{1,3}$/.test(value);
+    const buildCode = (a, b, c, d) =>
+      `${String(a).padStart(3, "0")}-${String(b).padStart(3, "0")}-${String(
+        c,
+      ).padStart(3, "0")}-${String(d).padStart(2, "0")}`;
+
+    for (let i = 0; i < list.length; i += 1) {
+      const t0 = list[i];
+      if (!t0 || typeof t0 !== "object") continue;
+
+      const t1 = list[i + 1];
+      const t2 = list[i + 2];
+      const t3 = list[i + 3];
+      const v0 = readValue(t0);
+      const v1 = readValue(t1);
+      const v2 = readValue(t2);
+      const v3 = readValue(t3);
+      const op1 = (t1?.operator || "").toString().trim();
+      const op2 = (t2?.operator || "").toString().trim();
+      const op3 = (t3?.operator || "").toString().trim();
+
+      const mergeable =
+        isAccount(t0) &&
+        isAccount(t1) &&
+        isAccount(t2) &&
+        isAccount(t3) &&
+        isChunk(v0) &&
+        isChunk(v1) &&
+        isChunk(v2) &&
+        isChunk(v3) &&
+        op1 === "-" &&
+        op2 === "-" &&
+        op3 === "-";
+
+      if (mergeable) {
+        out.push({
+          ...t0,
+          type: "account",
+          value: buildCode(v0, v1, v2, v3),
+        });
+        i += 3;
+        continue;
+      }
+
+      out.push(t0);
+    }
+
+    return out;
+  }
+
+  function isKnownPrincipalSection(name = "") {
+    const target = normalizeOperationMatch(name || "");
+    if (!target) return false;
+    return getManualSectionNames().some(
+      (item) => normalizeOperationMatch(item || "") === target,
+    );
+  }
+
+  function findUniqueParentForSubsection(subsection = "") {
+    const target = normalizeOperationMatch(subsection || "");
+    if (!target) return "";
+    const matches = [];
+    getManualSectionNames().forEach((principal) => {
+      const found = getManualSubsectionNames(principal).some(
+        (sub) => normalizeOperationMatch(sub || "") === target,
+      );
+      if (found) matches.push(principal);
+    });
+    return matches.length === 1 ? matches[0] : "";
+  }
+
+  function buildRefTokenFromValue(valueRaw = "", options = {}) {
+    const value = (valueRaw || "").toString().trim();
+    if (!value) return null;
+
+    const numericValue = Number(value);
+    if (
+      Number.isFinite(numericValue) &&
+      /^[-+]?\d+(\.\d+)?$/.test(value)
+    ) {
+      return {
+        kind: FORMULA_KIND_CONST,
+        value: numericValue,
+      };
+    }
+
+    const detectedType = detectTermType(value);
+    if (detectedType === "operation") {
+      const resolvedId = resolveOperationId(value);
+      const refId = buildOperationRefId(resolvedId);
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "operation",
+        refId,
+        label: value,
+        unresolved: !refId,
+      };
+    }
+
+    if (detectedType === "account") {
+      const refId = buildAccountRefId(value);
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "account",
+        refId,
+        label: value,
+        unresolved: !refId,
+      };
+    }
+
+    const parsedSection = parseSectionSelection(value);
+    const parentHintRaw =
+      parsedSection.parent ||
+      options.parentSection ||
+      options.defaultParentSection ||
+      "";
+    const sectionLabel = parsedSection.section || value;
+    const parentHint = (parentHintRaw || "").toString().trim();
+
+    if (parentHint) {
+      const refId = buildSubsectionRefId(parentHint, sectionLabel);
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "subsection",
+        refId,
+        label: sectionLabel,
+        unresolved: !refId,
+      };
+    }
+
+    if (isKnownPrincipalSection(sectionLabel)) {
+      const refId = buildSectionRefId(sectionLabel);
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "section",
+        refId,
+        label: sectionLabel,
+        unresolved: !refId,
+      };
+    }
+
+    const inferredParent = findUniqueParentForSubsection(sectionLabel);
+    if (inferredParent) {
+      const refId = buildSubsectionRefId(inferredParent, sectionLabel);
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "subsection",
+        refId,
+        label: sectionLabel,
+        unresolved: !refId,
+      };
+    }
+
+    const fallbackRefId = buildSectionRefId(sectionLabel);
+    return {
+      kind: FORMULA_KIND_REF,
+      refType: "section",
+      refId: fallbackRefId,
+      label: sectionLabel,
+      unresolved: !fallbackRefId,
+    };
+  }
+
+  function parseFormulaExpressionV2(formula = "", options = {}) {
+    const raw = normalizeInlineAccountCodeSegments(
+      (formula || "").toString(),
+    ).trim();
+    if (!raw) {
+      return { valid: true, tokens: [], terms: [], error: "" };
+    }
+
+    const lexical = tokenizeFormulaExpression(raw);
+    const tokens = [];
+    let balance = 0;
+    let expectingValue = true;
+
+    for (let idx = 0; idx < lexical.length; idx += 1) {
+      const item = lexical[idx];
+      if (!item) continue;
+
+      if (item.kind === "op") {
+        const opValue = (item.value || "").toString().trim();
+        if (!FORMULA_OPERATORS.has(opValue)) {
+          return {
+            valid: false,
+            tokens: [],
+            terms: [],
+            error: `Operador no permitido: ${opValue}`,
+          };
+        }
+
+        if (opValue === "(") {
+          if (!expectingValue) {
+            return {
+              valid: false,
+              tokens: [],
+              terms: [],
+              error: "Falta un operador antes de '('",
+            };
+          }
+          balance += 1;
+          tokens.push({ kind: FORMULA_KIND_OP, value: "(" });
+          expectingValue = true;
+          continue;
+        }
+
+        if (opValue === ")") {
+          if (expectingValue || balance <= 0) {
+            return {
+              valid: false,
+              tokens: [],
+              terms: [],
+              error: "Paréntesis de cierre inválido",
+            };
+          }
+          balance -= 1;
+          tokens.push({ kind: FORMULA_KIND_OP, value: ")" });
+          expectingValue = false;
+          continue;
+        }
+
+        if (expectingValue) {
+          if (opValue === "+" || opValue === "-") {
+            tokens.push({ kind: FORMULA_KIND_OP, value: opValue });
+            expectingValue = true;
+            continue;
+          }
+          return {
+            valid: false,
+            tokens: [],
+            terms: [],
+            error: `Operador '${opValue}' en posición inválida`,
+          };
+        }
+
+        tokens.push({ kind: FORMULA_KIND_OP, value: opValue });
+        expectingValue = true;
+        continue;
+      }
+
+      if (!expectingValue) {
+        return {
+          valid: false,
+          tokens: [],
+          terms: [],
+          error: `Falta operador antes de '${item.value}'`,
+        };
+      }
+
+      const refToken = buildRefTokenFromValue(item.value, options);
+      if (!refToken) {
+        return {
+          valid: false,
+          tokens: [],
+          terms: [],
+          error: `Token inválido: ${item.value}`,
+        };
+      }
+      tokens.push(refToken);
+      expectingValue = false;
+    }
+
+    if (balance !== 0) {
+      return {
+        valid: false,
+        tokens: [],
+        terms: [],
+        error: "Paréntesis desbalanceados",
+      };
+    }
+
+    if (expectingValue) {
+      return {
+        valid: false,
+        tokens: [],
+        terms: [],
+        error: "La fórmula termina con un operador",
+      };
+    }
+
+    const terms = normalizeFormulaTerms(convertV2TokensToLegacyTerms(tokens));
+    return { valid: true, tokens, terms, error: "" };
+  }
+
+  function parseFormulaText(formula = "") {
+    const parsed = parseFormulaExpressionV2(formula);
+    if (!parsed.valid) return [];
+    return parsed.terms || [];
   }
 
   function openAddModal() {
@@ -9015,7 +9763,7 @@
             <label class="form-label">Identificador unico</label>
             <input type="text" class="form-control" id="inputOperacionId" placeholder="Ej: CDMX_INCOME" />
             <div class="invalid-feedback">Indica un ID si no hay etiqueta.</div>
-            <div class="form-text">Si lo dejas vacio se genera automaticamente.</div>
+            <div class="form-text">Define un ID único manualmente.</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Etiqueta de la Operación <span class="text-danger">*</span></label>
@@ -9025,8 +9773,8 @@
           <div class="mb-3">
             <label class="form-label">Tipo de Operación</label>
             <select class="form-select" id="selectTipoOp" onchange="toggleFormulaBuilder()">
+              <option value="custom-formula" selected>Fórmula personalizada</option>
               <option value="sum-sections">Suma de secciones</option>
-              <option value="custom-formula">Fórmula personalizada</option>
             </select>
           </div>
           
@@ -9358,6 +10106,7 @@
       SECCION: principalClean,
       CUENTA: cuenta,
       NOMBRE: nombre,
+      valor_plantilla: 0,
       orden: order,
       orden_presentacion: order,
     };
@@ -9379,7 +10128,15 @@
   }
 
   function addOperationEntry(
-    { nombre, seccion, subseccion, signo, formulaTerms, rowLabels = {} },
+    {
+      nombre,
+      seccion,
+      subseccion,
+      signo,
+      formulaTerms,
+      formulaTokens,
+      rowLabels = {},
+    },
     { silent = false } = {},
   ) {
     const parentSection = seccion || "";
@@ -9424,7 +10181,7 @@
       existing.tipo =
         Array.isArray(formulaTerms) && formulaTerms.length
           ? "custom-formula"
-          : existing.tipo || "sum-sections";
+          : existing.tipo || "custom-formula";
       existing.secciones = rowSection ? [rowSection] : [];
       existing.parentSection = parentSection || null;
       existing.parentSubsection = parentSubsection || null;
@@ -9433,10 +10190,13 @@
         existing.signos = existing.signos || {};
         existing.signos["sum-row"] = Number(signo);
       }
-      if (Array.isArray(formulaTerms) && formulaTerms.length) {
+      if (Array.isArray(formulaTerms)) {
         const normalized = normalizeFormulaTerms(formulaTerms);
-        existing.formula_terms = normalized;
-        existing.formula_json = JSON.stringify(normalized);
+        const tokens =
+          Array.isArray(formulaTokens) && formulaTokens.length
+            ? formulaTokens
+            : convertLegacyTermsToV2Tokens(normalized, existing);
+        applyStrictFormulaTermsToOperation(existing, normalized, tokens);
       }
       if (rowLabels && typeof rowLabels === "object") {
         Object.entries(rowLabels).forEach(([field, label]) => {
@@ -9469,10 +10229,7 @@
       Clase: nombre,
       operacion_etiqueta: nombre,
       SECCION: rowSection,
-      tipo:
-        Array.isArray(formulaTerms) && formulaTerms.length
-          ? "custom-formula"
-          : "sum-sections",
+      tipo: "custom-formula",
       signos: {},
       orden: nextOperationOrder(),
       secciones: rowSection ? [rowSection] : [],
@@ -9486,10 +10243,15 @@
       op.signos["sum-row"] = Number(signo);
     }
 
-    if (Array.isArray(formulaTerms) && formulaTerms.length) {
+    if (Array.isArray(formulaTerms)) {
       const normalized = normalizeFormulaTerms(formulaTerms);
-      op.formula_terms = normalized;
-      op.formula_json = JSON.stringify(normalized);
+      const tokens =
+        Array.isArray(formulaTokens) && formulaTokens.length
+          ? formulaTokens
+          : convertLegacyTermsToV2Tokens(normalized, op);
+      applyStrictFormulaTermsToOperation(op, normalized, tokens);
+    } else {
+      applyStrictFormulaTermsToOperation(op, [], []);
     }
 
     if (rowLabels && typeof rowLabels === "object") {
@@ -9525,26 +10287,7 @@
       if (!enabled) return;
       labels[field] = value || defaultLabel || "";
     });
-    if (!Object.keys(labels).length && defaultLabel) {
-      labels["sum-row"] = defaultLabel;
-    }
     return labels;
-  }
-
-  function inferSignFromSectionName(sectionName) {
-    const key = normalizeOperationMatch(sectionName || "");
-    if (!key) return 0;
-    if (
-      key.includes("gasto") ||
-      key.includes("costo") ||
-      key.includes("expense")
-    ) {
-      return -1;
-    }
-    if (key.includes("ingreso") || key.includes("income")) {
-      return 1;
-    }
-    return 0;
   }
 
   function findOperationBySectionName(sectionName, parentSection = "") {
@@ -9639,9 +10382,23 @@
             const nombre = row.nombre || row.seccion || row.subseccion;
             if (!nombre) throw new Error("Falta nombre de operación");
             const sign = Number(row.signo);
-            const formulaTerms = row.formula
-              ? parseFormulaText(row.formula)
-              : [];
+            let formulaTerms = [];
+            let formulaTokens = [];
+            if (row.formula) {
+              const parsedFormula = parseFormulaExpressionV2(row.formula, {
+                parentSection: row.seccion || "",
+                defaultParentSection: row.seccion || "",
+              });
+              if (!parsedFormula.valid) {
+                throw new Error(
+                  `Fórmula inválida: ${parsedFormula.error || "sintaxis incorrecta"}`,
+                );
+              }
+              formulaTerms = normalizeFormulaTerms(parsedFormula.terms || []);
+              formulaTokens = Array.isArray(parsedFormula.tokens)
+                ? parsedFormula.tokens
+                : [];
+            }
 
             const aparicion = (row.aparicion || "libre").trim();
             const rowLabels =
@@ -9653,6 +10410,7 @@
                 subseccion: row.subseccion,
                 signo: Number.isFinite(sign) ? sign : null,
                 formulaTerms,
+                formulaTokens,
                 rowLabels,
               },
               { silent: true },
@@ -9735,7 +10493,8 @@
   }
 
   async function addOperation() {
-    const tipo = document.getElementById("selectTipoOp")?.value;
+    const tipo =
+      document.getElementById("selectTipoOp")?.value || "custom-formula";
     const claseInput = document.getElementById("inputClase");
     const idInput = document.getElementById("inputOperacionId");
     const clase = claseInput?.value?.trim() || "";
@@ -9754,15 +10513,18 @@
     }
 
     const resolvedClase = clase || operacionIdInput;
-    const baseOperacionId = operacionIdInput || resolvedClase;
-    const operacionId = buildUniqueOperationId(baseOperacionId || clase);
+    const operacionId = normalizeOperationId(operacionIdInput || resolvedClase);
+    if (!operacionId) {
+      idInput?.classList.add("is-invalid");
+      showToast("Define un ID válido para la operación.", "error");
+      return;
+    }
 
     const checkedSections = Array.from(
       document.querySelectorAll("#checkboxSecciones input:checked"),
     ).map((cb) => cb.value);
 
     const rowLabels = collectAddOperationRowLabels(resolvedClase);
-    const isPiloto = isModuloPiloto();
 
     // Permitir operaciones sin sección para agregarlas en orden libre.
 
@@ -9773,9 +10535,16 @@
       parsedSelections.length > 0
         ? parsedSelections
         : [{ section: "", parent: "" }];
+    if (targetSelections.length > 1) {
+      showToast(
+        "Modo estricto: crea una operación por sección/subsección para definir IDs únicos.",
+        "warning",
+      );
+      return;
+    }
 
     const opsCreated = [];
-    targetSelections.forEach((selection, idx) => {
+    for (const selection of targetSelections) {
       const sectionName = (selection.section || "").toString().trim();
       const parentFromSelection = (selection.parent || "").toString().trim();
       const isSubsectionSelection = Boolean(parentFromSelection);
@@ -9796,21 +10565,29 @@
         op = findOperationBySectionName(sectionName, parentSection || "");
       }
 
+      if (
+        !op &&
+        (state.operaciones || []).some(
+          (other) =>
+            normalizeOperationMatch(getOperationId(other)) ===
+            normalizeOperationMatch(operacionId),
+        )
+      ) {
+        idInput?.classList.add("is-invalid");
+        showToast("Ese ID ya existe. Define uno único manualmente.", "error");
+        return;
+      }
+
       const isNew = !op;
       if (isNew) {
-        const opIdBase = normalizeOperationId(
-          isPiloto
-            ? baseOperacionId || resolvedClase || sectionName || operacionId
-            : `${baseOperacionId || resolvedClase || operacionId}_${sectionName || idx + 1}`,
-        );
         op = {
           CAPITULO: state.capitulo || "DEFAULT",
           HOJA: state.modulo || "",
-          OperacionId: buildUniqueOperationId(opIdBase),
+          OperacionId: operacionId,
           Clase: resolvedClase,
           SECCION: placement,
           seccion: placement,
-          tipo: tipo || "sum-sections",
+          tipo: tipo || "custom-formula",
           signos: {},
           orden: nextOperationOrder(),
           secciones: placement ? [placement] : [],
@@ -9837,59 +10614,18 @@
         op[field] = label;
       });
 
-      // Guardar fórmula para referencia en el gestor
-      if (tipo === "custom-formula") {
-        if (Array.isArray(formulaTerms) && formulaTerms.length) {
-          const normalized = normalizeFormulaTerms(formulaTerms);
-          op.formula_terms = normalized;
-          op.formula_json = JSON.stringify(normalized);
-        } else {
-          // Permitir guardar con fórmula vacía para edición manual posterior.
-          op.formula_terms = [];
-          op.formula_json = JSON.stringify([]);
-        }
-      } else {
-        const sectionValue = sectionName || checkedSections.join(" + ");
-        const derivedTerms = buildFormulaTermsFromParent(sectionValue);
-        const fallbackTerms = sectionValue
-          ? [
-              {
-                id: Date.now() + idx,
-                operator: "+",
-                type: "section",
-                value: sectionValue,
-              },
-            ]
-          : [];
-        const termsToPersist = normalizeFormulaTerms(
-          derivedTerms.length ? derivedTerms : fallbackTerms,
-        );
-        if (termsToPersist.length) {
-          op.formula_terms = termsToPersist;
-          op.formula_json = JSON.stringify(termsToPersist);
-          termsToPersist.forEach((term, i) => {
-            const key = `seccion_${i + 1}`;
-            op[key] = term.value;
-            if (!op.signos) op.signos = {};
-            op.signos[key] = term.operator === "-" ? -1 : 1;
-          });
-        }
-      }
-
-      if (rowLabels["sum-row"] && !op.signos?.["sum-row"]) {
-        const signo = inferSignFromSectionName(sectionName);
-        if (signo) {
-          if (!op.signos) op.signos = {};
-          op.signos["sum-row"] = signo;
-          if (op.signo == null) op.signo = signo;
-        }
-      }
+      // Modo estricto: nunca autogenerar fórmula.
+      const explicitTerms = Array.isArray(formulaTerms)
+        ? normalizeFormulaTerms(formulaTerms)
+        : [];
+      const explicitTokens = convertLegacyTermsToV2Tokens(explicitTerms, op);
+      applyStrictFormulaTermsToOperation(op, explicitTerms, explicitTokens);
 
       if (isNew) {
         state.operaciones.push(op);
         opsCreated.push(op);
       }
-    });
+    }
 
     if (opsCreated.length) {
       logChange(
@@ -10068,6 +10804,45 @@
     return `${parentSection}||${parentSubsection}||${label}`;
   }
 
+  function isExplicitEmptyFormulaRaw(rawValue) {
+    const raw = (rawValue == null ? "" : String(rawValue)).trim();
+    if (!raw) return true;
+    if (raw === "[]") return true;
+    const parsed = parseFormulaJsonSafe(raw);
+    if (Array.isArray(parsed)) return parsed.length === 0;
+    if (isFormulaV2Object(parsed)) {
+      return !Array.isArray(parsed.tokens) || parsed.tokens.length === 0;
+    }
+    return false;
+  }
+
+  function getFormulaMergeScore(op) {
+    if (!op) {
+      return { score: 0, tokenCount: 0, emptyRaw: true };
+    }
+    const tokens = extractFormulaTokens(op);
+    const tokenCount = Array.isArray(tokens)
+      ? tokens.filter(
+          (token) =>
+            token &&
+            typeof token === "object" &&
+            (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST),
+        ).length
+      : 0;
+    const raw = (op.formula_json == null ? "" : String(op.formula_json)).trim();
+    const emptyRaw = isExplicitEmptyFormulaRaw(raw);
+    if (tokenCount > 0) {
+      return { score: 3, tokenCount, emptyRaw: false };
+    }
+    if (raw && !emptyRaw) {
+      return { score: 2, tokenCount: 0, emptyRaw: false };
+    }
+    if (raw) {
+      return { score: 1, tokenCount: 0, emptyRaw: true };
+    }
+    return { score: 0, tokenCount: 0, emptyRaw: true };
+  }
+
   function mergeOperationInto(base, extra) {
     if (!base || !extra) return base;
     const rowFields = [...ROW_LABEL_FIELDS, "net-row-adicional"];
@@ -10083,19 +10858,64 @@
     if (!base.parentSubsection && extra.parentSubsection) {
       base.parentSubsection = extra.parentSubsection;
     }
-    if (!base.formula_terms && extra.formula_terms) {
-      base.formula_terms = extra.formula_terms;
-    }
-    if (!base.formula_json && extra.formula_json) {
-      base.formula_json = extra.formula_json;
-    }
-    if (extra.signos) {
-      base.signos = base.signos || {};
-      Object.keys(extra.signos).forEach((key) => {
-        if (base.signos[key] === undefined) {
-          base.signos[key] = extra.signos[key];
-        }
-      });
+    const baseFormula = getFormulaMergeScore(base);
+    const extraFormula = getFormulaMergeScore(extra);
+    const extraHasBetterFormula =
+      extraFormula.score > baseFormula.score ||
+      (extraFormula.score === baseFormula.score &&
+        extraFormula.tokenCount > baseFormula.tokenCount);
+
+    if (extraHasBetterFormula) {
+      base.formula_terms = Array.isArray(extra.formula_terms)
+        ? extra.formula_terms.map((term) =>
+            term && typeof term === "object" ? { ...term } : term,
+          )
+        : [];
+      base.formula_json =
+        extra.formula_json == null ? "" : String(extra.formula_json);
+      if (extra.formula_v2 && typeof extra.formula_v2 === "object") {
+        base.formula_v2 = {
+          ...extra.formula_v2,
+          tokens: Array.isArray(extra.formula_v2.tokens)
+            ? extra.formula_v2.tokens.map((token) =>
+                token && typeof token === "object" ? { ...token } : token,
+              )
+            : [],
+        };
+      } else {
+        delete base.formula_v2;
+      }
+      if (extra.signos && typeof extra.signos === "object") {
+        base.signos = {
+          ...(base.signos || {}),
+          ...extra.signos,
+        };
+      }
+    } else {
+      if (
+        (!Array.isArray(base.formula_terms) || base.formula_terms.length === 0) &&
+        Array.isArray(extra.formula_terms) &&
+        extra.formula_terms.length
+      ) {
+        base.formula_terms = extra.formula_terms.map((term) =>
+          term && typeof term === "object" ? { ...term } : term,
+        );
+      }
+      if (
+        (base.formula_json == null || baseFormula.emptyRaw) &&
+        extra.formula_json != null &&
+        !extraFormula.emptyRaw
+      ) {
+        base.formula_json = String(extra.formula_json);
+      }
+      if (extra.signos && typeof extra.signos === "object") {
+        base.signos = base.signos || {};
+        Object.keys(extra.signos).forEach((key) => {
+          if (base.signos[key] === undefined) {
+            base.signos[key] = extra.signos[key];
+          }
+        });
+      }
     }
     const baseOrder = Number(base.orden_presentacion);
     const extraOrder = Number(extra.orden_presentacion);
@@ -10516,7 +11336,7 @@
                 <div class="mb-3">
                   <label class="form-label">Identificador unico</label>
                   <input type="text" class="form-control" id="inputOperacionId" placeholder="Ej: CDMX_INCOME" />
-                  <div class="form-text">Si lo dejas vacio se genera automaticamente.</div>
+                  <div class="form-text">Define un ID único manualmente.</div>
                 </div>
                 <div class="mb-3">
                   <h6 class="text-success"><i class="bi bi-plus-circle me-2"></i>Agregados (${
@@ -11489,14 +12309,16 @@
 
   window.editSection = function (name) {
     if (!requireEditMode()) return;
-    // En modo 100% manual: el lápiz renombra la sección (NO crea operaciones automáticas).
+    // Priorizar panel lateral derecho (offcanvas) para edición.
+    if (typeof _editSectionInternalOld === "function") {
+      _editSectionInternalOld(name);
+      return;
+    }
     if (typeof window._editSectionOriginal === "function") {
       window._editSectionOriginal(name);
       return;
     }
-    if (typeof _editSectionInternalOld === "function") {
-      _editSectionInternalOld(name);
-    }
+    showToast("Editor de secciones no disponible", "warning");
   };
 
   window._editSectionOriginal = function (name) {
@@ -11520,33 +12342,17 @@
 
   window.deleteSection = function (name) {
     if (!requireEditMode()) return;
-    if (
-      !confirm(
-        `¿Eliminar la sección "${name}" y TODAS sus cuentas? Esta acción no se puede deshacer.`,
-      )
-    )
-      return;
-
-    state.cuentas = state.cuentas.filter((c) => {
-      const principal =
-        c["SECCIÓN Principal"] ||
-        c["SECCIàN Principal"] ||
-        c["SECCION Principal"] ||
-        c.SECCION ||
-        c.seccion_principal;
-      return principal !== name;
-    });
-
-    state.unsavedChanges = true;
-    updateButtonStates();
-    renderLayout();
-    updateStats();
-    showToast(`Sección "${name}" eliminada`, "success");
+    state.selectedElement = { type: "section", name };
+    deleteElement();
   };
 
   window.editSubsection = function (principal, name) {
     if (!requireEditMode()) return;
-    // En modo 100% manual: el lápiz renombra la subsección (NO crea operaciones automáticas).
+    // Priorizar panel lateral derecho (offcanvas) para edición.
+    if (typeof _editSubsectionInternalOld === "function") {
+      _editSubsectionInternalOld(principal, name);
+      return;
+    }
     if (typeof window._editSubsectionOriginal === "function") {
       window._editSubsectionOriginal(principal, name);
       return;
@@ -11581,32 +12387,8 @@
 
   window.deleteSubsection = function (principal, name) {
     if (!requireEditMode()) return;
-    if (
-      !confirm(
-        `¿Eliminar la subsección "${name}" y TODAS sus cuentas? Esta acción no se puede deshacer.`,
-      )
-    )
-      return;
-
-    state.cuentas = state.cuentas.filter((c) => {
-      const p =
-        c["SECCIÓN Principal"] ||
-        c["SECCIàN Principal"] ||
-        c["SECCION Principal"] ||
-        c.SECCION ||
-        c.seccion_principal;
-      const s =
-        c["SECCION Secundaria"] ||
-        c["SECCIÓN Secundaria"] ||
-        c.seccion_secondary;
-      return !(p === principal && s === name);
-    });
-
-    state.unsavedChanges = true;
-    updateButtonStates();
-    renderLayout();
-    updateStats();
-    showToast(`Subsección "${name}" eliminada`, "success");
+    state.selectedElement = { type: "subsection", principal, name };
+    deleteElement();
   };
 
   window.addToSection = function (principal) {
@@ -11734,6 +12516,15 @@
           factorValue === 1 ? "" : String(factorValue),
         )}" />
         <div class="form-text">Aplica a todas las columnas (real, presupuesto y comparativo).</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Valor plantilla</label>
+        <input type="number" step="any" class="form-control" id="editValorPlantilla" value="${escapeHtml(
+          Number.isFinite(Number(cuenta.valor_plantilla))
+            ? String(Number(cuenta.valor_plantilla))
+            : "0",
+        )}" />
+        <div class="form-text">Solo aplica al gestor/preview del layout.</div>
       </div>
       <div class="mb-3">
         <div class="form-check">
@@ -12221,55 +13012,6 @@
       }));
     }
 
-    if (formulaTerms.length === 0) {
-      const derivedFromParent = buildFormulaTermsFromParent(
-        op.SECCION || op.Clase,
-      );
-      if (derivedFromParent.length) {
-        formulaTerms = derivedFromParent;
-      } else {
-        formulaTerms.push({
-          id: Date.now(),
-          operator: "+",
-          type: "section",
-          value: op.SECCION || "",
-        });
-      }
-    }
-
-    // Also add references from operation types (sum-row, etc) that may reference sections
-    const opTypes = [
-      "sum-row",
-      "sum-row-sumavarios",
-      "sum-row-sumavarios2",
-      "sum-row-sumavarios-consolidado",
-      "sum-row-operativo",
-      "result-row",
-      "net-row",
-      "result-net-row",
-    ];
-
-    // If we still have no terms, create from SECCION or operation types
-    if (formulaTerms.length === 0) {
-      // Use SECCION as primary
-      if (op.SECCION) {
-        formulaTerms.push({
-          id: Date.now(),
-          operator: "+",
-          type: detectValueType(op.SECCION),
-          value: op.SECCION,
-        });
-      } else {
-        // Fallback: add a placeholder
-        formulaTerms.push({
-          id: Date.now(),
-          operator: "+",
-          type: "section",
-          value: "",
-        });
-      }
-    }
-
     formulaTerms = formulaTerms.map((term) => ({
       ...term,
       value:
@@ -12362,8 +13104,16 @@
       }
     }
     formulaTerms = termsForBuilder;
-    op.formula_terms = termsForBuilder;
-    op.formula_json = JSON.stringify(normalizeFormulaTerms(termsForBuilder));
+    const normalizedForBuilder = normalizeFormulaTerms(termsForBuilder);
+    const tokensForBuilder = convertLegacyTermsToV2Tokens(
+      normalizedForBuilder,
+      op,
+    );
+    applyStrictFormulaTermsToOperation(
+      op,
+      normalizedForBuilder,
+      tokensForBuilder,
+    );
     console.log("📝 editOperation - op completo:", op);
 
     // SIEMPRE usar panel lateral - nunca modal
@@ -12798,6 +13548,9 @@
         .getElementById("editSeccionSecundaria")
         ?.value?.trim();
       const newFactorRaw = document.getElementById("editFactor")?.value?.trim();
+      const newValorPlantillaRaw = document
+        .getElementById("editValorPlantilla")
+        ?.value?.trim();
       const newVisible = document.getElementById("editVisible")?.checked;
 
       let changed = false;
@@ -12882,6 +13635,30 @@
         changed = true;
       }
 
+      const valorPlantillaActual = Number.isFinite(Number(cuenta.valor_plantilla))
+        ? Number(cuenta.valor_plantilla)
+        : 0;
+      const valorPlantillaNuevo =
+        newValorPlantillaRaw === "" || newValorPlantillaRaw == null
+          ? 0
+          : Number(newValorPlantillaRaw);
+      const valorPlantillaFinal = Number.isFinite(valorPlantillaNuevo)
+        ? valorPlantillaNuevo
+        : valorPlantillaActual;
+      if (valorPlantillaFinal !== valorPlantillaActual) {
+        cuenta.valor_plantilla = valorPlantillaFinal;
+        logChange(
+          "edit",
+          `Cuenta ${cuenta.CUENTA}: valor plantilla ${valorPlantillaActual} → ${valorPlantillaFinal}`,
+          {
+            codigo: cuenta.CUENTA,
+            valorPlantillaActual,
+            valorPlantillaNuevo: valorPlantillaFinal,
+          },
+        );
+        changed = true;
+      }
+
       if (changed) {
         renderLayout();
         showToast("✅ Cuenta actualizada", "success");
@@ -12891,6 +13668,7 @@
       const newName = document
         .getElementById("editNombreSeccion")
         ?.value?.trim();
+      const finalSectionName = newName || oldName;
 
       if (newName && newName !== oldName) {
         let affectedCount = 0;
@@ -12929,6 +13707,36 @@
           if (normalizeOperationMatch(op.SECCION || "") === oldKey) {
             op.SECCION = newName;
             if (op.seccion !== undefined) op.seccion = newName;
+          }
+
+          if (
+            normalizeOperationMatch(op["sum-row-sumavarios"] || "") === oldKey
+          ) {
+            op["sum-row-sumavarios"] = newName;
+          }
+          if (
+            normalizeOperationMatch(op["sum-row-sumavarios2"] || "") === oldKey
+          ) {
+            op["sum-row-sumavarios2"] = newName;
+          }
+          if (
+            normalizeOperationMatch(
+              op["sum-row-sumavarios-consolidado"] || "",
+            ) === oldKey
+          ) {
+            op["sum-row-sumavarios-consolidado"] = newName;
+          }
+          if (
+            normalizeOperationMatch(op["sum-row-operativo"] || "") === oldKey
+          ) {
+            op["sum-row-operativo"] = newName;
+          }
+          if (
+            normalizeOperationMatch(
+              op["sum-row-operativo-consolidado"] || "",
+            ) === oldKey
+          ) {
+            op["sum-row-operativo-consolidado"] = newName;
           }
 
           if (Array.isArray(op.secciones) && op.secciones.length) {
@@ -12974,9 +13782,7 @@
               return { ...term, value, parentSection };
             });
             if (changed) {
-              op.formula_json = JSON.stringify(
-                normalizeFormulaTerms(op.formula_terms),
-              );
+              applyStrictFormulaTermsToOperation(op, op.formula_terms);
             }
           }
         });
@@ -12992,12 +13798,48 @@
           "success",
         );
       }
+
+      const sectionFormulaPayload = readEditorFormulaPayload({
+        parentSection: finalSectionName,
+        defaultParentSection: finalSectionName,
+      });
+      if (!sectionFormulaPayload.valid) {
+        showToast(
+          `Fórmula inválida en sección: ${sectionFormulaPayload.error}`,
+          "error",
+        );
+        return;
+      }
+      const sectionFormulaTerms = sectionFormulaPayload.terms || [];
+      const sectionFormulaTokens = sectionFormulaPayload.tokens || [];
+      const sectionOpExistente = getHeaderLinkedOperation(
+        "section",
+        finalSectionName,
+        "",
+      );
+      if (sectionOpExistente || sectionFormulaTerms.length) {
+        const linkedSectionOp = ensureHeaderLinkedOperation(
+          "section",
+          finalSectionName,
+          "",
+        );
+        if (linkedSectionOp) {
+          applyStrictFormulaTermsToOperation(
+            linkedSectionOp,
+            sectionFormulaTerms,
+            sectionFormulaTokens,
+          );
+          state.selectedElement.linkedOperation = linkedSectionOp;
+        }
+      }
+      state.selectedElement.name = finalSectionName;
     } else if (state.selectedElement.type === "subsection") {
       const principal = state.selectedElement.principal;
       const oldName = state.selectedElement.name;
       const newName = document
         .getElementById("editNombreSubseccion")
         ?.value?.trim();
+      const finalSubsectionName = newName || oldName;
 
       if (newName && newName !== oldName) {
         let affectedCount = 0;
@@ -13049,6 +13891,14 @@
             affectedOps++;
           }
 
+          if (
+            opPrincipalKey === principalKey &&
+            normalizeOperationMatch(op["sum-row"] || "") === oldKey
+          ) {
+            op["sum-row"] = newName;
+            affectedOps++;
+          }
+
           // Legacy: seccion_n (cuando almacena subsección como término)
           for (let i = 1; i <= 20; i++) {
             const key = `seccion_${i}`;
@@ -13079,9 +13929,7 @@
               };
             });
             if (changed) {
-              op.formula_json = JSON.stringify(
-                normalizeFormulaTerms(op.formula_terms),
-              );
+              applyStrictFormulaTermsToOperation(op, op.formula_terms);
               affectedFormula++;
             }
           }
@@ -13105,6 +13953,41 @@
           "success",
         );
       }
+
+      const subsectionFormulaPayload = readEditorFormulaPayload({
+        parentSection: principal,
+        defaultParentSection: principal,
+      });
+      if (!subsectionFormulaPayload.valid) {
+        showToast(
+          `Fórmula inválida en subsección: ${subsectionFormulaPayload.error}`,
+          "error",
+        );
+        return;
+      }
+      const subsectionFormulaTerms = subsectionFormulaPayload.terms || [];
+      const subsectionFormulaTokens = subsectionFormulaPayload.tokens || [];
+      const subsectionOpExistente = getHeaderLinkedOperation(
+        "subsection",
+        principal,
+        finalSubsectionName,
+      );
+      if (subsectionOpExistente || subsectionFormulaTerms.length) {
+        const linkedSubsectionOp = ensureHeaderLinkedOperation(
+          "subsection",
+          principal,
+          finalSubsectionName,
+        );
+        if (linkedSubsectionOp) {
+          applyStrictFormulaTermsToOperation(
+            linkedSubsectionOp,
+            subsectionFormulaTerms,
+            subsectionFormulaTokens,
+          );
+          state.selectedElement.linkedOperation = linkedSubsectionOp;
+        }
+      }
+      state.selectedElement.name = finalSubsectionName;
     } else if (state.selectedElement.type === "operation") {
       const op = state.selectedElement.op;
       const claseInput = document.getElementById("editClaseOp");
@@ -13160,24 +14043,43 @@
         oldId &&
         normalizeOperationMatch(desiredId) !== normalizeOperationMatch(oldId)
       ) {
+        const oldIdKey = normalizeOperationMatch(oldId || "");
+        const oldLabelKey = normalizeOperationMatch(oldLabel || "");
+        const oldRefId = buildOperationRefId(oldId);
+        const newRefId = buildOperationRefId(desiredId);
         state.operaciones.forEach((other) => {
-          if (!Array.isArray(other.formula_terms)) return;
+          const otherTokens = extractFormulaTokens(other);
+          if (!Array.isArray(otherTokens) || !otherTokens.length) return;
           let changed = false;
-          other.formula_terms = other.formula_terms.map((term) => {
-            if (term.type !== "operation") return term;
-            const termKey = normalizeOperationMatch(term.value);
-            if (
-              termKey === normalizeOperationMatch(oldId) ||
-              termKey === normalizeOperationMatch(oldLabel)
-            ) {
-              changed = true;
-              return { ...term, value: desiredId };
-            }
-            return term;
+          const updatedTokens = otherTokens.map((token) => {
+            if (!token || typeof token !== "object") return token;
+            if (token.kind !== FORMULA_KIND_REF) return token;
+            const refType = (token.refType || "").toString().toLowerCase();
+            if (refType !== "operation") return token;
+            const tokenRefId = (token.refId || "").toString().trim();
+            const tokenLabelKey = normalizeOperationMatch(token.label || "");
+            const matchesOld =
+              (oldRefId && tokenRefId === oldRefId) ||
+              (oldIdKey && tokenLabelKey === oldIdKey) ||
+              (oldLabelKey && tokenLabelKey === oldLabelKey);
+            if (!matchesOld) return token;
+            changed = true;
+            const nextLabel =
+              tokenLabelKey === oldIdKey || tokenLabelKey === oldLabelKey
+                ? desiredId
+                : token.label || desiredId;
+            return {
+              ...token,
+              refId: newRefId,
+              label: nextLabel,
+              unresolved: false,
+            };
           });
           if (changed) {
-            other.formula_json = JSON.stringify(
-              normalizeFormulaTerms(other.formula_terms),
+            applyStrictFormulaTermsToOperation(
+              other,
+              normalizeFormulaTerms(convertV2TokensToLegacyTerms(updatedTokens)),
+              updatedTokens,
             );
           }
         });
@@ -13235,49 +14137,22 @@
         op.estilo_fila = estiloFilaInput.value;
       }
 
-      const formulaPanel = dom.operationEditorPanel;
-      const formulaMode =
-        formulaPanel?.querySelector(
-          'input[name="operationFormulaMode"]:checked',
-        )?.value || "layout";
-      const manualText =
-        formulaPanel?.querySelector("#operationFormulaManual")?.value || "";
-      const selectedTerms =
-        formulaMode === "manual"
-          ? parseFormulaText(manualText)
-          : collectFormulaTermsFromLayout(formulaPanel);
-      formulaTerms = selectedTerms;
-
-      // Fórmula completamente editable: se permite dejarla vacía si así lo requiere la plantilla.
-      if (!Array.isArray(formulaTerms)) {
-        formulaTerms = [];
+      const formulaPayload = readEditorFormulaPayload({
+        parentSection: op.parentSection || "",
+        defaultParentSection: op.parentSection || "",
+      });
+      if (!formulaPayload.valid) {
+        showToast(`Fórmula inválida: ${formulaPayload.error}`, "error");
+        return;
       }
-
-      // Limpiar campos legacy
-      op.signos = {};
-      for (let i = 1; i <= 20; i++) {
-        delete op[`seccion_${i}`];
-      }
-
-      if (selectedTerms.length) {
-        op.formula_terms = normalizeFormulaTerms(selectedTerms);
-        op.formula_json = JSON.stringify(op.formula_terms);
-        op.formula_terms.forEach((term, i) => {
-          const key = `seccion_${i + 1}`;
-          op[key] = term.value;
-          op.signos[key] = term.operator === "-" ? -1 : 1;
-        });
-
-        if (
-          op.formula_terms.length === 1 &&
-          op.formula_terms[0].type === "section"
-        ) {
-          op.SECCION = op.formula_terms[0].value;
-        }
-      } else {
-        op.formula_terms = [];
-        op.formula_json = "";
-      }
+      formulaTerms = Array.isArray(formulaPayload.terms)
+        ? formulaPayload.terms
+        : [];
+      applyStrictFormulaTermsToOperation(
+        op,
+        formulaTerms,
+        formulaPayload.tokens || [],
+      );
 
       // Flujo de inserción masiva: aplicar fórmula en la fila del modal Agregar
       // sin tocar el layout persistido hasta confirmar "Agregar".
@@ -13327,36 +14202,9 @@
       );
 
       if (normalizedTerms.length > 0 || hasExistingFormula) {
-        const persistedTerms = normalizedTerms.map((term, idx) => ({
-          id: formulaTerms[idx]?.id || Date.now() + idx,
-          ...term,
-        }));
-
         affectedOps.forEach((op) => {
-          op.formula_terms = persistedTerms.map((term, idx) => ({
-            id: term.id || Date.now() + idx,
-            operator: term.operator,
-            type: term.type,
-            value: term.value,
-            constant: term.constant,
-            parentSection: term.parentSection,
-          }));
-          op.formula_json = JSON.stringify(normalizedTerms);
-
-          const nextSignos = { ...(op.signos || {}) };
-          for (let i = 1; i <= 20; i++) {
-            const key = `seccion_${i}`;
-            delete op[key];
-            delete nextSignos[key];
-          }
-
-          op.formula_terms.forEach((term, i) => {
-            const key = `seccion_${i + 1}`;
-            op[key] = term.value;
-            nextSignos[key] = term.operator === "-" ? -1 : 1;
-          });
-
-          op.signos = nextSignos;
+          const tokens = convertLegacyTermsToV2Tokens(normalizedTerms, op);
+          applyStrictFormulaTermsToOperation(op, normalizedTerms, tokens);
         });
 
         showToast(
@@ -13412,22 +14260,100 @@
         finalizeDeletion();
       }
     } else if (type === "section") {
-      const name = state.selectedElement.name;
+      const name = (state.selectedElement.name || "").toString().trim();
       if (
         confirm(
           `Eliminar la seccion "${name}" y TODAS sus cuentas? Esta accion no se puede deshacer.`,
         )
       ) {
+        const sectionKey = normalizeOperationMatch(name);
         state.cuentas = state.cuentas.filter((c) => {
-          const principal =
-            c["SECCIàN Principal"] ||
-            c["SECCI…N Principal"] ||
-            c["SECCION Principal"] ||
-            c.SECCION ||
-            c.seccion_principal;
-          return principal !== name;
+          const principal = getAccountPrincipalName(c) || "";
+          return normalizeOperationMatch(principal) !== sectionKey;
         });
-        finalizeDeletion();
+
+        let removedOps = 0;
+        state.operaciones = (state.operaciones || []).filter((op) => {
+          if (!op) return false;
+          const parentKey = normalizeOperationMatch(op.parentSection || "");
+          const placementKey = normalizeOperationMatch(
+            op.SECCION || op.seccion || "",
+          );
+          const sectionList = Array.isArray(op.secciones) ? op.secciones : [];
+          const inSection =
+            parentKey === sectionKey ||
+            placementKey === sectionKey ||
+            sectionList.some(
+              (value) => normalizeOperationMatch(value || "") === sectionKey,
+            );
+          if (inSection) removedOps += 1;
+          return !inSection;
+        });
+
+        logChange("delete", `Sección "${name}" eliminada`, {
+          sectionName: name,
+          removedOps,
+          type: "section",
+        });
+        finalizeDeletion(
+          `Sección "${name}" eliminada (${removedOps} operaciones ligadas)`,
+        );
+      }
+    } else if (type === "subsection") {
+      const principal = (state.selectedElement.principal || "")
+        .toString()
+        .trim();
+      const name = (state.selectedElement.name || "").toString().trim();
+      if (
+        confirm(
+          `Eliminar la subseccion "${name}" de "${principal}" y TODAS sus cuentas? Esta accion no se puede deshacer.`,
+        )
+      ) {
+        const principalKey = normalizeOperationMatch(principal);
+        const subsectionKey = normalizeOperationMatch(name);
+        state.cuentas = state.cuentas.filter((c) => {
+          const currentPrincipal = normalizeOperationMatch(
+            getAccountPrincipalName(c) || "",
+          );
+          const currentSubsection = normalizeOperationMatch(
+            getAccountSecondaryName(c) || "",
+          );
+          return !(
+            currentPrincipal === principalKey &&
+            currentSubsection === subsectionKey
+          );
+        });
+
+        let removedOps = 0;
+        state.operaciones = (state.operaciones || []).filter((op) => {
+          if (!op) return false;
+          const opParentKey = normalizeOperationMatch(op.parentSection || "");
+          const opSubKey = normalizeOperationMatch(op.parentSubsection || "");
+          const placementKey = normalizeOperationMatch(
+            op.SECCION || op.seccion || "",
+          );
+          const sectionList = Array.isArray(op.secciones) ? op.secciones : [];
+          const hasSubPlacement =
+            placementKey === subsectionKey ||
+            sectionList.some(
+              (value) => normalizeOperationMatch(value || "") === subsectionKey,
+            );
+          const inSubsection =
+            opParentKey === principalKey &&
+            (opSubKey === subsectionKey || hasSubPlacement);
+          if (inSubsection) removedOps += 1;
+          return !inSubsection;
+        });
+
+        logChange("delete", `Subsección "${principal} / ${name}" eliminada`, {
+          principal,
+          subsectionName: name,
+          removedOps,
+          type: "subsection",
+        });
+        finalizeDeletion(
+          `Subsección "${name}" eliminada (${removedOps} operaciones ligadas)`,
+        );
       }
     } else if (type === "operation") {
       const op = state.selectedElement.op;
@@ -13442,15 +14368,19 @@
     }
   }
 
-  function finalizeDeletion() {
+  function finalizeDeletion(message = "Elemento eliminado") {
     state.unsavedChanges = true;
     updateButtonStates();
     renderLayout();
     updateStats();
     scheduleAutoSave("delete");
     bootstrap.Modal.getInstance(dom.modalEditar)?.hide();
-    bootstrap?.Offcanvas?.getInstance(dom.operationEditorPanel)?.hide();
-    showToast("Elemento eliminado", "success");
+    if (bootstrap?.Offcanvas) {
+      bootstrap.Offcanvas.getInstance(dom.operationEditorPanel)?.hide();
+    } else {
+      closeOffcanvasFallback(dom.operationEditorPanel);
+    }
+    showToast(message, "success");
   }
 
   /**
@@ -13465,19 +14395,22 @@
     const isBulkOp = Boolean(op?._bulkFormulaInput || op?._bulkRow);
 
     // Leer fórmula del panel (se usa tanto en modo normal como en inserción masiva)
-    const formulaPanel = dom.operationEditorPanel;
-    const formulaMode =
-      formulaPanel?.querySelector('input[name="operationFormulaMode"]:checked')
-        ?.value || "layout";
-    const manualText =
-      formulaPanel?.querySelector("#operationFormulaManual")?.value || "";
-    const selectedTerms =
-      formulaMode === "manual"
-        ? parseFormulaText(manualText)
-        : collectFormulaTermsFromLayout(formulaPanel);
+    const formulaPayload = readEditorFormulaPayload({
+      parentSection: op.parentSection || "",
+      defaultParentSection: op.parentSection || "",
+    });
+    if (!formulaPayload.valid) {
+      showToast(`Fórmula inválida: ${formulaPayload.error}`, "error");
+      return;
+    }
+    const selectedTerms = Array.isArray(formulaPayload.terms)
+      ? formulaPayload.terms
+      : [];
+    const selectedTokens = Array.isArray(formulaPayload.tokens)
+      ? formulaPayload.tokens
+      : [];
 
-    // VALIDACIÓN FLEXIBLE: Las operaciones pueden existir sin fórmula (modo 100% manual)
-    // Solo advertir, no bloquear
+    // Fórmula manual: puede quedar vacía si así lo define la plantilla.
     if (!selectedTerms || selectedTerms.length === 0) {
       console.warn("⚠️ Operación sin fórmula definida");
     }
@@ -13485,8 +14418,7 @@
     // Si es inserción masiva, solo aplicar fórmula a la fila y salir.
     if (isBulkOp) {
       const normalized = normalizeFormulaTerms(selectedTerms || []);
-      op.formula_terms = normalized;
-      op.formula_json = JSON.stringify(normalized);
+      applyStrictFormulaTermsToOperation(op, normalized, selectedTokens);
 
       if (op._bulkFormulaInput) {
         const bulkText = buildFormulaPreviewText(normalized);
@@ -13504,56 +14436,102 @@
       return;
     }
 
-    // Leer valores del panel - MODO FLEXIBLE
+    // Leer valores del panel (modo estricto manual)
     const claseInput = document.getElementById("editClaseOp");
     const idInput = document.getElementById("editOperacionId");
     const newClase = claseInput?.value?.trim() || "";
     const newIdInput = idInput?.value?.trim() || "";
-
-    // VALIDACIÓN MÁS FLEXIBLE: Permitir nombres cortos o generar ID automático
-    // Si no hay nombre, usar el existente o generar uno
-    const fallbackName = `Operación ${Date.now() % 10000}`;
-    const effectiveClase = newClase || op.Clase || fallbackName;
-    const effectiveId =
-      newIdInput || op.OperacionId || normalizeOperationId(effectiveClase);
+    const markInvalid = (input) => {
+      if (!input) return;
+      input.classList.add("is-invalid");
+    };
+    const clearInvalid = (input) => {
+      if (!input) return;
+      input.classList.remove("is-invalid");
+    };
+    clearInvalid(claseInput);
+    clearInvalid(idInput);
 
     const oldId = getOperationId(op);
     const oldLabel = getOperationLabel(op);
     const oldDisplay = getOperationDisplayName(op);
+    const effectiveClase =
+      newClase || op.Clase || op.operacion_etiqueta || op.Etiqueta || "";
+    if (!effectiveClase) {
+      markInvalid(claseInput);
+      showToast("El nombre de la operación es requerido", "error");
+      return;
+    }
 
-    // MODO 100% MANUAL: Permitir IDs duplicados resolviendo automáticamente
-    let desiredId = normalizeOperationId(effectiveId);
+    const desiredId = normalizeOperationId(newIdInput || op.OperacionId || "");
     if (!desiredId) {
-      desiredId = `OP_${Date.now() % 100000}`;
+      markInvalid(idInput);
+      showToast("Define un ID válido para la operación.", "error");
+      return;
+    }
+    const duplicateId = (state.operaciones || []).some(
+      (o) =>
+        o !== op &&
+        normalizeOperationMatch(getOperationId(o)) ===
+          normalizeOperationMatch(desiredId),
+    );
+    if (duplicateId) {
+      markInvalid(idInput);
+      showToast("Ese ID ya existe en otra operación", "error");
+      return;
     }
 
-    // Resolver conflictos de ID automáticamente (en lugar de bloquear)
-    let finalId = desiredId;
-    let counter = 1;
-    while (
-      state.operaciones.some(
-        (o) =>
-          o !== op &&
-          normalizeOperationMatch(getOperationId(o)) ===
-            normalizeOperationMatch(finalId),
-      )
-    ) {
-      finalId = `${desiredId}_${counter}`;
-      counter++;
-      if (counter > 100) break; // Protección contra loops infinitos
-    }
-
-    if (finalId !== desiredId) {
-      console.log(
-        `🔄 ID ajustado de "${desiredId}" a "${finalId}" para evitar conflicto`,
-      );
-    }
-
-    // Actualizar datos básicos - MODO FLEXIBLE
+    // Actualizar datos básicos
     op.Clase = effectiveClase;
-    op.OperacionId = finalId;
+    op.OperacionId = desiredId;
     op.operacion_etiqueta = effectiveClase;
     op.Etiqueta = effectiveClase;
+
+    if (
+      oldId &&
+      normalizeOperationMatch(desiredId) !== normalizeOperationMatch(oldId)
+    ) {
+      const oldIdKey = normalizeOperationMatch(oldId || "");
+      const oldLabelKey = normalizeOperationMatch(oldLabel || "");
+      const oldRefId = buildOperationRefId(oldId);
+      const newRefId = buildOperationRefId(desiredId);
+      (state.operaciones || []).forEach((other) => {
+        const otherTokens = extractFormulaTokens(other);
+        if (!Array.isArray(otherTokens) || !otherTokens.length) return;
+        let changed = false;
+        const updatedTokens = otherTokens.map((token) => {
+          if (!token || typeof token !== "object") return token;
+          if (token.kind !== FORMULA_KIND_REF) return token;
+          const refType = (token.refType || "").toString().toLowerCase();
+          if (refType !== "operation") return token;
+          const tokenRefId = (token.refId || "").toString().trim();
+          const tokenLabelKey = normalizeOperationMatch(token.label || "");
+          const matchesOld =
+            (oldRefId && tokenRefId === oldRefId) ||
+            (oldIdKey && tokenLabelKey === oldIdKey) ||
+            (oldLabelKey && tokenLabelKey === oldLabelKey);
+          if (!matchesOld) return token;
+          changed = true;
+          const nextLabel =
+            tokenLabelKey === oldIdKey || tokenLabelKey === oldLabelKey
+              ? desiredId
+              : token.label || desiredId;
+          return {
+            ...token,
+            refId: newRefId,
+            label: nextLabel,
+            unresolved: false,
+          };
+        });
+        if (changed) {
+          applyStrictFormulaTermsToOperation(
+            other,
+            normalizeFormulaTerms(convertV2TokensToLegacyTerms(updatedTokens)),
+            updatedTokens,
+          );
+        }
+      });
+    }
 
     // Ubicación (manual): sección/subsección donde aparece la operación.
     // Nota: La fórmula se guarda en `formula_json`; `SECCION` se usa como compat/placement.
@@ -13645,49 +14623,8 @@
       });
     }
 
-    // Si cambió el nombre y la etiqueta visible sigue siendo la anterior,
-    // actualízala automáticamente para evitar que se quede "pegada".
-    if (newClase && nameChanged) {
-      const oldDisplayKey = normalizeOperationMatch(oldDisplay || "");
-      const oldLabelKey = normalizeOperationMatch(oldLabel || "");
-      OP_ROW_FIELDS.forEach(({ field }) => {
-        const input = document.getElementById(rowLabelInputId(field));
-        const rawInput = (input?.value || "").trim();
-        const inputKey = normalizeOperationMatch(rawInput);
-        const opValue = (op?.[field] || "").toString().trim();
-        const opKey = normalizeOperationMatch(opValue);
-        const inputMatchesOld =
-          !rawInput || inputKey === oldDisplayKey || inputKey === oldLabelKey;
-        const opMatchesOld =
-          opKey && (opKey === oldDisplayKey || opKey === oldLabelKey);
-        if (inputMatchesOld && opMatchesOld) {
-          op[field] = newClase;
-        }
-      });
-    }
-
-    // Guardar fórmula - MODO FLEXIBLE (permitir operaciones sin fórmula)
-    if (selectedTerms && selectedTerms.length > 0) {
-      op.formula_terms = normalizeFormulaTerms(selectedTerms);
-      op.formula_json = JSON.stringify(op.formula_terms);
-
-      // Legacy format
-      op.signos = {};
-      for (let i = 1; i <= 20; i++) {
-        delete op[`seccion_${i}`];
-      }
-
-      op.formula_terms.forEach((term, i) => {
-        const key = `seccion_${i + 1}`;
-        op[key] = term.value;
-        op.signos[key] = term.operator === "-" ? -1 : 1;
-      });
-    } else {
-      // Sin fórmula: limpiar campos legacy pero mantener la operación
-      op.formula_terms = [];
-      op.formula_json = "[]";
-      op.signos = {};
-    }
+    // Guardar fórmula manual (se permite operación sin fórmula).
+    applyStrictFormulaTermsToOperation(op, selectedTerms, selectedTokens);
 
     // Visibilidad y estilo
     const visibleInput = document.getElementById("editOperacionVisible");
@@ -13713,7 +14650,7 @@
 
     logChange("edit", `Operación "${effectiveClase}" actualizada`, {
       oldId,
-      newId: finalId,
+      newId: desiredId,
       oldLabel,
       newLabel: effectiveClase,
     });
@@ -13981,16 +14918,12 @@
 
   function normalizeOperationReferences() {
     state.operaciones.forEach((op) => {
-      if (!Array.isArray(op.formula_terms) || op.formula_terms.length === 0) {
-        return;
-      }
-      const normalizedTerms = normalizeFormulaTerms(op.formula_terms);
-      const normalized = normalizedTerms.map((term, idx) => ({
-        id: term.id || Date.now() + idx,
-        ...term,
-      }));
-      op.formula_terms = normalized;
-      op.formula_json = JSON.stringify(normalizedTerms);
+      const tokens = extractFormulaTokens(op);
+      if (!Array.isArray(tokens) || tokens.length === 0) return;
+      const normalizedTerms = normalizeFormulaTerms(
+        convertV2TokensToLegacyTerms(tokens),
+      );
+      applyStrictFormulaTermsToOperation(op, normalizedTerms, tokens);
     });
   }
 
@@ -15198,8 +16131,18 @@
 
   const hasExplicitFormula = (op) => {
     if (!op) return false;
-    if (Array.isArray(op.formula_terms) && op.formula_terms.length) return true;
-    if (op.formula_json) return true;
+    const tokens = extractFormulaTokens(op);
+    if (
+      Array.isArray(tokens) &&
+      tokens.some(
+        (token) =>
+          token &&
+          typeof token === "object" &&
+          (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST),
+      )
+    ) {
+      return true;
+    }
     return Object.keys(op).some(
       (key) =>
         /^(seccion|operacion|cuenta)_\d+$/i.test(key) && Boolean(op[key]),
@@ -15346,26 +16289,8 @@
     if (!op) return false;
     const normalized = normalizeFormulaTerms(terms);
     if (!normalized.length) return false;
-
-    op.formula_terms = normalized.map((term, idx) => ({
-      id: term.id || Date.now() + idx,
-      ...term,
-    }));
-    op.formula_json = JSON.stringify(normalized);
-    op.signos = {};
-    for (let i = 1; i <= 20; i++) {
-      delete op[`seccion_${i}`];
-    }
-    normalized.forEach((term, idx) => {
-      const key = `seccion_${idx + 1}`;
-      op[key] = term.value;
-      op.signos[key] = term.operator === "-" ? -1 : 1;
-    });
-
-    if (normalized.length === 1 && normalized[0].type === "section") {
-      op.SECCION = normalized[0].value;
-    }
-
+    const tokens = convertLegacyTermsToV2Tokens(normalized, op);
+    applyStrictFormulaTermsToOperation(op, normalized, tokens);
     return true;
   };
 
@@ -16012,8 +16937,9 @@
             "nombre",
             "seccion_principal",
             "seccion_secundaria",
+            "valor_plantilla",
           ],
-          operaciones: ["operacion_id", "clase", "formula"],
+          operaciones: ["operacion_id", "clase", "formula_json"],
         },
       },
       secciones: extractSecciones(),
@@ -16022,7 +16948,7 @@
       operaciones: extractOperaciones(),
       _notas: {
         formula_formato:
-          "Ejemplos: '400-000-000-00 + 401-000-000-00' o 'OPERACION_1 - OPERACION_2'",
+          "Soporta fórmula de texto (+,-,*,/,paréntesis) y formula_json v2 con tokens por refId interno.",
         estilo_fila_opciones: [
           "sum-row",
           "sum-row-principal",
@@ -16097,32 +17023,35 @@
       visible: c.visible !== false,
       capturable: c.capturable !== false,
       tipo_saldo: c.TIPO_SALDO || c.tipo_saldo || "Deudor",
+      factor: Number.isFinite(Number(c.operacion_factor ?? c.factor))
+        ? Number(c.operacion_factor ?? c.factor)
+        : 1,
+      valor_plantilla: Number.isFinite(Number(c.valor_plantilla))
+        ? Number(c.valor_plantilla)
+        : 0,
     }));
   }
 
   function extractOperaciones() {
-    return (state.operaciones || []).map((op) => {
-      const formulaTerms = extractFormulaTerms(op);
-      const formulaStr = formulaTerms
-        .map((t) => {
-          const prefix =
-            t.operator === "-" ? "- " : t.operator === "+" ? "+ " : "";
-          return prefix + t.value;
-        })
-        .join(" ")
-        .trim();
+    return (state.operaciones || [])
+      .filter((op) => !isColumnConfigOperation(op))
+      .map((op) => {
+      const formulaTokens = extractFormulaTokens(op);
+      const formulaStr = formatFormula(op || {});
 
       return {
         operacion_id: getOperationId(op) || "",
         clase: getOperationDisplayName(op) || "",
         seccion: op.SECCION || "",
+        subseccion: op.parentSubsection || "",
         tipo_operacion: op.tipo_operacion || "libre",
         formula: formulaStr,
+        formula_json: serializeFormulaV2(formulaTokens),
         estilo_fila: op.rowStyle || op.estilo_fila || "operation-row",
         visible: op.visible !== false,
         descripcion: "",
       };
-    });
+      });
   }
 
   const normalizeImportHeader = (value) =>
@@ -16145,6 +17074,15 @@
       return false;
     }
     return fallback;
+  };
+
+  const toImportNumber = (value, fallback = NaN) => {
+    if (value === undefined || value === null || value === "") return fallback;
+    const normalized =
+      typeof value === "string" ? value.replace(/,/g, "").trim() : value;
+    if (normalized === "") return fallback;
+    const num = Number(normalized);
+    return Number.isFinite(num) ? num : fallback;
   };
 
   const normalizeImportRow = (row = {}) => {
@@ -16256,8 +17194,16 @@
               "typesaldo",
             ]),
           ).trim() || "Deudor",
-        factor: Number(
+        factor: toImportNumber(
           pickImportValue(row, ["factor", "operacion_factor", "signo", "sign"]),
+        ),
+        valor_plantilla: toImportNumber(
+          pickImportValue(row, [
+            "valor_plantilla",
+            "valorplantilla",
+            "valor_template",
+            "valor",
+          ]),
         ),
       }))
       .filter((row) => row.cuenta);
@@ -16294,6 +17240,10 @@
         formula: String(
           pickImportValue(row, ["formula", "expresion", "expression"]),
         ).trim(),
+        formula_terms: pickImportValue(row, [
+          "formula_terms",
+          "formulaterms",
+        ]),
         formula_json: pickImportValue(row, ["formula_json", "formulajson"]),
         estilo_fila:
           String(
@@ -16446,24 +17396,60 @@
     throw new Error("Formato no soportado. Usa JSON o Excel (.xlsx/.xls).");
   };
 
-  const parseImportedFormulaTerms = (op = {}) => {
-    if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
-      return normalizeFormulaTerms(op.formula_terms);
+  const parseImportedFormulaPayload = (op = {}) => {
+    const termsFromInput = Array.isArray(op.formula_terms)
+      ? op.formula_terms
+      : (() => {
+          if (typeof op.formula_terms !== "string" || !op.formula_terms.trim()) {
+            return [];
+          }
+          try {
+            const parsedTerms = JSON.parse(op.formula_terms);
+            return Array.isArray(parsedTerms) ? parsedTerms : [];
+          } catch (_) {
+            return [];
+          }
+        })();
+    if (termsFromInput.length) {
+      const terms = normalizeFormulaTerms(termsFromInput);
+      return {
+        terms,
+        tokens: convertLegacyTermsToV2Tokens(terms, op),
+      };
     }
     if (op.formula_json) {
       try {
         const parsed = JSON.parse(String(op.formula_json));
+        if (isFormulaV2Object(parsed)) {
+          const tokens = Array.isArray(parsed.tokens) ? parsed.tokens : [];
+          const terms = normalizeFormulaTerms(convertV2TokensToLegacyTerms(tokens));
+          return { terms, tokens };
+        }
         if (Array.isArray(parsed) && parsed.length) {
-          return normalizeFormulaTerms(parsed);
+          const terms = normalizeFormulaTerms(parsed);
+          return {
+            terms,
+            tokens: convertLegacyTermsToV2Tokens(terms, op),
+          };
         }
       } catch (_) {
-        // fallback a formula texto
+        // fallback a fórmula texto
       }
     }
     if (op.formula) {
-      return normalizeFormulaTerms(parseFormulaText(op.formula));
+      const parsed = parseFormulaExpressionV2(op.formula, {
+        parentSection: op.seccion || "",
+        defaultParentSection: op.seccion || "",
+      });
+      if (parsed.valid) {
+        return {
+          terms: normalizeFormulaTerms(parsed.terms || []),
+          tokens: Array.isArray(parsed.tokens) ? parsed.tokens : [],
+        };
+      }
+      return { terms: [], tokens: [] };
     }
-    return [];
+    return { terms: [], tokens: [] };
   };
 
   const ensureSectionPath = (principal = "", secundaria = "") => {
@@ -16569,6 +17555,9 @@
               operacion_factor: Number.isFinite(Number(c.factor))
                 ? Number(c.factor)
                 : 1,
+              valor_plantilla: Number.isFinite(Number(c.valor_plantilla))
+                ? Number(c.valor_plantilla)
+                : 0,
               HOJA: state.modulo,
               CAPITULO: state.capitulo,
             });
@@ -16594,6 +17583,9 @@
               if (Number.isFinite(Number(c.factor))) {
                 existing.operacion_factor = Number(c.factor);
               }
+              if (Number.isFinite(Number(c.valor_plantilla))) {
+                existing.valor_plantilla = Number(c.valor_plantilla);
+              }
               actualizados++;
             }
           }
@@ -16617,7 +17609,13 @@
             ? sectionPrincipal
             : sectionPrincipal || null;
           const parentSubsection = sectionSub || null;
-          const formulaTerms = parseImportedFormulaTerms(op);
+          const formulaPayload = parseImportedFormulaPayload(op);
+          const formulaTerms = Array.isArray(formulaPayload.terms)
+            ? formulaPayload.terms
+            : [];
+          const formulaTokens = Array.isArray(formulaPayload.tokens)
+            ? formulaPayload.tokens
+            : [];
 
           let existing = null;
           if (rawId) {
@@ -16661,8 +17659,11 @@
             existing.estilo_fila = existing.rowStyle;
             existing.visible = op.visible !== false;
             if (formulaTerms.length || String(op.formula || "").trim()) {
-              existing.formula_terms = formulaTerms;
-              existing.formula_json = JSON.stringify(formulaTerms);
+              applyStrictFormulaTermsToOperation(
+                existing,
+                formulaTerms,
+                formulaTokens,
+              );
             }
             actualizados++;
             return;
@@ -16675,8 +17676,8 @@
             SECCION: placement,
             seccion: placement,
             tipo_operacion: op.tipo_operacion || "libre",
-            formula_terms: formulaTerms,
-            formula_json: JSON.stringify(formulaTerms),
+            formula_terms: [],
+            formula_json: serializeFormulaV2([]),
             rowStyle: op.estilo_fila || "operation-row",
             estilo_fila: op.estilo_fila || "operation-row",
             visible: op.visible !== false,
@@ -16693,6 +17694,7 @@
           } else if (parentSection) {
             newOp["sum-row-sumavarios"] = parentSection;
           }
+          applyStrictFormulaTermsToOperation(newOp, formulaTerms, formulaTokens);
           state.operaciones.push(newOp);
           importados++;
         });

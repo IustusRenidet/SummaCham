@@ -14,19 +14,21 @@
         "cuenta",
         "nombre",
         "seccion_principal",
-        "seccion_secundaria"
+        "seccion_secundaria",
+        "valor_plantilla"
       ],
       "operaciones": [
         "operacion_id",
         "clase",
-        "formula"
+        "formula_json"
       ]
     },
     "campos_opcionales": {
       "cuentas": [
         "visible",
         "capturable",
-        "tipo_saldo"
+        "tipo_saldo",
+        "factor"
       ],
       "operaciones": [
         "visible",
@@ -67,7 +69,9 @@
       "seccion_secundaria": "Membership",
       "visible": true,
       "capturable": true,
-      "tipo_saldo": "Deudor"
+      "tipo_saldo": "Deudor",
+      "factor": 1,
+      "valor_plantilla": 0
     },
     {
       "cuenta": "401-000-000-00",
@@ -76,7 +80,9 @@
       "seccion_secundaria": "Membership",
       "visible": true,
       "capturable": true,
-      "tipo_saldo": "Deudor"
+      "tipo_saldo": "Deudor",
+      "factor": 1,
+      "valor_plantilla": 0
     },
     {
       "cuenta": "405-000-000-00",
@@ -85,7 +91,9 @@
       "seccion_secundaria": "Events",
       "visible": true,
       "capturable": true,
-      "tipo_saldo": "Deudor"
+      "tipo_saldo": "Deudor",
+      "factor": 1,
+      "valor_plantilla": 0
     }
   ],
   "operaciones": [
@@ -95,6 +103,27 @@
       "seccion": "Membership",
       "tipo_operacion": "subseccion",
       "formula": "400-000-000-00 + 401-000-000-00",
+      "formula_json": {
+        "version": 2,
+        "tokens": [
+          {
+            "kind": "ref",
+            "refType": "account",
+            "refId": "ACC::400-000-000-00",
+            "label": "400-000-000-00"
+          },
+          {
+            "kind": "op",
+            "value": "+"
+          },
+          {
+            "kind": "ref",
+            "refType": "account",
+            "refId": "ACC::401-000-000-00",
+            "label": "401-000-000-00"
+          }
+        ]
+      },
       "estilo_fila": "subsection-row",
       "visible": true,
       "descripcion": "Suma automática de cuentas de Membership"
@@ -105,13 +134,34 @@
       "seccion": "INCOME",
       "tipo_operacion": "seccion",
       "formula": "SUBSEC_MEMBERSHIP + SUBSEC_EVENTS",
+      "formula_json": {
+        "version": 2,
+        "tokens": [
+          {
+            "kind": "ref",
+            "refType": "operation",
+            "refId": "OP::SUBSEC_MEMBERSHIP",
+            "label": "SUBSEC_MEMBERSHIP"
+          },
+          {
+            "kind": "op",
+            "value": "+"
+          },
+          {
+            "kind": "ref",
+            "refType": "operation",
+            "refId": "OP::SUBSEC_EVENTS",
+            "label": "SUBSEC_EVENTS"
+          }
+        ]
+      },
       "estilo_fila": "sum-row-principal",
       "visible": true,
       "descripcion": "Suma de todas las subsecciones de ingresos"
     }
   ],
   "_notas": {
-    "formula": "Formato de fórmula: '400-000-000-00 + 401-000-000-00' o 'OPERACION_1 - OPERACION_2'",
+    "formula": "Formato de fórmula texto soportado: + - * / y paréntesis. Si se envía formula_json, tiene prioridad.",
     "estilo_fila_opciones": [
       "sum-row",
       "sum-row-principal",

@@ -602,7 +602,7 @@
     const division = actualNum / baseNum;
 
     // Si división da resultado inválido, retornar 0%
-    if (!Number.isFinite(division) || division === 0) return 0;
+    if (!Number.isFinite(division)) return 0;
 
     // Fórmula Excel: (real / base - 1) * 100
     const porcentaje = (division - 1) * 100;
@@ -2536,6 +2536,13 @@
     return Number.isFinite(actual) ? actual : null;
   };
 
+  const permiteComparativoPrev = (entity, fallbackType = "") => {
+    if (!entity) return false;
+    const type = (entity.type || fallbackType || "").toString().toLowerCase();
+    if (type === "cuenta" || type === "account") return true;
+    return Boolean(entity.manualFormula || entity.__manualFormula);
+  };
+
   const indexarLayoutComparativo = (layout = []) => {
     const cuentas = new Map();
     const etiquetas = new Map();
@@ -2560,6 +2567,7 @@
     layoutBase.forEach((block) => {
       if (!block || !block.totals) return;
       const tipo = (block.type || "").toLowerCase();
+      if (!permiteComparativoPrev(block, tipo)) return;
       let comparativo = null;
       if (tipo === "cuenta") {
         const claveCuenta = (block.cuenta || "").toString().trim();
@@ -2588,62 +2596,8 @@
 
   const recalcularPrevLayoutDesdeCuentas = (layoutArr = []) => {
     if (!Array.isArray(layoutArr) || !layoutArr.length) return;
-
-    // Recalcular prev en subsecciones usando las cuentas consecutivas
-    for (let i = 0; i < layoutArr.length; i += 1) {
-      const block = layoutArr[i];
-      const tipo = (block?.type || "").toLowerCase();
-      if (tipo !== "secundaria") continue;
-
-      let prevMonth = 0;
-      let prevYTD = 0;
-      let j = i + 1;
-      while (j < layoutArr.length) {
-        const next = layoutArr[j];
-        const nextTipo = (next?.type || "").toLowerCase();
-        if (nextTipo === "cuenta") {
-          const t = next.totals || {};
-          prevMonth += toNumber(t.prevMonth);
-          prevYTD += toNumber(t.prevYTD);
-          j += 1;
-          continue;
-        }
-        break;
-      }
-
-      if (!block.totals) block.totals = {};
-      block.totals.prevMonth = prevMonth;
-      block.totals.prevYTD = prevYTD;
-    }
-
-    // Recalcular prev en principales acumulando sus subsecciones
-    let principalActual = null;
-    let accPrevMonth = 0;
-    let accPrevYTD = 0;
-    const cerrarPrincipal = () => {
-      if (!principalActual) return;
-      if (!principalActual.totals) principalActual.totals = {};
-      principalActual.totals.prevMonth = accPrevMonth;
-      principalActual.totals.prevYTD = accPrevYTD;
-    };
-
-    layoutArr.forEach((block) => {
-      const tipo = (block?.type || "").toLowerCase();
-      if (tipo === "principal") {
-        cerrarPrincipal();
-        principalActual = block;
-        accPrevMonth = 0;
-        accPrevYTD = 0;
-        return;
-      }
-      if (!principalActual) return;
-      if (tipo === "secundaria") {
-        const t = block.totals || {};
-        accPrevMonth += toNumber(t.prevMonth);
-        accPrevYTD += toNumber(t.prevYTD);
-      }
-    });
-    cerrarPrincipal();
+    // Modo estricto: no arrastrar comparativo automáticamente de cuentas hacia
+    // subsecciones/principales. Esos renglones solo deben llenarse por fórmula explícita.
   };
 
   const indexarComparativoCapitulo = (capitulo = {}) => {
@@ -2683,7 +2637,7 @@
       const compPrincipal = principalKey
         ? principales.get(principalKey)
         : null;
-      if (compPrincipal) {
+      if (compPrincipal && permiteComparativoPrev(principal, "principal")) {
         // Comparativo solo llena columnas "Prev" (AA)
         const comparativoMonth = resolverComparativoPrevio(
           compPrincipal,
@@ -2701,7 +2655,7 @@
       (principal.children || []).forEach((seccion) => {
       const seccionKey = normalizarEtiquetaComparativa(seccion.label || "");
       const compSeccion = seccionKey ? secciones.get(seccionKey) : null;
-      if (compSeccion) {
+      if (compSeccion && permiteComparativoPrev(seccion, "secundaria")) {
         // Comparativo solo llena columnas "Prev" (AA) en totales de sección
         const comparativoMonth = resolverComparativoPrevio(
           compSeccion,
@@ -4249,8 +4203,15 @@
       // Renderizar usando SOLO el layout (que ya tiene todo en orden correcto)
       if (layout && layout.length) {
         renderizoLayout = true;
-        recalcularPrincipales(layout);
-        recalcularConsolidados(layout, capituloName);
+        const autoCalcEnabled = Array.isArray(layout)
+          ? layout.some(
+              (block) => Boolean(block?.autoFormula) || Boolean(block?.autoCalc),
+            )
+          : false;
+        if (autoCalcEnabled) {
+          recalcularPrincipales(layout);
+          recalcularConsolidados(layout, capituloName);
+        }
         layout.forEach((block) => {
           const blockType = block.type || "";
 

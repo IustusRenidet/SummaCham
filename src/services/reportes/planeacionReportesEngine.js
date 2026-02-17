@@ -236,7 +236,7 @@ const CAMPOS_FILA_OPERACION = [
 
 const COLUMN_CONFIG_ID = 'COLUMN_CONFIG';
 const esOperacionConfigColumnas = (op = {}) => {
-  const rawId = op.OperacionId || op.operacion_id || op.id || op.Clase || op.clase || '';
+  const rawId = op.OperacionId || op.operacion_id || op.Clase || op.clase || op.id || '';
   const id = rawId.toString().trim().toUpperCase();
   if (id === COLUMN_CONFIG_ID) return true;
   if (op['column-config'] || op['columnas-config'] || op.column_config) return true;
@@ -247,20 +247,439 @@ const esOperacionLibre = (op = {}) =>
   !CAMPOS_FILA_OPERACION.some((campo) => Boolean(op?.[campo]));
 
 const obtenerNombreOperacion = (op = {}) =>
-  op.operacion_etiqueta || op.Clase || op.clase || op.OperacionId || op.id || 'Operacion';
+  op.operacion_etiqueta || op.Clase || op.clase || op.OperacionId || op.operacion_id || op.id || 'Operacion';
 
-const obtenerTerminosOperacion = (op = {}) => {
-  if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
-    return op.formula_terms;
+const FORMULA_V2_VERSION = 2;
+const FORMULA_KIND_REF = 'ref';
+const FORMULA_KIND_CONST = 'const';
+const FORMULA_KIND_OP = 'op';
+const FORMULA_OPERATORS = new Set(['+', '-', '*', '/', '(', ')']);
+const FORMULA_OPERATORS_ARITH = new Set(['+', '-', '*', '/']);
+
+const normalizarIdSegmento = (valor = '') => LIMPIAR_CLAVE(valor)
+  .toUpperCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^A-Z0-9]+/g, '_')
+  .replace(/_+/g, '_')
+  .replace(/^_+|_+$/g, '');
+
+const normalizarCuentaRef = (valor = '') => LIMPIAR_CLAVE(valor)
+  .toUpperCase()
+  .replace(/\s+/g, '')
+  .replace(/[^0-9A-Z]+/g, '-')
+  .replace(/-+/g, '-')
+  .replace(/^-+|-+$/g, '');
+
+const construirRefIdSeccion = (principal = '') => {
+  const key = normalizarIdSegmento(principal);
+  return key ? `SEC::${key}` : '';
+};
+
+const construirRefIdSubseccion = (principal = '', subseccion = '') => {
+  const p = normalizarIdSegmento(principal);
+  const s = normalizarIdSegmento(subseccion);
+  return p && s ? `SUB::${p}::${s}` : '';
+};
+
+const construirRefIdCuenta = (cuenta = '') => {
+  const key = normalizarCuentaRef(cuenta);
+  return key ? `ACC::${key}` : '';
+};
+
+const construirRefIdOperacion = (operationId = '') => {
+  const key = normalizarIdSegmento(operationId);
+  return key ? `OP::${key}` : '';
+};
+
+const parseJsonSeguro = (raw) => {
+  if (raw == null || raw === '') return null;
+  if (typeof raw === 'object') return raw;
+  try {
+    return JSON.parse(String(raw));
+  } catch (_) {
+    return null;
   }
-  if (op.formula_json) {
-    try {
-      const parsed = JSON.parse(op.formula_json);
-      if (Array.isArray(parsed)) return parsed;
-    } catch (err) {
-      /* ignore */
+};
+
+const repararTerminosLegacyCuentaFragmentada = (terms = []) => {
+  const list = Array.isArray(terms) ? terms : [];
+  const out = [];
+  const toType = (term) => (term?.type || '').toString().toLowerCase();
+  const isAccount = (term) => {
+    const t = toType(term);
+    return t === 'account' || t === 'cuenta';
+  };
+  const readValue = (term) => (term?.value ?? term?.cuenta ?? term?.id ?? '').toString().trim();
+  const isChunk = (value) => /^\d{1,3}$/.test(value);
+
+  const buildAccountCode = (a, b, c, d) =>
+    `${String(a).padStart(3, '0')}-${String(b).padStart(3, '0')}-${String(c).padStart(3, '0')}-${String(d).padStart(2, '0')}`;
+
+  for (let i = 0; i < list.length; i += 1) {
+    const t0 = list[i];
+    if (!t0 || typeof t0 !== 'object') continue;
+
+    const t1 = list[i + 1];
+    const t2 = list[i + 2];
+    const t3 = list[i + 3];
+    const v0 = readValue(t0);
+    const v1 = readValue(t1);
+    const v2 = readValue(t2);
+    const v3 = readValue(t3);
+    const op1 = (t1?.operator || '').toString().trim();
+    const op2 = (t2?.operator || '').toString().trim();
+    const op3 = (t3?.operator || '').toString().trim();
+
+    const mergeable =
+      isAccount(t0) &&
+      isAccount(t1) &&
+      isAccount(t2) &&
+      isAccount(t3) &&
+      isChunk(v0) &&
+      isChunk(v1) &&
+      isChunk(v2) &&
+      isChunk(v3) &&
+      op1 === '-' &&
+      op2 === '-' &&
+      op3 === '-';
+
+    if (mergeable) {
+      out.push({
+        ...t0,
+        type: 'account',
+        value: buildAccountCode(v0, v1, v2, v3)
+      });
+      i += 3;
+      continue;
+    }
+
+    out.push(t0);
+  }
+
+  return out;
+};
+
+const convertirTerminosLegacyATokensV2 = (terms = []) => {
+  const tokens = [];
+  const list = repararTerminosLegacyCuentaFragmentada(terms);
+
+  list.forEach((term, idx) => {
+    if (!term || typeof term !== 'object') return;
+    const opRaw = (term.operator || '+').toString().trim();
+    const operator = opRaw === '×' ? '*' : opRaw === '÷' ? '/' : FORMULA_OPERATORS.has(opRaw) ? opRaw : '+';
+    const tipoRaw = (term.type || '').toString().toLowerCase();
+    const valueRaw = (term.value ?? term.cuenta ?? term.id ?? '').toString().trim();
+
+    let refToken = null;
+    if (tipoRaw === 'constant' || tipoRaw === 'constante') {
+      const num = term.constant != null ? Number(term.constant) : Number(valueRaw);
+      refToken = {
+        kind: FORMULA_KIND_CONST,
+        value: Number.isFinite(num) ? num : 0
+      };
+    } else {
+      const refType = tipoRaw === 'operation' || tipoRaw === 'operacion'
+        ? 'operation'
+        : tipoRaw === 'account' || tipoRaw === 'cuenta'
+          ? 'account'
+          : 'section';
+      const refId = refType === 'operation'
+        ? construirRefIdOperacion(valueRaw)
+        : refType === 'account'
+          ? construirRefIdCuenta(valueRaw)
+          : construirRefIdSeccion(valueRaw);
+      refToken = {
+        kind: FORMULA_KIND_REF,
+        refType,
+        refId,
+        label: valueRaw || refId,
+        unresolved: !refId && Boolean(valueRaw)
+      };
+    }
+
+    if (idx === 0) {
+      if (operator === '-') {
+        tokens.push({ kind: FORMULA_KIND_CONST, value: 0 });
+        tokens.push({ kind: FORMULA_KIND_OP, value: '-' });
+      }
+    } else {
+      tokens.push({ kind: FORMULA_KIND_OP, value: operator });
+    }
+    tokens.push(refToken);
+  });
+
+  return tokens;
+};
+
+const tokenizarFormulaTexto = (formula = '') => {
+  const source = (formula || '').toString();
+  const tokens = [];
+  let buffer = '';
+
+  const flush = () => {
+    const value = buffer.trim();
+    if (value) tokens.push({ kind: 'value', value });
+    buffer = '';
+  };
+
+  const getPrevNonSpace = (idx) => {
+    for (let i = idx - 1; i >= 0; i -= 1) {
+      const ch = source[i];
+      if (!/\s/.test(ch)) return ch;
+    }
+    return '';
+  };
+
+  const getNextNonSpace = (idx) => {
+    for (let i = idx + 1; i < source.length; i += 1) {
+      const ch = source[i];
+      if (!/\s/.test(ch)) return ch;
+    }
+    return '';
+  };
+
+  for (let i = 0; i < source.length; i += 1) {
+    const ch = source[i];
+    const op = ch === '×' ? '*' : ch === '÷' ? '/' : ch;
+    if (op === '+' || op === '*' || op === '/' || op === '(' || op === ')') {
+      flush();
+      tokens.push({ kind: FORMULA_KIND_OP, value: op });
+      continue;
+    }
+    if (op === '-') {
+      const prev = getPrevNonSpace(i);
+      const next = getNextNonSpace(i);
+      const isOperatorDash =
+        !prev ||
+        !next ||
+        /\s/.test(source[i - 1] || '') ||
+        /\s/.test(source[i + 1] || '') ||
+        ['+', '-', '*', '/', '('].includes(prev) ||
+        next === '(';
+      if (isOperatorDash) {
+        flush();
+        tokens.push({ kind: FORMULA_KIND_OP, value: '-' });
+        continue;
+      }
+    }
+    buffer += ch;
+  }
+  flush();
+  return tokens;
+};
+
+const parsearSeleccionFormulaTexto = (value = '') => {
+  const raw = (value || '').toString().trim();
+  if (!raw) return { label: '', parent: '' };
+  const parts = raw.split('||');
+  if (parts.length > 1) {
+    const parent = parts[0]?.trim() || '';
+    const label = parts.slice(1).join('||').trim();
+    return { label, parent };
+  }
+  return { label: raw, parent: '' };
+};
+
+const construirTokenTextoFormula = (valueRaw = '') => {
+  const raw = (valueRaw || '').toString().trim();
+  if (!raw) return null;
+
+  const numericValue = Number(raw);
+  if (Number.isFinite(numericValue) && /^[-+]?\d+(\.\d+)?$/.test(raw)) {
+    return {
+      token: { kind: FORMULA_KIND_CONST, value: numericValue },
+      unresolved: false,
+    };
+  }
+
+  const upper = raw.toUpperCase();
+  if (upper.startsWith('OP::')) {
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: 'operation',
+        refId: raw,
+        label: raw.slice(4) || raw,
+      },
+      unresolved: false,
+    };
+  }
+  if (upper.startsWith('ACC::')) {
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: 'account',
+        refId: raw,
+        label: raw.slice(5) || raw,
+      },
+      unresolved: false,
+    };
+  }
+  if (upper.startsWith('SUB::')) {
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: 'subsection',
+        refId: raw,
+        label: raw.split('::').slice(-1)[0] || raw,
+      },
+      unresolved: false,
+    };
+  }
+  if (upper.startsWith('SEC::')) {
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: 'section',
+        refId: raw,
+        label: raw.slice(5) || raw,
+      },
+      unresolved: false,
+    };
+  }
+
+  if (/^\d{3}[-\d]/.test(raw)) {
+    const refId = construirRefIdCuenta(raw);
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: 'account',
+        refId,
+        label: raw,
+        unresolved: !refId,
+      },
+      unresolved: !refId,
+    };
+  }
+
+  const selection = parsearSeleccionFormulaTexto(raw);
+  if (selection.parent && selection.label) {
+    const refId = construirRefIdSubseccion(selection.parent, selection.label);
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: 'subsection',
+        refId,
+        label: selection.label,
+        parentSection: selection.parent,
+        unresolved: !refId,
+      },
+      unresolved: !refId,
+    };
+  }
+
+  // "generic" permite fallback a sección/cuenta/operación en resolveByLabel.
+  return {
+    token: {
+      kind: FORMULA_KIND_REF,
+      refType: 'generic',
+      refId: '',
+      label: raw,
+      unresolved: false,
+    },
+    unresolved: false,
+  };
+};
+
+const parsearFormulaTextoATokensV2 = (formulaRaw = '') => {
+  const raw = (formulaRaw || '').toString().trim();
+  if (!raw) return { valid: true, tokens: [], unresolved: 0 };
+
+  const lexical = tokenizarFormulaTexto(raw);
+  const tokens = [];
+  let balance = 0;
+  let unresolved = 0;
+  let expectingValue = true;
+
+  for (let idx = 0; idx < lexical.length; idx += 1) {
+    const item = lexical[idx];
+    if (!item) continue;
+
+    if (item.kind === FORMULA_KIND_OP) {
+      const opValue = (item.value || '').toString().trim();
+      if (!FORMULA_OPERATORS.has(opValue)) {
+        return { valid: false, tokens: [], unresolved: 0 };
+      }
+
+      if (opValue === '(') {
+        if (!expectingValue) return { valid: false, tokens: [], unresolved: 0 };
+        balance += 1;
+        tokens.push({ kind: FORMULA_KIND_OP, value: '(' });
+        expectingValue = true;
+        continue;
+      }
+
+      if (opValue === ')') {
+        if (expectingValue || balance <= 0) {
+          return { valid: false, tokens: [], unresolved: 0 };
+        }
+        balance -= 1;
+        tokens.push({ kind: FORMULA_KIND_OP, value: ')' });
+        expectingValue = false;
+        continue;
+      }
+
+      if (expectingValue) {
+        if (opValue === '+' || opValue === '-') {
+          tokens.push({ kind: FORMULA_KIND_OP, value: opValue });
+          expectingValue = true;
+          continue;
+        }
+        return { valid: false, tokens: [], unresolved: 0 };
+      }
+
+      tokens.push({ kind: FORMULA_KIND_OP, value: opValue });
+      expectingValue = true;
+      continue;
+    }
+
+    if (!expectingValue) {
+      return { valid: false, tokens: [], unresolved: 0 };
+    }
+    const resolved = construirTokenTextoFormula(item.value);
+    if (!resolved?.token) return { valid: false, tokens: [], unresolved: 0 };
+    tokens.push(resolved.token);
+    if (resolved.unresolved) unresolved += 1;
+    expectingValue = false;
+  }
+
+  if (balance !== 0 || expectingValue) {
+    return { valid: false, tokens: [], unresolved: 0 };
+  }
+
+  return { valid: true, tokens, unresolved };
+};
+
+const extraerTokensFormulaOperacion = (op = {}) => {
+  const fromJson = parseJsonSeguro(op.formula_json);
+  if (
+    fromJson &&
+    typeof fromJson === 'object' &&
+    Number(fromJson.version) === FORMULA_V2_VERSION &&
+    Array.isArray(fromJson.tokens)
+  ) {
+    return fromJson.tokens;
+  }
+
+  if (Array.isArray(fromJson) && fromJson.length) {
+    return convertirTerminosLegacyATokensV2(fromJson);
+  }
+
+  if (!fromJson) {
+    const rawText = (op?.formula_json || '').toString().trim();
+    if (rawText) {
+      const parsedText = parsearFormulaTextoATokensV2(rawText);
+      if (parsedText.valid && parsedText.tokens.length) {
+        return parsedText.tokens;
+      }
     }
   }
+
+  if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
+    return convertirTerminosLegacyATokensV2(op.formula_terms);
+  }
+
   const terms = [];
   if (op.signos && typeof op.signos === 'object') {
     Object.entries(op.signos).forEach(([clave, signo]) => {
@@ -274,6 +693,7 @@ const obtenerTerminosOperacion = (op = {}) => {
       });
     });
   }
+
   if (!terms.length && op.SECCION) {
     terms.push({
       operator: '+',
@@ -281,8 +701,57 @@ const obtenerTerminosOperacion = (op = {}) => {
       value: op.SECCION
     });
   }
+
+  if (terms.length) {
+    return convertirTerminosLegacyATokensV2(terms);
+  }
+
+  return [];
+};
+
+const tokensV2ATerminosLegacy = (tokens = []) => {
+  const terms = [];
+  let operator = '+';
+  (Array.isArray(tokens) ? tokens : []).forEach((token) => {
+    if (!token || typeof token !== 'object') return;
+    if (token.kind === FORMULA_KIND_OP) {
+      const raw = (token.value || '').toString().trim();
+      if (FORMULA_OPERATORS_ARITH.has(raw)) {
+        operator = raw;
+      }
+      return;
+    }
+    if (token.kind === FORMULA_KIND_CONST) {
+      const num = Number(token.value);
+      terms.push({
+        operator,
+        type: 'constant',
+        value: String(Number.isFinite(num) ? num : 0),
+        constant: Number.isFinite(num) ? num : 0
+      });
+      operator = '+';
+      return;
+    }
+    if (token.kind === FORMULA_KIND_REF) {
+      const refType = (token.refType || '').toString().toLowerCase();
+      const type = refType === 'operation'
+        ? 'operation'
+        : refType === 'account'
+          ? 'account'
+          : 'section';
+      terms.push({
+        operator,
+        type,
+        value: token.label || token.refId || ''
+      });
+      operator = '+';
+    }
+  });
   return terms;
 };
+
+const obtenerTerminosOperacion = (op = {}) =>
+  tokensV2ATerminosLegacy(extraerTokensFormulaOperacion(op));
 
 const normalizarTerminoTipo = (term) => {
   if (!term) return 'section';
@@ -378,15 +847,196 @@ const aplicarOperacionTotales = (acumulado, origen, operador) => {
   }
 };
 
+const aplicarOperacionBinariaTotales = (izquierda, derecha, operador) => {
+  const op = normalizarOperador(operador);
+  const left = clonarTotales(izquierda);
+  const right = clonarTotales(derecha);
+  switch (op) {
+    case '-':
+      return sumarTotales(left, right, -1);
+    case '*':
+      return multiplicarTotales(left, right);
+    case '/':
+      return dividirTotales(left, right);
+    default:
+      return sumarTotales(left, right, 1);
+  }
+};
+
+const normalizarOperadorExpresion = (operador, index = 0) => {
+  const op = normalizarOperador(operador);
+  if (index === 0) {
+    // El primer término solo admite signo unario (+/-).
+    return op === '-' ? '-' : '+';
+  }
+  return ['+', '-', '*', '/'].includes(op) ? op : '+';
+};
+
+const evaluarFormulaTotalesConJerarquia = (terminos = []) => {
+  const terms = Array.isArray(terminos)
+    ? terminos.filter((term) => term && term.totals)
+    : [];
+  if (!terms.length) return null;
+
+  const firstOp = normalizarOperadorExpresion(terms[0].operator, 0);
+  let primerValor = clonarTotales(terms[0].totals);
+  if (firstOp === '-') {
+    primerValor = escalarTotales(primerValor, -1);
+  }
+
+  // Primera pasada: resolver * y / (jerarquía alta) de izquierda a derecha.
+  const valoresColapsados = [primerValor];
+  const opsBajaPrioridad = [];
+  for (let i = 1; i < terms.length; i += 1) {
+    const op = normalizarOperadorExpresion(terms[i].operator, i);
+    const valor = clonarTotales(terms[i].totals);
+    if (op === '*' || op === '/') {
+      const anterior = valoresColapsados.pop() || crearAcumulador();
+      valoresColapsados.push(
+        aplicarOperacionBinariaTotales(anterior, valor, op)
+      );
+      continue;
+    }
+    opsBajaPrioridad.push(op);
+    valoresColapsados.push(valor);
+  }
+
+  // Segunda pasada: resolver + y - (jerarquía baja) de izquierda a derecha.
+  let resultado = clonarTotales(valoresColapsados[0] || crearAcumulador());
+  for (let i = 0; i < opsBajaPrioridad.length; i += 1) {
+    const op = opsBajaPrioridad[i];
+    const valor = valoresColapsados[i + 1] || crearAcumulador();
+    resultado = aplicarOperacionBinariaTotales(resultado, valor, op);
+  }
+  return resultado;
+};
+
+const normalizarTokensConUnarios = (tokens = []) => {
+  const out = [];
+  let prevKind = 'start';
+
+  (Array.isArray(tokens) ? tokens : []).forEach((token) => {
+    if (!token || typeof token !== 'object') return;
+    if (token.kind === FORMULA_KIND_OP) {
+      const op = (token.value || '').toString().trim();
+      if (!FORMULA_OPERATORS.has(op)) return;
+      const unary = (op === '+' || op === '-') && (prevKind === 'start' || prevKind === 'op' || prevKind === 'open');
+      if (unary) {
+        if (op === '-') {
+          out.push({ kind: FORMULA_KIND_CONST, value: 0 });
+          out.push({ kind: FORMULA_KIND_OP, value: '-' });
+          prevKind = 'op';
+        }
+        return;
+      }
+      out.push({ kind: FORMULA_KIND_OP, value: op });
+      prevKind = op === '(' ? 'open' : op === ')' ? 'close' : 'op';
+      return;
+    }
+    if (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST) {
+      out.push(token);
+      prevKind = 'value';
+    }
+  });
+
+  return out;
+};
+
+const precedenciaOperador = (op = '') => {
+  if (op === '*' || op === '/') return 2;
+  if (op === '+' || op === '-') return 1;
+  return 0;
+};
+
+const convertirInfijoARpn = (tokens = []) => {
+  const output = [];
+  const stack = [];
+
+  (Array.isArray(tokens) ? tokens : []).forEach((token) => {
+    if (!token || typeof token !== 'object') return;
+    if (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST) {
+      output.push(token);
+      return;
+    }
+    if (token.kind !== FORMULA_KIND_OP) return;
+    const op = (token.value || '').toString().trim();
+    if (!FORMULA_OPERATORS.has(op)) return;
+
+    if (op === '(') {
+      stack.push(token);
+      return;
+    }
+    if (op === ')') {
+      while (stack.length && stack[stack.length - 1].value !== '(') {
+        output.push(stack.pop());
+      }
+      if (stack.length && stack[stack.length - 1].value === '(') {
+        stack.pop();
+      }
+      return;
+    }
+
+    while (stack.length) {
+      const top = stack[stack.length - 1];
+      const topOp = (top?.value || '').toString().trim();
+      if (topOp === '(') break;
+      if (precedenciaOperador(topOp) >= precedenciaOperador(op)) {
+        output.push(stack.pop());
+      } else {
+        break;
+      }
+    }
+    stack.push({ kind: FORMULA_KIND_OP, value: op });
+  });
+
+  while (stack.length) {
+    const top = stack.pop();
+    if ((top?.value || '').toString().trim() === '(') continue;
+    output.push(top);
+  }
+
+  return output;
+};
+
+const evaluarTokensFormula = (tokens = [], resolverToken) => {
+  const normalized = normalizarTokensConUnarios(tokens);
+  if (!normalized.length) return null;
+  const rpn = convertirInfijoARpn(normalized);
+  const stack = [];
+
+  (Array.isArray(rpn) ? rpn : []).forEach((token) => {
+    if (!token || typeof token !== 'object') return;
+    if (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST) {
+      const totals = typeof resolverToken === 'function'
+        ? resolverToken(token)
+        : null;
+      stack.push(clonarTotales(totals || crearAcumulador()));
+      return;
+    }
+    if (token.kind !== FORMULA_KIND_OP) return;
+    const op = (token.value || '').toString().trim();
+    if (!FORMULA_OPERATORS_ARITH.has(op)) return;
+    const right = stack.pop() || crearAcumulador();
+    const left = stack.pop() || crearAcumulador();
+    stack.push(aplicarOperacionBinariaTotales(left, right, op));
+  });
+
+  if (!stack.length) return null;
+  return clonarTotales(stack[stack.length - 1]);
+};
+
 const construirNodoSeccion = ({
   seccion,
   cuentas,
   definicion,
   planeacionData,
+  usarTotalesAutomaticos = true,
   orden = 0,
   ordenIndex = 0
 }) => {
-  const totales = calcularTotales(cuentas, planeacionData, definicion);
+  const totales = usarTotalesAutomaticos
+    ? calcularTotales(cuentas, planeacionData, definicion)
+    : crearAcumulador();
 
   const cuentasDetalle = cuentas.map((cuentaId) => {
     const actual = planeacionData.find((p) => p.cuenta === cuentaId) || {};
@@ -440,6 +1090,10 @@ const construirReporteResumen = (
 
   const capituloClave = NORMALIZAR_CAPITULO(capituloSeleccionado || '');
   const manualOrderRequested = Boolean(opciones?.ordenManualTotal);
+  // Modo estricto: headers (principal/secundaria) y operaciones sin fórmula no se calculan automáticamente.
+  const modoFormulaEstricto = Boolean(opciones?.modoFormulaEstricto);
+  // Solo para RESUMEN: sección/subsección se comportan como operación (sin fila operation separada).
+  const seccionesComoOperaciones = Boolean(opciones?.seccionesComoOperaciones);
 
   // CAMBIO CRÍTICO: usar el índice del JSON directamente para preservar el orden
   const seccionOrden = new Map();
@@ -1041,22 +1695,25 @@ const construirReporteResumen = (
         cuentas: cuentasOrdenadas,
         definicion: definicionCuentas,
         planeacionData,
+        usarTotalesAutomaticos: !modoFormulaEstricto,
         orden: sec.orden,
         ordenIndex: sec.ordenIndex ?? 0
       });
     });
 
-    const totalesPrincipal = children.reduce(
-      (acc, nodo) => ({
-        actualMonth: acc.actualMonth + nodo.totalActualMonth,
-        planMonth: acc.planMonth + nodo.totalPlanMonth,
-        prevMonth: acc.prevMonth + nodo.totalPrevMonth,
-        actualYTD: acc.actualYTD + nodo.totalActualYTD,
-        planYTD: acc.planYTD + nodo.totalPlanYTD,
-        prevYTD: acc.prevYTD + nodo.totalPrevYTD
-      }),
-      crearAcumulador()
-    );
+    const totalesPrincipal = modoFormulaEstricto
+      ? crearAcumulador()
+      : children.reduce(
+        (acc, nodo) => ({
+          actualMonth: acc.actualMonth + nodo.totalActualMonth,
+          planMonth: acc.planMonth + nodo.totalPlanMonth,
+          prevMonth: acc.prevMonth + nodo.totalPrevMonth,
+          actualYTD: acc.actualYTD + nodo.totalActualYTD,
+          planYTD: acc.planYTD + nodo.totalPlanYTD,
+          prevYTD: acc.prevYTD + nodo.totalPrevYTD
+        }),
+        crearAcumulador()
+      );
 
     const clase = (principal.clase || '').toLowerCase();
     const sign = clase.includes('expense') ? -1 : 1;
@@ -1138,23 +1795,56 @@ const construirReporteResumen = (
 
   // === Mapas base para fórmulas (secciones, cuentas, operaciones) ===
   const mapSecciones = new Map();
+  const mapRefSecciones = new Map();
   const buildSeccionKey = (parent, label) => {
     if (!label) return '';
     if (parent) return normalizarTexto(`${parent}||${label}`);
     return normalizarTexto(label);
   };
+  const expandSectionLabelVariants = (value = '') => {
+    const raw = (value || '').toString().replace(/\s+/g, ' ').trim();
+    const variants = new Set();
+    const add = (candidate) => {
+      const clean = (candidate || '').toString().replace(/\s+/g, ' ').trim();
+      if (!clean) return;
+      variants.add(clean);
+    };
+    if (!raw) return [];
+    add(raw);
+    if (raw.includes('-')) {
+      add(raw.split('-').slice(1).join('-'));
+    }
+    if (raw.includes(':')) {
+      add(raw.split(':').slice(1).join(':'));
+    }
+    if (raw.includes('_')) {
+      add(raw.replace(/_/g, ' '));
+      const parts = raw.split('_').filter(Boolean);
+      if (parts.length > 1) {
+        add(parts.slice(1).join(' '));
+        add(parts.slice(1).join('_'));
+      }
+    }
+    return Array.from(variants);
+  };
   const rebuildMapSecciones = () => {
     mapSecciones.clear();
+    mapRefSecciones.clear();
     principalList.forEach((principal) => {
       if (!principal?.label) return;
-      mapSecciones.set(normalizarTexto(principal.label), {
+      const principalTotals = {
         actualMonth: principal.actualMonth,
         planMonth: principal.planMonth,
         prevMonth: principal.prevMonth,
         actualYTD: principal.actualYTD,
         planYTD: principal.planYTD,
         prevYTD: principal.prevYTD
-      });
+      };
+      mapSecciones.set(normalizarTexto(principal.label), principalTotals);
+      const principalRefId = construirRefIdSeccion(principal.label);
+      if (principalRefId) {
+        mapRefSecciones.set(principalRefId, principalTotals);
+      }
       (principal.children || []).forEach((sec) => {
         if (!sec?.label) return;
         const totals = {
@@ -1170,8 +1860,35 @@ const construirReporteResumen = (
         if (keyConPadre) {
           mapSecciones.set(keyConPadre, totals);
         }
+        const secRefId = construirRefIdSubseccion(principal.label, sec.label);
+        if (secRefId) {
+          mapRefSecciones.set(secRefId, totals);
+        }
       });
     });
+  };
+  const resolveSectionTotals = (label, parent = '') => {
+    const labelCandidates = expandSectionLabelVariants(label);
+    if (!labelCandidates.length) return null;
+    const parentCandidates = expandSectionLabelVariants(parent);
+    if (!parentCandidates.length) parentCandidates.push('');
+
+    for (const parentCandidate of parentCandidates) {
+      for (const labelCandidate of labelCandidates) {
+        const keyConPadre = buildSeccionKey(parentCandidate, labelCandidate);
+        if (keyConPadre && mapSecciones.has(keyConPadre)) {
+          return mapSecciones.get(keyConPadre);
+        }
+      }
+    }
+
+    for (const labelCandidate of labelCandidates) {
+      const keySimple = normalizarTexto(labelCandidate);
+      if (keySimple && mapSecciones.has(keySimple)) {
+        return mapSecciones.get(keySimple);
+      }
+    }
+    return null;
   };
   rebuildMapSecciones();
   const seccionNodeByKey = new Map();
@@ -1192,6 +1909,7 @@ const construirReporteResumen = (
     ])
   );
   const mapCuentas = new Map();
+  const mapRefCuentas = new Map();
   definicionCuentas.forEach((meta, cuentaCanonica) => {
     const actual = mapPlaneacion.get(cuentaCanonica) || {};
     const factorRaw =
@@ -1207,103 +1925,201 @@ const construirReporteResumen = (
     };
     const canonKey = normalizarTexto(cuentaCanonica);
     if (canonKey) mapCuentas.set(canonKey, totals);
+    const canonRefId = construirRefIdCuenta(cuentaCanonica);
+    if (canonRefId) mapRefCuentas.set(canonRefId, totals);
     const visible = meta.visible || meta.cuenta || meta.CUENTA || '';
     const visibleKey = normalizarTexto(visible);
     if (visibleKey) mapCuentas.set(visibleKey, totals);
+    const visibleRefId = construirRefIdCuenta(visible);
+    if (visibleRefId && !mapRefCuentas.has(visibleRefId)) {
+      mapRefCuentas.set(visibleRefId, totals);
+    }
   });
   const mapOperaciones = new Map();
-  const calcularTotalesOperacion = (op) => {
-    const terms = obtenerTerminosOperacion(op);
-    if (!terms.length) return crearAcumulador();
-    let totals = null;
-    terms.forEach((term) => {
-      if (!term) return;
-      const tipo = normalizarTerminoTipo(term);
-      const valor = term.value ?? term.cuenta ?? term.id ?? '';
-      let origen = null;
-      const buildFromPlaneacion = (record) => {
-        if (!record) return null;
-        return {
-          actualMonth: Number(record.actualMonth ?? 0),
-          planMonth: Number(record.planMonth ?? 0),
-          prevMonth: Number(record.prevMonth ?? 0),
-          actualYTD: Number(record.actualYTD ?? 0),
-          planYTD: Number(record.planYTD ?? 0),
-          prevYTD: Number(record.prevYTD ?? 0)
-        };
-      };
+  const mapRefOperaciones = new Map();
+  const getOperacionIdentifier = (op = {}) =>
+    (
+      op?.OperacionId ||
+      op?.operacion_id ||
+      op?.Clase ||
+      op?.clase ||
+      op?.operacion_etiqueta ||
+      op?.operacion_label ||
+      op?.['sum-row-sumavarios'] ||
+      op?.['sum-row'] ||
+      op?.id ||
+      ''
+    ).toString().trim();
+  const getOperacionKey = (op = {}) =>
+    normalizarTexto(getOperacionIdentifier(op));
+  const getOperacionRefId = (op = {}) =>
+    construirRefIdOperacion(getOperacionIdentifier(op));
+  const storeOperacionTotals = (op, totals) => {
+    const opKey = getOperacionKey(op);
+    if (opKey) mapOperaciones.set(opKey, totals);
+    const opRefId = getOperacionRefId(op);
+    if (opRefId) mapRefOperaciones.set(opRefId, totals);
+  };
 
-      if (tipo === 'section' || tipo === 'seccion') {
-        const parent = (term.parentSection || op?.parentSection || '').toString().trim();
-        const keyConPadre = buildSeccionKey(parent, valor);
-        origen = (keyConPadre && mapSecciones.get(keyConPadre)) || null;
-        if (!origen) {
-          origen = mapSecciones.get(normalizarTexto(valor)) || null;
-        }
-      } else if (tipo === 'account' || tipo === 'cuenta') {
-        const claveCuenta = normalizarTexto(
-          normalizarCuentaCanonica(valor) || valor
+  const operacionesContexto = (Array.isArray(configAgrupacion) ? configAgrupacion : [])
+    .filter((item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave)
+    .filter((item) => !esOperacionConfigColumnas(item));
+  const operacionesPorKey = new Map();
+  const operacionesPorRefId = new Map();
+  operacionesContexto.forEach((item) => {
+    const key = getOperacionKey(item);
+    if (key && !operacionesPorKey.has(key)) {
+      operacionesPorKey.set(key, item);
+    }
+    const refId = getOperacionRefId(item);
+    if (refId && !operacionesPorRefId.has(refId)) {
+      operacionesPorRefId.set(refId, item);
+    }
+  });
+  const operacionesEnEvaluacion = new Set();
+  const resolveOperacionReferenceTotals = ({
+    refId = '',
+    label = '',
+    parentHint = ''
+  } = {}) => {
+    const refIdClean = (refId || '').toString().trim();
+    const labelClean = (label || '').toString().trim();
+    const labelKey = normalizarTexto(labelClean);
+
+    if (refIdClean) {
+      const cachedByRef = mapRefOperaciones.get(refIdClean);
+      if (cachedByRef) return cachedByRef;
+    }
+    if (labelKey) {
+      const cachedByLabel = mapOperaciones.get(labelKey);
+      if (cachedByLabel) return cachedByLabel;
+    }
+
+    let targetOp = null;
+    if (refIdClean) targetOp = operacionesPorRefId.get(refIdClean) || null;
+    if (!targetOp && labelKey) targetOp = operacionesPorKey.get(labelKey) || null;
+
+    if (targetOp) {
+      const targetKey = getOperacionKey(targetOp);
+      if (targetKey && operacionesEnEvaluacion.has(targetKey)) {
+        return crearAcumulador();
+      }
+      const totals = calcularTotalesOperacion(targetOp);
+      if (totals) {
+        storeOperacionTotals(targetOp, totals);
+        return totals;
+      }
+    }
+
+    if (labelClean) {
+      return resolveSectionTotals(labelClean, parentHint) || null;
+    }
+    return null;
+  };
+
+  const calcularTotalesOperacion = (op) => {
+    const opKey = getOperacionKey(op);
+    if (opKey) {
+      const cached = mapOperaciones.get(opKey);
+      if (cached) return cached;
+      if (operacionesEnEvaluacion.has(opKey)) return crearAcumulador();
+      operacionesEnEvaluacion.add(opKey);
+    }
+
+    try {
+    if (modoFormulaEstricto && !hasManualFormula(op)) {
+      return crearAcumulador();
+    }
+    const tokens = extraerTokensFormulaOperacion(op);
+    if (!tokens.length) return crearAcumulador();
+
+    const buildFromPlaneacion = (record) => {
+      if (!record) return null;
+      return {
+        actualMonth: Number(record.actualMonth ?? 0),
+        planMonth: Number(record.planMonth ?? 0),
+        prevMonth: Number(record.prevMonth ?? 0),
+        actualYTD: Number(record.actualYTD ?? 0),
+        planYTD: Number(record.planYTD ?? 0),
+        prevYTD: Number(record.prevYTD ?? 0)
+      };
+    };
+
+    const resolveByLabel = (tipo, label, parentHint = '') => {
+      const valor = (label || '').toString().trim();
+      if (!valor) return null;
+      const tipoNorm = (tipo || '').toString().toLowerCase();
+      if (tipoNorm === 'section' || tipoNorm === 'seccion' || tipoNorm === 'subsection' || tipoNorm === 'subseccion') {
+        return resolveSectionTotals(valor, parentHint) || null;
+      }
+      if (tipoNorm === 'account' || tipoNorm === 'cuenta') {
+        const claveCuenta = normalizarTexto(normalizarCuentaCanonica(valor) || valor);
+        let origen = mapCuentas.get(claveCuenta) || null;
+        if (origen) return origen;
+        const canon = normalizarCuentaCanonica(valor);
+        const visible = canon ? cuentaVisibleDesdeCanonica(canon) : null;
+        const record =
+          mapPlaneacion.get(valor) ||
+          (visible ? mapPlaneacion.get(visible) : null) ||
+          (canon ? mapPlaneacion.get(canon) : null);
+        origen = buildFromPlaneacion(record);
+        if (origen) return origen;
+        return (
+          resolveSectionTotals(valor, parentHint) ||
+          resolveOperacionReferenceTotals({ label: valor, parentHint }) ||
+          null
         );
-        origen = mapCuentas.get(claveCuenta) || null;
-        if (!origen) {
-          const canon = normalizarCuentaCanonica(valor);
-          const visible = canon ? cuentaVisibleDesdeCanonica(canon) : null;
-          const record =
-            mapPlaneacion.get(valor) ||
-            (visible ? mapPlaneacion.get(visible) : null) ||
-            (canon ? mapPlaneacion.get(canon) : null);
-          origen = buildFromPlaneacion(record);
-        }
-        if (!origen) {
-          const parent = (term.parentSection || op?.parentSection || '').toString().trim();
-          const keyConPadre = buildSeccionKey(parent, valor);
-          origen = (keyConPadre && mapSecciones.get(keyConPadre)) || null;
-          if (!origen) {
-            origen = mapSecciones.get(normalizarTexto(valor)) || null;
-          }
-          if (!origen) {
-            origen = mapOperaciones.get(normalizarTexto(valor)) || null;
-          }
-        }
-      } else if (tipo === 'operation' || tipo === 'operacion') {
-        origen = mapOperaciones.get(normalizarTexto(valor)) || null;
-      } else if (tipo === 'constant') {
-        const numero =
-          term.constant != null ? Number(term.constant) : Number(valor);
-        origen = {
-          actualMonth: Number.isFinite(numero) ? numero : 0,
-          planMonth: Number.isFinite(numero) ? numero : 0,
-          prevMonth: Number.isFinite(numero) ? numero : 0,
-          actualYTD: Number.isFinite(numero) ? numero : 0,
-          planYTD: Number.isFinite(numero) ? numero : 0,
-          prevYTD: Number.isFinite(numero) ? numero : 0
+      }
+      if (tipoNorm === 'operation' || tipoNorm === 'operacion') {
+        return resolveOperacionReferenceTotals({ label: valor, parentHint });
+      }
+      return (
+        resolveSectionTotals(valor, parentHint) ||
+        mapCuentas.get(normalizarTexto(normalizarCuentaCanonica(valor) || valor)) ||
+        resolveOperacionReferenceTotals({ label: valor, parentHint }) ||
+        null
+      );
+    };
+
+    const resolverToken = (token) => {
+      if (!token || typeof token !== 'object') return crearAcumulador();
+      if (token.kind === FORMULA_KIND_CONST) {
+        const numero = Number(token.value);
+        const value = Number.isFinite(numero) ? numero : 0;
+        return {
+          actualMonth: value,
+          planMonth: value,
+          prevMonth: value,
+          actualYTD: value,
+          planYTD: value,
+          prevYTD: value
         };
-      } else {
-        origen = mapSecciones.get(normalizarTexto(valor));
-        if (!origen) {
-          const claveCuenta = normalizarTexto(
-            normalizarCuentaCanonica(valor) || valor
-          );
-          origen = mapCuentas.get(claveCuenta) || null;
-          if (!origen) {
-            const canon = normalizarCuentaCanonica(valor);
-            const visible = canon ? cuentaVisibleDesdeCanonica(canon) : null;
-            const record =
-              mapPlaneacion.get(valor) ||
-              (visible ? mapPlaneacion.get(visible) : null) ||
-              (canon ? mapPlaneacion.get(canon) : null);
-            origen = buildFromPlaneacion(record);
-          }
+      }
+      if (token.kind !== FORMULA_KIND_REF) return crearAcumulador();
+
+      const refType = (token.refType || '').toString().toLowerCase();
+      const refId = (token.refId || '').toString().trim();
+      const label = (token.label || token.value || '').toString().trim();
+      const parentHint = (token.parentSection || op?.parentSection || '').toString().trim();
+
+      if (refId) {
+        if (refType === 'section' || refType === 'seccion' || refType === 'subsection' || refType === 'subseccion') {
+          const byRef = mapRefSecciones.get(refId);
+          if (byRef) return byRef;
+        } else if (refType === 'account' || refType === 'cuenta') {
+          const byRef = mapRefCuentas.get(refId);
+          if (byRef) return byRef;
+        } else if (refType === 'operation' || refType === 'operacion') {
+          const byRef = resolveOperacionReferenceTotals({ refId, label, parentHint });
+          if (byRef) return byRef;
         }
       }
 
-      if (!origen) return;
-      totals = aplicarOperacionTotales(totals, origen, term.operator);
-    });
+      return resolveByLabel(refType, label, parentHint) || crearAcumulador();
+    };
 
-    if (!totals) {
-      totals = crearAcumulador();
-    }
+    let totals = evaluarTokensFormula(tokens, resolverToken);
+    if (!totals) totals = crearAcumulador();
 
     const signo = Number(op?.signo);
     if (Number.isFinite(signo) && signo !== 1) {
@@ -1314,33 +2130,36 @@ const construirReporteResumen = (
       totals.planYTD *= signo;
       totals.prevYTD *= signo;
     }
+    storeOperacionTotals(op, totals);
     return totals;
+    } finally {
+      if (opKey) operacionesEnEvaluacion.delete(opKey);
+    }
   };
-  const getOperacionKey = (op) =>
-    normalizarTexto(
-      op?.OperacionId ||
-      op?.operacion_id ||
-      op?.id ||
-      op?.Clase ||
-      op?.clase ||
-      op?.operacion_etiqueta ||
-      op?.['sum-row-sumavarios'] ||
-      op?.['sum-row'] ||
-      ''
-    );
-  const storeOperacionTotals = (op, totals) => {
-    const opKey = getOperacionKey(op);
-    if (opKey) mapOperaciones.set(opKey, totals);
+  const operacionLigadaAHeader = (op = {}) => {
+    const parentSection = (op.parentSection || '').toString().trim();
+    const parentSubsection = (op.parentSubsection || '').toString().trim();
+    const sumRow = (op['sum-row'] || '').toString().trim();
+    const sumPrincipal = (op['sum-row-sumavarios'] || '').toString().trim();
+    if (parentSection || parentSubsection || sumRow || sumPrincipal) return true;
+    const placement = (op.SECCION || op.seccion || '').toString().trim();
+    if (!placement) return false;
+    if (obtenerPrincipalPorEtiqueta(placement)) return true;
+    if (obtenerSeccionPorEtiqueta(placement)) return true;
+    if (parentSection) {
+      const conPadre = buildSeccionKey(parentSection, placement);
+      if (conPadre && seccionNodeByKey.get(conPadre)) return true;
+    }
+    return false;
   };
   const hasManualFormula = (op = {}) => {
-    if (Array.isArray(op.formula_terms) && op.formula_terms.length) return true;
-    if (op.formula_json) {
-      try {
-        const parsed = JSON.parse(op.formula_json);
-        return Array.isArray(parsed) && parsed.length > 0;
-      } catch (err) {
-        // continuar: puede venir fórmula legacy en seccion_1/signos
-      }
+    const tokens = extraerTokensFormulaOperacion(op);
+    if (Array.isArray(tokens) && tokens.some((token) =>
+      token &&
+      typeof token === 'object' &&
+      (token.kind === FORMULA_KIND_REF || token.kind === FORMULA_KIND_CONST)
+    )) {
+      return true;
     }
 
     // Legacy: fórmula expresada en campos seccion_1, seccion_2, ... (y/o signos).
@@ -1388,28 +2207,46 @@ const construirReporteResumen = (
 
   // === Override de fórmulas en sum-row / sum-row-sumavarios (solo si se habilita) ===
   if (opciones?.permitirFormulaSecciones) {
-    const opsConFormula = (Array.isArray(configAgrupacion) ? configAgrupacion : [])
+    const opsConFormulaBase = (Array.isArray(configAgrupacion) ? configAgrupacion : [])
       .filter((op) => NORMALIZAR_CAPITULO(op.CAPITULO) === capituloClave)
       .filter((op) => !esOperacionConfigColumnas(op))
       .map((op, idx) => ({ op, idx, orden: obtenerOrden(op, idx) }))
       .filter(({ op }) => hasManualFormula(op))
       .sort((a, b) => (a.orden - b.orden) || (a.idx - b.idx));
+    const opsConFormula = seccionesComoOperaciones
+      ? opsConFormulaBase.filter(({ op }) => operacionLigadaAHeader(op))
+      : opsConFormulaBase;
 
     const manualPrincipalKeys = new Set();
     const appliedOps = headerOverrideOps;
     const manualSeccionOps = opsConFormula;
-    const manualPrincipalOps = opsConFormula.filter(
-      ({ op }) => op['sum-row-sumavarios']
-    );
+    const manualPrincipalOps = opsConFormula.filter(({ op }) => {
+      if (op['sum-row-sumavarios']) return true;
+      const placement = (op.SECCION || op.seccion || '').toString().trim();
+      const parentSubsection = (op.parentSubsection || '').toString().trim();
+      if (parentSubsection) return false;
+      return Boolean(placement && obtenerPrincipalPorEtiqueta(placement));
+    });
 
     const resolveSectionNode = (label, parent) => {
       if (!label) return null;
-      const key = buildSeccionKey(parent, label);
-      return (
-        (key && seccionNodeByKey.get(key)) ||
-        seccionNodeByKey.get(normalizarTexto(label)) ||
-        null
-      );
+      const labelCandidates = expandSectionLabelVariants(label);
+      const parentCandidates = expandSectionLabelVariants(parent);
+      if (!parentCandidates.length) parentCandidates.push('');
+
+      for (const parentCandidate of parentCandidates) {
+        for (const labelCandidate of labelCandidates) {
+          const key = buildSeccionKey(parentCandidate, labelCandidate);
+          const node = key ? seccionNodeByKey.get(key) : null;
+          if (node) return node;
+        }
+      }
+
+      for (const labelCandidate of labelCandidates) {
+        const node = seccionNodeByKey.get(normalizarTexto(labelCandidate));
+        if (node) return node;
+      }
+      return null;
     };
 
     const resolvePrincipalNode = (label) => {
@@ -1429,7 +2266,9 @@ const construirReporteResumen = (
       const sectionCandidates = [
         { label: rowLabel, parent: parentSection || seccionValor },
         { label: parentSubsection, parent: parentSection },
-        { label: seccionValor, parent: parentSection }
+        { label: seccionValor, parent: parentSection },
+        { label: op.operacion_etiqueta, parent: parentSection },
+        { label: op.Clase, parent: parentSection },
       ].filter((item) => item.label);
 
       let applied = false;
@@ -1437,6 +2276,7 @@ const construirReporteResumen = (
         const secNode = resolveSectionNode(candidate.label, candidate.parent);
         if (!secNode) continue;
         applyTotalsToSection(secNode, totals);
+        rebuildMapSecciones();
         storeOperacionTotals(op, totals);
         applied = true;
         if (opKey) appliedOps.add(opKey);
@@ -1459,6 +2299,7 @@ const construirReporteResumen = (
         const key = normalizarEtiqueta(principal.label);
         if (manualPrincipalKeys.has(key)) break;
         applyTotalsToPrincipal(principal, totals);
+        rebuildMapSecciones();
         manualPrincipalKeys.add(key);
         storeOperacionTotals(op, totals);
         if (opKey) appliedOps.add(opKey);
@@ -1470,13 +2311,20 @@ const construirReporteResumen = (
 
     manualPrincipalOps.forEach(({ op }) => {
       const opKey = getOperacionKey(op);
-      const label = (op['sum-row-sumavarios'] || '').toString().trim();
+      const label = (
+        op['sum-row-sumavarios'] ||
+        op.SECCION ||
+        op.seccion ||
+        op.parentSection ||
+        ''
+      ).toString().trim();
       if (!label) return;
       const principal = obtenerPrincipalPorEtiqueta(label);
       if (!principal) return;
       const totals = calcularTotalesOperacion(op);
       if (!totals) return;
       applyTotalsToPrincipal(principal, totals);
+      rebuildMapSecciones();
       manualPrincipalKeys.add(normalizarEtiqueta(label));
       storeOperacionTotals(op, totals);
       if (opKey) appliedOps.add(opKey);
@@ -1514,15 +2362,18 @@ const construirReporteResumen = (
             return;
           }
         }
-        const principalDirect = obtenerPrincipalPorEtiqueta(value);
-        if (principalDirect) {
-          candidates.add(principalDirect.label);
-          return;
-        }
-        const key = normalizarTexto(value);
-        const posibles = principalPorSubseccion.get(key);
-        if (posibles) {
-          posibles.forEach((label) => candidates.add(label));
+        const valueCandidates = expandSectionLabelVariants(value);
+        for (const valueCandidate of valueCandidates) {
+          const principalDirect = obtenerPrincipalPorEtiqueta(valueCandidate);
+          if (principalDirect) {
+            candidates.add(principalDirect.label);
+            return;
+          }
+          const key = normalizarTexto(valueCandidate);
+          const posibles = principalPorSubseccion.get(key);
+          if (posibles) {
+            posibles.forEach((label) => candidates.add(label));
+          }
         }
       });
       if (!hasSectionTerms) return null;
@@ -1541,28 +2392,31 @@ const construirReporteResumen = (
       const totals = calcularTotalesOperacion(op);
       if (!totals) return;
       applyTotalsToPrincipal(principal, totals);
+      rebuildMapSecciones();
       manualPrincipalKeys.add(key);
       storeOperacionTotals(op, totals);
       if (opKey) appliedOps.add(opKey);
     });
 
-    principalList.forEach((principal) => {
-      if (!principal?.label) return;
-      const key = normalizarEtiqueta(principal.label);
-      if (manualPrincipalKeys.has(key)) return;
-      const totales = (principal.children || []).reduce(
-        (acc, nodo) => ({
-          actualMonth: acc.actualMonth + (Number(nodo.totalActualMonth) || 0),
-          planMonth: acc.planMonth + (Number(nodo.totalPlanMonth) || 0),
-          prevMonth: acc.prevMonth + (Number(nodo.totalPrevMonth) || 0),
-          actualYTD: acc.actualYTD + (Number(nodo.totalActualYTD) || 0),
-          planYTD: acc.planYTD + (Number(nodo.totalPlanYTD) || 0),
-          prevYTD: acc.prevYTD + (Number(nodo.totalPrevYTD) || 0)
-        }),
-        crearAcumulador()
-      );
-      applyTotalsToPrincipal(principal, totales);
-    });
+    if (!modoFormulaEstricto) {
+      principalList.forEach((principal) => {
+        if (!principal?.label) return;
+        const key = normalizarEtiqueta(principal.label);
+        if (manualPrincipalKeys.has(key)) return;
+        const totales = (principal.children || []).reduce(
+          (acc, nodo) => ({
+            actualMonth: acc.actualMonth + (Number(nodo.totalActualMonth) || 0),
+            planMonth: acc.planMonth + (Number(nodo.totalPlanMonth) || 0),
+            prevMonth: acc.prevMonth + (Number(nodo.totalPrevMonth) || 0),
+            actualYTD: acc.actualYTD + (Number(nodo.totalActualYTD) || 0),
+            planYTD: acc.planYTD + (Number(nodo.totalPlanYTD) || 0),
+            prevYTD: acc.prevYTD + (Number(nodo.totalPrevYTD) || 0)
+          }),
+          crearAcumulador()
+        );
+        applyTotalsToPrincipal(principal, totales);
+      });
+    }
 
     rebuildMapSecciones();
   }
@@ -1954,6 +2808,7 @@ const construirReporteResumen = (
     .filter((op) => esOperacionLibre(op))
     .filter((op) => {
       const opKey = getOperacionKey(op);
+      if (seccionesComoOperaciones && operacionLigadaAHeader(op)) return false;
       if (!opKey) return true;
       if (manualAggOverrideOps.has(opKey)) return false;
       if (headerOverrideOps.has(opKey)) return false;
@@ -2053,7 +2908,7 @@ const construirReporteResumen = (
     if (!totals) return;
     const label = obtenerNombreOperacion(op);
     const opKey = normalizarTexto(
-      op?.OperacionId || op?.operacion_id || op?.id || label
+      op?.OperacionId || op?.operacion_id || op?.Clase || op?.clase || op?.operacion_etiqueta || label || op?.id || ''
     );
     if (opKey) mapOperaciones.set(opKey, totals);
     const rowStyle =
@@ -2193,7 +3048,9 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
     planeacionData,
     {
       permitirFormulaSecciones: tipoReporte === 'RESUMEN' || tipoReporte === 'SUMMARY',
-      ordenManualTotal: tipoReporte === 'RESUMEN' || tipoReporte === 'SUMMARY'
+      ordenManualTotal: tipoReporte === 'RESUMEN' || tipoReporte === 'SUMMARY',
+      modoFormulaEstricto: tipoReporte === 'RESUMEN',
+      seccionesComoOperaciones: tipoReporte === 'RESUMEN'
     }
   );
 

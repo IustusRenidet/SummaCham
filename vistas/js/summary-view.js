@@ -511,10 +511,7 @@
     if (!Number.isFinite(baseNum) || Math.abs(baseNum) === 0) return 0;
     
     const division = safeDiv(actualNum, baseNum);
-    
-    // Si división es cero, retornar 0%
-    if (division === 0) return 0;
-    
+
     // Fórmula Excel: (real / base - 1) * 100
     const porcentaje = (division - 1) * 100;
     

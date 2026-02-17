@@ -167,6 +167,17 @@ body {
   gap: 6px;
 }
 
+.formula-layout-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.formula-layout-list.is-collapsed .formula-layout-row.level-1,
+.formula-layout-list.is-collapsed .formula-layout-row.level-2 {
+  display: none;
+}
+
 .formula-layout-row {
   display: flex;
   align-items: center;

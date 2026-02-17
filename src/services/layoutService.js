@@ -43,6 +43,819 @@ const canonizarCapituloLabel = (capitulo = "") => {
   return key || "DEFAULT";
 };
 
+const FORMULA_V2_VERSION = 2;
+const FORMULA_OPERADORES_VALIDOS = new Set(["+", "-", "*", "/", "(", ")"]);
+const FORMULA_KIND_REF = "ref";
+const FORMULA_KIND_CONST = "const";
+const FORMULA_KIND_OP = "op";
+
+const NORMALIZAR_ID_SEGMENTO = (valor = "") =>
+  LIMPIAR_CLAVE(valor)
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+const NORMALIZAR_CUENTA_REF = (valor = "") =>
+  LIMPIAR_CLAVE(valor)
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/[^0-9A-Z]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const construirRefIdSeccion = (principal = "") => {
+  const key = NORMALIZAR_ID_SEGMENTO(principal);
+  return key ? `SEC::${key}` : "";
+};
+
+const construirRefIdSubseccion = (principal = "", secundaria = "") => {
+  const p = NORMALIZAR_ID_SEGMENTO(principal);
+  const s = NORMALIZAR_ID_SEGMENTO(secundaria);
+  return p && s ? `SUB::${p}::${s}` : "";
+};
+
+const construirRefIdCuenta = (cuenta = "") => {
+  const key = NORMALIZAR_CUENTA_REF(cuenta);
+  return key ? `ACC::${key}` : "";
+};
+
+const construirRefIdOperacion = (operationId = "") => {
+  const key = NORMALIZAR_ID_SEGMENTO(operationId);
+  return key ? `OP::${key}` : "";
+};
+
+const esFormulaV2 = (value) =>
+  Boolean(
+    value &&
+      typeof value === "object" &&
+      Number(value.version) === FORMULA_V2_VERSION &&
+      Array.isArray(value.tokens),
+  );
+
+const parseJsonSeguro = (raw) => {
+  if (raw == null || raw === "") return null;
+  if (typeof raw === "object") return raw;
+  try {
+    return JSON.parse(String(raw));
+  } catch (_) {
+    return null;
+  }
+};
+
+const esListaTerminosLegacy = (arr) =>
+  Array.isArray(arr) &&
+  arr.length > 0 &&
+  arr.every(
+    (term) =>
+      term &&
+      typeof term === "object" &&
+      ("operator" in term ||
+        "type" in term ||
+        "value" in term ||
+        "cuenta" in term ||
+        "constant" in term ||
+        "id" in term),
+  );
+
+const crearContextoFormula = ({ cuentas = [], operaciones = [] } = {}) => {
+  const sectionsByKey = new Map(); // key(label) -> refId
+  const subsectionsByComposite = new Map(); // key(principal||sub) -> refId
+  const subsectionsByName = new Map(); // key(sub) -> Set(refId)
+  const operationsByKey = new Map(); // key(id/label) -> refId
+
+  (cuentas || []).forEach((cuenta) => {
+    const principal =
+      cuenta["SECCION Principal"] ||
+      cuenta["SECCIÓN Principal"] ||
+      cuenta["SECCIàN Principal"] ||
+      cuenta.seccion_principal ||
+      cuenta.SECCION ||
+      "";
+    const secundaria =
+      cuenta["SECCION Secundaria"] ||
+      cuenta["SECCIÓN Secundaria"] ||
+      cuenta["SECCIàN Secundaria"] ||
+      cuenta.seccion_secundaria ||
+      "";
+    const principalClean = LIMPIAR_CLAVE(principal);
+    const secundariaClean = LIMPIAR_CLAVE(secundaria);
+    if (principalClean) {
+      const secRefId = construirRefIdSeccion(principalClean);
+      const secKey = NORMALIZAR_CLAVE(principalClean);
+      if (secRefId && secKey && !sectionsByKey.has(secKey)) {
+        sectionsByKey.set(secKey, secRefId);
+      }
+    }
+    if (principalClean && secundariaClean) {
+      const subRefId = construirRefIdSubseccion(principalClean, secundariaClean);
+      const compositeKey = `${NORMALIZAR_CLAVE(principalClean)}||${NORMALIZAR_CLAVE(
+        secundariaClean,
+      )}`;
+      if (subRefId && !subsectionsByComposite.has(compositeKey)) {
+        subsectionsByComposite.set(compositeKey, subRefId);
+      }
+      const subKey = NORMALIZAR_CLAVE(secundariaClean);
+      if (subKey) {
+        if (!subsectionsByName.has(subKey)) {
+          subsectionsByName.set(subKey, new Set());
+        }
+        subsectionsByName.get(subKey).add(subRefId);
+      }
+    }
+  });
+
+  (operaciones || []).forEach((op) => {
+    const opId = LIMPIAR_CLAVE(op.OperacionId || op.Clase || op.clase || "");
+    const opLabel = LIMPIAR_CLAVE(
+      op.operacion_etiqueta || op.operacion_label || op.Clase || "",
+    );
+    const refId = construirRefIdOperacion(opId || opLabel);
+    if (!refId) return;
+    const keys = [opId, opLabel]
+      .map((v) => NORMALIZAR_CLAVE(v))
+      .filter(Boolean);
+    keys.forEach((k) => {
+      if (!operationsByKey.has(k)) operationsByKey.set(k, refId);
+    });
+  });
+
+  return {
+    sectionsByKey,
+    subsectionsByComposite,
+    subsectionsByName,
+    operationsByKey,
+  };
+};
+
+const resolverRefIdTerminoLegacy = (term = {}, context = {}) => {
+  const tipo = (term.type || "").toString().trim().toLowerCase();
+  const valorRaw = (term.value ?? term.cuenta ?? term.id ?? "").toString().trim();
+  const parentRaw = (term.parentSection || "").toString().trim();
+  const valor = LIMPIAR_CLAVE(valorRaw);
+  const parent = LIMPIAR_CLAVE(parentRaw);
+
+  if (tipo === "constant" || tipo === "constante") {
+    const numero =
+      term.constant != null ? Number(term.constant) : Number(term.value);
+    return {
+      token: {
+        kind: FORMULA_KIND_CONST,
+        value: Number.isFinite(numero) ? numero : 0,
+      },
+      unresolved: false,
+    };
+  }
+
+  if (tipo === "account" || tipo === "cuenta") {
+    const refId = construirRefIdCuenta(valor);
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: "account",
+        refId,
+        label: valorRaw || valor,
+      },
+      unresolved: !refId,
+    };
+  }
+
+  if (tipo === "operation" || tipo === "operacion") {
+    const key = NORMALIZAR_CLAVE(valor);
+    const mapped = key ? context.operationsByKey?.get(key) : "";
+    const refId = mapped || construirRefIdOperacion(valor);
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: "operation",
+        refId,
+        label: valorRaw || valor,
+        unresolved: !mapped && Boolean(valor),
+      },
+      unresolved: !mapped && Boolean(valor),
+    };
+  }
+
+  // Section/Subsection fallback
+  const parentKey = NORMALIZAR_CLAVE(parent);
+  const valueKey = NORMALIZAR_CLAVE(valor);
+  if (parentKey && valueKey) {
+    const composite = `${parentKey}||${valueKey}`;
+    const mappedSub = context.subsectionsByComposite?.get(composite);
+    const subRefId = mappedSub || construirRefIdSubseccion(parent, valor);
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: "subsection",
+        refId: subRefId,
+        label: valorRaw || valor,
+        unresolved: !mappedSub && Boolean(valor),
+      },
+      unresolved: !mappedSub && Boolean(valor),
+    };
+  }
+
+  if (valueKey) {
+    const mappedSec = context.sectionsByKey?.get(valueKey);
+    if (mappedSec) {
+      return {
+        token: {
+          kind: FORMULA_KIND_REF,
+          refType: "section",
+          refId: mappedSec,
+          label: valorRaw || valor,
+        },
+        unresolved: false,
+      };
+    }
+    const subCandidates = context.subsectionsByName?.get(valueKey);
+    if (subCandidates && subCandidates.size === 1) {
+      const [subRefId] = Array.from(subCandidates);
+      return {
+        token: {
+          kind: FORMULA_KIND_REF,
+          refType: "subsection",
+          refId: subRefId,
+          label: valorRaw || valor,
+        },
+        unresolved: false,
+      };
+    }
+  }
+
+  const secRefId = construirRefIdSeccion(valor);
+  return {
+    token: {
+      kind: FORMULA_KIND_REF,
+      refType: "section",
+      refId: secRefId,
+      label: valorRaw || valor,
+      unresolved: Boolean(valor),
+    },
+    unresolved: Boolean(valor),
+  };
+};
+
+const repararTerminosLegacyCuentaFragmentada = (terms = []) => {
+  const list = Array.isArray(terms) ? terms : [];
+  const out = [];
+  const toType = (term) => (term?.type || "").toString().toLowerCase();
+  const isAccount = (term) => {
+    const t = toType(term);
+    return t === "account" || t === "cuenta";
+  };
+  const readValue = (term) =>
+    (term?.value ?? term?.cuenta ?? term?.id ?? "").toString().trim();
+  const isChunk = (value) => /^\d{1,3}$/.test(value);
+  const buildAccountCode = (a, b, c, d) =>
+    `${String(a).padStart(3, "0")}-${String(b).padStart(3, "0")}-${String(
+      c
+    ).padStart(3, "0")}-${String(d).padStart(2, "0")}`;
+
+  for (let i = 0; i < list.length; i += 1) {
+    const t0 = list[i];
+    if (!t0 || typeof t0 !== "object") continue;
+
+    const t1 = list[i + 1];
+    const t2 = list[i + 2];
+    const t3 = list[i + 3];
+    const v0 = readValue(t0);
+    const v1 = readValue(t1);
+    const v2 = readValue(t2);
+    const v3 = readValue(t3);
+    const op1 = (t1?.operator || "").toString().trim();
+    const op2 = (t2?.operator || "").toString().trim();
+    const op3 = (t3?.operator || "").toString().trim();
+
+    const mergeable =
+      isAccount(t0) &&
+      isAccount(t1) &&
+      isAccount(t2) &&
+      isAccount(t3) &&
+      isChunk(v0) &&
+      isChunk(v1) &&
+      isChunk(v2) &&
+      isChunk(v3) &&
+      op1 === "-" &&
+      op2 === "-" &&
+      op3 === "-";
+
+    if (mergeable) {
+      out.push({
+        ...t0,
+        type: "account",
+        value: buildAccountCode(v0, v1, v2, v3),
+      });
+      i += 3;
+      continue;
+    }
+
+    out.push(t0);
+  }
+
+  return out;
+};
+
+const convertirTerminosLegacyATokensV2 = (terms = [], context = {}) => {
+  const tokens = [];
+  let unresolved = 0;
+  const list = repararTerminosLegacyCuentaFragmentada(terms);
+
+  list.forEach((term, idx) => {
+    if (!term || typeof term !== "object") return;
+    const rawOperator = (term.operator || "+").toString().trim();
+    const operator = FORMULA_OPERADORES_VALIDOS.has(rawOperator)
+      ? rawOperator
+      : rawOperator === "×"
+      ? "*"
+      : rawOperator === "÷"
+      ? "/"
+      : "+";
+
+    const resolved = resolverRefIdTerminoLegacy(term, context);
+    if (!resolved?.token) return;
+
+    if (idx === 0) {
+      if (operator === "-") {
+        tokens.push({ kind: FORMULA_KIND_CONST, value: 0 });
+        tokens.push({ kind: FORMULA_KIND_OP, value: "-" });
+      } else if (operator === "+" || operator === "*" || operator === "/") {
+        // sin prefijo
+      } else {
+        tokens.push({ kind: FORMULA_KIND_OP, value: "+" });
+      }
+    } else {
+      tokens.push({ kind: FORMULA_KIND_OP, value: operator });
+    }
+
+    tokens.push(resolved.token);
+    if (resolved.unresolved) unresolved += 1;
+  });
+
+  return { tokens, unresolved };
+};
+
+const normalizarTokenV2 = (token = {}, context = {}) => {
+  if (!token || typeof token !== "object") return null;
+  const kind = (token.kind || token.type || "").toString().trim().toLowerCase();
+
+  if (kind === FORMULA_KIND_OP || kind === "operator") {
+    const valueRaw = (token.value || token.operator || "").toString().trim();
+    const value =
+      valueRaw === "×"
+        ? "*"
+        : valueRaw === "÷"
+        ? "/"
+        : FORMULA_OPERADORES_VALIDOS.has(valueRaw)
+        ? valueRaw
+        : "";
+    if (!value) return null;
+    return { token: { kind: FORMULA_KIND_OP, value }, unresolved: false };
+  }
+
+  if (kind === FORMULA_KIND_CONST || kind === "constant") {
+    const raw = token.value ?? token.constant;
+    const num = Number(raw);
+    return {
+      token: {
+        kind: FORMULA_KIND_CONST,
+        value: Number.isFinite(num) ? num : 0,
+      },
+      unresolved: false,
+    };
+  }
+
+  if (kind === FORMULA_KIND_REF || kind === "reference") {
+    const refType = (token.refType || token.typeRef || token.type || "section")
+      .toString()
+      .trim()
+      .toLowerCase();
+    const label = (token.label || token.value || "").toString().trim();
+    let refId = (token.refId || "").toString().trim();
+    let unresolved = Boolean(token.unresolved);
+
+    if (!refId && label) {
+      if (refType === "account" || refType === "cuenta") {
+        refId = construirRefIdCuenta(label);
+      } else if (refType === "operation" || refType === "operacion") {
+        const key = NORMALIZAR_CLAVE(label);
+        refId = context.operationsByKey?.get(key) || construirRefIdOperacion(label);
+      } else if (refType === "subsection" || refType === "subseccion") {
+        const parent = (token.parentSection || "").toString().trim();
+        refId = construirRefIdSubseccion(parent, label);
+        unresolved = true;
+      } else {
+        const key = NORMALIZAR_CLAVE(label);
+        refId = context.sectionsByKey?.get(key) || construirRefIdSeccion(label);
+      }
+    }
+
+    const normalizedRefType =
+      refType === "cuenta"
+        ? "account"
+        : refType === "operacion"
+        ? "operation"
+        : refType === "subseccion"
+        ? "subsection"
+        : refType === "seccion"
+        ? "section"
+        : refType || "section";
+
+    if (!refId) {
+      return {
+        token: {
+          kind: FORMULA_KIND_REF,
+          refType: normalizedRefType,
+          refId: "",
+          label,
+          unresolved: true,
+        },
+        unresolved: true,
+      };
+    }
+
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: normalizedRefType,
+        refId,
+        label: label || refId,
+        unresolved: Boolean(unresolved),
+      },
+      unresolved: Boolean(unresolved),
+    };
+  }
+
+  return null;
+};
+
+const convertirTokensV2ATerminosLegacy = (tokens = []) => {
+  const terms = [];
+  let pendingOperator = "+";
+
+  (Array.isArray(tokens) ? tokens : []).forEach((token) => {
+    if (!token || typeof token !== "object") return;
+    if (token.kind === FORMULA_KIND_OP) {
+      const op = (token.value || "").toString().trim();
+      if (op === "+" || op === "-" || op === "*" || op === "/") {
+        pendingOperator = op;
+      }
+      return;
+    }
+
+    if (token.kind === FORMULA_KIND_CONST) {
+      terms.push({
+        operator: pendingOperator,
+        type: "constant",
+        value: String(Number(token.value) || 0),
+        constant: Number(token.value) || 0,
+      });
+      pendingOperator = "+";
+      return;
+    }
+
+    if (token.kind === FORMULA_KIND_REF) {
+      const refType = (token.refType || "section").toString().toLowerCase();
+      const legacyType =
+        refType === "subsection"
+          ? "section"
+          : refType === "operation"
+          ? "operation"
+          : refType === "account"
+          ? "account"
+          : "section";
+      terms.push({
+        operator: pendingOperator,
+        type: legacyType,
+        value: token.label || token.refId || "",
+      });
+      pendingOperator = "+";
+    }
+  });
+
+  return terms;
+};
+
+const tokenizarFormulaTexto = (formula = "") => {
+  const source = String(formula || "");
+  const tokens = [];
+  let buffer = "";
+
+  const flushBuffer = () => {
+    const value = buffer.trim();
+    if (value) tokens.push({ kind: "value", value });
+    buffer = "";
+  };
+
+  const getPrevNonSpace = (idx) => {
+    for (let i = idx - 1; i >= 0; i -= 1) {
+      const ch = source[i];
+      if (!/\s/.test(ch)) return ch;
+    }
+    return "";
+  };
+
+  const getNextNonSpace = (idx) => {
+    for (let i = idx + 1; i < source.length; i += 1) {
+      const ch = source[i];
+      if (!/\s/.test(ch)) return ch;
+    }
+    return "";
+  };
+
+  for (let i = 0; i < source.length; i += 1) {
+    const ch = source[i];
+    const op = ch === "×" ? "*" : ch === "÷" ? "/" : ch;
+    if (op === "+" || op === "*" || op === "/" || op === "(" || op === ")") {
+      flushBuffer();
+      tokens.push({ kind: FORMULA_KIND_OP, value: op });
+      continue;
+    }
+    if (op === "-") {
+      const prev = getPrevNonSpace(i);
+      const next = getNextNonSpace(i);
+      const isOperatorDash =
+        !prev ||
+        !next ||
+        /\s/.test(source[i - 1] || "") ||
+        /\s/.test(source[i + 1] || "") ||
+        ["+", "-", "*", "/", "("].includes(prev) ||
+        next === "(";
+      if (isOperatorDash) {
+        flushBuffer();
+        tokens.push({ kind: FORMULA_KIND_OP, value: "-" });
+        continue;
+      }
+    }
+    buffer += ch;
+  }
+  flushBuffer();
+  return tokens;
+};
+
+const parsearSeleccionFormulaTexto = (value = "") => {
+  const raw = (value || "").toString().trim();
+  if (!raw) return { label: "", parent: "" };
+  const parts = raw.split("||");
+  if (parts.length > 1) {
+    const parent = parts[0]?.trim() || "";
+    const label = parts.slice(1).join("||").trim();
+    return { label, parent };
+  }
+  return { label: raw, parent: "" };
+};
+
+const construirTokenDesdeTexto = (valueRaw = "", context = {}) => {
+  const raw = (valueRaw || "").toString().trim();
+  if (!raw) return null;
+
+  const numericValue = Number(raw);
+  if (Number.isFinite(numericValue) && /^[-+]?\d+(\.\d+)?$/.test(raw)) {
+    return {
+      token: { kind: FORMULA_KIND_CONST, value: numericValue },
+      unresolved: false,
+    };
+  }
+
+  const normalizedRawKey = NORMALIZAR_CLAVE(raw);
+  if (normalizedRawKey && context.operationsByKey?.has(normalizedRawKey)) {
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: "operation",
+        refId: context.operationsByKey.get(normalizedRawKey),
+        label: raw,
+      },
+      unresolved: false,
+    };
+  }
+
+  if (/^\d{3}[-\d]/.test(raw)) {
+    const refId = construirRefIdCuenta(raw);
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: "account",
+        refId,
+        label: raw,
+        unresolved: !refId,
+      },
+      unresolved: !refId,
+    };
+  }
+
+  const selection = parsearSeleccionFormulaTexto(raw);
+  const label = selection.label || raw;
+  const parent = selection.parent || "";
+  const labelKey = NORMALIZAR_CLAVE(label);
+  const parentKey = NORMALIZAR_CLAVE(parent);
+
+  if (parentKey && labelKey) {
+    const composite = `${parentKey}||${labelKey}`;
+    const mappedSub = context.subsectionsByComposite?.get(composite);
+    const refId = mappedSub || construirRefIdSubseccion(parent, label);
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: "subsection",
+        refId,
+        label,
+        unresolved: !mappedSub,
+      },
+      unresolved: !mappedSub,
+    };
+  }
+
+  if (labelKey && context.sectionsByKey?.has(labelKey)) {
+    return {
+      token: {
+        kind: FORMULA_KIND_REF,
+        refType: "section",
+        refId: context.sectionsByKey.get(labelKey),
+        label,
+      },
+      unresolved: false,
+    };
+  }
+
+  if (labelKey) {
+    const candidates = context.subsectionsByName?.get(labelKey);
+    if (candidates && candidates.size === 1) {
+      const [subRefId] = Array.from(candidates);
+      return {
+        token: {
+          kind: FORMULA_KIND_REF,
+          refType: "subsection",
+          refId: subRefId,
+          label,
+        },
+        unresolved: false,
+      };
+    }
+  }
+
+  const refId = construirRefIdSeccion(label);
+  return {
+    token: {
+      kind: FORMULA_KIND_REF,
+      refType: "section",
+      refId,
+      label,
+      unresolved: !refId,
+    },
+    unresolved: !refId,
+  };
+};
+
+const parsearFormulaTextoATokensV2 = (formulaRaw = "", context = {}) => {
+  const raw = String(formulaRaw || "").trim();
+  if (!raw) return { valid: true, tokens: [], unresolved: 0 };
+
+  const lexical = tokenizarFormulaTexto(raw);
+  const tokens = [];
+  let balance = 0;
+  let unresolved = 0;
+  let expectingValue = true;
+
+  for (let idx = 0; idx < lexical.length; idx += 1) {
+    const item = lexical[idx];
+    if (!item) continue;
+
+    if (item.kind === FORMULA_KIND_OP) {
+      const opValue = (item.value || "").toString().trim();
+      if (!FORMULA_OPERADORES_VALIDOS.has(opValue)) {
+        return { valid: false, tokens: [], unresolved: 0 };
+      }
+
+      if (opValue === "(") {
+        if (!expectingValue) return { valid: false, tokens: [], unresolved: 0 };
+        balance += 1;
+        tokens.push({ kind: FORMULA_KIND_OP, value: "(" });
+        expectingValue = true;
+        continue;
+      }
+
+      if (opValue === ")") {
+        if (expectingValue || balance <= 0) {
+          return { valid: false, tokens: [], unresolved: 0 };
+        }
+        balance -= 1;
+        tokens.push({ kind: FORMULA_KIND_OP, value: ")" });
+        expectingValue = false;
+        continue;
+      }
+
+      if (expectingValue) {
+        if (opValue === "+" || opValue === "-") {
+          tokens.push({ kind: FORMULA_KIND_OP, value: opValue });
+          expectingValue = true;
+          continue;
+        }
+        return { valid: false, tokens: [], unresolved: 0 };
+      }
+
+      tokens.push({ kind: FORMULA_KIND_OP, value: opValue });
+      expectingValue = true;
+      continue;
+    }
+
+    if (!expectingValue) {
+      return { valid: false, tokens: [], unresolved: 0 };
+    }
+
+    const resolved = construirTokenDesdeTexto(item.value, context);
+    if (!resolved?.token) return { valid: false, tokens: [], unresolved: 0 };
+    tokens.push(resolved.token);
+    if (resolved.unresolved) unresolved += 1;
+    expectingValue = false;
+  }
+
+  if (balance !== 0 || expectingValue) {
+    return { valid: false, tokens: [], unresolved: 0 };
+  }
+
+  return { valid: true, tokens, unresolved };
+};
+
+const esFormulaVaciaExplicita = (rawText = "", parsed = null) => {
+  const raw = (rawText || "").toString().trim();
+  if (!raw) return false;
+  if (raw === "[]") return true;
+  if (Array.isArray(parsed)) return parsed.length === 0;
+  if (esFormulaV2(parsed)) {
+    return !Array.isArray(parsed.tokens) || parsed.tokens.length === 0;
+  }
+  return false;
+};
+
+const normalizarFormulaOperacion = ({
+  formulaJsonRaw,
+  formulaTermsRaw,
+  context = {},
+} = {}) => {
+  const formulaRawText =
+    formulaJsonRaw == null ? "" : String(formulaJsonRaw).trim();
+  let parsed = parseJsonSeguro(formulaJsonRaw);
+  let tokens = [];
+  let unresolved = 0;
+
+  if (esFormulaV2(parsed)) {
+    (parsed.tokens || []).forEach((token) => {
+      const normalized = normalizarTokenV2(token, context);
+      if (!normalized?.token) return;
+      tokens.push(normalized.token);
+      if (normalized.unresolved) unresolved += 1;
+    });
+  } else if (Array.isArray(parsed) && esListaTerminosLegacy(parsed)) {
+    const converted = convertirTerminosLegacyATokensV2(parsed, context);
+    tokens = converted.tokens;
+    unresolved += converted.unresolved;
+  } else if (esListaTerminosLegacy(formulaTermsRaw)) {
+    const converted = convertirTerminosLegacyATokensV2(formulaTermsRaw, context);
+    tokens = converted.tokens;
+    unresolved += converted.unresolved;
+  } else if (!parsed && formulaRawText) {
+    const parsedText = parsearFormulaTextoATokensV2(formulaRawText, context);
+    if (parsedText.valid && parsedText.tokens.length) {
+      tokens = parsedText.tokens;
+      unresolved += parsedText.unresolved;
+    }
+  }
+
+  if (!tokens.length && formulaRawText && !esFormulaVaciaExplicita(formulaRawText, parsed)) {
+    return {
+      formulaObj: null,
+      formula_json: formulaRawText,
+      formula_terms: [],
+      tokens: [],
+      unresolved: 0,
+      hasManualFormula: false,
+      passthrough: true,
+    };
+  }
+
+  const formulaObj = {
+    version: FORMULA_V2_VERSION,
+    tokens,
+  };
+  const formula_json = JSON.stringify(formulaObj);
+  const formula_terms = convertirTokensV2ATerminosLegacy(tokens);
+  const hasManualFormula = tokens.some(
+    (t) => t?.kind === FORMULA_KIND_REF || t?.kind === FORMULA_KIND_CONST,
+  );
+
+  return {
+    formulaObj,
+    formula_json,
+    formula_terms,
+    tokens,
+    unresolved,
+    hasManualFormula,
+  };
+};
+
 const listarCapitulosDb = ({ empresaId, modulo, anio }) => {
   const anioNumero = Number(anio);
   if (!empresaId || !modulo || !Number.isInteger(anioNumero)) return [];
@@ -713,6 +1526,7 @@ const obtenerLayout = ({
       seccion_principal AS "SECCIàN Principal",
       seccion_secundaria AS "SECCION Secundaria",
       operacion_factor,
+      valor_plantilla,
       orden,
       orden_presentacion,
       visible
@@ -742,8 +1556,10 @@ const obtenerLayout = ({
     (list || []).map((cuenta) => {
       const orden = normalizarOrden(cuenta.orden);
       const ordenPresentacion = normalizarOrden(cuenta.orden_presentacion);
+      const valorPlantilla = Number(cuenta.valor_plantilla);
       return {
         ...cuenta,
+        valor_plantilla: Number.isFinite(valorPlantilla) ? valorPlantilla : 0,
         orden_presentacion:
           ordenPresentacion === undefined ? orden : ordenPresentacion,
         visible: normalizarVisible(cuenta.visible),
@@ -845,6 +1661,58 @@ const obtenerLayout = ({
     )
     .all(empresaConsulta, modulo, anioUsado, capituloConsulta);
 
+  const contextoFormula = crearContextoFormula({
+    cuentas,
+    operaciones: (operaciones || []).map((row) => ({
+      OperacionId: row.OperacionId || row.clase || row.operacion_etiqueta,
+      Clase: row.operacion_etiqueta || row.OperacionId || row.clase,
+      operacion_etiqueta: row.operacion_etiqueta,
+      operacion_label: row.operacion_label,
+    })),
+  });
+
+  const normalizarFormulaRaw = (raw) =>
+    raw == null ? "" : raw.toString().trim();
+
+  const parsearFormulaOperacion = (opRow = {}) => {
+    const operacionId =
+      opRow.OperacionId || opRow.clase || opRow.operacion_etiqueta || "operacion";
+    try {
+      const normalized = normalizarFormulaOperacion({
+        formulaJsonRaw: opRow.formula_json,
+        formulaTermsRaw: opRow.formula_terms,
+        context: contextoFormula,
+      });
+      return {
+        formulaRaw: normalized.formula_json || "",
+        formulaTerms: normalized.formula_terms || [],
+        formulaTokens: normalized.tokens || [],
+        hasManualFormula: Boolean(normalized.hasManualFormula),
+        unresolvedRefs: Number(normalized.unresolved) || 0,
+        passthrough: Boolean(normalized.passthrough),
+      };
+    } catch (err) {
+      console.warn(`Error parsing formula_json for ${operacionId}:`, err);
+      return {
+        formulaRaw: normalizarFormulaRaw(opRow.formula_json),
+        formulaTerms: [],
+        formulaTokens: [],
+        hasManualFormula: false,
+        unresolvedRefs: 0,
+        passthrough: true,
+      };
+    }
+  };
+  const obtenerOperacionKey = (op = {}) => {
+    const id = LIMPIAR_CLAVE(op.OperacionId || op.Clase || op.clase || "");
+    if (id) return `ID:${NORMALIZAR_CLAVE(id)}`;
+    const etiqueta = LIMPIAR_CLAVE(
+      op.operacion_etiqueta || op.operacion_label || ""
+    );
+    if (etiqueta) return `ETQ:${NORMALIZAR_CLAVE(etiqueta)}`;
+    return "";
+  };
+
   const operacionesMap = {};
   const tiposOperacionIgnorados = new Set([
     // Estos pueden colarse si alguna versión anterior persistió metadatos
@@ -861,8 +1729,30 @@ const obtenerLayout = ({
     "cuentas",
     "secciones",
   ]);
-  operaciones.forEach((op, idx) => {
+
+  // Compatibilidad: cuando coexisten filas legacy (sin orden_presentacion) y
+  // filas actuales para la misma operación, mantener solo las actuales.
+  const keysConOrdenPersistido = new Set();
+  operaciones.forEach((op) => {
+    const key = obtenerOperacionKey(op);
+    if (!key) return;
     const ordenPresentacion = normalizarOrden(op.orden_presentacion);
+    if (Number.isFinite(ordenPresentacion)) {
+      keysConOrdenPersistido.add(key);
+    }
+  });
+
+  operaciones.forEach((op, idx) => {
+    const keyNormalizada = obtenerOperacionKey(op);
+    const ordenPresentacion = normalizarOrden(op.orden_presentacion);
+    if (
+      keyNormalizada &&
+      keysConOrdenPersistido.has(keyNormalizada) &&
+      !Number.isFinite(ordenPresentacion)
+    ) {
+      return;
+    }
+
     const ordenBase = Number.isFinite(ordenPresentacion)
       ? ordenPresentacion
       : Number.isFinite(Number(op.orden))
@@ -871,26 +1761,15 @@ const obtenerLayout = ({
     const operacionId = op.OperacionId || op.Clase || op.clase;
     const operacionEtiqueta =
       op.operacion_etiqueta || op.Clase || operacionId || "Operacion";
-    const mapKey = operacionId || operacionEtiqueta;
+    const mapKey = keyNormalizada || operacionId || operacionEtiqueta;
 
-    // Parsear formula_json si existe
-    let formulaTerms = [];
-    let signos = {};
-    try {
-      if (op.formula_json) {
-        const parsed = JSON.parse(op.formula_json);
-        if (Array.isArray(parsed)) {
-          formulaTerms = parsed;
-          // Reconstruir signos desde formula_terms
-          parsed.forEach((term, termIdx) => {
-            const key = `seccion_${termIdx + 1}`;
-            signos[key] = term.operator === '-' ? -1 : 1;
-          });
-        }
-      }
-    } catch (err) {
-      console.warn(`Error parsing formula_json for ${operacionId}:`, err);
-    }
+    const parsedFormula = parsearFormulaOperacion(op);
+    const formulaTerms = parsedFormula.formulaTerms;
+    const signos = {};
+    formulaTerms.forEach((term, termIdx) => {
+      const key = `seccion_${termIdx + 1}`;
+      signos[key] = term.operator === "-" ? -1 : 1;
+    });
 
     if (!operacionesMap[mapKey]) {
       operacionesMap[mapKey] = {
@@ -902,10 +1781,20 @@ const obtenerLayout = ({
         signo: op.signo ?? 1,
         signos: signos,
         formula_terms: formulaTerms,
+        formula_json: parsedFormula.formulaRaw || undefined,
+        formula_v2:
+          parsedFormula.formulaTokens && parsedFormula.formulaTokens.length
+            ? {
+                version: FORMULA_V2_VERSION,
+                tokens: parsedFormula.formulaTokens,
+              }
+            : undefined,
         orden: ordenBase,
         orden_presentacion:
           ordenPresentacion === undefined ? ordenBase : ordenPresentacion,
         visible: normalizarVisible(op.visible),
+        __hasManualFormula: parsedFormula.hasManualFormula,
+        __hasExplicitOrder: Number.isFinite(ordenPresentacion),
       };
     } else if (
       Number.isFinite(ordenBase) &&
@@ -914,14 +1803,74 @@ const obtenerLayout = ({
     ) {
       operacionesMap[mapKey].orden = ordenBase;
     }
-    const tipo = (op.operacion_tipo || "").toString().trim();
+
+    if (
+      Number.isFinite(ordenPresentacion) &&
+      !operacionesMap[mapKey].__hasExplicitOrder
+    ) {
+      operacionesMap[mapKey].orden_presentacion = ordenPresentacion;
+      operacionesMap[mapKey].orden = ordenBase;
+      if (operacionId) {
+        operacionesMap[mapKey].OperacionId = operacionId;
+      }
+      operacionesMap[mapKey].Clase = operacionEtiqueta;
+      if (op.SECCION) {
+        operacionesMap[mapKey].SECCION = op.SECCION;
+      }
+      operacionesMap[mapKey].__hasExplicitOrder = true;
+    } else if (!operacionesMap[mapKey].SECCION && op.SECCION) {
+      operacionesMap[mapKey].SECCION = op.SECCION;
+    }
+
+    const tipoRaw = (op.operacion_tipo || "").toString().trim();
+    const tipo =
+      tipoRaw === "parent_section"
+        ? "parentSection"
+        : tipoRaw === "parent_subsection"
+        ? "parentSubsection"
+        : tipoRaw;
     if (tipo && !tiposOperacionIgnorados.has(tipo)) {
       operacionesMap[mapKey][tipo] = op.operacion_label;
       operacionesMap[mapKey].signos[tipo] = op.signo ?? 1;
     }
-    if (op.formula_json && !operacionesMap[mapKey].formula_json) {
-      operacionesMap[mapKey].formula_json = op.formula_json;
+
+    const currentFormulaRaw = normalizarFormulaRaw(
+      operacionesMap[mapKey].formula_json
+    );
+    const incomingFormulaRaw = parsedFormula.formulaRaw;
+    const incomingHasManualFormula = parsedFormula.hasManualFormula;
+    const currentHasManualFormula = Boolean(operacionesMap[mapKey].__hasManualFormula);
+    if (
+      incomingHasManualFormula &&
+      (!currentHasManualFormula ||
+        formulaTerms.length >=
+          (Array.isArray(operacionesMap[mapKey].formula_terms)
+            ? operacionesMap[mapKey].formula_terms.length
+            : 0))
+    ) {
+      operacionesMap[mapKey].formula_terms = formulaTerms;
+      operacionesMap[mapKey].formula_json = incomingFormulaRaw;
+      operacionesMap[mapKey].formula_v2 =
+        parsedFormula.formulaTokens && parsedFormula.formulaTokens.length
+          ? {
+              version: FORMULA_V2_VERSION,
+              tokens: parsedFormula.formulaTokens,
+            }
+          : undefined;
+      operacionesMap[mapKey].__hasManualFormula = true;
+      formulaTerms.forEach((term, termIdx) => {
+        const key = `seccion_${termIdx + 1}`;
+        operacionesMap[mapKey].signos[key] = term.operator === "-" ? -1 : 1;
+      });
+    } else if (
+      incomingFormulaRaw &&
+      incomingFormulaRaw !== "[]" &&
+      (!currentFormulaRaw || currentFormulaRaw === "[]")
+    ) {
+      // Ejemplo: operación de columnas sin fórmula de términos.
+      operacionesMap[mapKey].formula_json = incomingFormulaRaw;
     }
+
     if (operacionesMap[mapKey].orden_presentacion === undefined) {
       operacionesMap[mapKey].orden_presentacion =
         ordenPresentacion === undefined ? ordenBase : ordenPresentacion;
@@ -931,11 +1880,16 @@ const obtenerLayout = ({
     }
   });
 
-  const operacionesOrdenadas = Object.values(operacionesMap).sort(
-    (a, b) =>
-      (a.orden_presentacion ?? a.orden ?? 0) -
-      (b.orden_presentacion ?? b.orden ?? 0)
-  );
+  const operacionesOrdenadas = Object.values(operacionesMap)
+    .map((op) => {
+      const { __hasManualFormula, __hasExplicitOrder, ...clean } = op;
+      return clean;
+    })
+    .sort(
+      (a, b) =>
+        (a.orden_presentacion ?? a.orden ?? 0) -
+        (b.orden_presentacion ?? b.orden ?? 0)
+    );
 
   if (incluirSeccionesFlag) {
     const secciones = consultarSecciones(anioUsado) || [];
@@ -1257,8 +2211,8 @@ const guardarCuentas = ({
     INSERT OR REPLACE INTO layout_cuentas (
       empresa_id, modulo, anio, cuenta, nombre, capitulo, 
       seccion_principal, seccion_secundaria, operacion_factor,
-      orden, orden_presentacion, visible, actualizado_en
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      valor_plantilla, orden, orden_presentacion, visible, actualizado_en
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
   const deleteCuentas = db.prepare(`
     DELETE FROM layout_cuentas
@@ -1421,6 +2375,12 @@ const guardarCuentas = ({
       const operacionFactorFinal = Number.isFinite(operacionFactor)
         ? operacionFactor
         : 1;
+      const valorPlantillaRaw =
+        cuenta.valor_plantilla ?? cuenta.valorPlantilla ?? cuenta.valor;
+      const valorPlantilla = Number(valorPlantillaRaw);
+      const valorPlantillaFinal = Number.isFinite(valorPlantilla)
+        ? valorPlantilla
+        : 0;
       const visible = cuenta.visible === false ? 0 : 1;
 
       insertCuenta.run(
@@ -1433,6 +2393,7 @@ const guardarCuentas = ({
         seccionPrincipal,
         seccionSecundaria,
         operacionFactorFinal,
+        valorPlantillaFinal,
         ordenPresentacion,
         ordenPresentacion,
         visible
@@ -1491,6 +2452,10 @@ const guardarOperaciones = ({
 }) => {
   // Usar el mismo "source" que lectura (alias comparativas EMPRESA09-12).
   const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
+  const contextoFormula = crearContextoFormula({
+    cuentas: [],
+    operaciones: Array.isArray(operaciones) ? operaciones : [],
+  });
   const insertOperacion = db.prepare(`
     INSERT OR REPLACE INTO layout_operaciones (
       empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion,
@@ -1503,9 +2468,12 @@ const guardarOperaciones = ({
       const tiposOperacionBase = [
         "sum-row",
         "sum-row-sumavarios",
+        "sum-row-sumavarios2",
         "sum-row-sumavarios-consolidado",
         "sum-row-operativo",
         "sum-row-operativo-consolidado",
+        "parentSection",
+        "parentSubsection",
         "result-row",
         "net-row",
         "net-row-adicional",
@@ -1527,9 +2495,8 @@ const guardarOperaciones = ({
         "etiqueta",
         "SECCION",
         "seccion",
-        // Metadatos de UI/placement (NO persistir como tipos).
-        "parentSection",
-        "parentSubsection",
+        // Metadatos de UI/placement: se persisten parentSection/parentSubsection
+        // para resolver secciones homónimas en distintos principales.
         "parent_section",
         "parent_subsection",
         "parentSeccion",
@@ -1555,11 +2522,16 @@ const guardarOperaciones = ({
         // La fuente de verdad es `formula_json`.
         .filter((key) => !/^(seccion|operacion)_\d+$/i.test(key));
       const tiposOperacion = [...tiposOperacionBase, ...tiposOperacionExtra];
-      const formulaJson =
-        op.formula_json ||
-        (Array.isArray(op.formula_terms)
-          ? JSON.stringify(op.formula_terms)
-          : null);
+      const formulaNormalizada = normalizarFormulaOperacion({
+        formulaJsonRaw: op.formula_json,
+        formulaTermsRaw: op.formula_terms,
+        context: contextoFormula,
+      });
+      const formulaJson = formulaNormalizada.formula_json || null;
+      if (!formulaNormalizada.passthrough) {
+        op.formula_json = formulaJson;
+        op.formula_terms = formulaNormalizada.formula_terms || [];
+      }
 
       const ordenPresentacion = Number.isFinite(
         Number(op.orden_presentacion)
@@ -1590,7 +2562,7 @@ const guardarOperaciones = ({
           const capituloRaw = LIMPIAR_CLAVE(op.CAPITULO || "DEFAULT") || "DEFAULT";
           const capituloCanonico = canonizarCapituloLabel(capituloRaw);
           const operacionId =
-            op.OperacionId || op.operacion_id || op.id || op.clase || op.Clase;
+            op.OperacionId || op.operacion_id || op.clase || op.Clase || op.id;
           const operacionEtiqueta =
             op.Etiqueta ||
             op.etiqueta ||
@@ -1632,7 +2604,7 @@ const guardarOperaciones = ({
         const capituloRaw = LIMPIAR_CLAVE(op.CAPITULO || "DEFAULT") || "DEFAULT";
         const capituloCanonico = canonizarCapituloLabel(capituloRaw);
         const operacionId =
-          op.OperacionId || op.operacion_id || op.id || op.clase || op.Clase;
+          op.OperacionId || op.operacion_id || op.clase || op.Clase || op.id;
         const operacionEtiqueta =
           op.Etiqueta ||
           op.etiqueta ||
@@ -1701,11 +2673,11 @@ const copiarLayout = ({
   const copiarCuentas = db.prepare(`
     INSERT INTO layout_cuentas (
       empresa_id, modulo, anio, cuenta, nombre, capitulo,
-      seccion_principal, seccion_secundaria, operacion_factor, orden, orden_presentacion, visible
+      seccion_principal, seccion_secundaria, operacion_factor, valor_plantilla, orden, orden_presentacion, visible
     )
     SELECT 
       empresa_id, modulo, ?, cuenta, nombre, capitulo,
-      seccion_principal, seccion_secundaria, operacion_factor, orden, orden_presentacion, visible
+      seccion_principal, seccion_secundaria, operacion_factor, valor_plantilla, orden, orden_presentacion, visible
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
   `);
@@ -1856,7 +2828,7 @@ const actualizarCuenta = ({
   const update = db.prepare(`
     UPDATE layout_cuentas
     SET cuenta = ?, nombre = ?, seccion_principal = ?, seccion_secundaria = ?,
-        operacion_factor = ?, orden = ?, orden_presentacion = ?
+        operacion_factor = ?, valor_plantilla = ?, orden = ?, orden_presentacion = ?
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND cuenta = ?
   `);
 
@@ -1869,6 +2841,12 @@ const actualizarCuenta = ({
   const operacionFactorFinal = Number.isFinite(operacionFactor)
     ? operacionFactor
     : 1;
+  const valorPlantillaRaw =
+    datos.valor_plantilla ?? datos.valorPlantilla ?? datos.valor;
+  const valorPlantilla = Number(valorPlantillaRaw);
+  const valorPlantillaFinal = Number.isFinite(valorPlantilla)
+    ? valorPlantilla
+    : 0;
   const ordenRaw = datos.orden_presentacion ?? datos.orden;
   const ordenFinal = Number.isFinite(Number(ordenRaw)) ? Number(ordenRaw) : 1;
 
@@ -1878,6 +2856,7 @@ const actualizarCuenta = ({
     datos.seccion_principal,
     datos.seccion_secundaria || "",
     operacionFactorFinal,
+    valorPlantillaFinal,
     ordenFinal,
     ordenFinal,
     empresaCanonica,
@@ -2063,17 +3042,21 @@ const actualizarOperacion = ({
 
   // Process operaciones object
   const operaciones = datos.operaciones || {};
-  const formulaJson =
-    datos.formula_json ||
-    (Array.isArray(datos.formula_terms)
-      ? JSON.stringify(datos.formula_terms)
-      : null);
+  const formulaNormalizada = normalizarFormulaOperacion({
+    formulaJsonRaw: datos.formula_json,
+    formulaTermsRaw: datos.formula_terms,
+    context: crearContextoFormula({
+      cuentas: [],
+      operaciones: [datos],
+    }),
+  });
+  const formulaJson = formulaNormalizada.formula_json || null;
   const operacionId =
     datos.OperacionId ||
     datos.operacion_id ||
-    datos.id ||
+    datos.clase ||
     claseOriginal ||
-    datos.clase;
+    datos.id;
   const operacionEtiqueta =
     datos.Etiqueta ||
     datos.etiqueta ||
@@ -2271,34 +3254,96 @@ const renombrarSeccion = ({
         `
       ).all(...scope);
 
+      const oldSectionRef = construirRefIdSeccion(nombreOriginalClean);
+      const newSectionRef = construirRefIdSeccion(nuevoNombreClean);
+      const oldSectionPrefix = `SUB::${NORMALIZAR_ID_SEGMENTO(nombreOriginalClean)}::`;
+      const newSectionPrefix = `SUB::${NORMALIZAR_ID_SEGMENTO(nuevoNombreClean)}::`;
+      const oldSubSuffix = `::${NORMALIZAR_ID_SEGMENTO(nombreOriginalClean)}`;
+      const newSubSuffix = `::${NORMALIZAR_ID_SEGMENTO(nuevoNombreClean)}`;
+
       ops.forEach((row) => {
         const raw = (row?.formula_json || "").toString().trim();
         if (!raw) return;
-        let parsed = null;
-        try {
-          parsed = JSON.parse(raw);
-        } catch {
-          return;
-        }
-        if (!Array.isArray(parsed) || !parsed.length) return;
+        const parsed = parseJsonSeguro(raw);
+        if (!parsed) return;
 
         let changed = false;
-        const updated = parsed.map((term) => {
-          if (!term || typeof term !== "object") return term;
-          const termType = (term.type || "").toString().toLowerCase();
-          const value = (term.value ?? term.cuenta ?? term.id ?? "").toString();
-          if (
-            (termType === "section" || termType === "seccion") &&
-            value.trim() === nombreOriginalClean
-          ) {
+        let newJson = raw;
+
+        if (esFormulaV2(parsed)) {
+          const updatedTokens = (parsed.tokens || []).map((token) => {
+            if (!token || typeof token !== "object") return token;
+            if ((token.kind || "").toString().toLowerCase() !== FORMULA_KIND_REF)
+              return token;
+
+            const refType = (token.refType || "").toString().toLowerCase();
+            const labelKey = NORMALIZAR_CLAVE(token.label || "");
+            let refId = (token.refId || "").toString().trim();
+            let label = token.label;
+            let tokenChanged = false;
+
+            if (tipo === "principal") {
+              if (refType === "section") {
+                if (
+                  refId === oldSectionRef ||
+                  labelKey === NORMALIZAR_CLAVE(nombreOriginalClean)
+                ) {
+                  refId = newSectionRef;
+                  if (labelKey === NORMALIZAR_CLAVE(nombreOriginalClean)) {
+                    label = nuevoNombreClean;
+                  }
+                  tokenChanged = true;
+                }
+              } else if (refType === "subsection" && refId.startsWith(oldSectionPrefix)) {
+                refId = `${newSectionPrefix}${refId.slice(oldSectionPrefix.length)}`;
+                tokenChanged = true;
+              }
+            } else if (refType === "subsection") {
+              if (refId.endsWith(oldSubSuffix)) {
+                refId = `${refId.slice(0, -oldSubSuffix.length)}${newSubSuffix}`;
+                tokenChanged = true;
+              }
+              if (labelKey === NORMALIZAR_CLAVE(nombreOriginalClean)) {
+                label = nuevoNombreClean;
+                tokenChanged = true;
+              }
+            }
+
+            if (!tokenChanged) return token;
             changed = true;
-            return { ...term, value: nuevoNombreClean };
+            return {
+              ...token,
+              refId,
+              label,
+            };
+          });
+
+          if (changed) {
+            newJson = JSON.stringify({
+              version: FORMULA_V2_VERSION,
+              tokens: updatedTokens,
+            });
           }
-          return term;
-        });
+        } else if (Array.isArray(parsed) && parsed.length) {
+          const updated = parsed.map((term) => {
+            if (!term || typeof term !== "object") return term;
+            const termType = (term.type || "").toString().toLowerCase();
+            const value = (term.value ?? term.cuenta ?? term.id ?? "").toString();
+            if (
+              (termType === "section" || termType === "seccion") &&
+              value.trim() === nombreOriginalClean
+            ) {
+              changed = true;
+              return { ...term, value: nuevoNombreClean };
+            }
+            return term;
+          });
+          if (changed) {
+            newJson = JSON.stringify(updated);
+          }
+        }
 
         if (!changed) return;
-        const newJson = JSON.stringify(updated);
         db.prepare(
           `
             UPDATE layout_operaciones
@@ -2486,6 +3531,7 @@ const crearLayoutVersion = ({
         seccion_principal,
         seccion_secundaria,
         operacion_factor,
+        valor_plantilla,
         orden,
         orden_presentacion,
         visible
@@ -2550,6 +3596,10 @@ const crearLayoutVersion = ({
         row.operacion_factor == null || row.operacion_factor === ""
           ? 1
           : Number(row.operacion_factor),
+      valor_plantilla:
+        row.valor_plantilla == null || row.valor_plantilla === ""
+          ? 0
+          : Number(row.valor_plantilla),
       orden: Number.isFinite(Number(row.orden)) ? Number(row.orden) : 0,
       orden_presentacion:
         row.orden_presentacion == null || row.orden_presentacion === ""
@@ -2771,9 +3821,9 @@ const restaurarLayoutVersion = ({
     `
       INSERT INTO layout_cuentas (
         empresa_id, modulo, anio, cuenta, nombre, capitulo,
-        seccion_principal, seccion_secundaria, operacion_factor,
+        seccion_principal, seccion_secundaria, operacion_factor, valor_plantilla,
         orden, orden_presentacion, visible, actualizado_en
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `,
   );
 
@@ -2862,6 +3912,9 @@ const restaurarLayoutVersion = ({
         row.operacion_factor == null || row.operacion_factor === ""
           ? 1
           : Number(row.operacion_factor),
+        row.valor_plantilla == null || row.valor_plantilla === ""
+          ? 0
+          : Number(row.valor_plantilla),
         Number.isFinite(Number(row.orden)) ? Number(row.orden) : 0,
         row.orden_presentacion == null || row.orden_presentacion === ""
           ? null

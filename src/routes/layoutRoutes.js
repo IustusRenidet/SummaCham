@@ -1479,10 +1479,10 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
         `
       SELECT capitulo as CAPITULO, seccion_principal as "SECCIÓN Principal", 
              seccion_secundaria as "SECCION Secundaria", cuenta as CUENTA, 
-             nombre as NOMBRE, orden
+             nombre as NOMBRE, operacion_factor, valor_plantilla, visible, orden, orden_presentacion
       FROM layout_cuentas
       WHERE empresa_id = ? AND modulo = ? AND anio = ?
-      ORDER BY orden, capitulo, seccion_principal, seccion_secundaria
+      ORDER BY COALESCE(orden_presentacion, orden), capitulo, seccion_principal, seccion_secundaria
     `,
       )
       .all(empresaCanonica, modulo, anioNumero);
@@ -1492,10 +1492,10 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
       .prepare(
         `
       SELECT capitulo as CAPITULO, clase as OperacionId, operacion_etiqueta, clase as Clase, seccion as SECCION,
-             operacion_tipo, operacion_label, signo, orden
+             operacion_tipo, operacion_label, signo, orden, orden_presentacion, visible, formula_json
       FROM layout_operaciones
       WHERE empresa_id = ? AND modulo = ? AND anio = ?
-      ORDER BY orden
+      ORDER BY COALESCE(orden_presentacion, orden), orden
     `,
       )
       .all(empresaCanonica, modulo, anioNumero);
@@ -1510,6 +1510,9 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
       etiqueta: op.operacion_label,
       signo: op.signo,
       orden: op.orden,
+      orden_presentacion: op.orden_presentacion,
+      visible: op.visible,
+      formula_json: op.formula_json,
     }));
 
     // Organizar operaciones por capítulo para navegación rápida
@@ -1534,6 +1537,9 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
           Clase: operacionEtiqueta,
           SECCION: op.SECCION,
           orden: op.orden,
+          orden_presentacion: op.orden_presentacion,
+          visible: op.visible,
+          formula_json: op.formula_json,
           signos: {},
         };
         operacionesAgrupadas.push(operacionesPorClase[operacionId]);

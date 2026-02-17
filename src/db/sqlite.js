@@ -560,6 +560,7 @@ const crearTablas = () => {
       seccion_principal TEXT NOT NULL,
       seccion_secundaria TEXT,
       operacion_factor REAL DEFAULT 1,
+      valor_plantilla REAL DEFAULT 0,
       orden INTEGER DEFAULT 0,
       creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       actualizado_en TEXT
@@ -665,6 +666,13 @@ const crearTablas = () => {
     console.log("✅ Columna 'operacion_factor' agregada a layout_cuentas");
   }
 
+  if (!columnasCuentas.includes("valor_plantilla")) {
+    db.prepare(
+      "ALTER TABLE layout_cuentas ADD COLUMN valor_plantilla REAL DEFAULT 0"
+    ).run();
+    console.log("✅ Columna 'valor_plantilla' agregada a layout_cuentas");
+  }
+
   // Migración: permitir cuentas duplicadas en un mismo layout
   try {
     const indices = db.prepare("PRAGMA index_list(layout_cuentas)").all();
@@ -701,6 +709,7 @@ const crearTablas = () => {
           seccion_principal TEXT NOT NULL,
           seccion_secundaria TEXT,
           operacion_factor REAL DEFAULT 1,
+          valor_plantilla REAL DEFAULT 0,
           orden INTEGER DEFAULT 0,
           orden_presentacion INTEGER,
           visible INTEGER DEFAULT 1,
@@ -718,6 +727,7 @@ const crearTablas = () => {
           seccion_principal,
           seccion_secundaria,
           operacion_factor,
+          valor_plantilla,
           orden,
           orden_presentacion,
           visible,
@@ -735,6 +745,7 @@ const crearTablas = () => {
           seccion_principal,
           seccion_secundaria,
           operacion_factor,
+          COALESCE(valor_plantilla, 0) AS valor_plantilla,
           orden,
           orden_presentacion,
           visible,
