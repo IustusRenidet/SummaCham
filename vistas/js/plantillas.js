@@ -656,9 +656,8 @@
   function updateAuthUI(isActive, statusText) {
     if (!dom.authStatus) return;
 
-    dom.authStatus.className = `status-badge ${
-      isActive ? "active" : "inactive"
-    }`;
+    dom.authStatus.className = `status-badge ${isActive ? "active" : "inactive"
+      }`;
     dom.authStatus.innerHTML = `
       <i class="bi bi-${isActive ? "pencil-square" : "lock"}"></i>
       ${statusText}
@@ -737,13 +736,12 @@
 
       dom.anioSelect.innerHTML = sortedYears.length
         ? sortedYears
-            .map(
-              (y) =>
-                `<option value="${y}" ${
-                  y === selectedYear ? "selected" : ""
-                }>${y}</option>`,
-            )
-            .join("")
+          .map(
+            (y) =>
+              `<option value="${y}" ${y === selectedYear ? "selected" : ""
+              }>${y}</option>`,
+          )
+          .join("")
         : '<option value="">Sin años disponibles</option>';
 
       state.anio = selectedYear;
@@ -882,7 +880,7 @@
         state.operaciones = extracted.operaciones;
         state.columnasConfig =
           Array.isArray(extracted.columnasConfig) &&
-          extracted.columnasConfig.length
+            extracted.columnasConfig.length
             ? extracted.columnasConfig
             : buildDefaultColumnConfig();
         state.columnasConfigChanged = false;
@@ -1201,9 +1199,8 @@
     const selectedNorm = normalizeAparicionValue(selected);
     return OP_APARICION_ITEMS.map((item) => {
       const isSelected = normalizeAparicionValue(item.value) === selectedNorm;
-      return `<option value="${escapeAttr(item.value)}"${
-        isSelected ? " selected" : ""
-      }>${escapeHtml(item.label)}</option>`;
+      return `<option value="${escapeAttr(item.value)}"${isSelected ? " selected" : ""
+        }>${escapeHtml(item.label)}</option>`;
     }).join("");
   };
 
@@ -1301,10 +1298,9 @@
         <div class="col-md-6">
           <label class="form-label small text-muted"${tooltipAttr}>${row.label}</label>
           <input type="text" class="form-control" id="${rowLabelInputId(
-            row.field,
-          )}" value="${escapeHtml(op?.[row.field] || "")}" placeholder="${
-            row.placeholder
-          }"${tooltipAttr} />
+        row.field,
+      )}" value="${escapeHtml(op?.[row.field] || "")}" placeholder="${row.placeholder
+        }"${tooltipAttr} />
         </div>
       `;
     }).join("");
@@ -1319,20 +1315,20 @@
       <div class="mb-3">
         <label class="form-label">Etiqueta de la Operación</label>
         <input type="text" class="form-control" id="editClaseOp" value="${escapeHtml(
-          opLabelInput,
-        )}" />
+      opLabelInput,
+    )}" />
       </div>
 
       <div class="mb-3">
         <label class="form-label d-flex align-items-center gap-2">
           Tipo de fila
           <i class="bi bi-info-circle text-muted" data-aparicion-help="true" title="${escapeAttr(
-            tipoTooltip,
-          )}"></i>
+      tipoTooltip,
+    )}"></i>
         </label>
         <select class="form-select" id="editOperacionTipo" data-aparicion-select="true" data-initial-tipo="${escapeAttr(
-          tipoSeleccionado,
-        )}" title="${escapeAttr(tipoTooltip)}">
+      tipoSeleccionado,
+    )}" title="${escapeAttr(tipoTooltip)}">
           ${tipoOptions}
         </select>
         <div class="form-text">
@@ -1351,9 +1347,8 @@
       </div>
 
       <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" id="editOperacionVisible" ${
-          op?.visible !== false ? "checked" : ""
-        } />
+        <input class="form-check-input" type="checkbox" id="editOperacionVisible" ${op?.visible !== false ? "checked" : ""
+      } />
         <label class="form-check-label" for="editOperacionVisible">
           Visible en la plantilla
         </label>
@@ -1827,8 +1822,8 @@
         const raw = cuenta?.orden_presentacion;
         const current =
           raw === null ||
-          raw === undefined ||
-          (typeof raw === "string" && raw.trim() === "")
+            raw === undefined ||
+            (typeof raw === "string" && raw.trim() === "")
             ? null
             : Number(raw);
         if (!Number.isFinite(current)) {
@@ -1869,8 +1864,8 @@
         const raw = op?.orden_presentacion;
         const current =
           raw === null ||
-          raw === undefined ||
-          (typeof raw === "string" && raw.trim() === "")
+            raw === undefined ||
+            (typeof raw === "string" && raw.trim() === "")
             ? null
             : Number(raw);
         if (!Number.isFinite(current)) {
@@ -2108,15 +2103,15 @@
         <div class="card-body">
           <div class="summary-grid">
             ${visibleItems
-              .map(
-                (item) => `
+        .map(
+          (item) => `
               <div class="summary-item">
                 <span class="summary-label">${escapeHtml(item.label)}</span>
                 <span class="summary-value">${item.value}</span>
               </div>
             `,
-              )
-              .join("")}
+        )
+        .join("")}
           </div>
           <div class="summary-note text-muted small">
             ${note}
@@ -2127,7 +2122,10 @@
   }
 
   function buildPreviewRowsForEditor() {
-    const appendMissingOperations = (rows = []) => rows;
+    const appendMissingOperations = (currentRows = []) => {
+      // Reverted: user requested full manual control.
+      return currentRows;
+    };
 
     // Intentar usar LayoutControls si está disponible (a menos que forzamos orden manual)
     if (
@@ -2549,15 +2547,13 @@
     const rowsHtml = (columns || [])
       .map(
         (col, idx) => `
-          <tr data-col-index="${idx}" class="${
-            col.editable ? "column-editable" : ""
+          <tr data-col-index="${idx}" class="${col.editable ? "column-editable" : ""
           }">
             <td class="text-muted">${idx + 1}</td>
-            ${
-              showAdvanced
-                ? `<td><code>${escapeHtml(col.key || "")}</code></td>`
-                : ""
-            }
+            ${showAdvanced
+            ? `<td><code>${escapeHtml(col.key || "")}</code></td>`
+            : ""
+          }
             <td>
               <input
                 type="text"
@@ -2567,9 +2563,8 @@
                 ${disabledAttr}
               />
             </td>
-            ${
-              showOperation
-                ? `<td>
+            ${showOperation
+            ? `<td>
               <input
                 type="text"
                 class="form-control form-control-sm"
@@ -2578,8 +2573,8 @@
                 ${disabledAttr}
               />
             </td>`
-                : ""
-            }
+            : ""
+          }
             <td class="text-center">
               <input
                 type="checkbox"
@@ -2751,8 +2746,8 @@
               </div>
               <div class="list-item-actions">
                 <button class="btn btn-sm ${sectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
-                  sectionName,
-                )}', '${escapeAttr(sectionOpMatch.field || "sum-row-sumavarios")}', '')" title="${sectionOpBtnTitle}" ${disabledAttr}>
+          sectionName,
+        )}', '${escapeAttr(sectionOpMatch.field || "sum-row-sumavarios")}', '')" title="${sectionOpBtnTitle}" ${disabledAttr}>
                   <i class="bi bi-calculator"></i>
                 </button>
                 <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSection('${escapeAttr(sectionName)}')" title="Editar" ${disabledAttr}>
@@ -2793,10 +2788,10 @@
               </div>
               <div class="list-item-actions">
                 <button class="btn btn-sm ${subsectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
-                  subsectionName,
-                )}', '${escapeAttr(subsectionOpMatch.field || "sum-row")}', '${escapeAttr(
-                  parentSection,
-                )}')" title="${subsectionOpBtnTitle}" ${disabledAttr}>
+          subsectionName,
+        )}', '${escapeAttr(subsectionOpMatch.field || "sum-row")}', '${escapeAttr(
+          parentSection,
+        )}')" title="${subsectionOpBtnTitle}" ${disabledAttr}>
                   <i class="bi bi-calculator"></i>
                 </button>
                 <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSubsection('${escapeAttr(parentSection)}', '${escapeAttr(subsectionName)}')" title="Editar subsección" ${disabledAttr}>
@@ -3020,33 +3015,32 @@
       Array.isArray(columns) && columns.length
         ? columns
         : [
-            { key: "cuenta", label: "Cuenta" },
-            { key: "descripcion", label: "Descripcion" },
-          ];
+          { key: "cuenta", label: "Cuenta" },
+          { key: "descripcion", label: "Descripcion" },
+        ];
     const showOrder = state.inlineOrderMode && state.editMode !== false;
     const dataColCount = resolvedColumns.length;
     const colCount = dataColCount + (showOrder ? 1 : 0);
-    const headerHtml = `${
-      showOrder
+    const headerHtml = `${showOrder
         ? `<th class="order-col"><i class="bi bi-arrows-move"></i></th>`
         : ""
-    }${resolvedColumns
-      .map((col, idx) => {
-        const isEditable = Boolean(col?.editable);
-        const label = escapeHtml(col.label || col.key || "");
-        const indicator = isEditable
-          ? `<span class="editable-indicator" title="Capturable"><i class="bi bi-pencil-fill"></i></span>`
-          : "";
-        const className = isEditable ? "col-editable" : "";
-        return `
+      }${resolvedColumns
+        .map((col, idx) => {
+          const isEditable = Boolean(col?.editable);
+          const label = escapeHtml(col.label || col.key || "");
+          const indicator = isEditable
+            ? `<span class="editable-indicator" title="Capturable"><i class="bi bi-pencil-fill"></i></span>`
+            : "";
+          const className = isEditable ? "col-editable" : "";
+          return `
           <th data-col-index="${idx}" class="${className}" title="${escapeAttr(
             col.key || "",
           )}" data-col-editable="${isEditable ? "true" : "false"}">
             <span class="col-label">${label}</span>${indicator}
           </th>
         `;
-      })
-      .join("")}`;
+        })
+        .join("")}`;
 
     let bodyHtml = "";
     let currentSection = "";
@@ -3062,10 +3056,10 @@
         const orderCell = showOrder ? renderInlineOrderCell(row, rowIndex) : "";
         bodyHtml += `
           <tr class="section-header-row ${hiddenClass}" data-row-type="section" data-row-index="${rowIndex}" data-section="${escapeAttr(
-            currentSection,
-          )}" data-generated="${row.generated ? "true" : "false"}" data-placeholder-account-id="${escapeAttr(
-            row.placeholderAccountId || "",
-          )}">
+          currentSection,
+        )}" data-generated="${row.generated ? "true" : "false"}" data-placeholder-account-id="${escapeAttr(
+          row.placeholderAccountId || "",
+        )}">
             ${orderCell}
             <td colspan="${showOrder ? colCount - 1 : colCount}">
               <strong>${escapeHtml(currentSection || "Seccion")}</strong>
@@ -3080,10 +3074,10 @@
         const orderCell = showOrder ? renderInlineOrderCell(row, rowIndex) : "";
         bodyHtml += `
           <tr class="subsection-row ${hiddenClass}" data-row-type="subsection" data-row-index="${rowIndex}" data-section="${escapeAttr(
-            currentSection,
-          )}" data-subsection="${escapeAttr(currentSubsection)}" data-placeholder-account-id="${escapeAttr(
-            row.placeholderAccountId || "",
-          )}">
+          currentSection,
+        )}" data-subsection="${escapeAttr(currentSubsection)}" data-placeholder-account-id="${escapeAttr(
+          row.placeholderAccountId || "",
+        )}">
             ${orderCell}
             <td colspan="${showOrder ? colCount - 1 : colCount}">
               <em>${escapeHtml(currentSubsection || "Subseccion")}</em>
@@ -3131,12 +3125,12 @@
         }
         bodyHtml += `
           <tr class="account-row ${hiddenClass}" data-row-type="account" data-row-index="${rowIndex}" data-account-id="${escapeAttr(
-            accountId,
-          )}" data-cuenta="${escapeAttr(
-            cuenta,
-          )}" data-nombre="${escapeAttr(nombre)}" data-section="${escapeAttr(
-            parentSection,
-          )}" data-subsection="${escapeAttr(parentSubsection)}">
+          accountId,
+        )}" data-cuenta="${escapeAttr(
+          cuenta,
+        )}" data-nombre="${escapeAttr(nombre)}" data-section="${escapeAttr(
+          parentSection,
+        )}" data-subsection="${escapeAttr(parentSubsection)}">
             ${cells.join("")}
           </tr>
         `;
@@ -3176,13 +3170,12 @@
             cells.push(
               `<td class="fw-semibold ${cellClass}">
                 ${escapeHtml(label)}
-                ${
-                  kindMeta
-                    ? `<span class="op-kind-pill ${kindMeta.className}" title="${escapeAttr(
-                        kind,
-                      )}">${escapeHtml(kindMeta.label)}</span>`
-                    : ""
-                }
+                ${kindMeta
+                ? `<span class="op-kind-pill ${kindMeta.className}" title="${escapeAttr(
+                  kind,
+                )}">${escapeHtml(kindMeta.label)}</span>`
+                : ""
+              }
                 <div class="op-formula-preview small text-muted mt-1">
                   ${formula ? `= ${escapeHtml(formula)}` : "Sin formula"}
                 </div>
@@ -3194,12 +3187,12 @@
         }
         bodyHtml += `
           <tr class="operation-row ${kind} ${kindMeta?.className || ""} ${hiddenClass}" data-row-type="operation" data-row-index="${rowIndex}" data-operation-id="${escapeAttr(
-            opId || label,
-          )}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(
-            kind,
-          )}" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(
-            parentSubsection,
-          )}" ${formula ? `title="${escapeAttr(formula)}"` : ""}>
+          opId || label,
+        )}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(
+          kind,
+        )}" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(
+          parentSubsection,
+        )}" ${formula ? `title="${escapeAttr(formula)}"` : ""}>
             ${cells.join("")}
           </tr>
         `;
@@ -3218,9 +3211,8 @@
 
     return `
       <div class="table-responsive">
-        <table class="table table-sm table-bordered template-table ${
-          showOrder ? "ordering-mode" : ""
-        }">
+        <table class="table table-sm table-bordered template-table ${showOrder ? "ordering-mode" : ""
+      }">
           <thead class="table-light">
             <tr>${headerHtml}</tr>
           </thead>
@@ -3352,8 +3344,8 @@
         <label class="form-label">Tipo de fila</label>
         <div>
           <span class="badge bg-secondary text-uppercase">${escapeHtml(
-            tipoFila,
-          )}</span>
+      tipoFila,
+    )}</span>
         </div>
       </div>
       <div class="mb-3">
@@ -3485,11 +3477,10 @@
             </button>
             <div class="formula-layout-label">
               <span>${escapeHtml(label)}</span>
-              ${
-                row.type && row.type !== "account"
-                  ? `<span class="meta">(${escapeHtml(row.type)})</span>`
-                  : ""
-              }
+              ${row.type && row.type !== "account"
+            ? `<span class="meta">(${escapeHtml(row.type)})</span>`
+            : ""
+          }
             </div>
           </div>
         `;
@@ -3500,13 +3491,11 @@
       <div class="d-flex align-items-center justify-content-between mb-2">
         <label class="form-label fw-bold mb-0">Edición de fórmula</label>
         <div class="btn-group btn-group-sm" role="group" aria-label="Modo de edición">
-          <input class="btn-check" type="radio" name="operationFormulaMode" id="formulaModeManual" value="manual" ${
-            initialMode === "manual" ? "checked" : ""
-          } />
+          <input class="btn-check" type="radio" name="operationFormulaMode" id="formulaModeManual" value="manual" ${initialMode === "manual" ? "checked" : ""
+      } />
           <label class="btn btn-outline-primary" for="formulaModeManual">Manual</label>
-          <input class="btn-check" type="radio" name="operationFormulaMode" id="formulaModeLayout" value="layout" ${
-            initialMode === "layout" ? "checked" : ""
-          } />
+          <input class="btn-check" type="radio" name="operationFormulaMode" id="formulaModeLayout" value="layout" ${initialMode === "layout" ? "checked" : ""
+      } />
           <label class="btn btn-outline-primary" for="formulaModeLayout">Layout</label>
         </div>
       </div>
@@ -3514,8 +3503,8 @@
       <div data-formula-panel="manual" class="${initialMode === "manual" ? "" : "d-none"}">
         <label class="form-label">Fórmula</label>
         <textarea class="form-control font-monospace" id="operationFormulaManual" rows="4" placeholder="Ej: 401-000-000-00 + Membership - Gastos">${escapeHtml(
-          formulaText,
-        )}</textarea>
+        formulaText,
+      )}</textarea>
         <div class="form-text">Escribe cuentas, secciones u operaciones con +, -, * o /. Usa espacios alrededor del operador para evitar cortar cuentas con guiones.</div>
       </div>
       <div data-formula-panel="layout" class="${initialMode === "layout" ? "" : "d-none"}">
@@ -3825,12 +3814,12 @@
         <label class="form-label d-flex align-items-center gap-2">
           Tipo de fila
           <i class="bi bi-info-circle text-muted" data-aparicion-help="true" title="${escapeAttr(
-            tipoTooltip,
-          )}"></i>
+      tipoTooltip,
+    )}"></i>
         </label>
         <select class="form-select" id="editOperacionTipo" data-aparicion-select="true" data-initial-tipo="${escapeAttr(
-          tipoSeleccionado,
-        )}" title="${escapeAttr(tipoTooltip)}">
+      tipoSeleccionado,
+    )}" title="${escapeAttr(tipoTooltip)}">
           ${tipoOptions}
         </select>
         <div class="form-text">
@@ -3908,13 +3897,12 @@
         const searchKey = normalizeOperationMatch(label || value);
         return `
           <label class="contrib-item" data-type="${escapeAttr(
-            type,
-          )}" data-value="${escapeAttr(value)}" data-search="${escapeAttr(
-            searchKey,
-          )}">
-            <input class="form-check-input contrib-check" type="checkbox" ${
-              checked ? "checked" : ""
-            } />
+          type,
+        )}" data-value="${escapeAttr(value)}" data-search="${escapeAttr(
+          searchKey,
+        )}">
+            <input class="form-check-input contrib-check" type="checkbox" ${checked ? "checked" : ""
+          } />
             <select class="form-select form-select-sm contrib-operator">
               <option value="+" ${operator === "+" ? "selected" : ""}>+</option>
               <option value="-" ${operator === "-" ? "selected" : ""}>-</option>
@@ -4084,10 +4072,9 @@
         <div class="col-md-6">
           <label class="form-label small text-muted"${tooltipAttr}>${row.label}</label>
           <input type="text" class="form-control" id="${rowLabelInputId(
-            row.field,
-          )}" value="${escapeHtml(op[row.field] || "")}" placeholder="${
-            row.placeholder
-          }"${tooltipAttr} />
+        row.field,
+      )}" value="${escapeHtml(op[row.field] || "")}" placeholder="${row.placeholder
+        }"${tooltipAttr} />
         </div>
       `;
     }).join("");
@@ -4388,18 +4375,18 @@
         <div class="mb-3">
           <label class="form-label">Signo/Factor</label>
           <input type="number" step="any" class="form-control" id="editFactor" value="${escapeHtml(
-            Number.isFinite(Number(cuenta.operacion_factor))
-              ? String(Number(cuenta.operacion_factor))
-              : "1",
-          )}" />
+        Number.isFinite(Number(cuenta.operacion_factor))
+          ? String(Number(cuenta.operacion_factor))
+          : "1",
+      )}" />
         </div>
         <div class="mb-3">
           <label class="form-label">Valor plantilla</label>
           <input type="number" step="any" class="form-control" id="editValorPlantilla" value="${escapeHtml(
-            Number.isFinite(Number(cuenta.valor_plantilla))
-              ? String(Number(cuenta.valor_plantilla))
-              : "0",
-          )}" />
+        Number.isFinite(Number(cuenta.valor_plantilla))
+          ? String(Number(cuenta.valor_plantilla))
+          : "0",
+      )}" />
           <div class="form-text">Solo gestor/preview.</div>
         </div>
         <div class="mb-3">
@@ -7063,34 +7050,34 @@
       <div class="operations-sequential-list mt-3">
         <div class="table-section-content">
           ${ordenadas
-            .map((op, idx) => {
-              // Determinar color según tipo
-              let color = "secondary";
-              const clase = (getOperationLabel(op) || "").toLowerCase();
-              const opId = (getOperationId(op) || "").toLowerCase();
-              const combined = `${clase} ${opId}`;
+        .map((op, idx) => {
+          // Determinar color según tipo
+          let color = "secondary";
+          const clase = (getOperationLabel(op) || "").toLowerCase();
+          const opId = (getOperationId(op) || "").toLowerCase();
+          const combined = `${clase} ${opId}`;
 
-              if (op["result-net-row"] || combined.includes("net result")) {
-                color = "danger";
-              } else if (
-                op["sum-row-operativo"] ||
-                combined.includes("operating")
-              ) {
-                color = "primary";
-              } else if (
-                op["sum-row-sumavarios-consolidado"] ||
-                combined.includes("consolidated")
-              ) {
-                color = "success";
-              } else if (op["sum-row-sumavarios"]) {
-                color = "info";
-              } else if (op["sum-row"]) {
-                color = "warning";
-              }
+          if (op["result-net-row"] || combined.includes("net result")) {
+            color = "danger";
+          } else if (
+            op["sum-row-operativo"] ||
+            combined.includes("operating")
+          ) {
+            color = "primary";
+          } else if (
+            op["sum-row-sumavarios-consolidado"] ||
+            combined.includes("consolidated")
+          ) {
+            color = "success";
+          } else if (op["sum-row-sumavarios"]) {
+            color = "info";
+          } else if (op["sum-row"]) {
+            color = "warning";
+          }
 
-              return renderOperationCardWithOrder(op, color, idx + 1);
-            })
-            .join("")}
+          return renderOperationCardWithOrder(op, color, idx + 1);
+        })
+        .join("")}
         </div>
       </div>
     `;
@@ -7141,20 +7128,20 @@
           <small class="text-muted d-block mb-1"><i class="bi bi-equation"></i> Fórmula:</small>
           <div class="d-flex flex-wrap gap-1">
             ${op.formula_terms
-              .map(
-                (term, idx) => `
+          .map(
+            (term, idx) => `
               <span class="badge bg-light text-dark border">
                 ${idx > 0 ? term.operator + " " : ""}${escapeHtml(
-                  term.type === "operation"
-                    ? formatOperationReference(term.value)
-                    : term.type === "constant"
-                      ? (term.constant ?? term.value ?? "0")
-                      : term.value || "???",
-                )}
+              term.type === "operation"
+                ? formatOperationReference(term.value)
+                : term.type === "constant"
+                  ? (term.constant ?? term.value ?? "0")
+                  : term.value || "???",
+            )}
               </span>
             `,
-              )
-              .join("")}
+          )
+          .join("")}
           </div>
         </div>
       `;
@@ -7171,13 +7158,13 @@
             <small class="text-muted d-block mb-1"><i class="bi bi-list-ul"></i> Cuentas:</small>
             <div class="d-flex flex-wrap gap-1">
               ${cuentasList
-                .slice(0, 5)
-                .map(
-                  (cuenta) => `
+            .slice(0, 5)
+            .map(
+              (cuenta) => `
                 <code class="badge bg-light text-dark border">${escapeHtml(cuenta)}</code>
               `,
-                )
-                .join("")}
+            )
+            .join("")}
               ${cuentasList.length > 5 ? `<span class="badge bg-secondary">+${cuentasList.length - 5} más</span>` : ""}
             </div>
           </div>
@@ -7187,8 +7174,8 @@
 
     return `
       <div class="operation-card border-${colorTheme} mb-2 p-3 rounded border-start border-4 bg-white shadow-sm hover-shadow ${hiddenClass}" data-operation-id="${escapeAttr(
-        opId || "",
-      )}" data-operation-label="${escapeAttr(displayName)}">
+      opId || "",
+    )}" data-operation-label="${escapeAttr(displayName)}">
         <div class="d-flex align-items-start justify-content-between">
           <div class="d-flex gap-3 flex-grow-1">
             <div class="orden-badge">
@@ -7200,13 +7187,12 @@
               <div class="d-flex align-items-center gap-2 mb-2">
                 <i class="bi bi-calculator text-${colorTheme}"></i>
                 <strong class="text-${colorTheme}">${escapeHtml(
-                  displayName,
-                )}</strong>
-                ${
-                  termsCount > 0
-                    ? `<span class="badge bg-secondary">${termsCount} términos</span>`
-                    : ""
-                }
+      displayName,
+    )}</strong>
+                ${termsCount > 0
+        ? `<span class="badge bg-secondary">${termsCount} términos</span>`
+        : ""
+      }
               </div>
               <div class="mb-2">
                 <small class="text-muted">Etiqueta: </small>
@@ -7214,38 +7200,35 @@
                 <small class="text-muted ms-2">ID: </small>
                 <code class="text-dark">${escapeHtml(opId || "")}</code>
               </div>
-              ${
-                rowLabels.length > 0
-                  ? `
+              ${rowLabels.length > 0
+        ? `
                 <div class="d-flex flex-wrap gap-1 mb-2">
                   ${rowLabels.join("")}
                 </div>
               `
-                  : ""
-              }
+        : ""
+      }
               ${termsHtml}
               ${cuentasHtml}
             </div>
           </div>
           <div class="d-flex flex-column gap-1">
-            ${
-              window.LayoutControls
-                ? window.LayoutControls.renderVisibilityControl(op, "operation")
-                : ""
-            }
-            ${
-              window.LayoutControls
-                ? window.LayoutControls.renderOrderControl(op, "operation")
-                : ""
-            }
+            ${window.LayoutControls
+        ? window.LayoutControls.renderVisibilityControl(op, "operation")
+        : ""
+      }
+            ${window.LayoutControls
+        ? window.LayoutControls.renderOrderControl(op, "operation")
+        : ""
+      }
             <button class="btn btn-sm btn-outline-primary" onclick="window.editOperation('${escapeAttr(
-              opId || clase,
-            ).replace(/'/g, "\\'")}')" ${disabledAttr}>
+        opId || clase,
+      ).replace(/'/g, "\\'")}')" ${disabledAttr}>
               <i class="bi bi-pencil"></i> Editar
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="window.deleteOperation('${escapeAttr(
-              opId || clase,
-            ).replace(/'/g, "\\'")}')" ${disabledAttr}>
+        opId || clase,
+      ).replace(/'/g, "\\'")}')" ${disabledAttr}>
               <i class="bi bi-trash"></i> Eliminar
             </button>
           </div>
@@ -7297,20 +7280,20 @@
           <small class="text-muted d-block mb-1"><i class="bi bi-equation"></i> Fórmula:</small>
           <div class="d-flex flex-wrap gap-1">
             ${op.formula_terms
-              .map(
-                (term, idx) => `
+          .map(
+            (term, idx) => `
               <span class="badge bg-light text-dark border">
                 ${idx > 0 ? term.operator + " " : ""}${escapeHtml(
-                  term.type === "operation"
-                    ? formatOperationReference(term.value)
-                    : term.type === "constant"
-                      ? (term.constant ?? term.value ?? "0")
-                      : term.value || "???",
-                )}
+              term.type === "operation"
+                ? formatOperationReference(term.value)
+                : term.type === "constant"
+                  ? (term.constant ?? term.value ?? "0")
+                  : term.value || "???",
+            )}
               </span>
             `,
-              )
-              .join("")}
+          )
+          .join("")}
           </div>
         </div>
       `;
@@ -7318,20 +7301,19 @@
 
     return `
       <div class="operation-card border-${colorTheme} mb-2 p-3 rounded border-start border-3 bg-white shadow-sm hover-shadow ${hiddenClass}" data-operation-id="${escapeAttr(
-        opId || "",
-      )}" data-operation-label="${escapeAttr(displayName)}">
+      opId || "",
+    )}" data-operation-label="${escapeAttr(displayName)}">
         <div class="d-flex align-items-start justify-content-between">
           <div class="flex-grow-1">
             <div class="d-flex align-items-center gap-2 mb-2">
               <i class="bi bi-calculator text-${colorTheme}"></i>
               <strong class="text-${colorTheme}">${escapeHtml(
-                displayName,
-              )}</strong>
-              ${
-                termsCount > 0
-                  ? `<span class="badge bg-secondary">${termsCount} términos</span>`
-                  : ""
-              }
+      displayName,
+    )}</strong>
+              ${termsCount > 0
+        ? `<span class="badge bg-secondary">${termsCount} términos</span>`
+        : ""
+      }
             </div>
             <div class="mb-2">
               <small class="text-muted">Etiqueta: </small>
@@ -7339,36 +7321,33 @@
               <small class="text-muted ms-2">ID: </small>
               <code class="text-dark">${escapeHtml(opId || "")}</code>
             </div>
-            ${
-              rowLabels.length > 0
-                ? `
+            ${rowLabels.length > 0
+        ? `
               <div class="d-flex flex-wrap gap-1 mb-2">
                 ${rowLabels.join("")}
               </div>
             `
-                : ""
-            }
+        : ""
+      }
             ${termsHtml}
           </div>
           <div class="d-flex flex-column gap-1">
-            ${
-              window.LayoutControls
-                ? window.LayoutControls.renderVisibilityControl(op, "operation")
-                : ""
-            }
-            ${
-              window.LayoutControls
-                ? window.LayoutControls.renderOrderControl(op, "operation")
-                : ""
-            }
+            ${window.LayoutControls
+        ? window.LayoutControls.renderVisibilityControl(op, "operation")
+        : ""
+      }
+            ${window.LayoutControls
+        ? window.LayoutControls.renderOrderControl(op, "operation")
+        : ""
+      }
             <button class="btn btn-sm btn-outline-primary" onclick="window.editOperation('${escapeAttr(
-              opId || clase,
-            ).replace(/'/g, "\\'")}')" ${disabledAttr}>
+        opId || clase,
+      ).replace(/'/g, "\\'")}')" ${disabledAttr}>
               <i class="bi bi-pencil"></i> Editar
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="window.deleteOperation('${escapeAttr(
-              opId || clase,
-            ).replace(/'/g, "\\'")}')" ${disabledAttr}>
+        opId || clase,
+      ).replace(/'/g, "\\'")}')" ${disabledAttr}>
               <i class="bi bi-trash"></i> Eliminar
             </button>
           </div>
@@ -7458,7 +7437,9 @@
       });
     });
 
-    // Convert to array and sort by first appearance order
+    // MODO MANUAL: No renderizar filas inferidas automáticamente. 
+    // Si el usuario quiere ver "CONSOLIDATED INCOME", debe crearla explícitamente.
+    // MODIFICACION: Permitir verlas si existen para que el usuario pueda eliminarlas/editarlas.
     const sortedLabels = Array.from(consolidatedLabels.entries()).sort(
       (a, b) => a[1].firstIndex - b[1].firstIndex,
     );
@@ -7481,45 +7462,45 @@
       });
 
       // Render extracted consolidated labels as special rows (in order of appearance)
+      // DISABLED AUTO-RENDER to avoid "ghost rows". User must create them explicitly.
+      /*
       sortedLabels.forEach(([label, info]) => {
         const formulaStr =
           info.operations.slice(0, 5).join(" + ") +
           (info.operations.length > 5 ? " + ..." : "");
         html += `
-          <div class="consolidated-label-row consolidated-${
-            info.type
+          <div class="consolidated-label-row consolidated-${info.type
           }" data-label="${escapeAttr(label)}" data-field="${info.field}">
             <div class="label-icon bg-${info.color}">
               <i class="bi ${info.icon}"></i>
             </div>
             <div class="label-content">
               <span class="label-name">${escapeHtml(label)}</span>
-              <span class="label-type badge bg-${
-                info.color
-              } ms-2">${info.type.replace(/-/g, " ")}</span>
+              <span class="label-type badge bg-${info.color
+          } ms-2">${info.type.replace(/-/g, " ")}</span>
             </div>
             <div class="label-formula text-muted">
               <i class="bi bi-equation me-1"></i>
               <span class="formula-text">= ${escapeHtml(formulaStr)}</span>
-              <span class="operation-count ms-2">(${
-                info.operations.length
-              } operaciones)</span>
+              <span class="operation-count ms-2">(${info.operations.length
+          } operaciones)</span>
             </div>
             <div class="label-actions">
               <button class="btn btn-sm btn-outline-primary" onclick="editConsolidatedLabel('${escapeAttr(
-                label,
-              )}', '${info.field}')" title="Editar">
+            label,
+          )}', '${info.field}')" title="Editar">
                 <i class="bi bi-pencil"></i>
               </button>
               <button class="btn btn-sm btn-outline-danger" onclick="deleteConsolidatedLabel('${escapeAttr(
-                label,
-              )}', '${info.field}')" title="Eliminar">
+            label,
+          )}', '${info.field}')" title="Eliminar">
                 <i class="bi bi-trash"></i>
               </button>
             </div>
           </div>
         `;
       });
+      */
 
       html += `</div>`;
     }
@@ -7562,10 +7543,10 @@
     return `
       <div class="layout-section operation-section ${tipo}">
         <div class="operation-row ${tipo} ${hiddenClass}" data-operation-id="${escapeAttr(
-          opId || "",
-        )}" data-operation-label="${escapeAttr(
-          displayName,
-        )}" onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || clase)}')">
+      opId || "",
+    )}" data-operation-label="${escapeAttr(
+      displayName,
+    )}" onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || clase)}')">
           <div class="operation-label">
             <i class="bi bi-calculator"></i>
             <span>${escapeHtml(displayName)}</span>
@@ -7576,13 +7557,13 @@
           </div>
           <div class="account-actions">
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
-              opId || clase,
-            )}')" title="Editar" ${disabledAttr}>
+      opId || clase,
+    )}')" title="Editar" ${disabledAttr}>
               <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteOperation('${escapeAttr(
-              opId || clase,
-            )}')" title="Eliminar" ${disabledAttr}>
+      opId || clase,
+    )}')" title="Eliminar" ${disabledAttr}>
               <i class="bi bi-trash"></i>
             </button>
           </div>
@@ -7608,10 +7589,10 @@
 
     return `
       <div class="inline-operation-row ${hiddenClass}" data-operation-id="${escapeAttr(
-        opId || "",
-      )}" data-operation-label="${escapeAttr(
-        displayName,
-      )}" onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || clase)}')">
+      opId || "",
+    )}" data-operation-label="${escapeAttr(
+      displayName,
+    )}" onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || clase)}')">
         <div class="inline-op-icon">
           <i class="bi bi-calculator"></i>
         </div>
@@ -7624,18 +7605,18 @@
         </div>
         <div class="inline-op-actions">
           <button class="btn btn-sm btn-link p-0" onclick="event.stopPropagation(); editOperation('${escapeAttr(
-            opId || clase,
-          )}')" title="Editar" ${disabledAttr}>
+      opId || clase,
+    )}')" title="Editar" ${disabledAttr}>
             <i class="bi bi-pencil"></i>
           </button>
           <button type="button" class="btn btn-sm btn-link p-0" onclick="window.handleInlineOperationOrderClick(event, '${escapeAttr(
-            displayName,
-          )}', '${escapeAttr(opId || "")}', '', -1)" title="Subir" ${disabledAttr}>
+      displayName,
+    )}', '${escapeAttr(opId || "")}', '', -1)" title="Subir" ${disabledAttr}>
             <i class="bi bi-arrow-up"></i>
           </button>
           <button type="button" class="btn btn-sm btn-link p-0" onclick="window.handleInlineOperationOrderClick(event, '${escapeAttr(
-            displayName,
-          )}', '${escapeAttr(opId || "")}', '', 1)" title="Bajar" ${disabledAttr}>
+      displayName,
+    )}', '${escapeAttr(opId || "")}', '', 1)" title="Bajar" ${disabledAttr}>
             <i class="bi bi-arrow-down"></i>
           </button>
         </div>
@@ -8084,33 +8065,33 @@
           </div>
           <div class="section-actions">
             <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); moveSectionOrder('${escapeAttr(
-              principal,
-            )}', -1)" title="Subir" ${disabledAttr}>
+      principal,
+    )}', -1)" title="Subir" ${disabledAttr}>
               <i class="bi bi-arrow-up"></i>
             </button>
             <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); moveSectionOrder('${escapeAttr(
-              principal,
-            )}', 1)" title="Bajar" ${disabledAttr}>
+      principal,
+    )}', 1)" title="Bajar" ${disabledAttr}>
               <i class="bi bi-arrow-down"></i>
             </button>
             <button class="btn btn-sm ${sectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
-              principal,
-            )}', '${escapeAttr(sectionOpMatch.field || "sum-row-sumavarios")}', '')" title="${sectionOpBtnTitle}" ${disabledAttr}>
+      principal,
+    )}', '${escapeAttr(sectionOpMatch.field || "sum-row-sumavarios")}', '')" title="${sectionOpBtnTitle}" ${disabledAttr}>
               <i class="bi bi-calculator"></i>
             </button>
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSection('${escapeAttr(
-              principal,
-            )}')" title="Editar">
+      principal,
+    )}')" title="Editar">
               <i class="bi bi-pencil"></i>
             </button>
              <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteSection('${escapeAttr(
-               principal,
-             )}')" title="Eliminar">
+      principal,
+    )}')" title="Eliminar">
               <i class="bi bi-trash"></i>
             </button>
             <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); addToSection('${escapeAttr(
-              principal,
-            )}')" title="Agregar">
+      principal,
+    )}')" title="Agregar">
               <i class="bi bi-plus"></i>
             </button>
           </div>
@@ -8210,35 +8191,35 @@
           </div>
           <div class="section-actions">
             <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); moveSubsectionOrder('${escapeAttr(
-              principal,
-            )}', '${escapeAttr(name)}', -1)" title="Subir" ${disabledAttr}>
+      principal,
+    )}', '${escapeAttr(name)}', -1)" title="Subir" ${disabledAttr}>
               <i class="bi bi-arrow-up"></i>
             </button>
             <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); moveSubsectionOrder('${escapeAttr(
-              principal,
-            )}', '${escapeAttr(name)}', 1)" title="Bajar" ${disabledAttr}>
+      principal,
+    )}', '${escapeAttr(name)}', 1)" title="Bajar" ${disabledAttr}>
               <i class="bi bi-arrow-down"></i>
             </button>
             <button class="btn btn-sm ${subsectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
-              name,
-            )}', '${escapeAttr(subsectionOpMatch.field || "sum-row")}', '${escapeAttr(
-              principal,
-            )}')" title="${subsectionOpBtnTitle}" ${disabledAttr}>
+      name,
+    )}', '${escapeAttr(subsectionOpMatch.field || "sum-row")}', '${escapeAttr(
+      principal,
+    )}')" title="${subsectionOpBtnTitle}" ${disabledAttr}>
               <i class="bi bi-calculator"></i>
             </button>
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSubsection('${escapeAttr(
-              principal,
-            )}', '${escapeAttr(name)}')" title="Editar subsección">
+      principal,
+    )}', '${escapeAttr(name)}')" title="Editar subsección">
               <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteSubsection('${escapeAttr(
-              principal,
-            )}', '${escapeAttr(name)}')" title="Eliminar subsección">
+      principal,
+    )}', '${escapeAttr(name)}')" title="Eliminar subsección">
               <i class="bi bi-trash"></i>
             </button>
             <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); addAccount('${escapeAttr(
-              principal,
-            )}', '${escapeAttr(name)}')" title="Agregar cuenta">
+      principal,
+    )}', '${escapeAttr(name)}')" title="Agregar cuenta">
               <i class="bi bi-plus"></i>
             </button>
           </div>
@@ -8263,33 +8244,31 @@
 
     return `
       <div class="account-row ${hiddenClass}" data-cuenta="${escapeHtml(
-        codigo,
-      )}" data-account-id="${escapeAttr(accountId)}" onclick="selectAccount(this, '${escapeAttr(accountId)}')">
+      codigo,
+    )}" data-account-id="${escapeAttr(accountId)}" onclick="selectAccount(this, '${escapeAttr(accountId)}')">
         <span class="drag-handle" title="Arrastrar para reordenar">⋮⋮</span>
         <span class="account-code">${escapeHtml(codigo)}</span>
         <span class="account-name">${escapeHtml(nombre)}</span>
         <div class="account-actions d-flex gap-2 align-items-center">
-          ${
-            window.LayoutControls
-              ? window.LayoutControls.renderVisibilityControl(
-                  account,
-                  "account",
-                )
-              : ""
-          }
-          ${
-            window.LayoutControls
-              ? window.LayoutControls.renderOrderControl(account, "account")
-              : ""
-          }
+          ${window.LayoutControls
+        ? window.LayoutControls.renderVisibilityControl(
+          account,
+          "account",
+        )
+        : ""
+      }
+          ${window.LayoutControls
+        ? window.LayoutControls.renderOrderControl(account, "account")
+        : ""
+      }
           <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editAccount('${escapeAttr(
-            accountId,
-          )}')" title="Editar" ${disabledAttr}>
+        accountId,
+      )}')" title="Editar" ${disabledAttr}>
             <i class="bi bi-pencil"></i>
           </button>
           <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteAccount('${escapeAttr(
-            accountId,
-          )}')" title="Eliminar" ${disabledAttr}>
+        accountId,
+      )}')" title="Eliminar" ${disabledAttr}>
             <i class="bi bi-trash"></i>
           </button>
         </div>
@@ -8315,26 +8294,25 @@
           opId || "",
         )}" data-operation-label="${escapeAttr(displayName)}">
           <div class="operation-label" onclick="editOperation('${escapeAttr(
-            opId || clase,
-          )}')">
+          opId || clase,
+        )}')">
             <i class="bi bi-calculator"></i>
             <span>${escapeHtml(displayName)}</span>
             <span class="operation-type">${tipo}</span>
-            ${
-              termsCount > 0
-                ? `<span class="badge bg-secondary ms-2">${termsCount} términos</span>`
-                : ""
-            }
+            ${termsCount > 0
+            ? `<span class="badge bg-secondary ms-2">${termsCount} términos</span>`
+            : ""
+          }
           </div>
           <div class="account-actions">
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
-              opId || clase,
-            )}')" title="Editar" ${disabledAttr}>
+            opId || clase,
+          )}')" title="Editar" ${disabledAttr}>
               <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteOperation('${escapeAttr(
-              opId || clase,
-            )}')" title="Eliminar" ${disabledAttr}>
+            opId || clase,
+          )}')" title="Eliminar" ${disabledAttr}>
               <i class="bi bi-trash"></i>
             </button>
           </div>
@@ -8673,18 +8651,16 @@
             <i class="bi bi-${icon} order-icon"></i>
             <div class="order-label">
               ${escapeHtml(mainLabel)}
-              ${
-                detail
-                  ? `<div class="small text-muted">${escapeHtml(detail)}</div>`
-                  : ""
-              }
+              ${detail
+            ? `<div class="small text-muted">${escapeHtml(detail)}</div>`
+            : ""
+          }
             </div>
             <div class="order-type">${typeLabel[row.type] || row.type}</div>
-            ${
-              visible
-                ? ""
-                : '<span class="badge bg-light text-muted border">Oculta</span>'
-            }
+            ${visible
+            ? ""
+            : '<span class="badge bg-light text-muted border">Oculta</span>'
+          }
           </div>
         `;
       })
@@ -8794,8 +8770,7 @@
     const optionHtml = typeOptions
       .map(
         (opt) =>
-          `<option value="${opt.value}"${
-            opt.value === tipo ? " selected" : ""
+          `<option value="${opt.value}"${opt.value === tipo ? " selected" : ""
           }>${opt.label}</option>`,
       )
       .join("");
@@ -8816,16 +8791,16 @@
     const seccionFieldHtml =
       kindSeccion === "input"
         ? `<input type="text" class="form-control form-control-sm" data-field="seccion" placeholder="Nombre de sección" value="${escapeAttr(
-            values.seccion || "",
-          )}" />`
+          values.seccion || "",
+        )}" />`
         : `<select class="form-select form-select-sm" data-field="seccion">
             ${seccionOptions}
           </select>`;
     const subseccionFieldHtml =
       kindSubseccion === "input"
         ? `<input type="text" class="form-control form-control-sm" data-field="subseccion" placeholder="Nombre de subsección" value="${escapeAttr(
-            values.subseccion || "",
-          )}" />`
+          values.subseccion || "",
+        )}" />`
         : `<select class="form-select form-select-sm" data-field="subseccion">
             ${subseccionOptions}
           </select>`;
@@ -8844,24 +8819,24 @@
           ${subseccionFieldHtml}
         </td>
         <td><input type="text" class="form-control form-control-sm" data-field="cuenta" placeholder="401-001-000-00" value="${escapeAttr(
-          values.cuenta || "",
-        )}" /></td>
+      values.cuenta || "",
+    )}" /></td>
         <td><input type="text" class="form-control form-control-sm" data-field="nombre" placeholder="Nombre" value="${escapeAttr(
-          values.nombre || "",
-        )}" /></td>
+      values.nombre || "",
+    )}" /></td>
         <td>
           <select class="form-select form-select-sm" data-field="aparicion">
             ${aparicionOptions}
           </select>
         </td>
         <td><input type="text" class="form-control form-control-sm text-center" data-field="signo" placeholder="1/-1" title="Signo: 1 suma, -1 resta. En cuentas aplica como factor. Vacio = automatico." data-bs-toggle="tooltip" data-bs-placement="top" value="${escapeAttr(
-          values.signo || "",
-        )}" /></td>
+      values.signo || "",
+    )}" /></td>
         <td>
           <div class="input-group input-group-sm">
             <input type="text" class="form-control font-monospace" data-field="formula" placeholder="A + B - C" value="${escapeAttr(
-              values.formula || "",
-            )}" />
+      values.formula || "",
+    )}" />
             <button type="button" class="btn btn-outline-primary" data-action="edit-formula-bulk" title="Editor visual de fórmula">
               <i class="bi bi-calculator"></i>
             </button>
@@ -9245,8 +9220,7 @@
       const isSelected =
         normalizedSelected && normalizeBulkName(item) === normalizedSelected;
       options.push(
-        `<option value="${escapeAttr(item)}"${
-          isSelected ? " selected" : ""
+        `<option value="${escapeAttr(item)}"${isSelected ? " selected" : ""
         }>${escapeHtml(item)}</option>`,
       );
     });
@@ -9948,22 +9922,22 @@
             <label class="form-label">Aparición en la tabla</label>
             <div class="row g-2">
               ${OP_ROW_FIELDS.map(
-                (row) => `
+          (row) => `
                   <div class="col-md-6">
                     <div class="form-check">
                       <input class="form-check-input" type="checkbox" id="${rowLabelAddCheckId(
-                        row.field,
-                      )}">
+            row.field,
+          )}">
                       <label class="form-check-label" for="${rowLabelAddCheckId(
-                        row.field,
-                      )}">${row.label}</label>
+            row.field,
+          )}">${row.label}</label>
                     </div>
                     <input type="text" class="form-control form-control-sm mt-1" id="${rowLabelAddInputId(
-                      row.field,
-                    )}" placeholder="${row.placeholder}">
+            row.field,
+          )}" placeholder="${row.placeholder}">
                   </div>
                 `,
-              ).join("")}
+        ).join("")}
             </div>
             <div class="form-text">
               Selecciona dónde aparece la operación. Si no eliges nada, se usa "Fila de Suma".
@@ -10049,11 +10023,11 @@
         (item) => `
         <div class="form-check${item.indent ? " ms-3" : ""}">
           <input class="form-check-input" type="checkbox" value="${escapeAttr(
-            item.value,
-          )}" id="chk_${escapeAttr(item.value)}">
+          item.value,
+        )}" id="chk_${escapeAttr(item.value)}">
           <label class="form-check-label" for="chk_${escapeAttr(
-            item.value,
-          )}">${escapeHtml(item.label)}</label>
+          item.value,
+        )}">${escapeHtml(item.label)}</label>
         </div>
       `,
       )
@@ -10295,8 +10269,8 @@
         if (!item) return false;
         const itemLabel = normalizeOperationMatch(
           getOperationDisplayName(item) ||
-            getOperationLabel(item) ||
-            getOperationId(item),
+          getOperationLabel(item) ||
+          getOperationId(item),
         );
         if (!itemLabel || itemLabel !== normalizedLabel) return false;
         if (!sectionKey) return true;
@@ -10572,11 +10546,11 @@
 
     if (
       counters.secciones +
-        counters.subsecciones +
-        counters.cuentas +
-        counters.operacionesActualizadas +
-        counters.operaciones ===
-        0 &&
+      counters.subsecciones +
+      counters.cuentas +
+      counters.operacionesActualizadas +
+      counters.operaciones ===
+      0 &&
       errores.length
     ) {
       throw new Error(errores[0]);
@@ -10934,8 +10908,8 @@
     );
     const label = normalizeOperationKey(
       getOperationDisplayName(op) ||
-        getOperationLabel(op) ||
-        getOperationId(op),
+      getOperationLabel(op) ||
+      getOperationId(op),
     );
     if (!label) {
       const opId = normalizeOperationKey(getOperationId(op));
@@ -10963,12 +10937,12 @@
     const tokens = extractFormulaTokens(op);
     const tokenCount = Array.isArray(tokens)
       ? tokens.filter(
-          (token) =>
-            token &&
-            typeof token === "object" &&
-            (token.kind === FORMULA_KIND_REF ||
-              token.kind === FORMULA_KIND_CONST),
-        ).length
+        (token) =>
+          token &&
+          typeof token === "object" &&
+          (token.kind === FORMULA_KIND_REF ||
+            token.kind === FORMULA_KIND_CONST),
+      ).length
       : 0;
     const raw = (op.formula_json == null ? "" : String(op.formula_json)).trim();
     const emptyRaw = isExplicitEmptyFormulaRaw(raw);
@@ -11001,16 +10975,26 @@
     }
     const baseFormula = getFormulaMergeScore(base);
     const extraFormula = getFormulaMergeScore(extra);
-    const extraHasBetterFormula =
-      extraFormula.score > baseFormula.score ||
-      (extraFormula.score === baseFormula.score &&
-        extraFormula.tokenCount > baseFormula.tokenCount);
+
+    // FIXED: Prioritize existing formula (base) unless it's empty/invalid.
+    // However, if the extra (incoming op) has a formula, we should consider merging it if base is default/complex?
+    // Actually, simply relying on score causes user formulas (score 2) to be ignored if base has score 3.
+    // We should allow extra to overwrite base if extra has ANY formula content that isn't empty, 
+    // OR if base is empty.
+    // But we don't want to overwrite a valid base with an empty extra.
+    const extraHasContent = extraFormula.score > 0 || (extraFormula.tokenCount > 0);
+    const baseHasContent = baseFormula.score > 0 || (baseFormula.tokenCount > 0);
+
+    // If extra has meaningful content, we assume it's the latest version (e.g. user edit or subsequent definition)
+    // and let it overwrite base. This fixes the issue where a complex default formula (score 3) 
+    // prevents a simpler user formula (score 2) from being applied during deduplication.
+    const extraHasBetterFormula = extraHasContent;
 
     if (extraHasBetterFormula) {
       base.formula_terms = Array.isArray(extra.formula_terms)
         ? extra.formula_terms.map((term) =>
-            term && typeof term === "object" ? { ...term } : term,
-          )
+          term && typeof term === "object" ? { ...term } : term,
+        )
         : [];
       base.formula_json =
         extra.formula_json == null ? "" : String(extra.formula_json);
@@ -11019,8 +11003,8 @@
           ...extra.formula_v2,
           tokens: Array.isArray(extra.formula_v2.tokens)
             ? extra.formula_v2.tokens.map((token) =>
-                token && typeof token === "object" ? { ...token } : token,
-              )
+              token && typeof token === "object" ? { ...token } : token,
+            )
             : [],
         };
       } else {
@@ -11472,160 +11456,140 @@
                 <strong>Total de cambios:</strong> ${summary.total}
               </div>
 
-              ${
-                summary.added.length
-                  ? `
+              ${summary.added.length
+          ? `
                 <div class="mb-3">
                   <label class="form-label">Identificador unico</label>
                   <input type="text" class="form-control" id="inputOperacionId" placeholder="Ej: CDMX_INCOME" />
                   <div class="form-text">Define un ID único manualmente.</div>
                 </div>
                 <div class="mb-3">
-                  <h6 class="text-success"><i class="bi bi-plus-circle me-2"></i>Agregados (${
-                    summary.added.length
-                  })</h6>
+                  <h6 class="text-success"><i class="bi bi-plus-circle me-2"></i>Agregados (${summary.added.length
+          })</h6>
                   <ul class="list-unstyled ms-3">
                     ${summary.added
-                      .slice(0, 5)
-                      .map(
-                        (item) =>
-                          `<li class="text-muted small">✓ ${escapeHtml(
-                            item,
-                          )}</li>`,
-                      )
-                      .join("")}
-                    ${
-                      summary.added.length > 5
-                        ? `<li class="text-muted small fst-italic">...y ${
-                            summary.added.length - 5
-                          } más</li>`
-                        : ""
-                    }
+            .slice(0, 5)
+            .map(
+              (item) =>
+                `<li class="text-muted small">✓ ${escapeHtml(
+                  item,
+                )}</li>`,
+            )
+            .join("")}
+                    ${summary.added.length > 5
+            ? `<li class="text-muted small fst-italic">...y ${summary.added.length - 5
+            } más</li>`
+            : ""
+          }
                   </ul>
                 </div>
               `
-                  : ""
-              }
+          : ""
+        }
 
-              ${
-                summary.edited.length
-                  ? `
+              ${summary.edited.length
+          ? `
                 <div class="mb-3">
-                  <h6 class="text-primary"><i class="bi bi-pencil me-2"></i>Editados (${
-                    summary.edited.length
-                  })</h6>
+                  <h6 class="text-primary"><i class="bi bi-pencil me-2"></i>Editados (${summary.edited.length
+          })</h6>
                   <ul class="list-unstyled ms-3">
                     ${summary.edited
-                      .slice(0, 5)
-                      .map(
-                        (item) =>
-                          `<li class="text-muted small">✓ ${escapeHtml(
-                            item,
-                          )}</li>`,
-                      )
-                      .join("")}
-                    ${
-                      summary.edited.length > 5
-                        ? `<li class="text-muted small fst-italic">...y ${
-                            summary.edited.length - 5
-                          } más</li>`
-                        : ""
-                    }
+            .slice(0, 5)
+            .map(
+              (item) =>
+                `<li class="text-muted small">✓ ${escapeHtml(
+                  item,
+                )}</li>`,
+            )
+            .join("")}
+                    ${summary.edited.length > 5
+            ? `<li class="text-muted small fst-italic">...y ${summary.edited.length - 5
+            } más</li>`
+            : ""
+          }
                   </ul>
                 </div>
               `
-                  : ""
-              }
+          : ""
+        }
 
-              ${
-                summary.deleted.length
-                  ? `
+              ${summary.deleted.length
+          ? `
                 <div class="mb-3">
-                  <h6 class="text-danger"><i class="bi bi-trash me-2"></i>Eliminados (${
-                    summary.deleted.length
-                  })</h6>
+                  <h6 class="text-danger"><i class="bi bi-trash me-2"></i>Eliminados (${summary.deleted.length
+          })</h6>
                   <ul class="list-unstyled ms-3">
                     ${summary.deleted
-                      .slice(0, 5)
-                      .map(
-                        (item) =>
-                          `<li class="text-muted small">✓ ${escapeHtml(
-                            item,
-                          )}</li>`,
-                      )
-                      .join("")}
-                    ${
-                      summary.deleted.length > 5
-                        ? `<li class="text-muted small fst-italic">...y ${
-                            summary.deleted.length - 5
-                          } más</li>`
-                        : ""
-                    }
+            .slice(0, 5)
+            .map(
+              (item) =>
+                `<li class="text-muted small">✓ ${escapeHtml(
+                  item,
+                )}</li>`,
+            )
+            .join("")}
+                    ${summary.deleted.length > 5
+            ? `<li class="text-muted small fst-italic">...y ${summary.deleted.length - 5
+            } más</li>`
+            : ""
+          }
                   </ul>
                 </div>
               `
-                  : ""
-              }
+          : ""
+        }
 
-              ${
-                summary.renamed.length
-                  ? `
+              ${summary.renamed.length
+          ? `
                 <div class="mb-3">
-                  <h6 class="text-warning"><i class="bi bi-arrow-left-right me-2"></i>Renombrados (${
-                    summary.renamed.length
-                  })</h6>
+                  <h6 class="text-warning"><i class="bi bi-arrow-left-right me-2"></i>Renombrados (${summary.renamed.length
+          })</h6>
                   <ul class="list-unstyled ms-3">
                     ${summary.renamed
-                      .slice(0, 5)
-                      .map(
-                        (item) =>
-                          `<li class="text-muted small">✓ ${escapeHtml(
-                            item,
-                          )}</li>`,
-                      )
-                      .join("")}
-                    ${
-                      summary.renamed.length > 5
-                        ? `<li class="text-muted small fst-italic">...y ${
-                            summary.renamed.length - 5
-                          } más</li>`
-                        : ""
-                    }
+            .slice(0, 5)
+            .map(
+              (item) =>
+                `<li class="text-muted small">✓ ${escapeHtml(
+                  item,
+                )}</li>`,
+            )
+            .join("")}
+                    ${summary.renamed.length > 5
+            ? `<li class="text-muted small fst-italic">...y ${summary.renamed.length - 5
+            } más</li>`
+            : ""
+          }
                   </ul>
                 </div>
               `
-                  : ""
-              }
+          : ""
+        }
 
-              ${
-                summary.moved.length
-                  ? `
+              ${summary.moved.length
+          ? `
                 <div class="mb-3">
-                  <h6 class="text-info"><i class="bi bi-arrows-move me-2"></i>Movidos (${
-                    summary.moved.length
-                  })</h6>
+                  <h6 class="text-info"><i class="bi bi-arrows-move me-2"></i>Movidos (${summary.moved.length
+          })</h6>
                   <ul class="list-unstyled ms-3">
                     ${summary.moved
-                      .slice(0, 5)
-                      .map(
-                        (item) =>
-                          `<li class="text-muted small">✓ ${escapeHtml(
-                            item,
-                          )}</li>`,
-                      )
-                      .join("")}
-                    ${
-                      summary.moved.length > 5
-                        ? `<li class="text-muted small fst-italic">...y ${
-                            summary.moved.length - 5
-                          } más</li>`
-                        : ""
-                    }
+            .slice(0, 5)
+            .map(
+              (item) =>
+                `<li class="text-muted small">✓ ${escapeHtml(
+                  item,
+                )}</li>`,
+            )
+            .join("")}
+                    ${summary.moved.length > 5
+            ? `<li class="text-muted small fst-italic">...y ${summary.moved.length - 5
+            } más</li>`
+            : ""
+          }
                   </ul>
                 </div>
               `
-                  : ""
-              }
+          : ""
+        }
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -11731,8 +11695,7 @@
 
       // Save accounts
       const accResponse = await fetch(
-        `${API_BASE}/${encodeURIComponent(state.modulo)}/${
-          state.anio
+        `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio
         }/${encodeURIComponent(state.capitulo)}/cuentas`,
         {
           method: "POST",
@@ -11765,8 +11728,7 @@
       const operacionesParaGuardar =
         buildOperacionesParaGuardar(operacionesOrdenadas);
       const opResponse = await fetch(
-        `${API_BASE}/${encodeURIComponent(state.modulo)}/${
-          state.anio
+        `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio
         }/operaciones`,
         {
           method: "POST",
@@ -11786,7 +11748,7 @@
         const errorData = await opResponse.json().catch(() => ({}));
         throw new Error(
           errorData.mensaje ||
-            `Error ${opResponse.status} al guardar operaciones`,
+          `Error ${opResponse.status} al guardar operaciones`,
         );
       }
 
@@ -11890,17 +11852,17 @@
 
     const rowsHtml = versions.length
       ? versions
-          .map((v) => {
-            const created = formatVersionTimestamp(v.created_at);
-            const user = (
-              v.nombre_usuario ||
-              v.usuario ||
-              v.usuario_id ||
-              ""
-            ).toString();
-            const source = (v.source || "").toString();
-            const motivo = (v.motivo || "").toString();
-            return `
+        .map((v) => {
+          const created = formatVersionTimestamp(v.created_at);
+          const user = (
+            v.nombre_usuario ||
+            v.usuario ||
+            v.usuario_id ||
+            ""
+          ).toString();
+          const source = (v.source || "").toString();
+          const motivo = (v.motivo || "").toString();
+          return `
               <tr>
                 <td class="text-muted">${escapeHtml(String(v.id))}</td>
                 <td>${escapeHtml(created)}</td>
@@ -11909,15 +11871,15 @@
                 <td>${escapeHtml(motivo)}</td>
                 <td class="text-end">
                   <button type="button" class="btn btn-sm btn-outline-primary" data-action="restore" data-version-id="${escapeAttr(
-                    String(v.id),
-                  )}">
+            String(v.id),
+          )}">
                     Restaurar
                   </button>
                 </td>
               </tr>
             `;
-          })
-          .join("")
+        })
+        .join("")
       : `<tr><td colspan="6" class="text-muted text-center">Sin versiones</td></tr>`;
 
     const modal = document.createElement("div");
@@ -11930,8 +11892,8 @@
           <div class="modal-header">
             <h5 class="modal-title">
               Historial de versiones · ${escapeHtml(state.modulo)} ${escapeHtml(
-                String(state.anio),
-              )} · ${escapeHtml(state.capitulo)}
+      String(state.anio),
+    )} · ${escapeHtml(state.capitulo)}
             </h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
@@ -12276,15 +12238,14 @@
     dom.toastMessage.textContent = message;
 
     const icon = dom.toastNotification.querySelector(".toast-header i");
-    icon.className = `bi bi-${
-      type === "success"
+    icon.className = `bi bi-${type === "success"
         ? "check-circle text-success"
         : type === "error"
           ? "x-circle text-danger"
           : type === "warning"
             ? "exclamation-triangle text-warning"
             : "info-circle text-primary"
-    } me-2`;
+      } me-2`;
 
     const toast = new bootstrap.Toast(dom.toastNotification);
     toast.show();
@@ -12358,13 +12319,13 @@
       if (!op.formula_terms || op.formula_terms.length === 0) {
         alert(
           "Esta operación no tiene términos definidos.\n\nDatos disponibles:\n" +
-            "- signos: " +
-            JSON.stringify(op.signos || {}) +
-            "\n" +
-            "- SECCION: " +
-            (op.SECCION || "ninguno") +
-            "\n\n" +
-            "Usa el botón de editar para configurar la fórmula.",
+          "- signos: " +
+          JSON.stringify(op.signos || {}) +
+          "\n" +
+          "- SECCION: " +
+          (op.SECCION || "ninguno") +
+          "\n\n" +
+          "Usa el botón de editar para configurar la fórmula.",
         );
         return;
       }
@@ -12468,8 +12429,8 @@
       <div class="mb-3">
         <label class="form-label">Nombre de la Sección</label>
         <input type="text" class="form-control" id="editNombreSeccion" value="${escapeHtml(
-          name,
-        )}" />
+      name,
+    )}" />
       </div>
       <div class="alert alert-warning small">
         <i class="bi bi-exclamation-triangle me-1"></i>
@@ -12507,14 +12468,14 @@
       <div class="mb-3">
         <label class="form-label">Sección Principal</label>
         <input type="text" class="form-control" value="${escapeHtml(
-          principal,
-        )}" readonly disabled />
+      principal,
+    )}" readonly disabled />
       </div>
       <div class="mb-3">
         <label class="form-label">Nombre de la Subsección</label>
         <input type="text" class="form-control" id="editNombreSubseccion" value="${escapeHtml(
-          name,
-        )}" />
+      name,
+    )}" />
       </div>
       <div class="alert alert-warning small">
         <i class="bi bi-exclamation-triangle me-1"></i>
@@ -12629,14 +12590,14 @@
       <div class="mb-3">
         <label class="form-label">Código</label>
         <input type="text" class="form-control" id="editCodigo" value="${escapeHtml(
-          codigoCuenta,
-        )}" />
+      codigoCuenta,
+    )}" />
       </div>
       <div class="mb-3">
         <label class="form-label">Nombre</label>
         <input type="text" class="form-control" id="editNombre" value="${escapeHtml(
-          cuenta.NOMBRE || "",
-        )}" />
+      cuenta.NOMBRE || "",
+    )}" />
       </div>
       <div class="mb-3">
         <label class="form-label">Sección Principal</label>
@@ -12655,17 +12616,17 @@
       <div class="mb-3">
         <label class="form-label">Signo/Factor</label>
         <input type="text" class="form-control" id="editFactor" placeholder="1 suma, -1 resta" value="${escapeHtml(
-          factorValue === 1 ? "" : String(factorValue),
-        )}" />
+      factorValue === 1 ? "" : String(factorValue),
+    )}" />
         <div class="form-text">Aplica a todas las columnas (real, presupuesto y comparativo).</div>
       </div>
       <div class="mb-3">
         <label class="form-label">Valor plantilla</label>
         <input type="number" step="any" class="form-control" id="editValorPlantilla" value="${escapeHtml(
-          Number.isFinite(Number(cuenta.valor_plantilla))
-            ? String(Number(cuenta.valor_plantilla))
-            : "0",
-        )}" />
+      Number.isFinite(Number(cuenta.valor_plantilla))
+        ? String(Number(cuenta.valor_plantilla))
+        : "0",
+    )}" />
         <div class="form-text">Solo aplica al gestor/preview del layout.</div>
       </div>
       <div class="mb-3">
@@ -12963,34 +12924,30 @@
       <div class="operation-preview-tables">
         <div class="alert alert-info mb-2">
           <i class="bi bi-info-circle me-2"></i>
-          Esta operación aparecerá en <strong>${
-            tables.length
-          }</strong> tabla(s):
+          Esta operación aparecerá en <strong>${tables.length
+      }</strong> tabla(s):
         </div>
         ${tables
-          .map(
-            (table) => `
-          <div class="table-preview-item bg-${
-            table.color
-          } bg-opacity-10 border-${
-            table.color
-          } border-start border-3 p-2 rounded mb-2">
+        .map(
+          (table) => `
+          <div class="table-preview-item bg-${table.color
+            } bg-opacity-10 border-${table.color
+            } border-start border-3 p-2 rounded mb-2">
             <div class="d-flex align-items-center gap-2">
               <i class="bi ${table.icon} text-${table.color} fs-5"></i>
               <div class="flex-grow-1">
-                <div class="fw-semibold text-${table.color}">${
-                  table.label
-                }</div>
+                <div class="fw-semibold text-${table.color}">${table.label
+            }</div>
                 <div class="small text-muted">Como: <code class="text-dark">${escapeHtml(
-                  table.value,
-                )}</code></div>
+              table.value,
+            )}</code></div>
               </div>
               <span class="badge bg-${table.color}">Visible</span>
             </div>
           </div>
         `,
-          )
-          .join("")}
+        )
+        .join("")}
       </div>
     `;
   }
@@ -13174,10 +13131,9 @@
         <div class="col-md-6">
           <label class="form-label small text-muted"${tooltipAttr}>${row.label}</label>
           <input type="text" class="form-control" id="${rowLabelInputId(
-            row.field,
-          )}" value="${escapeHtml(op[row.field] || "")}" placeholder="${
-            row.placeholder
-          }"${tooltipAttr} />
+        row.field,
+      )}" value="${escapeHtml(op[row.field] || "")}" placeholder="${row.placeholder
+        }"${tooltipAttr} />
         </div>
       `;
     }).join("");
@@ -13192,20 +13148,20 @@
       <div class="mb-3">
         <label class="form-label">Etiqueta de la Operación</label>
         <input type="text" class="form-control" id="editClaseOp" value="${escapeHtml(
-          opLabelInput,
-        )}" />
+      opLabelInput,
+    )}" />
       </div>
 
       <div class="mb-3">
         <label class="form-label d-flex align-items-center gap-2">
           Tipo de fila
           <i class="bi bi-info-circle text-muted" data-aparicion-help="true" title="${escapeAttr(
-            tipoTooltip,
-          )}"></i>
+      tipoTooltip,
+    )}"></i>
         </label>
         <select class="form-select" id="editOperacionTipo" data-aparicion-select="true" data-initial-tipo="${escapeAttr(
-          tipoSeleccionado,
-        )}" title="${escapeAttr(tipoTooltip)}">
+      tipoSeleccionado,
+    )}" title="${escapeAttr(tipoTooltip)}">
           ${tipoOptions}
         </select>
         <div class="form-text">
@@ -13479,26 +13435,25 @@
       <div class="mb-3">
         <label class="form-label">Etiqueta Consolidada</label>
         <input type="text" class="form-control" id="editConsolidatedLabelName" value="${escapeHtml(
-          label,
-        )}" />
+      label,
+    )}" />
         <small class="text-muted">Tipo: ${escapeHtml(resolvedField)}</small>
       </div>
       
       <div class="mb-3">
-        <label class="form-label">Operaciones que contribuyen (${
-          affectedOps.length
-        })</label>
+        <label class="form-label">Operaciones que contribuyen (${affectedOps.length
+      })</label>
         <div class="bg-light p-2 rounded border" style="max-height: 100px; overflow-y: auto;">
           ${affectedOps
-            .map(
-              (op) => `
+        .map(
+          (op) => `
             <div class="d-flex align-items-center mb-1">
               <i class="bi bi-arrow-right-short text-muted me-1"></i>
               <span class="small">${escapeHtml(op.Clase || op.SECCION)}</span>
             </div>
           `,
-            )
-            .join("")}
+        )
+        .join("")}
         </div>
       </div>
 
@@ -14168,7 +14123,7 @@
         (o) =>
           o !== op &&
           normalizeOperationMatch(getOperationId(o)) ===
-            normalizeOperationMatch(desiredId),
+          normalizeOperationMatch(desiredId),
       );
       if (idConflict) {
         showToast("El identificador ya existe en otra operacion", "error");
@@ -14634,7 +14589,7 @@
       (o) =>
         o !== op &&
         normalizeOperationMatch(getOperationId(o)) ===
-          normalizeOperationMatch(desiredId),
+        normalizeOperationMatch(desiredId),
     );
     if (duplicateId) {
       markInvalid(idInput);
@@ -14743,7 +14698,7 @@
     const nameChanged =
       newClase &&
       normalizeOperationMatch(newClase) !==
-        normalizeOperationMatch(oldDisplay || oldLabel || "");
+      normalizeOperationMatch(oldDisplay || oldLabel || "");
     const normalizeRowLabelInput = (value) => {
       const trimmed = (value || "").trim();
       if (!trimmed) return "";
@@ -15483,13 +15438,12 @@
               <div class="d-flex align-items-center gap-2 ms-4 mt-1 small">
                 ${renderOperatorBadge(account.sign, "me-1")}
                 <code class="mb-0">${escapeHtml(account.code)}</code>
-                ${
-                  account.name
-                    ? `<span class="text-muted">${escapeHtml(
-                        account.name,
-                      )}</span>`
-                    : ""
-                }
+                ${account.name
+                ? `<span class="text-muted">${escapeHtml(
+                  account.name,
+                )}</span>`
+                : ""
+              }
               </div>
             `,
           )
@@ -15503,13 +15457,12 @@
                   <div class="d-flex align-items-center gap-2 ms-4 mt-1 small">
                     ${renderOperatorBadge(account.sign, "me-1")}
                     <code class="mb-0">${escapeHtml(account.code)}</code>
-                    ${
-                      account.name
-                        ? `<span class="text-muted">${escapeHtml(
-                            account.name,
-                          )}</span>`
-                        : ""
-                    }
+                    ${account.name
+                    ? `<span class="text-muted">${escapeHtml(
+                      account.name,
+                    )}</span>`
+                    : ""
+                  }
                   </div>
                 `,
               )
@@ -15521,9 +15474,8 @@
                   ${renderOperatorBadge(subsection.sign, "me-1")}
                   <i class="bi bi-folder text-warning"></i>
                   <span>${escapeHtml(subsection.displayName)}</span>
-                  <span class="badge bg-light text-dark">${
-                    subsection.accounts.length
-                  }</span>
+                  <span class="badge bg-light text-dark">${subsection.accounts.length
+              }</span>
                 </div>
                 ${subAccountsHtml || ""}
               </div>
@@ -15551,22 +15503,22 @@
         <div class="mt-3">
           <div class="fw-semibold text-muted mb-1">Otros términos</div>
           ${data.misc
-            .map((item) => {
-              const term = item.term || {};
-              const label =
-                term.type === "operation"
-                  ? formatOperationReference(term.value)
-                  : term.type === "constant"
-                    ? String(term.constant ?? term.value ?? "")
-                    : term.value || "";
-              return `
+        .map((item) => {
+          const term = item.term || {};
+          const label =
+            term.type === "operation"
+              ? formatOperationReference(term.value)
+              : term.type === "constant"
+                ? String(term.constant ?? term.value ?? "")
+                : term.value || "";
+          return `
                 <div class="d-flex align-items-center gap-2 ms-2 small">
                   ${renderOperatorBadge(item.operator, "me-1")}
                   <span>${escapeHtml(label)}</span>
                 </div>
               `;
-            })
-            .join("")}
+        })
+        .join("")}
         </div>
       `
       : "";
@@ -15595,30 +15547,24 @@
         const isFirst = idx === 0;
 
         return `
-      <div class="formula-term-row d-flex align-items-center gap-2 mb-2 p-2 bg-light rounded" data-id="${
-        term.id
-      }">
-        <select class="form-select" style="width: 60px;" onchange="updateTermOperator(${
-          term.id
-        }, this.value)">
-          <option value="+" ${
-            term.operator === "+" ? "selected" : ""
+      <div class="formula-term-row d-flex align-items-center gap-2 mb-2 p-2 bg-light rounded" data-id="${term.id
+          }">
+        <select class="form-select" style="width: 60px;" onchange="updateTermOperator(${term.id
+          }, this.value)">
+          <option value="+" ${term.operator === "+" ? "selected" : ""
           }>+</option>
-          <option value="-" ${
-            term.operator === "-" ? "selected" : ""
+          <option value="-" ${term.operator === "-" ? "selected" : ""
           }>−</option>
         </select>
         
-        <select class="form-select flex-grow-1 account-select" onchange="updateTermValue(${
-          term.id
-        }, this.value)">
+        <select class="form-select flex-grow-1 account-select" onchange="updateTermValue(${term.id
+          }, this.value)">
           <option value="">Seleccionar cuenta...</option>
           ${accountCatalog
             .map(
               (acc) => `
-            <option value="${escapeAttr(acc.code)}" ${
-              term.value === acc.code ? "selected" : ""
-            }>
+            <option value="${escapeAttr(acc.code)}" ${term.value === acc.code ? "selected" : ""
+                }>
               ${escapeHtml(acc.display)}
             </option>
           `,
@@ -15626,9 +15572,8 @@
             .join("")}
         </select>
         
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFormulaTerm(${
-          term.id
-        })" title="Quitar">
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFormulaTerm(${term.id
+          })" title="Quitar">
           <i class="bi bi-x"></i>
         </button>
       </div>
@@ -15882,8 +15827,7 @@
       datalist.innerHTML = cached
         .map(
           (c) =>
-            `<option value="${c.CUENTA}" label="${c.NOMBRE || c.CUENTA}">${
-              c.CUENTA
+            `<option value="${c.CUENTA}" label="${c.NOMBRE || c.CUENTA}">${c.CUENTA
             } - ${c.NOMBRE || ""}</option>`,
         )
         .join("");
@@ -15916,8 +15860,7 @@
         datalist.innerHTML = (cuentas || [])
           .map(
             (c) =>
-              `<option value="${c.CUENTA}" label="${c.NOMBRE || c.CUENTA}">${
-                c.CUENTA
+              `<option value="${c.CUENTA}" label="${c.NOMBRE || c.CUENTA}">${c.CUENTA
               } - ${c.NOMBRE || ""}</option>`,
           )
           .join("");
@@ -16592,12 +16535,15 @@
       changed = true;
     }
 
+    // FIXED: Prevent overwriting existing formulas with predefined ones, unless forced.
+    // This allows user customizations (like "INCOME = MEMBERSHIP") to persist.
+    const hasExistingFormula = hasExplicitFormula(op);
     const desiredTerms = buildPredefinedTerms(predef, knownOperations);
     const formulaIsSame = desiredTerms.length
       ? formulasMatch(op, desiredTerms)
       : true;
 
-    if ((force || !formulaIsSame) && desiredTerms.length) {
+    if ((force || (!hasExistingFormula && !formulaIsSame)) && desiredTerms.length) {
       if (applyFormulaTermsToOperation(op, desiredTerms)) {
         changed = true;
       }
@@ -16763,24 +16709,22 @@
           <div class="modal-body">
             <div class="alert alert-info">
               <i class="bi bi-info-circle me-2"></i>
-              Se encontraron <strong>${
-                operaciones.length
-              } operaciones</strong> predefinidas para 
-              <strong>${state.modulo}</strong> en <strong>${
-                state.capitulo
-              }</strong>
+              Se encontraron <strong>${operaciones.length
+      } operaciones</strong> predefinidas para 
+              <strong>${state.modulo}</strong> en <strong>${state.capitulo
+      }</strong>
             </div>
             <div class="list-group">
               ${operaciones
-                .map(
-                  (op, idx) => `
+        .map(
+          (op, idx) => `
                 <div class="list-group-item">
                   <div class="d-flex align-items-center justify-content-between">
                     <div>
                       <h6 class="mb-1">${escapeHtml(op.nombre)}</h6>
                       <small class="text-muted"><code>${escapeHtml(
-                        op.formula,
-                      )}</code></small>
+            op.formula,
+          )}</code></small>
                     </div>
                     <button class="btn btn-sm btn-outline-primary" onclick="window.poblarOperacion(${idx})">
                       <i class="bi bi-plus-circle me-1"></i>Agregar
@@ -16788,8 +16732,8 @@
                   </div>
                 </div>
               `,
-                )
-                .join("")}
+        )
+        .join("")}
             </div>
           </div>
           <div class="modal-footer">
@@ -17559,19 +17503,19 @@
     const termsFromInput = Array.isArray(op.formula_terms)
       ? op.formula_terms
       : (() => {
-          if (
-            typeof op.formula_terms !== "string" ||
-            !op.formula_terms.trim()
-          ) {
-            return [];
-          }
-          try {
-            const parsedTerms = JSON.parse(op.formula_terms);
-            return Array.isArray(parsedTerms) ? parsedTerms : [];
-          } catch (_) {
-            return [];
-          }
-        })();
+        if (
+          typeof op.formula_terms !== "string" ||
+          !op.formula_terms.trim()
+        ) {
+          return [];
+        }
+        try {
+          const parsedTerms = JSON.parse(op.formula_terms);
+          return Array.isArray(parsedTerms) ? parsedTerms : [];
+        } catch (_) {
+          return [];
+        }
+      })();
     if (termsFromInput.length) {
       const terms = normalizeFormulaTerms(termsFromInput);
       return {
@@ -17805,7 +17749,7 @@
                 (item) =>
                   item !== existing &&
                   normalizeOperationMatch(getOperationId(item)) ===
-                    normalizeOperationMatch(rawId),
+                  normalizeOperationMatch(rawId),
               );
               existing.OperacionId = idConflict
                 ? buildUniqueOperationId(rawId, existing)

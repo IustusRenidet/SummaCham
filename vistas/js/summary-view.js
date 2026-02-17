@@ -999,9 +999,24 @@
           }
           // OPERACION LIBRE: fila calculada desde fórmula manual
           else if (blockType === 'operation') {
+            // Check for special styling based on label
+            let rowClass = 'operation-row free-operation-row fw-semibold';
+            const label = (block.label || '').toUpperCase();
+            
+            // Apply same highlighting logic asgroups
+            if (label.includes('NET RESULTS') || label.includes('CONSOLIDATED NET')) {
+               rowClass = 'highlight-bright fw-bold text-center'; 
+            } else if (label.includes('OPERATING RESULTS')) {
+               rowClass = 'highlight-secondary fw-bold text-center';
+            } else if (label.includes('CONSOLIDATED') && (label.includes('INCOME') || label.includes('EXPENSE'))) {
+               rowClass = 'highlight-primary fw-bold text-center';
+            } else if ((label.includes('INCOME') || label.includes('EXPENSE')) && !label.includes('CONSOLIDATED')) {
+               rowClass = 'sum-row-principal fw-bold text-center';
+            }
+
             const opRow = createTotalsRow(block.totals || {}, {
               label: block.label || '',
-              rowClass: 'operation-row free-operation-row fw-semibold',
+              rowClass: rowClass,
               labelClasses: 'text-center fw-semibold',
               boldNumbers: true,
               rowRole: 'operation',

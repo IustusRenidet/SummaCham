@@ -1128,6 +1128,37 @@
 
       const capitulo = this._cleanLabel(layoutData.capitulo || "");
       const capKey = normalizeText(capitulo);
+      // DISABLED AUTO-LOGIC
+      // REPLACEMENT: Merge all principals and operations, sort by user-defined order, and render.
+      // This respects "Todo lo creo yo" - manual configuration is king.
+
+      const allItems = [
+        ...principalList.map((p) => ({ type: "principal", data: p })),
+        ...consolidatedOps.map((op) => ({ type: "operation", data: op })),
+        ...operatingOps.map((op) => ({ type: "operation", data: op })),
+        ...resultOps.map((op) => ({ type: "operation", data: op })),
+        ...netOps.map((op) => ({ type: "operation", data: op })),
+        ...finalOps.map((op) => ({ type: "operation", data: op })),
+      ].sort((a, b) => (a.data.order || 0) - (b.data.order || 0));
+
+      const renderedKeys = new Set();
+
+      allItems.forEach((item) => {
+        const key = item.type === 'principal' ? item.data.label : opKey(item.data);
+        if (renderedKeys.has(key)) return; // Avoid duplicates if any
+        renderedKeys.add(key);
+
+        if (item.type === "principal") {
+          addPrincipalBlock(item.data);
+        } else {
+          addOps([item.data]);
+        }
+      });
+      
+      /*
+      // PREVIOUS LOGIC (DISABLED)
+      // principalList.forEach(addPrincipalBlock); 
+      /*
       const isConsolidatedChapter =
         capKey.includes("CIUDAD") ||
         capKey.includes("MEXICO") ||
@@ -1218,7 +1249,10 @@
           takeOps(finalList, (op) => labelHasAll(op.label, ["NET", "RESULT"]))
         );
       }
+      */
 
+      // DISABLED: The fallback logic for remaining ops is redundant now.
+      /*
       const remainingOps = [
         ...consolidatedList,
         ...operatingList,
@@ -1227,6 +1261,7 @@
         ...finalList,
       ].sort((a, b) => a.order - b.order);
       addOps(takeOps(remainingOps));
+      */
 
       return rows;
     },
@@ -1532,17 +1567,22 @@
         }
 
         const labelsHere = sectionLabelsForInsert.get(idx) || [];
-        labelsHere
-          .slice()
-          .sort((a, b) => b.firstIndex - a.firstIndex)
-          .forEach((entry) => {
-            rows.push({
-              type: "operation",
-              label: entry.label,
-              kind: "sum-row-sumavarios",
-              visible: entry.visible,
-            });
-          });
+        /* 
+           MODIFICACIÓN USUARIO: "todo lo creo yo".
+           Desactivar la generación automática de filas de suma basadas en metadatos de hijos.
+           Ahora el usuario debe crear explícitamente la operación "CONSOLIDATED INCOME" si la desea.
+        */
+        // labelsHere
+        //   .slice()
+        //   .sort((a, b) => b.firstIndex - a.firstIndex)
+        //   .forEach((entry) => {
+        //     rows.push({
+        //       type: "operation",
+        //       label: entry.label,
+        //       kind: "sum-row-sumavarios",
+        //       visible: entry.visible,
+        //     });
+        //   });
       });
 
       let resultRow = null;

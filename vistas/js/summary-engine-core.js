@@ -84,7 +84,7 @@
 
   function evaluateFormula(expresion, rowsOut, defaultColumn) {
     if (!expresion || typeof expresion !== 'string') return 0;
-    
+
     // Normalizar tokens para soportar IDs de cuenta con guiones
     const TOKEN_REGEX = /[A-Za-z_][\w]*\.[A-Za-z_][\w]*|\d{3}-\d{3}-\d{3}-\d{2}|[A-Za-z_][\w]*|\d+\.\d+|\d+|[()+\-*/]/g;
     const tokens = expresion.match(TOKEN_REGEX) || [];
@@ -153,10 +153,15 @@
 
   function extraerIds(expresion, set) {
     if (!expresion || typeof expresion !== 'string') return;
-    const coincidencias = expresion.match(/[A-Za-z_][\w]*\.[A-Za-z_][\w]*/g) || [];
+    // Match ID.Field (e.g. op.acumuladoActual), Account Code (e.g. 400-000-000-00), or Simple ID (e.g. income)
+    const coincidencias = expresion.match(/[A-Za-z_][\w]*\.[A-Za-z_][\w]*|\d{3}-\d{3}-\d{3}-\d{2}|[A-Za-z_][\w]*/g) || [];
     coincidencias.forEach((item) => {
-      const [id] = item.split('.');
-      if (id) set.add(id);
+      // Split by dot if present, take first part
+      const parts = item.split('.');
+      const id = parts[0];
+      if (id && !['+', '-', '*', '/', '(', ')'].includes(id)) {
+          set.add(id);
+      }
     });
   }
 
@@ -237,23 +242,47 @@
         meta.descripcion = descripcion;
         if (!meta.etiqueta) meta.etiqueta = descripcion;
         meta.naturaleza = registro?.naturaleza || '';
-      } else if (tipo === 'kpi') {
+      } else if (tipo === 'kpi' || (nodo.formula && tipo !== 'detalle' && tipo !== 'cuenta')) {
+        // Enforce formula calculation for KPI or any section/operation with a formula
         const dependencias = new Set();
-        extraerIds(nodo.formula, dependencias);
-        extraerIds(nodo.formulaMes, dependencias);
-        dependencias.forEach((dep) => calcularNodo(dep));
+        if (nodo.formula) extraerIds(nodo.formula, dependencias);
+        // Only check formulaMes if it exists (usually KPIs)
+        if (nodo.formulaMes) extraerIds(nodo.formulaMes, dependencias);
+        
+        dependencias.forEach((dep) => {
+             // Force calculation if dependency is a calculated node
+            if (nodosPorId.has(dep) && !cache.has(dep)) calcularNodo(dep);
+        });
+        
         const contexto = construirContextoFormulas();
         const factor = nodo.factor != null ? Number(nodo.factor) : 1;
-        if (nodo.formula) {
-          const columna = nodo.columnaYtd || nodo.columna || 'acumuladoActual';
-          metrics[columna] = factor * evaluateFormula(nodo.formula, contexto, columna);
+
+        if (tipo === 'kpi') {
+             if (nodo.formula) {
+               const columna = nodo.columnaYtd || nodo.columna || 'acumuladoActual';
+               metrics[columna] = factor * evaluateFormula(nodo.formula, contexto, columna);
+             }
+             if (nodo.formulaMes) {
+               const columnaMes = nodo.columnaMes || 'mesActual';
+               metrics[columnaMes] = factor * evaluateFormula(nodo.formulaMes, contexto, columnaMes);
+             }
+        } else {
+             // Standard row with formula: Apply to all columns
+             // This corresponds to "Sections respecting their formula"
+             const columnas = [
+                'mesActual', 'mesPlan', 'mesAnterior',
+                'acumuladoActual', 'acumuladoPlan', 'acumuladoAnterior',
+                'ytdActual', 'ytdPlan', 'ytdAnterior'
+             ];
+             columnas.forEach(col => {
+                metrics[col] = factor * evaluateFormula(nodo.formula, contexto, col);
+             });
         }
-        if (nodo.formulaMes) {
-          const columnaMes = nodo.columnaMes || 'mesActual';
-          metrics[columnaMes] = factor * evaluateFormula(nodo.formulaMes, contexto, columnaMes);
-        }
+        
         ensureAlias(metrics);
-        meta.tipoFila = 'kpi';
+        if (tipo !== 'kpi') meta.tipoFila = tipo || 'operation';
+        if (!meta.etiqueta) meta.etiqueta = nodo.titulo || nodo.id;
+
       } else {
         const componentes = obtenerComponentes(nodo, tipo);
         componentes.forEach((idHijo) => {
