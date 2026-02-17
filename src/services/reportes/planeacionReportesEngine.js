@@ -2117,7 +2117,14 @@ const construirReporteResumen = (
       op?.operacion_etiqueta ||
       op?.operacion_label ||
       op?.["sum-row-sumavarios"] ||
+      op?.["sum-row-sumavarios2"] ||
       op?.["sum-row"] ||
+      op?.["sum-row-sumavarios-consolidado"] ||
+      op?.["sum-row-operativo"] ||
+      op?.["sum-row-operativo-consolidado"] ||
+      op?.["result-row"] ||
+      op?.["net-row"] ||
+      op?.["result-net-row"] ||
       op?.id ||
       ""
     )
@@ -2127,9 +2134,26 @@ const construirReporteResumen = (
     normalizarTexto(getOperacionIdentifier(op));
   const getOperacionRefId = (op = {}) =>
     construirRefIdOperacion(getOperacionIdentifier(op));
+  const getOperacionAliasKeys = (op = {}) => {
+    const alias = new Set();
+    const add = (value = "") => {
+      const key = normalizarTexto(value);
+      if (key) alias.add(key);
+    };
+    add(op?.OperacionId);
+    add(op?.operacion_id);
+    add(op?.Clase);
+    add(op?.clase);
+    add(op?.operacion_etiqueta);
+    add(op?.operacion_label);
+    add(op?.id);
+    CAMPOS_FILA_OPERACION.forEach((field) => add(op?.[field]));
+    return Array.from(alias);
+  };
   const storeOperacionTotals = (op, totals) => {
-    const opKey = getOperacionKey(op);
-    if (opKey) mapOperaciones.set(opKey, totals);
+    getOperacionAliasKeys(op).forEach((key) => {
+      mapOperaciones.set(key, totals);
+    });
     const opRefId = getOperacionRefId(op);
     if (opRefId) mapRefOperaciones.set(opRefId, totals);
   };
@@ -2142,16 +2166,28 @@ const construirReporteResumen = (
   const operacionesPorKey = new Map();
   const operacionesPorRefId = new Map();
   operacionesContexto.forEach((item) => {
-    const key = getOperacionKey(item);
-    if (key && !operacionesPorKey.has(key)) {
-      operacionesPorKey.set(key, item);
-    }
+    getOperacionAliasKeys(item).forEach((key) => {
+      if (key && !operacionesPorKey.has(key)) {
+        operacionesPorKey.set(key, item);
+      }
+    });
     const refId = getOperacionRefId(item);
     if (refId && !operacionesPorRefId.has(refId)) {
       operacionesPorRefId.set(refId, item);
     }
   });
   const operacionesEnEvaluacion = new Set();
+  const totalsAreZero = (totals) => {
+    if (!totals || typeof totals !== "object") return true;
+    return (
+      Number(totals.actualMonth ?? 0) === 0 &&
+      Number(totals.planMonth ?? 0) === 0 &&
+      Number(totals.prevMonth ?? 0) === 0 &&
+      Number(totals.actualYTD ?? 0) === 0 &&
+      Number(totals.planYTD ?? 0) === 0 &&
+      Number(totals.prevYTD ?? 0) === 0
+    );
+  };
   const resolveOperacionReferenceTotals = ({
     refId = "",
     label = "",
@@ -2231,7 +2267,18 @@ const construirReporteResumen = (
           tipoNorm === "subsection" ||
           tipoNorm === "subseccion"
         ) {
-          return resolveSectionTotals(valor, parentHint) || null;
+          const bySection = resolveSectionTotals(valor, parentHint) || null;
+          if (
+            (modoFormulaEstricto || seccionesComoOperaciones) &&
+            totalsAreZero(bySection)
+          ) {
+            const byOperation = resolveOperacionReferenceTotals({
+              label: valor,
+              parentHint,
+            });
+            if (byOperation) return byOperation;
+          }
+          return bySection;
         }
         if (tipoNorm === "account" || tipoNorm === "cuenta") {
           const claveCuenta = normalizarTexto(
@@ -2247,17 +2294,35 @@ const construirReporteResumen = (
             (canon ? mapPlaneacion.get(canon) : null);
           origen = buildFromPlaneacion(record);
           if (origen) return origen;
-          return (
-            resolveSectionTotals(valor, parentHint) ||
-            resolveOperacionReferenceTotals({ label: valor, parentHint }) ||
-            null
-          );
+          const bySection = resolveSectionTotals(valor, parentHint) || null;
+          if (
+            (modoFormulaEstricto || seccionesComoOperaciones) &&
+            totalsAreZero(bySection)
+          ) {
+            const byOperation = resolveOperacionReferenceTotals({
+              label: valor,
+              parentHint,
+            });
+            if (byOperation) return byOperation;
+          }
+          return bySection || null;
         }
         if (tipoNorm === "operation" || tipoNorm === "operacion") {
           return resolveOperacionReferenceTotals({ label: valor, parentHint });
         }
+        const bySection = resolveSectionTotals(valor, parentHint) || null;
+        if (
+          (modoFormulaEstricto || seccionesComoOperaciones) &&
+          totalsAreZero(bySection)
+        ) {
+          const byOperation = resolveOperacionReferenceTotals({
+            label: valor,
+            parentHint,
+          });
+          if (byOperation) return byOperation;
+        }
         return (
-          resolveSectionTotals(valor, parentHint) ||
+          bySection ||
           mapCuentas.get(
             normalizarTexto(normalizarCuentaCanonica(valor) || valor),
           ) ||
@@ -2335,10 +2400,10 @@ const construirReporteResumen = (
   const operacionLigadaAHeader = (op = {}) => {
     const parentSection = (op.parentSection || "").toString().trim();
     const parentSubsection = (op.parentSubsection || "").toString().trim();
-    const sumRow = (op["sum-row"] || "").toString().trim();
-    const sumPrincipal = (op["sum-row-sumavarios"] || "").toString().trim();
-    if (parentSection || parentSubsection || sumRow || sumPrincipal)
-      return true;
+    const hasRowAnchor = CAMPOS_FILA_OPERACION.some((field) =>
+      Boolean((op?.[field] || "").toString().trim()),
+    );
+    if (parentSection || parentSubsection || hasRowAnchor) return true;
     const placement = (op.SECCION || op.seccion || "").toString().trim();
     if (!placement) return false;
     if (obtenerPrincipalPorEtiqueta(placement)) return true;
@@ -2427,7 +2492,7 @@ const construirReporteResumen = (
     const appliedOps = headerOverrideOps;
     const manualSeccionOps = opsConFormula;
     const manualPrincipalOps = opsConFormula.filter(({ op }) => {
-      if (op["sum-row-sumavarios"]) return true;
+      if (op["sum-row-sumavarios"] || op["sum-row-sumavarios2"]) return true;
       const placement = (op.SECCION || op.seccion || "").toString().trim();
       const parentSubsection = (op.parentSubsection || "").toString().trim();
       if (parentSubsection) return false;
@@ -2464,7 +2529,17 @@ const construirReporteResumen = (
       const opKey = getOperacionKey(op);
       const totals = calcularTotalesOperacion(op);
       if (!totals) return;
-      const rowLabel = (op["sum-row"] || "").toString().trim();
+      const rowLabel = (
+        op["sum-row"] ||
+        op["sum-row-sumavarios"] ||
+        op["sum-row-sumavarios2"] ||
+        op["result-row"] ||
+        op["net-row"] ||
+        op["result-net-row"] ||
+        ""
+      )
+        .toString()
+        .trim();
       const seccionValor = (op.SECCION || op.seccion || "").toString().trim();
       const parentSection = (op.parentSection || "").toString().trim();
       const parentSubsection = (op.parentSubsection || "").toString().trim();
@@ -2519,6 +2594,7 @@ const construirReporteResumen = (
       const opKey = getOperacionKey(op);
       const label = (
         op["sum-row-sumavarios"] ||
+        op["sum-row-sumavarios2"] ||
         op.SECCION ||
         op.seccion ||
         op.parentSection ||

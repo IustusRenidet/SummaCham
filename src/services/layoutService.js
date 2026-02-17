@@ -863,7 +863,9 @@ const normalizarFormulaOperacion = ({
       formula_terms: [],
       tokens: [],
       unresolved: 0,
-      hasManualFormula: false,
+      // Aunque no sea parseable aún, es una fórmula explícita del usuario y debe
+      // tener prioridad sobre defaults al fusionar/recargar.
+      hasManualFormula: true,
       passthrough: true,
     };
   }
@@ -1871,15 +1873,7 @@ const obtenerLayout = ({
     );
     const incomingFormulaRaw = parsedFormula.formulaRaw;
     const incomingHasManualFormula = parsedFormula.hasManualFormula;
-    const currentHasManualFormula = Boolean(operacionesMap[mapKey].__hasManualFormula);
-    if (
-      incomingHasManualFormula &&
-      (!currentHasManualFormula ||
-        formulaTerms.length >=
-          (Array.isArray(operacionesMap[mapKey].formula_terms)
-            ? operacionesMap[mapKey].formula_terms.length
-            : 0))
-    ) {
+    if (incomingHasManualFormula) {
       operacionesMap[mapKey].formula_terms = formulaTerms;
       operacionesMap[mapKey].formula_json = incomingFormulaRaw;
       operacionesMap[mapKey].formula_v2 =
