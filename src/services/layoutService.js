@@ -1796,6 +1796,14 @@ const obtenerLayout = ({
     const operacionEtiqueta =
       op.operacion_etiqueta || op.Clase || operacionId || "Operacion";
     const mapKey = keyNormalizada || operacionId || operacionEtiqueta;
+    const tipoRaw = (op.operacion_tipo || "").toString().trim();
+    const tipo =
+      tipoRaw === "parent_section"
+        ? "parentSection"
+        : tipoRaw === "parent_subsection"
+        ? "parentSubsection"
+        : tipoRaw;
+    const tipoIgnorado = Boolean(tipo && tiposOperacionIgnorados.has(tipo));
 
     const parsedFormula = parsearFormulaOperacion(op);
     const formulaTerms = parsedFormula.formulaTerms;
@@ -1814,10 +1822,12 @@ const obtenerLayout = ({
         SECCION: op.SECCION,
         signo: op.signo ?? 1,
         signos: signos,
-        formula_terms: formulaTerms,
-        formula_json: parsedFormula.formulaRaw || undefined,
+        formula_terms: tipoIgnorado ? [] : formulaTerms,
+        formula_json: tipoIgnorado ? undefined : parsedFormula.formulaRaw || undefined,
         formula_v2:
-          parsedFormula.formulaTokens && parsedFormula.formulaTokens.length
+          !tipoIgnorado &&
+          parsedFormula.formulaTokens &&
+          parsedFormula.formulaTokens.length
             ? {
                 version: FORMULA_V2_VERSION,
                 tokens: parsedFormula.formulaTokens,
@@ -1827,7 +1837,7 @@ const obtenerLayout = ({
         orden_presentacion:
           ordenPresentacion === undefined ? ordenBase : ordenPresentacion,
         visible: normalizarVisible(op.visible),
-        __hasManualFormula: parsedFormula.hasManualFormula,
+        __hasManualFormula: !tipoIgnorado && parsedFormula.hasManualFormula,
         __hasExplicitOrder: Number.isFinite(ordenPresentacion),
       };
     } else if (
@@ -1856,14 +1866,7 @@ const obtenerLayout = ({
       operacionesMap[mapKey].SECCION = op.SECCION;
     }
 
-    const tipoRaw = (op.operacion_tipo || "").toString().trim();
-    const tipo =
-      tipoRaw === "parent_section"
-        ? "parentSection"
-        : tipoRaw === "parent_subsection"
-        ? "parentSubsection"
-        : tipoRaw;
-    if (tipo && !tiposOperacionIgnorados.has(tipo)) {
+    if (tipo && !tipoIgnorado) {
       operacionesMap[mapKey][tipo] = op.operacion_label;
       operacionesMap[mapKey].signos[tipo] = op.signo ?? 1;
     }
@@ -1872,7 +1875,8 @@ const obtenerLayout = ({
       operacionesMap[mapKey].formula_json
     );
     const incomingFormulaRaw = parsedFormula.formulaRaw;
-    const incomingHasManualFormula = parsedFormula.hasManualFormula;
+    const incomingHasManualFormula =
+      !tipoIgnorado && parsedFormula.hasManualFormula;
     if (incomingHasManualFormula) {
       operacionesMap[mapKey].formula_terms = formulaTerms;
       operacionesMap[mapKey].formula_json = incomingFormulaRaw;
@@ -1889,6 +1893,7 @@ const obtenerLayout = ({
         operacionesMap[mapKey].signos[key] = term.operator === "-" ? -1 : 1;
       });
     } else if (
+      !tipoIgnorado &&
       incomingFormulaRaw &&
       incomingFormulaRaw !== "[]" &&
       (!currentFormulaRaw || currentFormulaRaw === "[]")
@@ -3067,7 +3072,10 @@ const actualizarOperacion = ({
   `);
 
   // Process operaciones object
-  const operaciones = datos.operaciones || {};
+  const operaciones =
+    datos.operaciones && typeof datos.operaciones === "object"
+      ? datos.operaciones
+      : {};
   const formulaNormalizada = normalizarFormulaOperacion({
     formulaJsonRaw: datos.formula_json,
     formulaTermsRaw: datos.formula_terms,
@@ -3100,26 +3108,108 @@ const actualizarOperacion = ({
   const ordenFinal = Number.isFinite(Number(ordenRaw)) ? Number(ordenRaw) : 0;
   const visibleFinal =
     datos.visible === false ? 0 : existente?.visible === 0 ? 0 : 1;
-  Object.entries(operaciones).forEach(([tipo, label]) => {
-      if (label) {
-        insert.run(
-          empresaCanonica,
-          modulo,
-          anioNumero,
-          capituloObjetivo,
-          operacionId,
-          operacionEtiqueta,
-          datos.seccion || "",
-        tipo,
-        label,
-        datos.signo || 1,
+
+  const tiposOperacionBase = [
+    "sum-row",
+    "sum-row-sumavarios",
+    "sum-row-sumavarios2",
+    "sum-row-sumavarios-consolidado",
+    "sum-row-operativo",
+    "sum-row-operativo-consolidado",
+    "parentSection",
+    "parentSubsection",
+    "result-row",
+    "net-row",
+    "net-row-adicional",
+    "result-net-row",
+  ];
+  const clavesReservadas = new Set([
+    "HOJA",
+    "CAPITULO",
+    "Clase",
+    "clase",
+    "OperacionId",
+    "operacion_id",
+    "operacion_etiqueta",
+    "operacion_tipo",
+    "operacion_label",
+    "Etiqueta",
+    "etiqueta",
+    "SECCION",
+    "seccion",
+    "formula_json",
+    "formula_terms",
+    "signo",
+    "signos",
+    "orden",
+    "orden_presentacion",
+    "ordenPresentacion",
+    "visible",
+    "cuentas",
+    "tipo",
+    "secciones",
+  ]);
+  const tiposOperacionExtra = Object.keys({ ...datos, ...operaciones })
+    .filter((key) => key && !clavesReservadas.has(key))
+    .filter((key) => !tiposOperacionBase.includes(key))
+    .filter((key) => !/^(seccion|operacion)_\d+$/i.test(key));
+  const tiposOperacion = [...tiposOperacionBase, ...tiposOperacionExtra];
+
+  let insertados = 0;
+  tiposOperacion.forEach((tipo) => {
+    const rawLabel = operaciones?.[tipo] ?? datos?.[tipo];
+    if (typeof rawLabel !== "string" || !rawLabel.trim()) return;
+    const label = rawLabel.trim();
+    const signoRaw = datos?.signos?.[tipo];
+    const signoConfig = Number.isFinite(Number(signoRaw))
+      ? Number(signoRaw)
+      : Number(datos?.signo);
+    const signo =
+      Number.isFinite(signoConfig) && signoConfig !== 0 ? signoConfig : 1;
+    insert.run(
+      empresaCanonica,
+      modulo,
+      anioNumero,
+      capituloObjetivo,
+      operacionId,
+      operacionEtiqueta,
+      datos.seccion || "",
+      tipo,
+      label,
+      signo,
+      ordenFinal,
+      ordenFinal,
+      visibleFinal,
+      formulaJson
+    );
+    insertados += 1;
+  });
+
+  if (insertados === 0) {
+    const fallbackLabel = LIMPIAR_CLAVE(
+      operacionEtiqueta || operacionId || claseOriginal
+    );
+    if (fallbackLabel) {
+      insert.run(
+        empresaCanonica,
+        modulo,
+        anioNumero,
+        capituloObjetivo,
+        operacionId || fallbackLabel,
+        operacionEtiqueta || fallbackLabel,
+        datos.seccion || "",
+        "free-operation",
+        fallbackLabel,
+        Number.isFinite(Number(datos?.signo)) && Number(datos.signo) !== 0
+          ? Number(datos.signo)
+          : 1,
         ordenFinal,
         ordenFinal,
         visibleFinal,
         formulaJson
       );
     }
-  });
+  }
 
   return { success: true };
 };

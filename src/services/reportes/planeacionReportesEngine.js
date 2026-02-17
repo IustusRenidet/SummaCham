@@ -2491,11 +2491,81 @@ const construirReporteResumen = (
     const manualPrincipalKeys = new Set();
     const appliedOps = headerOverrideOps;
     const manualSeccionOps = opsConFormula;
+    const cleanLabel = (value = "") => (value || "").toString().trim();
+    const labelsAreEqual = (left = "", right = "") => {
+      const leftKey = normalizarEtiqueta(left);
+      const rightKey = normalizarEtiqueta(right);
+      return Boolean(leftKey && rightKey && leftKey === rightKey);
+    };
+    const buildSubsectionCandidates = (op = {}) => {
+      const parentSection = cleanLabel(op.parentSection);
+      const parentSubsection = cleanLabel(op.parentSubsection);
+      const sumRowLabel = cleanLabel(op["sum-row"]);
+      const placement = cleanLabel(op.SECCION || op.seccion);
+      const principalAnchor = cleanLabel(
+        op["sum-row-sumavarios"] || op["sum-row-sumavarios2"],
+      );
+      const candidates = [];
+      const addCandidate = (label, parent) => {
+        const clean = cleanLabel(label);
+        if (!clean) return;
+        candidates.push({
+          label: clean,
+          parent: cleanLabel(parent),
+        });
+      };
+
+      addCandidate(sumRowLabel, parentSection);
+      addCandidate(parentSubsection, parentSection);
+
+      if (
+        placement &&
+        parentSection &&
+        !labelsAreEqual(placement, parentSection)
+      ) {
+        addCandidate(placement, parentSection);
+      }
+
+      if (
+        principalAnchor &&
+        sumRowLabel &&
+        labelsAreEqual(principalAnchor, parentSection) &&
+        !labelsAreEqual(sumRowLabel, principalAnchor)
+      ) {
+        addCandidate(sumRowLabel, parentSection);
+      }
+
+      const unique = new Map();
+      candidates.forEach((candidate) => {
+        const key =
+          buildSeccionKey(candidate.parent, candidate.label) ||
+          normalizarTexto(candidate.label);
+        if (!key || unique.has(key)) return;
+        unique.set(key, candidate);
+      });
+
+      return Array.from(unique.values());
+    };
     const manualPrincipalOps = opsConFormula.filter(({ op }) => {
-      if (op["sum-row-sumavarios"] || op["sum-row-sumavarios2"]) return true;
-      const placement = (op.SECCION || op.seccion || "").toString().trim();
-      const parentSubsection = (op.parentSubsection || "").toString().trim();
+      const principalAnchor = cleanLabel(
+        op["sum-row-sumavarios"] || op["sum-row-sumavarios2"],
+      );
+      const subsectionAnchor = cleanLabel(op["sum-row"]);
+      const placement = cleanLabel(op.SECCION || op.seccion);
+      const parentSection = cleanLabel(op.parentSection);
+      const parentSubsection = cleanLabel(op.parentSubsection);
       if (parentSubsection) return false;
+      if (principalAnchor) {
+        if (
+          subsectionAnchor &&
+          !labelsAreEqual(subsectionAnchor, principalAnchor)
+        ) {
+          return false;
+        }
+        return Boolean(obtenerPrincipalPorEtiqueta(principalAnchor));
+      }
+      if (subsectionAnchor) return false;
+      if (parentSection && obtenerPrincipalPorEtiqueta(parentSection)) return true;
       return Boolean(placement && obtenerPrincipalPorEtiqueta(placement));
     });
 
@@ -2529,28 +2599,8 @@ const construirReporteResumen = (
       const opKey = getOperacionKey(op);
       const totals = calcularTotalesOperacion(op);
       if (!totals) return;
-      const rowLabel = (
-        op["sum-row"] ||
-        op["sum-row-sumavarios"] ||
-        op["sum-row-sumavarios2"] ||
-        op["result-row"] ||
-        op["net-row"] ||
-        op["result-net-row"] ||
-        ""
-      )
-        .toString()
-        .trim();
-      const seccionValor = (op.SECCION || op.seccion || "").toString().trim();
-      const parentSection = (op.parentSection || "").toString().trim();
-      const parentSubsection = (op.parentSubsection || "").toString().trim();
-
-      const sectionCandidates = [
-        { label: rowLabel, parent: parentSection || seccionValor },
-        { label: parentSubsection, parent: parentSection },
-        { label: seccionValor, parent: parentSection },
-        { label: op.operacion_etiqueta, parent: parentSection },
-        { label: op.Clase, parent: parentSection },
-      ].filter((item) => item.label);
+      const sectionCandidates = buildSubsectionCandidates(op);
+      if (!sectionCandidates.length) return;
 
       let applied = false;
       for (const candidate of sectionCandidates) {
@@ -2563,53 +2613,34 @@ const construirReporteResumen = (
         if (opKey) appliedOps.add(opKey);
         break;
       }
-
-      if (applied) return;
-
-      const principalCandidates = [
-        rowLabel,
-        seccionValor,
-        parentSection,
-        op.Clase,
-        op.operacion_etiqueta,
-      ].filter(Boolean);
-
-      for (const candidate of principalCandidates) {
-        const principal = resolvePrincipalNode(candidate);
-        if (!principal) continue;
-        const key = normalizarEtiqueta(principal.label);
-        if (manualPrincipalKeys.has(key)) break;
-        applyTotalsToPrincipal(principal, totals);
-        rebuildMapSecciones();
-        manualPrincipalKeys.add(key);
-        storeOperacionTotals(op, totals);
-        if (opKey) appliedOps.add(opKey);
-        break;
-      }
+      if (!applied) return;
     });
 
     rebuildMapSecciones();
 
     manualPrincipalOps.forEach(({ op }) => {
       const opKey = getOperacionKey(op);
-      const label = (
-        op["sum-row-sumavarios"] ||
-        op["sum-row-sumavarios2"] ||
-        op.SECCION ||
-        op.seccion ||
-        op.parentSection ||
-        ""
-      )
-        .toString()
-        .trim();
-      if (!label) return;
-      const principal = obtenerPrincipalPorEtiqueta(label);
+      const labels = [
+        cleanLabel(op["sum-row-sumavarios"]),
+        cleanLabel(op["sum-row-sumavarios2"]),
+        cleanLabel(op.parentSection),
+        cleanLabel(op.SECCION || op.seccion),
+        cleanLabel(op.Clase),
+        cleanLabel(op.operacion_etiqueta),
+      ].filter(Boolean);
+      let principal = null;
+      labels.some((label) => {
+        principal = obtenerPrincipalPorEtiqueta(label);
+        return Boolean(principal);
+      });
       if (!principal) return;
+      const principalKey = normalizarEtiqueta(principal.label);
+      if (manualPrincipalKeys.has(principalKey)) return;
       const totals = calcularTotalesOperacion(op);
       if (!totals) return;
       applyTotalsToPrincipal(principal, totals);
       rebuildMapSecciones();
-      manualPrincipalKeys.add(normalizarEtiqueta(label));
+      manualPrincipalKeys.add(principalKey);
       storeOperacionTotals(op, totals);
       if (opKey) appliedOps.add(opKey);
     });

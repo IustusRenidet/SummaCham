@@ -1526,9 +1526,10 @@
     if (!op) return false;
     const parentSection = (op.parentSection || "").toString().trim();
     const parentSubsection = (op.parentSubsection || "").toString().trim();
-    const sumRow = (op["sum-row"] || "").toString().trim();
-    const sumPrincipal = (op["sum-row-sumavarios"] || "").toString().trim();
-    return Boolean(parentSection || parentSubsection || sumRow || sumPrincipal);
+    const hasRowAnchor = ROW_LABEL_FIELDS.some((field) =>
+      Boolean((op?.[field] || "").toString().trim()),
+    );
+    return Boolean(parentSection || parentSubsection || hasRowAnchor);
   }
 
   function getRowOperationMatch(
@@ -1548,29 +1549,35 @@
           (candidate) => normalizeOperationMatch(candidate) === parentKey,
         ),
       );
-      return withParent.length ? withParent : ops;
+      return withParent;
     };
 
-    const direct = findOperationByIdOrLabel(label);
-    if (direct) {
-      return { field: "", operations: filterByParent([direct]) };
-    }
-
     const rowMatch = findOperationsByRowLabel(label, preferredField);
-    if (rowMatch.operations.length) {
+    const rowMatchOps = filterByParent(rowMatch.operations || []);
+    if (rowMatchOps.length) {
       return {
         field: rowMatch.field,
-        operations: filterByParent(rowMatch.operations),
+        operations: rowMatchOps,
       };
     }
 
-    const byParent = (state.operaciones || []).filter((op) =>
-      getOperationPlacementCandidates(op).some(
-        (candidate) => normalizeOperationMatch(candidate) === target,
-      ),
-    );
-    if (byParent.length) {
-      return { field: "", operations: filterByParent(byParent) };
+    // Fallback estricto: solo por ID/label de operaciones ligadas a header.
+    // Evita capturar operaciones hijas por placement (p.ej. parentSection = INCOME)
+    // cuando se edita la fórmula de la sección principal.
+    const byIdentity = (state.operaciones || []).filter((op) => {
+      if (!isHeaderLinkedOperation(op)) return false;
+      const sameId =
+        normalizeOperationMatch(getOperationId(op)) === target;
+      const sameLabel =
+        normalizeOperationMatch(getOperationLabel(op)) === target;
+      if (!sameId && !sameLabel) return false;
+      if (!parentKey) return true;
+      return getOperationParentCandidates(op).some(
+        (candidate) => normalizeOperationMatch(candidate) === parentKey,
+      );
+    });
+    if (byIdentity.length) {
+      return { field: "", operations: byIdentity };
     }
 
     return { field: "", operations: [] };
@@ -2087,7 +2094,6 @@
       { label: "Subsecciones", value: summary.subsections, optional: true },
       { label: "Cuentas", value: summary.accounts },
       { label: "Operaciones", value: summary.operations },
-      { label: "Columnas", value: columnCount },
     ];
     const visibleItems = items.filter(
       (item) => !item.optional || item.value > 0,
@@ -3022,8 +3028,8 @@
     const dataColCount = resolvedColumns.length;
     const colCount = dataColCount + (showOrder ? 1 : 0);
     const headerHtml = `${showOrder
-        ? `<th class="order-col"><i class="bi bi-arrows-move"></i></th>`
-        : ""
+      ? `<th class="order-col"><i class="bi bi-arrows-move"></i></th>`
+      : ""
       }${resolvedColumns
         .map((col, idx) => {
           const isEditable = Boolean(col?.editable);
@@ -4519,38 +4525,42 @@
     const safeSection = (sectionName || "").toString().trim();
     const safeSubsection = (subsectionName || "").toString().trim();
     if (kind === "section") {
-      const match = getRowOperationMatch(safeSection, "sum-row-sumavarios", "");
-      if (match.operations?.length) {
-        return match.operations[0];
+      const match = findOperationBySectionName(safeSection, safeSection);
+      if (match) {
+        return match;
       }
       const targetKey = normalizeOperationMatch(safeSection);
       return (
         (state.operaciones || []).find((op) => {
+          if (!isHeaderLinkedOperation(op)) return false;
           const parentKey = normalizeOperationMatch(op?.parentSection || "");
           const subKey = normalizeOperationMatch(op?.parentSubsection || "");
+          const sumRowKey = normalizeOperationMatch(op?.["sum-row"] || "");
           const placementKey = normalizeOperationMatch(op?.SECCION || "");
           return (
             parentKey === targetKey &&
             !subKey &&
+            (!sumRowKey || sumRowKey === targetKey) &&
             (!placementKey || placementKey === targetKey)
           );
         }) || null
       );
     }
-    const match = getRowOperationMatch(safeSubsection, "sum-row", safeSection);
-    if (match.operations?.length) {
-      return match.operations[0];
+    const match = findOperationBySectionName(safeSubsection, safeSection);
+    if (match) {
+      return match;
     }
     const sectionKey = normalizeOperationMatch(safeSection);
     const subsectionKey = normalizeOperationMatch(safeSubsection);
     return (
       (state.operaciones || []).find((op) => {
+        if (!isHeaderLinkedOperation(op)) return false;
         const parentKey = normalizeOperationMatch(op?.parentSection || "");
         const subKey = normalizeOperationMatch(op?.parentSubsection || "");
-        const placementKey = normalizeOperationMatch(op?.SECCION || "");
+        const sumRowKey = normalizeOperationMatch(op?.["sum-row"] || "");
         return (
           parentKey === sectionKey &&
-          (subKey === subsectionKey || placementKey === subsectionKey)
+          (subKey === subsectionKey || sumRowKey === subsectionKey)
         );
       }) || null
     );
@@ -10408,29 +10418,64 @@
     if (!sectionName) return null;
     const target = normalizeOperationMatch(sectionName);
     const parentKey = normalizeOperationMatch(parentSection);
-    const matches = (state.operaciones || []).filter((op) =>
-      getOperationPlacementCandidates(op).some(
-        (candidate) => normalizeOperationMatch(candidate) === target,
-      ),
+    const isSubsectionScope = Boolean(
+      parentKey && target && parentKey !== target,
     );
-    if (!matches.length) return null;
-    if (parentKey) {
-      const filtered = matches.filter((op) =>
-        getOperationParentCandidates(op).some(
-          (candidate) => normalizeOperationMatch(candidate) === parentKey,
-        ),
+    const isSectionScope = Boolean(
+      parentKey && target && parentKey === target,
+    );
+    const matches = (state.operaciones || []).filter((op) => {
+      if (!op || !isHeaderLinkedOperation(op)) return false;
+      const opParentKey = normalizeOperationMatch(op.parentSection || "");
+      const opSubKey = normalizeOperationMatch(op.parentSubsection || "");
+      const hasRowLabel = ROW_LABEL_FIELDS.some(
+        (field) => normalizeOperationMatch(op?.[field]) === target,
       );
-      if (filtered.length) {
-        const withLabels = filtered.find((op) =>
-          ROW_LABEL_FIELDS.some((field) => op?.[field]),
-        );
-        return withLabels || filtered[0] || null;
+
+      if (isSubsectionScope) {
+        if (opParentKey !== parentKey) return false;
+        const bySumRow =
+          normalizeOperationMatch(op?.["sum-row"] || "") === target;
+        return opSubKey === target || bySumRow;
       }
+
+      if (isSectionScope) {
+        if (opParentKey !== parentKey) return false;
+        if (opSubKey) return false;
+        const sumRowKey = normalizeOperationMatch(op?.["sum-row"] || "");
+        if (sumRowKey && sumRowKey !== target) return false;
+        return (
+          normalizeOperationMatch(op?.["sum-row-sumavarios"] || "") === target ||
+          normalizeOperationMatch(op?.["sum-row-sumavarios2"] || "") ===
+            target ||
+          hasRowLabel
+        );
+      }
+
+      return hasRowLabel;
+    });
+    if (!matches.length) return null;
+    if (isSubsectionScope) {
+      const exactSub = matches.find(
+        (op) => normalizeOperationMatch(op?.parentSubsection || "") === target,
+      );
+      if (exactSub) return exactSub;
+      const bySumRow = matches.find(
+        (op) => normalizeOperationMatch(op?.["sum-row"] || "") === target,
+      );
+      if (bySumRow) return bySumRow;
     }
-    const withLabels = matches.find((op) =>
-      ROW_LABEL_FIELDS.some((field) => op?.[field]),
-    );
-    return withLabels || matches[0] || null;
+    if (isSectionScope) {
+      const bySumVarios = matches.find(
+        (op) =>
+          normalizeOperationMatch(op?.["sum-row-sumavarios"] || "") ===
+            target ||
+          normalizeOperationMatch(op?.["sum-row-sumavarios2"] || "") ===
+            target,
+      );
+      if (bySumVarios) return bySumVarios;
+    }
+    return matches[0] || null;
   }
 
   async function confirmBulkAdd() {
@@ -12239,12 +12284,12 @@
 
     const icon = dom.toastNotification.querySelector(".toast-header i");
     icon.className = `bi bi-${type === "success"
-        ? "check-circle text-success"
-        : type === "error"
-          ? "x-circle text-danger"
-          : type === "warning"
-            ? "exclamation-triangle text-warning"
-            : "info-circle text-primary"
+      ? "check-circle text-success"
+      : type === "error"
+        ? "x-circle text-danger"
+        : type === "warning"
+          ? "exclamation-triangle text-warning"
+          : "info-circle text-primary"
       } me-2`;
 
     const toast = new bootstrap.Toast(dom.toastNotification);
