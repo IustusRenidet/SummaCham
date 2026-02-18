@@ -270,6 +270,28 @@ const esOperacionConfigColumnas = (op = {}) => {
   return false;
 };
 
+const LAYOUT_CONFIG_ID = "LAYOUT_CONFIG";
+const esOperacionLayoutConfig = (op = {}) => {
+  const rawId =
+    op.OperacionId || op.operacion_id || op.Clase || op.clase || op.id || "";
+  const id = rawId.toString().trim().toUpperCase();
+  if (id === LAYOUT_CONFIG_ID) return true;
+  if (op["layout-config"] || op["layoutconfig"]) return true;
+  return false;
+};
+
+const extraerLayoutConfig = (ops = []) => {
+  for (const op of ops) {
+    if (!esOperacionLayoutConfig(op)) continue;
+    if (!op.formula_json) continue;
+    try {
+      const parsed = JSON.parse(op.formula_json);
+      if (parsed && typeof parsed === "object") return parsed;
+    } catch (_) { /* noop */ }
+  }
+  return {};
+};
+
 const esOperacionLibre = (op = {}) =>
   !CAMPOS_FILA_OPERACION.some((campo) => Boolean(op?.[campo]));
 
@@ -3533,9 +3555,14 @@ async function generarReporte(
 
   // Filtrar configuración de agrupación por HOJA (SUMMARY o RESUMEN)
   const configCompleta = definiciones["SUMA DE VARIAS SECCIONES"] || [];
+  // Extraer configuración de layout antes de filtrar
+  const layoutConfig = extraerLayoutConfig(
+    configCompleta.filter((cfg) => cfg.HOJA === hojaConfig)
+  );
   const configAgrupacion = configCompleta
     .filter((cfg) => cfg.HOJA === hojaConfig)
-    .filter((cfg) => !esOperacionConfigColumnas(cfg));
+    .filter((cfg) => !esOperacionConfigColumnas(cfg))
+    .filter((cfg) => !esOperacionLayoutConfig(cfg));
 
   const capitulosDisponibles = extraerCapitulos(lista);
   const capituloClave = NORMALIZAR_CAPITULO(
@@ -3593,6 +3620,7 @@ async function generarReporte(
     label: capituloEncontrado?.etiqueta || capituloSeleccionado,
     children: principals,
     layout,
+    config: layoutConfig,
   };
 
   return {

@@ -35,6 +35,8 @@
     operaciones: [],
     columnasConfig: null,
     columnasConfigChanged: false,
+    layoutConfig: null,
+    layoutConfigChanged: false,
     unsavedChanges: false,
     editMode: false,
     inlineOrderMode: false,
@@ -884,9 +886,16 @@
             ? extracted.columnasConfig
             : buildDefaultColumnConfig();
         state.columnasConfigChanged = false;
+        // Extraer configuración de layout (mostrarSubsecciones, etc.)
+        const layoutExtracted = extractLayoutConfigFromOperations(state.operaciones);
+        state.operaciones = layoutExtracted.operaciones;
+        state.layoutConfig = layoutExtracted.layoutConfig || { mostrarSubsecciones: true };
+        state.layoutConfigChanged = false;
       } else {
         state.columnasConfig = null;
         state.columnasConfigChanged = false;
+        state.layoutConfig = null;
+        state.layoutConfigChanged = false;
       }
 
       // Modo estricto manual: no inferir parentSection/parentSubsection.
@@ -2113,6 +2122,8 @@
 
   const COLUMN_CONFIG_ID = "COLUMN_CONFIG";
   const COLUMN_CONFIG_FIELD = "column-config";
+  const LAYOUT_CONFIG_ID = "LAYOUT_CONFIG";
+  const LAYOUT_CONFIG_FIELD = "layout-config";
   const OPERATIVO_STOP_WORDS = new Set([
     "de",
     "del",
@@ -2131,6 +2142,7 @@
 
   function renderEditableLayoutPiloto() {
     const rows = buildPreviewRowsForEditor();
+    const mostrarSubsecciones = state.layoutConfig?.mostrarSubsecciones !== false;
     const inlineOrderHeader = INLINE_ORDER_UI_ENABLED
       ? `
             <div class="template-table-actions">
@@ -2149,13 +2161,31 @@
             </div>
         `
       : "";
+    const subseccionesToggle = isModuloPiloto() ? `
+            <div class="template-table-actions ms-2">
+              <div class="form-check form-switch m-0">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="toggleMostrarSubsecciones"
+                  ${mostrarSubsecciones ? "checked" : ""}
+                />
+                <label class="form-check-label small" for="toggleMostrarSubsecciones">
+                  <i class="bi bi-layers me-1"></i>Subsecciones en Resumen
+                </label>
+              </div>
+            </div>
+        ` : "";
     return `
       <div class="template-pilot">
         ${renderTemplateSummary(rows, [])}
         <div class="card mb-3">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2 template-items-sticky">
             <span>Elementos de la plantilla</span>
-            ${inlineOrderHeader}
+            <div class="d-flex align-items-center flex-wrap gap-2">
+              ${inlineOrderHeader}
+              ${subseccionesToggle}
+            </div>
           </div>
           <div class="card-body">
             ${renderTemplateListView(rows)}
@@ -4284,6 +4314,17 @@
       });
     }
 
+    const subseccionesToggleEl = dom.layoutPreview?.querySelector("#toggleMostrarSubsecciones");
+    if (isPiloto && subseccionesToggleEl) {
+      subseccionesToggleEl.addEventListener("change", (event) => {
+        if (!state.layoutConfig) state.layoutConfig = {};
+        state.layoutConfig.mostrarSubsecciones = Boolean(event.target.checked);
+        state.layoutConfigChanged = true;
+        state.unsavedChanges = true;
+        updateButtonStates();
+      });
+    }
+
     // Manejar clicks en la vista de lista
     const listView = dom.layoutPreview?.querySelector(".template-list-view");
     const table = dom.layoutPreview?.querySelector(".template-table");
@@ -4543,6 +4584,10 @@
           document.getElementById("editValorPlantilla")?.value || "";
         const visible = document.getElementById("editVisible")?.checked;
 
+        // Capturar valores previos para detectar subsecciones huérfanas
+        const oldSeccionPrincipal = getAccountPrincipalName(cuenta) || "";
+        const oldSeccionSecundaria = getAccountSecondaryName(cuenta) || "";
+
         // Actualizar cuenta
         if (cuenta.NOMBRE !== undefined) cuenta.NOMBRE = nombre;
         if (cuenta.nombre !== undefined) cuenta.nombre = nombre;
@@ -4574,6 +4619,11 @@
           : 0;
         cuenta.visible = visible;
 
+        // Si la subsección anterior queda huérfana, crear placeholder para preservarla
+        if (oldSeccionSecundaria && oldSeccionSecundaria !== seccionSecundaria) {
+          ensureSubsectionPlaceholder(oldSeccionPrincipal, oldSeccionSecundaria);
+        }
+
         // Guardar y cerrar
         state.unsavedChanges = true;
         updateButtonStates();
@@ -4602,9 +4652,18 @@
       const deleteHandler = () => {
         if (!confirm(`¿Eliminar la cuenta ${codigoCuenta}?`)) return;
 
+        // Capturar subsección antes de eliminar para crear placeholder si queda huérfana
+        const deletedPrincipal = getAccountPrincipalName(cuenta) || "";
+        const deletedSecondary = getAccountSecondaryName(cuenta) || "";
+
         state.cuentas = state.cuentas.filter(
           (c) => getAccountRowId(c) !== accountId,
         );
+
+        // Si la subsección de la cuenta eliminada queda huérfana, crear placeholder
+        if (deletedSecondary) {
+          ensureSubsectionPlaceholder(deletedPrincipal, deletedSecondary);
+        }
         state.unsavedChanges = true;
         updateButtonStates();
         renderLayout();
@@ -5386,6 +5445,56 @@
       "SUBSECCION",
       "SUBSECCIÓN",
     ]);
+  }
+
+  /**
+   * Si el par (principal, secondary) queda huérfano (ninguna cuenta real lo referencia
+   * y no existe ya un placeholder para él), crea un placeholder en state.cuentas para
+   * que la subsección siga visible en el Gestor y persista en layout_secciones al guardar.
+   */
+  function ensureSubsectionPlaceholder(principal, secondary) {
+    if (!principal || !secondary) return;
+    const principalKey = normalizeOperationMatch(principal);
+    const secondaryKey = normalizeOperationMatch(secondary);
+    if (!principalKey || !secondaryKey) return;
+
+    // ¿Alguna cuenta REAL aún cubre este par?
+    const coveredByAccount = (state.cuentas || []).some((c) => {
+      if (isPlaceholderAccount(c)) return false;
+      const p = normalizeOperationMatch(getAccountPrincipalName(c) || "");
+      const s = normalizeOperationMatch(getAccountSecondaryName(c) || "");
+      return p === principalKey && s === secondaryKey;
+    });
+    if (coveredByAccount) return;
+
+    // ¿Ya existe un placeholder para este par?
+    const alreadyHasPlaceholder = (state.cuentas || []).some((c) => {
+      if (!isPlaceholderAccount(c)) return false;
+      const p = normalizeOperationMatch(getAccountPrincipalName(c) || "");
+      const s = normalizeOperationMatch(getAccountSecondaryName(c) || "");
+      return p === principalKey && s === secondaryKey;
+    });
+    if (alreadyHasPlaceholder) return;
+
+    // Crear placeholder para preservar la subsección en el Gestor
+    const order = getNextGlobalOrder();
+    const placeholder = {
+      CUENTA: "",
+      NOMBRE: `[Subseccion: ${secondary}]`,
+      "SECCION Principal": principal,
+      "SECCION Secundaria": secondary,
+      SECCION: principal,
+      seccion_principal: principal,
+      seccion_secundaria: secondary,
+      orden: order,
+      orden_presentacion: order,
+      visible: false,
+      __layoutPlaceholder: true,
+      __placeholderType: "secundaria",
+      __placeholderOrder: order,
+    };
+    assignAccountRowId(placeholder);
+    state.cuentas.push(placeholder);
   }
 
   function resequenceAccountsBySections(sections) {
@@ -6474,6 +6583,12 @@
         lista.push(opColumn);
       }
     }
+    if (isModuloPiloto() && state.layoutConfig) {
+      const opLayout = buildLayoutConfigOperation(state.layoutConfig);
+      if (opLayout) {
+        lista.push(opLayout);
+      }
+    }
     const capituloFinal = (state.capitulo || "").toString();
     const hojaFinal = (state.modulo || "").toString();
     return lista.map((op) => {
@@ -6498,7 +6613,7 @@
         }
       });
 
-      if (!isColumnConfigOperation(sanitized)) {
+      if (!isColumnConfigOperation(sanitized) && !isLayoutConfigOperation(sanitized)) {
         const normalizedTokens = extractFormulaTokens(sanitized);
         const normalizedTerms = normalizeFormulaTerms(
           convertV2TokensToLegacyTerms(normalizedTokens),
@@ -6526,6 +6641,50 @@
     if (opId === normalizeOperationMatch(COLUMN_CONFIG_ID)) return true;
     if (op[COLUMN_CONFIG_FIELD] || op["columnas-config"]) return true;
     return false;
+  }
+
+  function isLayoutConfigOperation(op) {
+    if (!op) return false;
+    const opId = normalizeOperationMatch(getOperationId(op));
+    if (opId === normalizeOperationMatch(LAYOUT_CONFIG_ID)) return true;
+    if (op[LAYOUT_CONFIG_FIELD] || op["layoutconfig"]) return true;
+    return false;
+  }
+
+  function extractLayoutConfigFromOperations(ops = []) {
+    let layoutConfig = null;
+    const operaciones = [];
+    (ops || []).forEach((op) => {
+      if (!isLayoutConfigOperation(op)) {
+        operaciones.push(op);
+        return;
+      }
+      if (!op.formula_json || layoutConfig) return;
+      try {
+        const parsed = JSON.parse(op.formula_json);
+        if (parsed && typeof parsed === "object") {
+          layoutConfig = parsed;
+        }
+      } catch (error) {
+        console.warn("No se pudo leer layout config", error);
+      }
+    });
+    return { layoutConfig, operaciones };
+  }
+
+  function buildLayoutConfigOperation(config = {}) {
+    return {
+      CAPITULO: state.capitulo || "",
+      HOJA: state.modulo || "",
+      Clase: LAYOUT_CONFIG_ID,
+      OperacionId: LAYOUT_CONFIG_ID,
+      SECCION: "",
+      [LAYOUT_CONFIG_FIELD]: LAYOUT_CONFIG_ID,
+      formula_json: JSON.stringify(config),
+      visible: false,
+      orden: -2,
+      orden_presentacion: -2,
+    };
   }
 
   function extractColumnConfigFromOperations(ops = []) {
@@ -12145,6 +12304,7 @@
         state.unsavedChanges = false;
         state.changeLog = []; // Limpiar log de cambios
         state.columnasConfigChanged = false;
+        state.layoutConfigChanged = false;
         updateButtonStates();
         setStatus(silent ? "Guardado automatico" : "Guardado correctamente");
         if (!silent) {

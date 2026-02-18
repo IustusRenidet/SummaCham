@@ -4460,6 +4460,9 @@
       const layout = Array.isArray(capitulo.layout)
         ? ordenarLayoutPorOrdenGlobal(capitulo.layout)
         : null;
+      // Leer configuración de layout: mostrarSubsecciones (por defecto true)
+      const mostrarSubseccionesEnResumen =
+        capitulo.config?.mostrarSubsecciones !== false;
       const principales = Array.isArray(capitulo.children)
         ? capitulo.children.slice()
         : [];
@@ -4713,12 +4716,24 @@
             return;
           }
 
-          // SUBSECTION (Secundaria): Always render, even if empty
+          // SUBSECTION (Secundaria)
           else if (blockType === "secundaria") {
             const label = block.label || "";
-            if (label && label !== currentSubsection) {
+            if (!label) return;
+            // Si el usuario ocultó subsecciones en Resumen, saltar sin renderizar
+            if (!mostrarSubseccionesEnResumen) return;
+            // Guard: renderizar primero el principal padre si aún no ha aparecido
+            const blockParent = block.parentSection || "";
+            if (blockParent && blockParent !== currentPrincipal) {
+              currentPrincipal = blockParent;
+              currentSubsection = null;
+              if (!renderedBlocks.has("P:" + blockParent)) {
+                renderPrincipalHeader(blockParent);
+                renderedBlocks.add("P:" + blockParent);
+              }
+            }
+            if (label !== currentSubsection) {
               currentSubsection = label;
-              // Ensure we are in a principal context (optional safety)
               const key = (currentPrincipal || "") + "::" + label;
               if (!renderedBlocks.has("S:" + key)) {
                 renderSubsectionHeader(label, currentPrincipal);
@@ -4743,7 +4758,7 @@
               }
             }
 
-            if (acctSubsection && acctSubsection !== currentSubsection) {
+            if (mostrarSubseccionesEnResumen && acctSubsection && acctSubsection !== currentSubsection) {
               currentSubsection = acctSubsection;
               const key = (currentPrincipal || "") + "::" + acctSubsection;
               if (!renderedBlocks.has("S:" + key)) {
