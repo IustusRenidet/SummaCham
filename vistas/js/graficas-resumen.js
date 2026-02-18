@@ -3536,6 +3536,50 @@
     /^data:image\/(png|jpe?g|webp);base64,/i.test(value.trim()) &&
     value.trim().length > 128;
 
+  const toExportNumber = (value) => {
+    if (value == null) return null;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return null;
+      const parsed = Number(trimmed.replace(/,/g, ''));
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    if (typeof value === 'object') {
+      const candidate = value?.y ?? value?.value ?? value?.v ?? value?.x ?? null;
+      if (candidate == null) return null;
+      const parsed = Number(candidate);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const hasExportableSeriesData = (data) => {
+    if (!data || !Array.isArray(data.labels) || !data.labels.length) return false;
+    const datasets = Array.isArray(data.datasets) ? data.datasets : [];
+    if (!datasets.length) return false;
+    let hasNumeric = false;
+    let hasUseful = false;
+    datasets.forEach((dataset) => {
+      const values = Array.isArray(dataset?.data) ? dataset.data : [];
+      values.forEach((raw) => {
+        const value = toExportNumber(raw);
+        if (!Number.isFinite(value)) return;
+        hasNumeric = true;
+        if (Math.abs(value) > 0.000001) {
+          hasUseful = true;
+        }
+      });
+    });
+    return hasNumeric && hasUseful;
+  };
+
+  const chartHasExportableData = (chart) => {
+    if (!chart?.data) return false;
+    return hasExportableSeriesData(chart.data);
+  };
+
   const buildFallbackSeriesFromRows = (rows = []) => {
     if (!Array.isArray(rows) || !rows.length) return null;
     const normalized = rows
@@ -3547,7 +3591,7 @@
       }))
       .filter((row) => row.label);
     if (!normalized.length) return null;
-    return {
+    const payload = {
       labels: normalized.map((row) => row.label),
       datasets: [
         {
@@ -3573,10 +3617,11 @@
         },
       ],
     };
+    return hasExportableSeriesData(payload) ? payload : null;
   };
 
   const renderFallbackChartDataUrl = async (data, chartType = 'bar') => {
-    if (!data || !Array.isArray(data.labels) || !data.labels.length) return null;
+    if (!hasExportableSeriesData(data)) return null;
     if (typeof Chart === 'undefined') return null;
     const canvas = document.createElement('canvas');
     canvas.width = 1600;
@@ -3686,7 +3731,11 @@
     resolveFallbackDataUrl = null,
   }) => {
     if (!workbook || !worksheet) return false;
-    let dataUrl = await capturarCanvasComoImagen(canvas);
+    const chart = getChartByCanvas(canvas);
+    let dataUrl = null;
+    if (chartHasExportableData(chart)) {
+      dataUrl = await capturarCanvasComoImagen(canvas);
+    }
     if (!isDataUrlImagenValida(dataUrl) && typeof resolveFallbackDataUrl === 'function') {
       try {
         dataUrl = await resolveFallbackDataUrl();
@@ -3715,6 +3764,7 @@
     return Array.from(customChartsRow.querySelectorAll('canvas'))
       .map((canvas) => {
         const chart = customCharts?.[canvas.id] || getChartByCanvas(canvas);
+        if (!chartHasExportableData(chart)) return null;
         return {
           canvas,
           chart,
@@ -3822,7 +3872,7 @@
         );
       }
 
-      if (!data || !Array.isArray(data.labels) || !data.labels.length) continue;
+      if (!hasExportableSeriesData(data)) continue;
 
       const safeId = sanitizeChartId(chartCfg?.id) || `customChart-${index + 1}`;
       const canvasId = `customChart-${safeId}`;
@@ -4699,16 +4749,27 @@
             titulo: item.title || 'Grafica personalizada',
           });
         });
-        
-        if (!graficas.length) {
+
+        const graficasFiltradas = graficas.filter((grafica) => {
+          const chart = getChartByCanvas(grafica?.canvas);
+          if (chartHasExportableData(chart)) return true;
+          if (hasExportableSeriesData(grafica?.fallbackData)) return true;
+          if (Array.isArray(grafica?.fallbackRows)) {
+            const fallbackData = buildFallbackSeriesFromRows(grafica.fallbackRows);
+            if (hasExportableSeriesData(fallbackData)) return true;
+          }
+          return false;
+        });
+         
+        if (!graficasFiltradas.length) {
           pdf.setFontSize(11);
           pdf.setFont(undefined, 'normal');
           pdf.text('Sin gráficas disponibles para exportar.', margin, yPosition);
           yPosition += 10;
           return;
         }
-        
-        for (const grafica of graficas) {
+         
+        for (const grafica of graficasFiltradas) {
           const canvas = grafica.canvas;
           try {
             let imgDataUrl = await capturarCanvasComoImagen(canvas);

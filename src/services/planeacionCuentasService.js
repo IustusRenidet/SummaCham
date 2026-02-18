@@ -37,7 +37,8 @@ async function obtenerPresupuestosPorCuentas(empresaId, anio, cuentas = []) {
   return filas.map(mapearPresupuesto);
 }
 
-const limpiarCuentaBase = (valor = '') => valor.toString().replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+// COI trabaja NUM_CTA numérico; conservar letras puede romper el match exacto.
+const limpiarCuentaBase = (valor = '') => valor.toString().replace(/[^0-9]/g, '');
 
 const deducirNivel = (base) => {
   const limpio = base.padEnd(11, '0').slice(0, 11);
@@ -56,15 +57,8 @@ const formatearCuentaAspel = (valor) => {
     return '';
   }
   if (limpio.length >= 21) {
-    const cuenta = limpio.slice(0, 21);
-    const last = cuenta.slice(-1);
-    const digitsOnly = /^\d+$/.test(cuenta);
-    if (digitsOnly && !['1', '2', '3', '4'].includes(last)) {
-      const base = cuenta.slice(0, 11).padEnd(11, '0');
-      const nivel = deducirNivel(base);
-      return base.padEnd(20, '0') + nivel;
-    }
-    return cuenta;
+    // Respetar cuenta COI completa para no alterar niveles auxiliares válidos.
+    return limpio.slice(0, 21);
   }
   const base = limpio.slice(0, 11).padEnd(11, '0');
   const nivel = deducirNivel(base);

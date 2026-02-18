@@ -11,6 +11,11 @@ param(
 
 Add-Type -AssemblyName System.Drawing | Out-Null
 
+$xlChartTypeLine = 4
+$xlChartTypeBarClustered = 57
+$xlLegendPositionBottom = -4107
+$xlAxisTypeValue = 1
+
 function Convert-HexToOle {
   param([string]$HexColor)
   if (-not $HexColor) { return $null }
@@ -133,11 +138,11 @@ function Apply-SeriesStyle {
   if (-not $Series) { return }
 
   if ($SeriesType -eq "line") {
-    try { $Series.ChartType = 4 } catch {}
+    try { $Series.ChartType = $xlChartTypeLine } catch {}
     try { $Series.MarkerStyle = -4142 } catch {}
     try { $Series.Format.Line.Weight = 2 } catch {}
   } else {
-    try { $Series.ChartType = 58 } catch {}
+    try { $Series.ChartType = $xlChartTypeBarClustered } catch {}
   }
 
   $oleColor = Convert-HexToOle $HexColor
@@ -153,6 +158,17 @@ function Apply-SeriesStyle {
     $Series.Format.Line.ForeColor.RGB = $oleColor
   } catch {}
   try { $Series.Interior.Color = $oleColor } catch {}
+}
+
+function Set-ChartBarLayout {
+  param($ChartObject)
+  if (-not $ChartObject) { return }
+  try {
+    $group = $ChartObject.Chart.ChartGroups(1)
+    if (-not $group) { return }
+    $group.Overlap = 0
+    $group.GapWidth = 150
+  } catch {}
 }
 
 if (-not (Test-Path $InputPath)) {
@@ -237,13 +253,24 @@ function Get-ChartBlocks {
     }
 
     $dataStart = $headerRow + 1
-    while ($dataStart -le $sheetLastRow -and -not ([string]$Sheet.Cells.Item($dataStart, 1).Text).Trim()) {
-      $dataStart++
+    while ($dataStart -le $sheetLastRow) {
+      $candidateLabel = ([string]$Sheet.Cells.Item($dataStart, 1).Text).Trim()
+      if (-not $candidateLabel) {
+        $dataStart++
+        continue
+      }
+      if ((Normalize-Text $candidateLabel) -eq "CHART") {
+        break
+      }
+      break
     }
     if ($dataStart -gt $sheetLastRow) { break }
 
     $dataEnd = $dataStart
-    while ($dataEnd -le $sheetLastRow -and ([string]$Sheet.Cells.Item($dataEnd, 1).Text).Trim()) {
+    while ($dataEnd -le $sheetLastRow) {
+      $currentLabel = ([string]$Sheet.Cells.Item($dataEnd, 1).Text).Trim()
+      if (-not $currentLabel) { break }
+      if ((Normalize-Text $currentLabel) -eq "CHART") { break }
       $dataEnd++
     }
     $dataEnd -= 1
@@ -355,54 +382,17 @@ if ($wsCharts -eq $wsData) {
   $baseTop = $wsData.Rows.Item($lastRow + 2).Top
 }
 
-if ($chartBlocks.Count -gt 0) {
-  $chartTop = $baseTop
-  for ($blockIdx = 0; $blockIdx -lt $chartBlocks.Count; $blockIdx++) {
-    $block = $chartBlocks[$blockIdx]
-    $rangeLabels = $wsData.Range("A$($block.DataStart):A$($block.DataEnd)")
-    $labelsCount = $block.DataEnd - $block.DataStart + 1
-    $chartHeight = [Math]::Max(320, [Math]::Min(700, 220 + ($labelsCount * 18)))
-    $chart = $wsCharts.ChartObjects().Add(20, $chartTop, 1120, $chartHeight)
-    $chart.Chart.ChartType = 58 # xlBarClustered
-    $chart.Chart.HasLegend = $block.SeriesColumns.Count -gt 1
-    try { $chart.Chart.Legend.Position = -4107 } catch {}
-    $chart.Chart.HasTitle = $true
-    $chart.Chart.ChartTitle.Text = if ($block.Title) { $block.Title } else { "Resultados operativos" }
-
-    for ($seriesIdx = 0; $seriesIdx -lt $block.SeriesColumns.Count; $seriesIdx++) {
-      $seriesInfo = $block.SeriesColumns[$seriesIdx]
-      $colLetter = Get-ColumnLetter $seriesInfo.Column
-      $rangeValues = $wsData.Range("$colLetter$($block.DataStart):$colLetter$($block.DataEnd)")
-
-      if ($seriesIdx -eq 0) {
-        $chart.Chart.SetSourceData($rangeValues)
-        $series = $chart.Chart.SeriesCollection(1)
-      } else {
-        $series = $chart.Chart.SeriesCollection().NewSeries()
-        $series.Values = $rangeValues
-      }
-
-      $series.XValues = $rangeLabels
-      $series.Name = $seriesInfo.Name
-
-      $seriesType = Resolve-SeriesType -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx
-      $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx
-      Apply-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType
-    }
-
-    try {
-      $valueAxis = $chart.Chart.Axes(1) # xlValue
-      $valueAxis.TickLabels.NumberFormat = "#,##0.00"
-    } catch {}
-
-    $chartTop += $chartHeight + 35
-  }
-} elseif ($chartModeNormalized -eq "combined") {
+if ($chartModeNormalized -eq "combined") {
   $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
   $chart = $wsCharts.ChartObjects().Add(20, $baseTop, 1120, 420)
-  $chart.Chart.ChartType = 58 # xlBarClustered
+  $chart.Chart.ChartType = $xlChartTypeBarClustered
+  try {
+    while ($chart.Chart.SeriesCollection().Count -gt 0) {
+      $chart.Chart.SeriesCollection(1).Delete()
+    }
+  } catch {}
   $chart.Chart.HasLegend = $true
-  try { $chart.Chart.Legend.Position = -4107 } catch {} # xlLegendPositionBottom
+  try { $chart.Chart.Legend.Position = $xlLegendPositionBottom } catch {}
   $chart.Chart.HasTitle = $true
   $chart.Chart.ChartTitle.Text = "Resultados operativos"
 
@@ -411,13 +401,8 @@ if ($chartBlocks.Count -gt 0) {
     $colLetter = Get-ColumnLetter $seriesInfo.Column
     $rangeValues = $wsData.Range("$colLetter$($dataStart):$colLetter$($lastRow)")
 
-    if ($idx -eq 0) {
-      $chart.Chart.SetSourceData($rangeValues)
-      $series = $chart.Chart.SeriesCollection(1)
-    } else {
-      $series = $chart.Chart.SeriesCollection().NewSeries()
-      $series.Values = $rangeValues
-    }
+    $series = $chart.Chart.SeriesCollection().NewSeries()
+    $series.Values = $rangeValues
 
     $series.XValues = $rangeLabels
     $series.Name = $seriesInfo.Name
@@ -427,10 +412,54 @@ if ($chartBlocks.Count -gt 0) {
     Apply-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType
   }
 
+  Set-ChartBarLayout -ChartObject $chart
   try {
-    $valueAxis = $chart.Chart.Axes(1) # xlValue
+    $valueAxis = $chart.Chart.Axes($xlAxisTypeValue)
     $valueAxis.TickLabels.NumberFormat = "#,##0.00"
   } catch {}
+} elseif ($chartBlocks.Count -gt 0) {
+  $chartTop = $baseTop
+  for ($blockIdx = 0; $blockIdx -lt $chartBlocks.Count; $blockIdx++) {
+    $block = $chartBlocks[$blockIdx]
+    $rangeLabels = $wsData.Range("A$($block.DataStart):A$($block.DataEnd)")
+    $labelsCount = $block.DataEnd - $block.DataStart + 1
+    $chartHeight = [Math]::Max(320, [Math]::Min(700, 220 + ($labelsCount * 18)))
+    $chart = $wsCharts.ChartObjects().Add(20, $chartTop, 1120, $chartHeight)
+    $chart.Chart.ChartType = $xlChartTypeBarClustered
+    try {
+      while ($chart.Chart.SeriesCollection().Count -gt 0) {
+        $chart.Chart.SeriesCollection(1).Delete()
+      }
+    } catch {}
+    $chart.Chart.HasLegend = $block.SeriesColumns.Count -gt 1
+    try { $chart.Chart.Legend.Position = $xlLegendPositionBottom } catch {}
+    $chart.Chart.HasTitle = $true
+    $chart.Chart.ChartTitle.Text = if ($block.Title) { $block.Title } else { "Resultados operativos" }
+
+    for ($seriesIdx = 0; $seriesIdx -lt $block.SeriesColumns.Count; $seriesIdx++) {
+      $seriesInfo = $block.SeriesColumns[$seriesIdx]
+      $colLetter = Get-ColumnLetter $seriesInfo.Column
+      $rangeValues = $wsData.Range("$colLetter$($block.DataStart):$colLetter$($block.DataEnd)")
+
+      $series = $chart.Chart.SeriesCollection().NewSeries()
+      $series.Values = $rangeValues
+
+      $series.XValues = $rangeLabels
+      $series.Name = $seriesInfo.Name
+
+      $seriesType = Resolve-SeriesType -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx
+      $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx
+      Apply-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType
+    }
+
+    Set-ChartBarLayout -ChartObject $chart
+    try {
+      $valueAxis = $chart.Chart.Axes($xlAxisTypeValue)
+      $valueAxis.TickLabels.NumberFormat = "#,##0.00"
+    } catch {}
+
+    $chartTop += $chartHeight + 35
+  }
 } else {
   $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
   $splitSeries = @($seriesColumns)
@@ -441,9 +470,14 @@ if ($chartBlocks.Count -gt 0) {
     $chartTop = $baseTop + ($idx * 320)
 
     $chart = $wsCharts.ChartObjects().Add(20, $chartTop, 960, 300)
-    $chart.Chart.ChartType = 58 # xlBarClustered
-    $chart.Chart.SetSourceData($rangeValues)
-    $series = $chart.Chart.SeriesCollection(1)
+    $chart.Chart.ChartType = $xlChartTypeBarClustered
+    try {
+      while ($chart.Chart.SeriesCollection().Count -gt 0) {
+        $chart.Chart.SeriesCollection(1).Delete()
+      }
+    } catch {}
+    $series = $chart.Chart.SeriesCollection().NewSeries()
+    $series.Values = $rangeValues
     $series.XValues = $rangeLabels
     $series.Name = $seriesInfo.Name
     $chart.Chart.HasTitle = $true
@@ -451,8 +485,9 @@ if ($chartBlocks.Count -gt 0) {
 
     $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx
     Apply-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType "bar"
+    Set-ChartBarLayout -ChartObject $chart
     try {
-      $valueAxis = $chart.Chart.Axes(1)
+      $valueAxis = $chart.Chart.Axes($xlAxisTypeValue)
       $valueAxis.TickLabels.NumberFormat = "#,##0.00"
     } catch {}
   }

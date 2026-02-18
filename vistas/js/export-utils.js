@@ -155,7 +155,10 @@
 
         const chartBlocks = this._resolverBloquesGraficas(charts);
         const chartMeta = this._resolverMetaGraficaOperativa(charts, chartBlocks);
-        const chartMode = this._resolverModoGraficasExcel();
+        const chartMode =
+          this._resolverModoGraficasExcel() ||
+          (chartBlocks.some((block) => block?.isCombined) ? "combined" : "");
+        const chartBlocksForSheet = chartMode === "combined" ? [] : chartBlocks;
 
         const datos = this._obtenerDatosOperativo(tablaElement);
         const chartRows = chartBlocks.reduce((maxRows, block) => {
@@ -185,7 +188,7 @@
           tablaElement,
           metadata,
           chartMeta,
-          chartBlocks
+          chartBlocksForSheet
         );
         XLSX.utils.book_append_sheet(libro, sheetOperativo, nombreHojaOperativo);
         const sheetGraficas = XLSX.utils.aoa_to_sheet([["Gráficas"]]);
@@ -573,6 +576,20 @@
       console.log("📊 _construirGraficasFallbackOperativo: datos obtenidos:", datos.length);
       if (!datos.length) {
         console.log("📊 _construirGraficasFallbackOperativo: No hay datos para construir gráficas");
+        return [];
+      }
+      const hasUsefulData = datos.some((item) => {
+        const presupuesto = this._toNumberSafe(item?.presupuesto);
+        const real = this._toNumberSafe(item?.real);
+        const anual = this._toNumberSafe(item?.anual);
+        return (
+          Math.abs(presupuesto) > 0.000001 ||
+          Math.abs(real) > 0.000001 ||
+          Math.abs(anual) > 0.000001
+        );
+      });
+      if (!hasUsefulData) {
+        console.log("📊 _construirGraficasFallbackOperativo: Todos los valores están en cero, se omiten gráficas.");
         return [];
       }
       const labels = datos.map((item) => item.etiqueta);
@@ -1258,11 +1275,19 @@
         const series = datasets
           .map((dataset, idx) => {
             const rawData = Array.isArray(dataset?.data) ? dataset.data : [];
-            const values = labels.map((_, labelIdx) =>
-              this._toNumberSafe(rawData[labelIdx] ?? 0)
+            const normalizedValues = labels.map((_, labelIdx) =>
+              this._normalizarValorGrafica(rawData[labelIdx])
             );
-            const hasNumeric = values.some((value) => Number.isFinite(value));
-            if (!hasNumeric) return null;
+            const hasNumeric = normalizedValues.some((value) =>
+              Number.isFinite(value)
+            );
+            const hasUsefulValue = normalizedValues.some(
+              (value) => Number.isFinite(value) && Math.abs(value) > 0.000001
+            );
+            if (!hasNumeric || !hasUsefulValue) return null;
+            const values = normalizedValues.map((value) =>
+              Number.isFinite(value) ? value : 0
+            );
             return {
               label:
                 (dataset?.label || `Serie ${idx + 1}`).toString().trim() ||
@@ -1343,6 +1368,51 @@
     _toNumberSafe(value) {
       const number = Number(value);
       return Number.isFinite(number) ? number : 0;
+    },
+
+    _normalizarValorGrafica(value) {
+      if (value == null) return null;
+      if (typeof value === "number") {
+        return Number.isFinite(value) ? value : null;
+      }
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        const parsed = Number(trimmed.replace(/,/g, ""));
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+      if (typeof value === "object") {
+        const candidate =
+          value?.y ?? value?.value ?? value?.v ?? value?.x ?? null;
+        if (candidate == null) return null;
+        const parsed = Number(candidate);
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    },
+
+    _chartTieneDatosExportables(chart) {
+      if (!chart?.data) return false;
+      const labels = Array.isArray(chart.data.labels) ? chart.data.labels : [];
+      const datasets = Array.isArray(chart.data.datasets) ? chart.data.datasets : [];
+      if (!labels.length || !datasets.length) return false;
+
+      let hasNumeric = false;
+      let hasUsefulValue = false;
+      datasets.forEach((dataset) => {
+        const values = Array.isArray(dataset?.data) ? dataset.data : [];
+        values.forEach((raw) => {
+          const value = this._normalizarValorGrafica(raw);
+          if (!Number.isFinite(value)) return;
+          hasNumeric = true;
+          if (Math.abs(value) > 0.000001) {
+            hasUsefulValue = true;
+          }
+        });
+      });
+
+      return hasNumeric && hasUsefulValue;
     },
 
     _matchDatasetByLabel(datasets = [], matcher) {
@@ -2529,9 +2599,13 @@
           typeof window.Chart?.getChart === "function"
             ? window.Chart.getChart(canvas)
             : null;
+        if (chart && !this._chartTieneDatosExportables(chart)) {
+          report.omitidas.push({ title, reason: "Sin datos" });
+          return;
+        }
         const hasContent = this._canvasTieneContenido(canvas);
         if (chart && !hasContent) {
-          report.omitidas.push({ title, reason: "Sin datos" });
+          report.omitidas.push({ title, reason: "Sin render" });
           return;
         }
         if (!chart && !hasContent) {
@@ -2843,6 +2917,17 @@
             typeof window.Chart?.getChart === "function"
               ? window.Chart.getChart(canvas)
               : null;
+          if (chart && !this._chartTieneDatosExportables(chart)) {
+            console.log(
+              "📊 _capturarGraficas: Saltando gráfica sin datos:",
+              canvas.id || target?.title || "?"
+            );
+            if (typeof restore === "function") {
+              restore();
+              restore = null;
+            }
+            continue;
+          }
 
           console.log("📊 _capturarGraficas: Canvas", canvas.id || "?",
             "- chart:", !!chart,
@@ -2868,6 +2953,13 @@
           restoreChart = this._prepararChartCaptura(chart, captureConfig);
           await new Promise((resolve) => setTimeout(resolve, 120));
           let hasCanvasContent = this._canvasTieneContenido(canvas);
+          if (!chart && !hasCanvasContent) {
+            console.log(
+              "📊 _capturarGraficas: Saltando canvas sin chart y sin contenido:",
+              canvas.id || target?.title || "?"
+            );
+            continue;
+          }
           let dataUrl =
             chart && typeof chart.toBase64Image === "function"
               ? chart.toBase64Image()
@@ -2902,8 +2994,7 @@
           }
 
           const dataUrlValida = this._esDataUrlImagenValida(dataUrl);
-          const requiereContenido = Boolean(chart);
-          if (!dataUrlValida || (requiereContenido && !hasCanvasContent)) {
+          if (!dataUrlValida || !hasCanvasContent) {
             console.log("📊 _capturarGraficas: dataUrl inválido o canvas vacío para:", canvas.id,
               "- válido:", dataUrlValida,
               "- contenido:", hasCanvasContent,

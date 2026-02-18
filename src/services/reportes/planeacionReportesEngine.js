@@ -121,13 +121,10 @@ const normalizarCuentaCanonica = (valor = "") => {
     return "4";
   })();
 
+  // Si ya viene en formato largo de COI, respetarlo tal cual para no romper el
+  // match exacto contra NUM_CTA en Firebird.
   if (limpio.length >= 21) {
-    const cuenta = limpio.slice(0, 21);
-    const last = cuenta.slice(-1);
-    if (["1", "2", "3", "4"].includes(last)) {
-      return cuenta;
-    }
-    return visible.padEnd(20, "0") + nivel;
+    return limpio.slice(0, 21);
   }
 
   return visible.padEnd(20, "0") + nivel;
@@ -3553,10 +3550,14 @@ async function generarReporte(
       )
     : lista;
 
-  const cuentas = listaFiltrada
-    .filter((item) => !item.__esVirtual)
-    .map((item) => NORMALIZAR_CLAVE(item.CUENTA))
-    .filter(Boolean);
+  const cuentas = Array.from(
+    new Set(
+      listaFiltrada
+        .filter((item) => !item.__esVirtual)
+        .map((item) => normalizarCuentaCanonica(item.CUENTA))
+        .filter(Boolean),
+    ),
+  );
   const claveMes =
     normalizarClaveMes(mesSeleccionado) ||
     MESES[Math.min(Math.max(new Date().getMonth(), 0), 11)].clave;

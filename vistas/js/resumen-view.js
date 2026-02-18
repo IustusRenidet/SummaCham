@@ -2291,7 +2291,38 @@
       }
     }
 
-    return datos;
+    const tieneDatosExportables = (grafica) => {
+      if (!grafica || !Array.isArray(grafica.labels) || !grafica.labels.length) {
+        return false;
+      }
+      const datasets = Array.isArray(grafica.datasets) ? grafica.datasets : [];
+      if (!datasets.length) return false;
+      let hasNumeric = false;
+      let hasUseful = false;
+      datasets.forEach((dataset) => {
+        const values = Array.isArray(dataset?.data) ? dataset.data : [];
+        values.forEach((raw) => {
+          const value = Number(raw);
+          if (!Number.isFinite(value)) return;
+          hasNumeric = true;
+          if (Math.abs(value) > 0.000001) {
+            hasUseful = true;
+          }
+        });
+      });
+      return hasNumeric && hasUseful;
+    };
+
+    const graficasFiltradas = datos.filter((grafica) =>
+      tieneDatosExportables(grafica)
+    );
+    if (graficasFiltradas.length !== datos.length) {
+      console.log(
+        "📊 obtenerGraficasExportacion: omitidas por falta de datos =",
+        datos.length - graficasFiltradas.length
+      );
+    }
+    return graficasFiltradas;
   };
 
   const cargarGraficaIngresoNacional = async () => {

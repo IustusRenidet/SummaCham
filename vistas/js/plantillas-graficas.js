@@ -4997,7 +4997,11 @@
     const api = getGraficasConfigApi();
     if (!api) return;
     const config = api.load();
+    applyConfigToForm(config);
+    updateContextChips();
     renderGallery(config);
+    updateSourceHints(config);
+    updateSourcePickerOptions();
     setStatus("Graficas actualizadas.", "success");
   };
 })();
