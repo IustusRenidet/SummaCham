@@ -96,11 +96,8 @@
 
   const formatLabelWithId = (label, identifier) => {
     const cleanLabel = normalizeWhitespace(label);
-    const cleanId = normalizeWhitespace(identifier);
     if (!cleanLabel) return "";
-    if (!cleanId) return cleanLabel;
-    if (cleanLabel.includes(cleanId)) return cleanLabel;
-    return `${cleanLabel} (${cleanId})`;
+    return cleanLabel;
   };
 
   const normalizarSerie = (values = []) => {
@@ -1067,6 +1064,7 @@
   const construirChart = ({
     ctx,
     labels,
+    baseLabels,
     presupuestos,
     reales,
     anuales,
@@ -1078,7 +1076,7 @@
     const gridColor = "rgba(47, 84, 150, 0.08)";
     const axisColor = "rgba(47, 84, 150, 0.55)";
     const resolvedType = chartType || "bar";
-    return new Chart(ctx, {
+    const chart = new Chart(ctx, {
       type: resolvedType,
       data: {
         labels,
@@ -1104,7 +1102,7 @@
           legend: {
             display: true,
             position: "bottom",
-            labels: { color: "#1f2937", font: { size: 11, weight: "600" } },
+            labels: { color: "#1f2937", font: { size: 10, weight: "600" } },
           },
           tooltip: {
             backgroundColor: "#0f172a",
@@ -1112,7 +1110,20 @@
             borderWidth: 1,
             padding: 10,
             callbacks: {
-              label: (ctx) => formatearNumero(ctx.raw),
+              title: (items) => {
+                const item = items?.[0];
+                const index = Number(item?.dataIndex);
+                const stored = item?.chart?.$baseLabels;
+                const fallback = item?.label || "";
+                if (!Number.isInteger(index)) return fallback;
+                if (!Array.isArray(stored)) return fallback;
+                const base = stored[index];
+                return normalizeWhitespace(base) || fallback;
+              },
+              label: (ctx) => {
+                const column = ctx.dataset?.label ? `${ctx.dataset.label}: ` : "";
+                return `${column}${formatearNumero(getParsedValue(ctx))}`;
+              },
             },
           },
         },
@@ -1125,8 +1136,13 @@
             },
             ticks: {
               color: axisColor,
-              font: { size: 11, weight: "500" },
-              callback: (valor) => formatearNumero(valor),
+              font: { size: 10, weight: "500" },
+              callback: function (valor) {
+                if (this.type === "category") {
+                  return this.getLabelForValue(valor);
+                }
+                return formatearNumero(valor);
+              },
             },
           },
           y: {
@@ -1134,18 +1150,26 @@
             ticks: {
               autoSkip: false,
               color: "#1f2937",
-              font: { size: 13, weight: "700" },
-              padding: 10,
-              callback: (valor, idx, ticks) => ticks?.[idx]?.label || "",
+              font: { size: 9, weight: "500" },
+              padding: 4,
+              callback: function (valor) {
+                if (this.type === "category") {
+                  return this.getLabelForValue(valor);
+                }
+                return formatearNumero(valor);
+              },
             },
           },
         },
       },
     });
+    chart.$baseLabels = Array.isArray(baseLabels) ? baseLabels : [];
+    return chart;
   };
 
   const actualizarChart = ({
     labels,
+    baseLabels,
     presupuestos,
     reales,
     anuales,
@@ -1193,6 +1217,7 @@
       charts.combined = construirChart({
         ctx,
         labels,
+        baseLabels,
         presupuestos,
         reales,
         anuales,
@@ -1209,6 +1234,7 @@
     charts.combined.data.datasets = datasets;
     charts.combined.options.indexAxis =
       resolvedType === "bar" ? "y" : "x";
+    charts.combined.$baseLabels = Array.isArray(baseLabels) ? baseLabels : [];
     charts.combined.update();
   };
 
@@ -1298,6 +1324,7 @@
       if (!datasetDefs.length) return;
 
       const labels = [];
+      const baseLabels = [];
       const seriesData = datasetDefs.reduce((acc, def) => {
         acc[def.key] = [];
         return acc;
@@ -1315,6 +1342,7 @@
         const label =
           row?.alias || row?.label || variants[0] || `Fila ${rowIndex + 1}`;
         const match = matchRowByVariants(rowsData, variants);
+        baseLabels.push(label);
         labels.push(match ? formatLabelWithId(label, match.identifier) : label);
         datasetDefs.forEach((def) => {
           const value = match ? Number(match.values?.[def.valueKey]) || 0 : 0;
@@ -1444,7 +1472,7 @@
       canvas.style.display = "block";
 
       const ctx = canvas.getContext("2d");
-      charts.custom[canvasId] = new Chart(ctx, {
+      const customChart = new Chart(ctx, {
         type: chartType,
         data: {
           labels,
@@ -1458,7 +1486,7 @@
             legend: {
               display: true,
               position: "bottom",
-              labels: { color: "#1f2937", font: { size: 11, weight: "600" } },
+              labels: { color: "#1f2937", font: { size: 10, weight: "600" } },
             },
             tooltip: {
               backgroundColor: "#0f172a",
@@ -1466,6 +1494,16 @@
               borderWidth: 1,
               padding: 10,
               callbacks: {
+                title: (items) => {
+                  const item = items?.[0];
+                  const index = Number(item?.dataIndex);
+                  const stored = item?.chart?.$baseLabels;
+                  const fallback = item?.label || "";
+                  if (!Number.isInteger(index)) return fallback;
+                  if (!Array.isArray(stored)) return fallback;
+                  const base = stored[index];
+                  return normalizeWhitespace(base) || fallback;
+                },
                 label: (ctx) => {
                   const label = ctx.dataset?.label ? `${ctx.dataset.label}: ` : "";
                   return `${label}${formatearNumero(getParsedValue(ctx))}`;
@@ -1481,8 +1519,13 @@
                 grid: { color: "rgba(47, 84, 150, 0.08)", drawBorder: false },
                 ticks: {
                   color: "rgba(47, 84, 150, 0.55)",
-                  font: { size: 11, weight: "500" },
-                  callback: (valor) => formatearNumero(valor),
+                  font: { size: 10, weight: "500" },
+                  callback: function (valor) {
+                    if (this.type === "category") {
+                      return this.getLabelForValue(valor);
+                    }
+                    return formatearNumero(valor);
+                  },
                 },
               },
               y: {
@@ -1490,14 +1533,21 @@
                 ticks: {
                   autoSkip: false,
                   color: "#1f2937",
-                  font: { size: 12, weight: "700" },
-                  padding: 10,
-                  callback: (valor, idx, ticks) => ticks?.[idx]?.label || "",
+                  font: { size: 9, weight: "500" },
+                  padding: 4,
+                  callback: function (valor) {
+                    if (this.type === "category") {
+                      return this.getLabelForValue(valor);
+                    }
+                    return formatearNumero(valor);
+                  },
                 },
               },
             },
         },
       });
+      customChart.$baseLabels = baseLabels;
+      charts.custom[canvasId] = customChart;
     });
     return rendered;
   };
@@ -1610,6 +1660,7 @@
       console.log("📊 actualizarSidebar: Datos obtenidos:", datos);
 
       const labels = datos.map((item) => item.displayLabel || item.etiqueta);
+      const baseLabels = datos.map((item) => item.etiqueta);
       const presupuestos = normalizarSerie(
         datos.map((item) => item.presupuesto)
       );
@@ -1623,11 +1674,13 @@
 
       const hasEnabledDatasets = Object.values(enabledConfig).some(Boolean);
       const effectiveLabels = hasEnabledDatasets ? labels : [];
+      const effectiveBaseLabels = hasEnabledDatasets ? baseLabels : [];
       ajustarAltura(contenedor, effectiveLabels.length);
 
       if (combinedBlock) combinedBlock.style.display = "";
       actualizarChart({
         labels: effectiveLabels,
+        baseLabels: effectiveBaseLabels,
         presupuestos,
         reales,
         anuales,

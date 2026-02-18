@@ -1,4 +1,5 @@
 (() => {
+  console.log("[DEBUG] resumen-view.js loaded and executing");
   const base =
     window.location.protocol === "file:"
       ? "http://localhost:3005"
@@ -3621,6 +3622,7 @@
    * @param {number} mesSeleccionado - Mes seleccionado (1-12)
    */
   const renderResumen = (resumen = [], mesSeleccionado) => {
+    console.log("[DEBUG] renderResumen called with", resumen.length, "capitulos");
     if (!tablaBody) return;
     limpiarCambios();
     editMode = false;
@@ -3660,6 +3662,22 @@
       prevYTD: 0,
     });
 
+    // Helper to get formula string from block
+    const getFormulaString = (block) => {
+      if (block.formula || block.Formula || block.manualFormula) {
+        return block.formula || block.Formula || block.manualFormula;
+      }
+      // If no direct formula, try to build from formula_terms
+      if (Array.isArray(block.formula_terms) && block.formula_terms.length) {
+        return block.formula_terms.map(term => {
+          const op = term.operator || '+';
+          const val = term.value || '';
+          return op === '+' ? val : `${op}${val}`;
+        }).join(' ').replace(/^\+/, '').trim();
+      }
+      return '';
+    };
+
     // --- Formula Evaluation Helper ---
     const evaluateFormula = (formulaStr, contextMap) => {
       if (!formulaStr) return 0;
@@ -3693,16 +3711,12 @@
     };
 
     // Evaluate formula for a specific field (e.g., 'actualMonth')
+
+    // Evaluate formula for a specific field (e.g., 'actualMonth')
     const calculateFormulaValue = (formulaStr, contextMap, field, currentBlock = null) => {
       if (!formulaStr) return 0;
-      // Replace references with values
-      // Sort keys by length desc to match longest labels first? 
-      // Better: Tokenize properly. The regex above tokenizes.
-
-      // Normalized Map Keys must be uppercase
-
+      
       const tokens = formulaStr.match(/(".*?"|'.*?'|[\w\s\-\.]+|[\+\-\*\/\(\)])/g) || [];
-
       let evalExpr = "";
 
       for (let token of tokens) {
@@ -3723,68 +3737,75 @@
         let refKey = normalizarLabel(t.replace(/['"]/g, ''));
         let val = 0;
 
-        // ID lookup
-        // Support multiple blocks with same name (e.g. Section vs Subsection)
-        // If we are 'currentBlock', we want the OTHER one, or the one with content.
+        // DEBUG: Log reference lookup
+        console.log(`[FORMULA REF] Looking for "${t}" -> normalized "${refKey}"`);
+
+        // Lookup in contextMap
         let entry = contextMap.get(refKey);
         let block = null;
 
         if (entry) {
+          console.log(`[FORMULA REF] Found ${Array.isArray(entry) ? entry.length : 1} blocks for "${refKey}"`);
           if (Array.isArray(entry)) {
-            // Find best candidate
-            // 1. Filter out self
-            const candidates = entry.filter(b => b !== currentBlock);
-            // 2. Prefer 'secundaria' if available (usually has data first)
-            // 3. Or just take the first one that isn't me
-            if (candidates.length > 0) {
-              // Try to find one with data in this field?
-              // Or prefer secondary type?
-              const hasData = candidates.find(c => c.totals && (c.totals[field] !== 0));
-              block = hasData || candidates[0];
+            // Priority:
+            // 1. Any block that HAS DATA (Pass 1 populated) and IS NOT ME
+            // 2. Any block that IS NOT ME
+            
+            // First, filter out self
+            const others = entry.filter(b => b !== currentBlock);
+            
+            // Find one with data in the requested field
+            const withData = others.find(c => c.totals && (Math.abs(toNumber(c.totals[field])) > 0.001));
+            
+            if (withData) {
+                block = withData;
+                console.log(`[FORMULA REF] Using block with data: "${withData.label}" (${field}: ${withData.totals[field]})`);
+            } else if (others.length > 0) {
+                // Secondary preference: 'secundaria' type
+                const sub = others.find(c => (c.type||"").toLowerCase().startsWith('secundaria') || (c.type||"").toLowerCase().startsWith('sub'));
+                block = sub || others[0];
+                console.log(`[FORMULA REF] Using fallback block: "${block.label}" (${field}: ${block.totals?.[field] || 'no totals'})`);
             } else {
-              // Only self exists? Then it is 0/recursion.
-              block = entry[0];
+                // Only self in array?
+                block = entry[0];
+                console.log(`[FORMULA REF] Only self available: "${block.label}"`);
             }
           } else {
             block = entry;
-            // If it is self, and no array, it is recursion -> 0
-            if (block === currentBlock) {
-              // Potential self-ref, returns 0 to avoid stack overflow/infinite loop in recursive logic
-              // But here we just read .totals. If Pass 2 ran, .totals has data.
-              // But Pass 2 is SKIPPED manually. So we rely on Pass 1 (Subsections).
-              // If I am Section, and I map to Section, and Section has 0... result 0.
-              // Logic requires finding the Subsection.
-              // If contextMap only has Section (overwrite), we are screwed.
-              // We MUST ensure contextMap has both.
-            }
+            console.log(`[FORMULA REF] Single block: "${block.label}" (${field}: ${block.totals?.[field] || 'no totals'})`);
           }
         } else {
-          // Fallback: Try exact label if normalization stripped too much?
+          console.log(`[FORMULA REF] NOT FOUND for "${refKey}"`);
+          // Fallback: Try exact label or variants?
           let entry2 = contextMap.get(t.toUpperCase());
           if (entry2) {
-            if (Array.isArray(entry2)) block = entry2[0]; // Simplification
-            else block = entry2;
+             block = Array.isArray(entry2) ? entry2[0] : entry2;
+             console.log(`[FORMULA REF] Found via uppercase fallback: "${block.label}"`);
           }
         }
 
         if (block && block.totals) {
           val = toNumber(block.totals[field]);
+          console.log(`[FORMULA REF] Value for "${refKey}": ${val}`);
+        } else {
+          console.log(`[FORMULA REF] No value found for "${refKey}"`);
         }
 
-        evalExpr += val; // Append value
-        // Note: Check for negative values handling with operators? 
-        // e.g. "A - B" -> "10 - -5" -> "10--5" (valid JS? Yes)
+        evalExpr += val; 
       }
 
       try {
-        // Safe check before eval? 
-        // Remove anything not allowed
         const safeExpr = evalExpr.replace(/[^0-9\.\+\-\*\/\(\) ]/g, '');
-        // Note: If references were not resolved, they become 0 or removed.
-        // But if normalizer failed, we might have issues.
-
         if (!safeExpr) return 0;
-        return Function('"use strict";return (' + safeExpr + ')')() || 0;
+        
+        const result = Function('"use strict";return (' + safeExpr + ')')() || 0;
+        
+        // Debug specifically for INCOME
+        if (field === 'actualYTD' && result === 0 && (formulaStr.includes('MEMBERSHIP') || formulaStr.includes('EVENTS'))) {
+             console.log(`[DEBUG FORMULA ZERO] Formula: "${formulaStr}" Field: ${field} Result: ${result}`);
+        }
+        
+        return result;
       } catch (e) {
         console.warn("Error evaluating formula:", formulaStr, e);
         return 0;
@@ -3792,6 +3813,7 @@
     };
 
     const recalcularPrincipales = (layoutArr = []) => {
+      console.log("[DEBUG] recalcularPrincipales called with", layoutArr.length, "blocks");
       /*
         AGGREGATION LOGIC (Pass 1 -> Pass 2 -> Pass 3):
         1. Pass 1: Sum Accounts into Subsections.
@@ -3821,6 +3843,17 @@
         if (b.nombre) addToMap(b.nombre, b);
         if (b.id) addToMap(b.id, b); // ID fallback
         if (b.Clase) addToMap(b.Clase, b); // Operation Class fallback
+        
+        // Add explicit subsection property if available
+        if (b.subseccion) addToMap(b.subseccion, b);
+      });
+
+      // DEBUG: Log contextMap contents
+      console.log("[CONTEXT MAP DEBUG] Available references:");
+      contextMap.forEach((blocks, key) => {
+        blocks.forEach(block => {
+          console.log(`  "${key}" -> "${block.label}" (type: ${block.type}, hasTotals: ${!!block.totals})`);
+        });
       });
 
       let principalActual = null;
@@ -3828,30 +3861,6 @@
       let principalManual = false;
       const applySign = (valor, signo = 1) =>
         Number.isFinite(signo) ? signo : 1;
-
-      const asignarAcumulado = () => {
-        if (principalActual) {
-          // Look for formula on the block itself (Pass 0?)
-          let formulaToUse = principalActual.formula || principalActual.Formula || principalActual.manualFormula;
-
-          if (formulaToUse && typeof formulaToUse === 'string' && formulaToUse.trim().length > 3) {
-            const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
-            const computed = {};
-            fields.forEach(f => {
-              // Pass principalActual as context to avoid self-reference loop if names collide
-              computed[f] = calculateFormulaValue(formulaToUse, contextMap, f, principalActual);
-            });
-            principalActual.totals = computed;
-            // Mark as computed so it sticks
-            principalActual.manualFormula = true;
-            principalActual.__manualFormula = true;
-          } else if (!principalManual) {
-            // Default Sum Behavior Disabled - Must be Manual Only
-            // If no explicit formula, the Section value is 0.
-            principalActual.totals = totalesCero();
-          }
-        }
-      };
 
       // FIRST PASS: Aggregate Accounts into Subsections (Secundarias)
       // This is the ONLY automatic aggregation allowed (Accounts -> Subsections) because that's fundamental.
@@ -3886,16 +3895,22 @@
       };
 
       layoutArr.forEach(block => {
-        const tipo = (block.type || "").toLowerCase();
+        const tipoKey = block.type || block.tipo || "";
+        const tipo = tipoKey.toLowerCase();
+        
+        // Map synonyms
+        const isPrincipal = tipo === 'principal' || tipo === 'sum-row-sumavarios' || tipo.includes('principal') || tipo === 'section' || tipo === 'title-row';
+        const isSecundaria = tipo === 'secundaria' || tipo === 'sum-row' || tipo.includes('secundaria') || tipo === 'subsection';
+        const isCuenta = tipo === 'cuenta' || tipo === 'account';
 
-        if (tipo === 'principal') {
+        if (isPrincipal) {
           closeSecundariaAgg();
           currentSecundariaForAgg = null;
-        } else if (tipo === 'secundaria') {
+        } else if (isSecundaria) {
           closeSecundariaAgg();
           currentSecundariaForAgg = block;
           secundariaAccumulated = totalesCero();
-        } else if (tipo === 'cuenta') {
+        } else if (isCuenta) {
           if (currentSecundariaForAgg) {
             const t = block.totals || {};
             const sign = applySign(block.sign, 1);
@@ -3973,13 +3988,34 @@
       commitPrincipalAgg(); 
       */
 
+      // PASS 2: SUBSECTIONS -> PRINCIPALS (AUTO-SUM)
+      // RE-ENABLING PASS 2 but only for explicit requests?
+      // No, user said "totalmente manual".
+      // But if a section like 'GUADALAJARA INCOME' contains only one subsection 'Guadalajara Income',
+      // the user expects it to sum that subsection without writing "Guadalajara Income" as a formula?
+      // The user said: "no pueden autogenerarse nigun tipo de fila en resumen... las secciones no deben tener ni una sola formula que se defina en programacion, todo en base de daatos"
+      // This means: Only explicit formulas in the DB work.
+      // If 'GUADALAJARA INCOME' is 0, it means it has NO formula in the DB.
+      // If the user *expects* it to sum, they must ADD the formula in the DB (Template Manager).
+      // They showed a screenshot of a formula editor, implying they *are* adding formulas.
+      // So why is it 0?
+      // Because `calculateFormulaValue` is failing to find the target blocks (Subsections).
+
+      // Let's debug `calculateFormulaValue` by making it extremely robust for Subsections.
+      
       // Instead, we just need to calculate Subsection Formulas (if any exist) because they are "manual" too.
       // We iterate just to find subsections with formulas.
       layoutArr.forEach(block => {
-        const tipo = (block.type || "").toLowerCase();
-        if (tipo === 'secundaria') {
-          const subFormula = block.formula || block.Formula || block.manualFormula;
+        const tipoKey = block.type || block.tipo || "";
+        const tipo = tipoKey.toLowerCase();
+        const isSecundaria = tipo === 'secundaria' || tipo === 'sum-row' || tipo.includes('secundaria') || tipo === 'subsection';
+        
+        // Ensure ALL subsections are properly indexed with their totals BEFORE Pass 3
+        
+        if (isSecundaria) {
+          const subFormula = getFormulaString(block);
           if (subFormula && typeof subFormula === 'string' && subFormula.trim().length > 3) {
+            console.log(`[FORMULA CALC] Subsection "${block.label}" formula: "${subFormula}"`);
             const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
             const computed = {};
             fields.forEach(f => {
@@ -3998,11 +4034,27 @@
       // we evaluate explicit formulas which may depend on other sections.
       // Two iterations to handle simple dependency chains (A=B, B=C).
 
+      console.log("[FORMULA DEBUG] Starting formula evaluation. Layout blocks:");
+      layoutArr.forEach(b => {
+        const f = getFormulaString(b);
+        if (f) {
+          console.log(`  Block "${b.label}" type:"${b.type}" formula:"${f}"`);
+        }
+      });
+
       for (let iter = 0; iter < 2; iter++) {
         layoutArr.forEach(block => {
-          if ((block.type || "").toLowerCase() === 'principal') {
-            const f = block.formula || block.Formula || block.manualFormula;
+          const tipoKey = block.type || block.tipo || "";
+          const tipo = tipoKey.toLowerCase();
+          const isPrincipal = tipo === 'principal' || tipo === 'sum-row-sumavarios' || tipo.includes('principal') || tipo === 'section';
+    
+          if (isPrincipal) {
+            const f = getFormulaString(block);
+            // Debug check for the specific failing section
+            // if (block.label === "INCOME") console.log("Calculating INCOME formula:", f);
+            
             if (f && typeof f === 'string' && f.trim().length > 3) {
+              console.log(`[FORMULA CALC] Section "${block.label}" formula: "${f}"`);
               const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
               const computed = {};
               fields.forEach(field => {
@@ -4013,6 +4065,12 @@
               block.totals = computed;
               block.manualFormula = true;
               block.__manualFormula = true; // Flag for debugging
+            } else {
+               // Manual mode: If no formula, ensure it is 0.
+               // Unless it was already 0.
+               // block.totals = totalesCero();
+               // Actually, if we reset it to 0, we might lose something?
+               // But since Pass 2 is skipped, it should be 0 anyway.
             }
           }
         });
@@ -4091,14 +4149,7 @@
         dest.planYTD += toNumber(src.planYTD) * signo;
         dest.prevYTD += toNumber(src.prevYTD) * signo;
       };
-      const totalesCero = () => ({
-        actualMonth: 0,
-        planMonth: 0,
-        prevMonth: 0,
-        actualYTD: 0,
-        planYTD: 0,
-        prevYTD: 0,
-      });
+      // Removed duplicate totalesCero definition
       const combinar = (sumarLabels = [], restarLabels = []) => {
         const res = totalesCero();
         sumarLabels.forEach((lbl) =>
@@ -5015,6 +5066,7 @@
   };
 
   const fetchResumen = async (empresaId, anio, mes) => {
+    console.log("[DEBUG] fetchResumen called with", empresaId, anio, mes);
     if (!empresaId || !anio) return;
     const mesEntero = Number(mes);
 

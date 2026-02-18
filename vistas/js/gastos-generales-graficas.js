@@ -1087,30 +1087,32 @@
       .filter((serie) => serie.enabled !== false);
 
     let rendered = 0;
-    moduleCharts.forEach((chart, index) => {
-      const rowsCfg = Array.isArray(chart?.rows) ? chart.rows : [];
-      if (!rowsCfg.length) return;
-      const resolvedRows = rowsCfg.map((row) => {
-        const variants = Array.isArray(row?.variants) ? row.variants : [];
-        const match = matchRowByVariants(rowsData, variants);
-        const labelBase =
-          (typeof row?.alias === "string" && row.alias.trim()
-            ? row.alias.trim()
-            : (variants[0] || "").toString().trim()) ||
-          `Fila ${index + 1}`;
-        return {
-          label: match ? formatLabelWithId(labelBase, match.identifier) : labelBase,
-          budget: match ? match.budget : 0,
-          real: match ? match.real : 0,
-          annual: match ? match.annual : 0,
-        };
-      });
-      const labels = resolvedRows.map((row) => row.label);
-      const chartType = resolveChartType(chart?.chartType, chartTypeBase);
-      const datasets = buildManualDatasets({
-        labels,
-        rows: resolvedRows,
-        chart,
+      moduleCharts.forEach((chart, index) => {
+        const rowsCfg = Array.isArray(chart?.rows) ? chart.rows : [];
+        if (!rowsCfg.length) return;
+        const resolvedRows = rowsCfg.map((row) => {
+          const variants = Array.isArray(row?.variants) ? row.variants : [];
+          const match = matchRowByVariants(rowsData, variants);
+          const labelBase =
+            (typeof row?.alias === "string" && row.alias.trim()
+              ? row.alias.trim()
+              : (variants[0] || "").toString().trim()) ||
+            `Fila ${index + 1}`;
+          return {
+            baseLabel: labelBase,
+            label: match ? formatLabelWithId(labelBase, match.identifier) : labelBase,
+            budget: match ? match.budget : 0,
+            real: match ? match.real : 0,
+            annual: match ? match.annual : 0,
+          };
+        });
+        const labels = resolvedRows.map((row) => row.label);
+        const baseLabels = resolvedRows.map((row) => row.baseLabel || row.label);
+        const chartType = resolveChartType(chart?.chartType, chartTypeBase);
+        const datasets = buildManualDatasets({
+          labels,
+          rows: resolvedRows,
+          chart,
         chartType,
         datasetDefs,
       });
@@ -1148,7 +1150,7 @@
       const canvas = col.querySelector("canvas");
       const ctx = canvas?.getContext("2d");
       if (!ctx) return;
-      customCharts[canvasId] = new Chart(ctx, {
+      const customChart = new Chart(ctx, {
         type: chartType,
         data: {
           labels,
@@ -1172,6 +1174,16 @@
             },
             tooltip: {
               callbacks: {
+                title: (items) => {
+                  const item = items?.[0];
+                  const index = Number(item?.dataIndex);
+                  const stored = item?.chart?.$baseLabels;
+                  const fallback = item?.label || "";
+                  if (!Number.isInteger(index)) return fallback;
+                  if (!Array.isArray(stored)) return fallback;
+                  const base = stored[index];
+                  return (base || "").toString().trim() || fallback;
+                },
                 label: (ctx) =>
                   `${ctx.dataset?.label || ""}: ${formatearNumero(
                     getParsedValue(ctx)
@@ -1191,6 +1203,8 @@
               },
         },
       });
+      customChart.$baseLabels = baseLabels;
+      customCharts[canvasId] = customChart;
       rendered += 1;
     });
 
