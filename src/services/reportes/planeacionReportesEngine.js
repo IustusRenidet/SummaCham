@@ -1862,7 +1862,7 @@ const construirReporteResumen = (
           cuentas: cuentasOrdenadas,
           definicion: definicionCuentas,
           planeacionData,
-          usarTotalesAutomaticos: !modoFormulaEstricto,
+          usarTotalesAutomaticos: true,
           orden: sec.orden,
           ordenIndex: sec.ordenIndex ?? 0,
         });
@@ -2505,12 +2505,15 @@ const construirReporteResumen = (
       Boolean((op?.[field] || "").toString().trim()),
     );
     if (parentSection || parentSubsection || hasRowAnchor) return true;
-    // Modo manual/estricto: no inferir anclaje por placement (SECCION).
-    // Evita que operaciones "globales" legacy (sin row-anchor) sobreescriban
-    // headers de principal/secundaria.
-    if (modoFormulaEstricto || seccionesComoOperaciones) return false;
     const placement = (op.SECCION || op.seccion || "").toString().trim();
     if (!placement) return false;
+    // En modo estricto/manual: permitir anclaje por SECCION solo si apunta
+    // directamente a un principal (no a subsección genérica). Así las
+    // operaciones con SECCION=principal actúan como override del header sin
+    // necesitar parentSection explícito.
+    if (modoFormulaEstricto || seccionesComoOperaciones) {
+      return Boolean(obtenerPrincipalPorEtiqueta(placement));
+    }
     if (obtenerPrincipalPorEtiqueta(placement)) return true;
     if (obtenerSeccionPorEtiqueta(placement)) return true;
     if (parentSection) {
@@ -2671,7 +2674,6 @@ const construirReporteResumen = (
       }
       if (subsectionAnchor) return false;
       if (parentSection && obtenerPrincipalPorEtiqueta(parentSection)) return true;
-      if (modoFormulaEstricto || seccionesComoOperaciones) return false;
       return Boolean(placement && obtenerPrincipalPorEtiqueta(placement));
     });
 
