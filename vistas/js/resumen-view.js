@@ -2578,6 +2578,11 @@
         comparativo = etiqueta ? etiquetas.get(`${tipo}|${etiqueta}`) : null;
       }
       if (!comparativo?.totals) return;
+      // Si la fila comparativa no está marcada como manual (en no-cuenta),
+      // no debe sobreescribir el prev del layout base con ceros de fallback.
+      if (tipo !== "cuenta" && !permiteComparativoPrev(comparativo, tipo)) {
+        return;
+      }
       // Comparativo solo llena columnas "Prev" (AA), no reemplaza Actual
       const comparativoMonth = resolverComparativoPrevio(
         comparativo.totals,

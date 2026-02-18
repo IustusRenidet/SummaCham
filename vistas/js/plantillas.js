@@ -9428,13 +9428,17 @@
       if (opChar === "-") {
         const prev = getPrevNonSpace(i);
         const next = getNextNonSpace(i);
+        const dashBetweenWords =
+          /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(prev || "") &&
+          /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(next || "");
         const dashAsOperator =
           !prev ||
           !next ||
           /\s/.test(source[i - 1] || "") ||
           /\s/.test(source[i + 1] || "") ||
           ["+", "-", "*", "/", "("].includes(prev) ||
-          next === "(";
+          next === "(" ||
+          dashBetweenWords;
         if (dashAsOperator) {
           flush();
           tokens.push({ kind: "op", value: "-" });

@@ -538,13 +538,17 @@ const tokenizarFormulaTexto = (formula = "") => {
     if (op === "-") {
       const prev = getPrevNonSpace(i);
       const next = getNextNonSpace(i);
+      const dashBetweenWords =
+        /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(prev || "") &&
+        /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(next || "");
       const isOperatorDash =
         !prev ||
         !next ||
         /\s/.test(source[i - 1] || "") ||
         /\s/.test(source[i + 1] || "") ||
         ["+", "-", "*", "/", "("].includes(prev) ||
-        next === "(";
+        next === "(" ||
+        dashBetweenWords;
       if (isOperatorDash) {
         flush();
         tokens.push({ kind: FORMULA_KIND_OP, value: "-" });
@@ -1981,8 +1985,14 @@ const construirReporteResumen = (
       variants.add(clean);
     };
     if (!raw) return [];
+    // Si parece una expresión aritmética (p. ej. "Membership - Events"),
+    // no generar variantes por "-" para evitar resolver accidentalmente
+    // solo el término derecho ("Events").
+    if (/[+\-*/()]/.test(raw) && /(\s[+\-*/]\s|[()])/.test(raw)) {
+      return [raw];
+    }
     add(raw);
-    if (raw.includes("-")) {
+    if (raw.includes("-") && !/\s-\s/.test(raw)) {
       add(raw.split("-").slice(1).join("-"));
     }
     if (raw.includes(":")) {
@@ -2152,6 +2162,15 @@ const construirReporteResumen = (
   };
   const storeOperacionTotals = (op, totals) => {
     getOperacionAliasKeys(op).forEach((key) => {
+      if (!key) return;
+      // Evitar cache global por label ambiguo en modo estricto/manual:
+      // la resolución debe respetar parentSection para no mezclar homónimos.
+      if (
+        (modoFormulaEstricto || seccionesComoOperaciones) &&
+        isOperacionAliasAmbiguo(key)
+      ) {
+        return;
+      }
       mapOperaciones.set(key, totals);
     });
     const opRefId = getOperacionRefId(op);
@@ -2163,6 +2182,43 @@ const construirReporteResumen = (
   )
     .filter((item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave)
     .filter((item) => !esOperacionConfigColumnas(item));
+  const aliasOperacionCount = new Map();
+  operacionesContexto.forEach((item) => {
+    getOperacionAliasKeys(item).forEach((key) => {
+      if (!key) return;
+      aliasOperacionCount.set(key, Number(aliasOperacionCount.get(key) || 0) + 1);
+    });
+  });
+  const isOperacionAliasAmbiguo = (key = "") =>
+    Number(aliasOperacionCount.get(key) || 0) > 1;
+  const scoreOperacionCandidata = (op = {}, parentHintKey = "", labelKey = "") => {
+    let score = 0;
+    const parentSectionKey = normalizarTexto(op?.parentSection || "");
+    const parentAnchorKey = normalizarTexto(
+      op?.["sum-row-sumavarios"] || op?.["sum-row-sumavarios2"] || "",
+    );
+    const placementKey = normalizarTexto(op?.SECCION || op?.seccion || "");
+    const subsectionKey = normalizarTexto(op?.parentSubsection || "");
+    const rowKey = normalizarTexto(op?.["sum-row"] || "");
+
+    if (parentHintKey) {
+      if (parentSectionKey && parentSectionKey === parentHintKey) score += 40;
+      if (parentAnchorKey && parentAnchorKey === parentHintKey) score += 30;
+      if (placementKey && placementKey === parentHintKey) score += 8;
+    }
+    if (labelKey) {
+      if (subsectionKey && subsectionKey === labelKey) score += 12;
+      if (rowKey && rowKey === labelKey) score += 10;
+      if (
+        normalizarTexto(
+          op?.operacion_etiqueta || op?.operacion_label || op?.Clase || "",
+        ) === labelKey
+      ) {
+        score += 2;
+      }
+    }
+    return score;
+  };
   const operacionesPorKey = new Map();
   const operacionesPorRefId = new Map();
   operacionesContexto.forEach((item) => {
@@ -2196,20 +2252,58 @@ const construirReporteResumen = (
     const refIdClean = (refId || "").toString().trim();
     const labelClean = (label || "").toString().trim();
     const labelKey = normalizarTexto(labelClean);
+    const parentHintClean = (parentHint || "").toString().trim();
+    const parentHintKey = normalizarTexto(parentHintClean);
 
     if (refIdClean) {
       const cachedByRef = mapRefOperaciones.get(refIdClean);
       if (cachedByRef) return cachedByRef;
     }
-    if (labelKey) {
+    if (
+      labelKey &&
+      (!parentHintKey || !isOperacionAliasAmbiguo(labelKey))
+    ) {
       const cachedByLabel = mapOperaciones.get(labelKey);
       if (cachedByLabel) return cachedByLabel;
     }
 
     let targetOp = null;
-    if (refIdClean) targetOp = operacionesPorRefId.get(refIdClean) || null;
-    if (!targetOp && labelKey)
-      targetOp = operacionesPorKey.get(labelKey) || null;
+    const seenCandidates = new Set();
+    const candidates = [];
+    const addCandidate = (op) => {
+      if (!op) return;
+      const key = getOperacionKey(op) || `${candidates.length}`;
+      if (seenCandidates.has(key)) return;
+      seenCandidates.add(key);
+      candidates.push(op);
+    };
+    if (refIdClean) {
+      operacionesContexto.forEach((item) => {
+        if (getOperacionRefId(item) === refIdClean) addCandidate(item);
+      });
+    }
+    if (labelKey) {
+      operacionesContexto.forEach((item) => {
+        const aliasKeys = getOperacionAliasKeys(item);
+        if (aliasKeys.includes(labelKey)) addCandidate(item);
+      });
+    }
+
+    if (candidates.length) {
+      candidates.sort((a, b) => {
+        const scoreA = scoreOperacionCandidata(a, parentHintKey, labelKey);
+        const scoreB = scoreOperacionCandidata(b, parentHintKey, labelKey);
+        if (scoreA !== scoreB) return scoreB - scoreA;
+        const orderA = Number(a?.orden_presentacion ?? a?.orden);
+        const orderB = Number(b?.orden_presentacion ?? b?.orden);
+        const safeA = Number.isFinite(orderA) ? orderA : Number.MAX_SAFE_INTEGER;
+        const safeB = Number.isFinite(orderB) ? orderB : Number.MAX_SAFE_INTEGER;
+        return safeA - safeB;
+      });
+      targetOp = candidates[0] || null;
+    }
+    if (!targetOp && refIdClean) targetOp = operacionesPorRefId.get(refIdClean) || null;
+    if (!targetOp && labelKey) targetOp = operacionesPorKey.get(labelKey) || null;
 
     if (targetOp) {
       const targetKey = getOperacionKey(targetOp);
@@ -2308,6 +2402,12 @@ const construirReporteResumen = (
           return bySection || null;
         }
         if (tipoNorm === "operation" || tipoNorm === "operacion") {
+          // En modo estricto/manual, priorizar sección/subsección explícita
+          // para evitar choques con operaciones homónimas.
+          if (modoFormulaEstricto || seccionesComoOperaciones) {
+            const bySection = resolveSectionTotals(valor, parentHint) || null;
+            if (!totalsAreZero(bySection)) return bySection;
+          }
           return resolveOperacionReferenceTotals({ label: valor, parentHint });
         }
         const bySection = resolveSectionTotals(valor, parentHint) || null;
@@ -2367,6 +2467,10 @@ const construirReporteResumen = (
             const byRef = mapRefCuentas.get(refId);
             if (byRef) return byRef;
           } else if (refType === "operation" || refType === "operacion") {
+            if (modoFormulaEstricto || seccionesComoOperaciones) {
+              const bySection = resolveSectionTotals(label, parentHint) || null;
+              if (!totalsAreZero(bySection)) return bySection;
+            }
             const byRef = resolveOperacionReferenceTotals({
               refId,
               label,
@@ -2404,6 +2508,10 @@ const construirReporteResumen = (
       Boolean((op?.[field] || "").toString().trim()),
     );
     if (parentSection || parentSubsection || hasRowAnchor) return true;
+    // Modo manual/estricto: no inferir anclaje por placement (SECCION).
+    // Evita que operaciones "globales" legacy (sin row-anchor) sobreescriban
+    // headers de principal/secundaria.
+    if (modoFormulaEstricto || seccionesComoOperaciones) return false;
     const placement = (op.SECCION || op.seccion || "").toString().trim();
     if (!placement) return false;
     if (obtenerPrincipalPorEtiqueta(placement)) return true;
@@ -2566,6 +2674,7 @@ const construirReporteResumen = (
       }
       if (subsectionAnchor) return false;
       if (parentSection && obtenerPrincipalPorEtiqueta(parentSection)) return true;
+      if (modoFormulaEstricto || seccionesComoOperaciones) return false;
       return Boolean(placement && obtenerPrincipalPorEtiqueta(placement));
     });
 

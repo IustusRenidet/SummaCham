@@ -608,13 +608,17 @@ const tokenizarFormulaTexto = (formula = "") => {
     if (op === "-") {
       const prev = getPrevNonSpace(i);
       const next = getNextNonSpace(i);
+      const dashBetweenWords =
+        /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(prev || "") &&
+        /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(next || "");
       const isOperatorDash =
         !prev ||
         !next ||
         /\s/.test(source[i - 1] || "") ||
         /\s/.test(source[i + 1] || "") ||
         ["+", "-", "*", "/", "("].includes(prev) ||
-        next === "(";
+        next === "(" ||
+        dashBetweenWords;
       if (isOperatorDash) {
         flushBuffer();
         tokens.push({ kind: FORMULA_KIND_OP, value: "-" });
@@ -1748,6 +1752,46 @@ const obtenerLayout = ({
   };
 
   const operacionesMap = {};
+  const tiposOperacionValidos = new Set([
+    "sum-row",
+    "sum-row-sumavarios",
+    "sum-row-sumavarios2",
+    "sum-row-sumavarios-consolidado",
+    "sum-row-operativo",
+    "sum-row-operativo-consolidado",
+    "parentSection",
+    "parentSubsection",
+    "result-row",
+    "net-row",
+    "net-row-adicional",
+    "result-net-row",
+    "free-operation",
+  ]);
+  const mapearTipoOperacion = (raw = "") => {
+    const clean = (raw || "").toString().trim();
+    if (!clean) return "";
+    if (clean === "parent_section") return "parentSection";
+    if (clean === "parent_subsection") return "parentSubsection";
+    return clean;
+  };
+  const normalizarTipoOperacionPersistido = (op = {}) => {
+    const tipoRaw = mapearTipoOperacion(op.operacion_tipo || "");
+    if (tipoRaw === "operacion_tipo" || tipoRaw === "operacionTipo") {
+      const desdeLabel = mapearTipoOperacion(op.operacion_label || "");
+      if (desdeLabel && tiposOperacionValidos.has(desdeLabel)) {
+        return desdeLabel;
+      }
+      return "";
+    }
+    if (tipoRaw === "operacion_label" || tipoRaw === "operacionLabel") {
+      const desdeLabel = mapearTipoOperacion(op.operacion_label || "");
+      if (desdeLabel && tiposOperacionValidos.has(desdeLabel)) {
+        return desdeLabel;
+      }
+      return "";
+    }
+    return tipoRaw;
+  };
   const tiposOperacionIgnorados = new Set([
     // Estos pueden colarse si alguna versión anterior persistió metadatos
     // como si fueran "operacion_tipo". Ignorarlos evita sobreescribir
@@ -1755,8 +1799,6 @@ const obtenerLayout = ({
     "orden_presentacion",
     "ordenPresentacion",
     "visible",
-    "operacion_tipo",
-    "operacionTipo",
     "operacion_label",
     "operacionLabel",
     "orden",
@@ -1796,14 +1838,8 @@ const obtenerLayout = ({
     const operacionEtiqueta =
       op.operacion_etiqueta || op.Clase || operacionId || "Operacion";
     const mapKey = keyNormalizada || operacionId || operacionEtiqueta;
-    const tipoRaw = (op.operacion_tipo || "").toString().trim();
-    const tipo =
-      tipoRaw === "parent_section"
-        ? "parentSection"
-        : tipoRaw === "parent_subsection"
-        ? "parentSubsection"
-        : tipoRaw;
-    const tipoIgnorado = Boolean(tipo && tiposOperacionIgnorados.has(tipo));
+    const tipo = normalizarTipoOperacionPersistido(op);
+    const tipoIgnorado = !tipo || tiposOperacionIgnorados.has(tipo);
 
     const parsedFormula = parsearFormulaOperacion(op);
     const formulaTerms = parsedFormula.formulaTerms;
