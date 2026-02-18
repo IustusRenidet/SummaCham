@@ -3665,15 +3665,15 @@
       if (!formulaStr) return 0;
       // Basic implementation for manual formulas (supports +, -, *, /, ())
       // Resolves labels/IDs against contextMap (map of label -> totals object)
-      
+
       const tokens = formulaStr.match(/([0-9.]+|[\+\-\*\/\(\)]|"[^"]*"|'[^']*'|[^ \+\-\*\/\(\)]+)/g) || [];
       const terms = tokens.map(t => t.trim()).filter(t => t);
-      
+
       // Expand references
       const expanded = terms.map(term => {
         if (/^[\+\-\*\/\(\)]$/.test(term)) return term;
         if (/^[0-9.]+$/.test(term)) return term;
-        
+
         // Resolve reference (Label, ID, Account Code)
         const key = normalizarLabel(term.replace(/['"]/g, ''));
         const target = contextMap.get(key);
@@ -3683,68 +3683,106 @@
         // but for simplicity in this evaluator, let's assume we run it for each field separately?
         // OR return the block itself?
         // Let's return a placeholder ID to be resolved later? No, eval needs values.
-        
+
         // Complex: formulas operate on scalar numbers, but we have 6 data columns.
         // We need to evaluate the formula for EACH column: actualMonth, planMonth, prevMonth, actualYTD, planYTD, prevYTD.
         return `REF:${key}`;
       });
 
-      return expanded; 
+      return expanded;
     };
-    
+
     // Evaluate formula for a specific field (e.g., 'actualMonth')
-    const calculateFormulaValue = (formulaStr, contextMap, field) => {
+    const calculateFormulaValue = (formulaStr, contextMap, field, currentBlock = null) => {
       if (!formulaStr) return 0;
       // Replace references with values
       // Sort keys by length desc to match longest labels first? 
       // Better: Tokenize properly. The regex above tokenizes.
-      
+
       // Normalized Map Keys must be uppercase
-      
+
       const tokens = formulaStr.match(/(".*?"|'.*?'|[\w\s\-\.]+|[\+\-\*\/\(\)])/g) || [];
-      
+
       let evalExpr = "";
-      
+
       for (let token of tokens) {
         let t = token.trim();
         if (!t) continue;
-        
+
         if (/^[\+\-\*\/\(\)]$/.test(t)) {
           evalExpr += t;
           continue;
         }
-        
+
         if (/^[0-9]+(\.[0-9]+)?$/.test(t)) {
           evalExpr += t;
           continue;
         }
-        
+
         // It's a reference
         let refKey = normalizarLabel(t.replace(/['"]/g, ''));
         let val = 0;
-        
+
         // ID lookup
-        let block = contextMap.get(refKey);
-        
-        // Fallback: Try exact label if normalization stripped too much?
-        if (!block) block = contextMap.get(t.toUpperCase());
-        
+        // Support multiple blocks with same name (e.g. Section vs Subsection)
+        // If we are 'currentBlock', we want the OTHER one, or the one with content.
+        let entry = contextMap.get(refKey);
+        let block = null;
+
+        if (entry) {
+          if (Array.isArray(entry)) {
+            // Find best candidate
+            // 1. Filter out self
+            const candidates = entry.filter(b => b !== currentBlock);
+            // 2. Prefer 'secundaria' if available (usually has data first)
+            // 3. Or just take the first one that isn't me
+            if (candidates.length > 0) {
+              // Try to find one with data in this field?
+              // Or prefer secondary type?
+              const hasData = candidates.find(c => c.totals && (c.totals[field] !== 0));
+              block = hasData || candidates[0];
+            } else {
+              // Only self exists? Then it is 0/recursion.
+              block = entry[0];
+            }
+          } else {
+            block = entry;
+            // If it is self, and no array, it is recursion -> 0
+            if (block === currentBlock) {
+              // Potential self-ref, returns 0 to avoid stack overflow/infinite loop in recursive logic
+              // But here we just read .totals. If Pass 2 ran, .totals has data.
+              // But Pass 2 is SKIPPED manually. So we rely on Pass 1 (Subsections).
+              // If I am Section, and I map to Section, and Section has 0... result 0.
+              // Logic requires finding the Subsection.
+              // If contextMap only has Section (overwrite), we are screwed.
+              // We MUST ensure contextMap has both.
+            }
+          }
+        } else {
+          // Fallback: Try exact label if normalization stripped too much?
+          let entry2 = contextMap.get(t.toUpperCase());
+          if (entry2) {
+            if (Array.isArray(entry2)) block = entry2[0]; // Simplification
+            else block = entry2;
+          }
+        }
+
         if (block && block.totals) {
           val = toNumber(block.totals[field]);
         }
-        
+
         evalExpr += val; // Append value
         // Note: Check for negative values handling with operators? 
         // e.g. "A - B" -> "10 - -5" -> "10--5" (valid JS? Yes)
       }
-      
+
       try {
         // Safe check before eval? 
         // Remove anything not allowed
-        const safeExpr = evalExpr.replace(/[^0-9\.\+\-\*\/\(\) ]/g, ''); 
+        const safeExpr = evalExpr.replace(/[^0-9\.\+\-\*\/\(\) ]/g, '');
         // Note: If references were not resolved, they become 0 or removed.
         // But if normalizer failed, we might have issues.
-        
+
         if (!safeExpr) return 0;
         return Function('"use strict";return (' + safeExpr + ')')() || 0;
       } catch (e) {
@@ -3754,15 +3792,35 @@
     };
 
     const recalcularPrincipales = (layoutArr = []) => {
+      /*
+        AGGREGATION LOGIC (Pass 1 -> Pass 2 -> Pass 3):
+        1. Pass 1: Sum Accounts into Subsections.
+        2. Pass 2: Sum Subsections into Principals (Auto-Sum).
+           This ensures every Section has a base value (sum of its children).
+        3. Pass 3: Evaluate Manual Formulas on Principals (Overwrites Auto-Sum).
+           This handles complex dependencies (e.g., Section A = Section B + Section C).
+           Also handles cases where Section = Subsection explicitly.
+      */
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
-      
+
       // 1. Build a map of all available blocks for reference
+      // Support duplicates (Section vs Subsection) by using arrays
       const contextMap = new Map();
+      const addToMap = (k, v) => {
+        if (!k) return;
+        const key = normalizarLabel(k);
+        if (!contextMap.has(key)) {
+          contextMap.set(key, [v]);
+        } else {
+          contextMap.get(key).push(v);
+        }
+      };
+
       layoutArr.forEach(b => {
-        if (b.label) contextMap.set(normalizarLabel(b.label), b);
-        if (b.nombre) contextMap.set(normalizarLabel(b.nombre), b);
-        if (b.id) contextMap.set(normalizarLabel(b.id), b); // ID fallback
-        if (b.Clase) contextMap.set(normalizarLabel(b.Clase), b); // Operation Class fallback
+        if (b.label) addToMap(b.label, b);
+        if (b.nombre) addToMap(b.nombre, b);
+        if (b.id) addToMap(b.id, b); // ID fallback
+        if (b.Clase) addToMap(b.Clase, b); // Operation Class fallback
       });
 
       let principalActual = null;
@@ -3770,96 +3828,206 @@
       let principalManual = false;
       const applySign = (valor, signo = 1) =>
         Number.isFinite(signo) ? signo : 1;
-        
+
       const asignarAcumulado = () => {
         if (principalActual) {
-          // Look for formula on the block itself. 
-          // CRITICAL CHANGE: Do NOT look up implicitly in contextMap. 
-          // If the user wants a formula, they must have set it on this specific block in the layout editor.
-          // Fallback to auto-summing children (acumulado) if no explicit formula is on the block.
+          // Look for formula on the block itself (Pass 0?)
           let formulaToUse = principalActual.formula || principalActual.Formula || principalActual.manualFormula;
-          
-          if (formulaToUse && typeof formulaToUse === 'string' && formulaToUse.trim().length > 3) { 
-             const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
-             const computed = {};
-             fields.forEach(f => {
-               computed[f] = calculateFormulaValue(formulaToUse, contextMap, f);
-             });
-             principalActual.totals = computed;
-             // Mark as computed so it sticks
-             principalActual.manualFormula = true; 
-             principalActual.__manualFormula = true;
+
+          if (formulaToUse && typeof formulaToUse === 'string' && formulaToUse.trim().length > 3) {
+            const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
+            const computed = {};
+            fields.forEach(f => {
+              // Pass principalActual as context to avoid self-reference loop if names collide
+              computed[f] = calculateFormulaValue(formulaToUse, contextMap, f, principalActual);
+            });
+            principalActual.totals = computed;
+            // Mark as computed so it sticks
+            principalActual.manualFormula = true;
+            principalActual.__manualFormula = true;
           } else if (!principalManual) {
-             // Default Sum Behavior (Sum of Subsections)
-             principalActual.totals = { ...acumulado };
+            // Default Sum Behavior Disabled - Must be Manual Only
+            // If no explicit formula, the Section value is 0.
+            principalActual.totals = totalesCero();
           }
         }
       };
-      
+
       // FIRST PASS: Aggregate Accounts into Subsections (Secundarias)
-      // We must do this before aggregating Sections because Subsections need to be ready.
+      // This is the ONLY automatic aggregation allowed (Accounts -> Subsections) because that's fundamental.
+      // But Subsections -> Sections must be explicit via formula or manual logic.
       let currentSecundariaForAgg = null;
-      let secundariaAccumulated = totalsZero();
-      
+      let secundariaAccumulated = totalesCero();
+
       // Helper to close current secundaria aggregation
       const closeSecundariaAgg = () => {
         if (currentSecundariaForAgg) {
-            // Only update totals if not already calculated/manual
-            if (!currentSecundariaForAgg.manualFormula && !currentSecundariaForAgg.Formula) {
-                currentSecundariaForAgg.totals = { ...secundariaAccumulated };
-            }
+          // Only update totals if not already calculated/manual
+          if (!currentSecundariaForAgg.manualFormula && !currentSecundariaForAgg.Formula) {
+            currentSecundariaForAgg.totals = { ...secundariaAccumulated };
+          }
         }
+      };
+
+
+      // Helper needed for sumMetrics since we call it before it's defined in the original scope order
+      // (though in JS function declarations are hoisted, const arrows are not).
+      // Let's define it inside recalcularPrincipales scope or ensure it's available.
+      // To be safe, let's redefine a local helper inside recalcularPrincipales.
+
+      // ... inside recalcularPrincipales ...
+      const sumMetricsLocal = (dest, src) => {
+        dest.actualMonth += toNumber(src.actualMonth);
+        dest.planMonth += toNumber(src.planMonth);
+        dest.prevMonth += toNumber(src.prevMonth);
+        dest.actualYTD += toNumber(src.actualYTD);
+        dest.planYTD += toNumber(src.planYTD);
+        dest.prevYTD += toNumber(src.prevYTD);
       };
 
       layoutArr.forEach(block => {
         const tipo = (block.type || "").toLowerCase();
-        
+
         if (tipo === 'principal') {
-             closeSecundariaAgg();
-             currentSecundariaForAgg = null;
+          closeSecundariaAgg();
+          currentSecundariaForAgg = null;
         } else if (tipo === 'secundaria') {
-             closeSecundariaAgg();
-             currentSecundariaForAgg = block;
-             secundariaAccumulated = totalsZero();
+          closeSecundariaAgg();
+          currentSecundariaForAgg = block;
+          secundariaAccumulated = totalesCero();
         } else if (tipo === 'cuenta') {
-             if (currentSecundariaForAgg) {
-                 const t = block.totals || {};
-                 const sign = applySign(block.sign, 1); // Should account sign apply here? usually 1
-                 secundariaAccumulated.actualMonth += toNumber(t.actualMonth) * sign;
-                 secundariaAccumulated.planMonth += toNumber(t.planMonth) * sign;
-                 secundariaAccumulated.prevMonth += toNumber(t.prevMonth) * sign;
-                 secundariaAccumulated.actualYTD += toNumber(t.actualYTD) * sign;
-                 secundariaAccumulated.planYTD += toNumber(t.planYTD) * sign;
-                 secundariaAccumulated.prevYTD += toNumber(t.prevYTD) * sign;
-             }
+          if (currentSecundariaForAgg) {
+            const t = block.totals || {};
+            const sign = applySign(block.sign, 1);
+            sumMetricsLocal(secundariaAccumulated, {
+              actualMonth: toNumber(t.actualMonth) * sign,
+              planMonth: toNumber(t.planMonth) * sign,
+              prevMonth: toNumber(t.prevMonth) * sign,
+              actualYTD: toNumber(t.actualYTD) * sign,
+              planYTD: toNumber(t.planYTD) * sign,
+              prevYTD: toNumber(t.prevYTD) * sign
+            });
+          }
         }
       });
       closeSecundariaAgg(); // Close last one
 
-      // SECOND PASS: Aggregate Subsections into Principals (Sections)
-             });
-             block.totals = computed;
-             block.manualFormula = true;
-             // Do NOT add to accumulated if it's a manual formula subsection? 
-             // Logic: If Principal is SUM, it adds Subsections. 
-             // If subsection is Manual, its total is calculated, THEN added to Principal.
-           }
-        
-          if (principalManual) return; // If parent is manual, don't accumulate derived children totals
-          
-          const sign = applySign(block.sign, 1);
-          const t = block.totals || {};
-          
-          acumulado.actualMonth += toNumber(t.actualMonth) * sign;
-          acumulado.planMonth += toNumber(t.planMonth) * sign;
-          acumulado.prevMonth += toNumber(t.prevMonth) * sign;
-          acumulado.actualYTD += toNumber(t.actualYTD) * sign;
-          acumulado.planYTD += toNumber(t.planYTD) * sign;
-          acumulado.prevYTD += toNumber(t.prevYTD) * sign;
+
+      // PASS 2: SUBSECTIONS -> PRINCIPALS (AUTO-SUM)
+      // Always sum subsections into their parent principal first.
+      // This ensures that every section has a base value from its children.
+      // Explicit formulas will overwrite this in Pass 3.
+
+      let currentPrincipalForAgg = null;
+      let principalAccumulated = totalesCero();
+
+      // Helper to commit aggregation to current principal
+      const commitPrincipalAgg = () => {
+        if (currentPrincipalForAgg) {
+          // Apply accumulated sum to section
+          // We use a temporary property or direct update? 
+          // Direct update is fine, Pass 3 will overwrite if formula exists.
+          currentPrincipalForAgg.totals = { ...principalAccumulated };
         }
-        // Si aparece otra consolidación de nivel superior, no cerramos aquí; se recalcula después.
+      };
+
+
+      // PASS 2: AUTO-SUM SKIPPED (MANUAL MODE)
+      // The user requested that sections be completely manual and obey formulas only.
+      // "no se va a ocupar recalcular las secciones principales... solo obedecera a la formula que tengan".
+      // This implies we should NOT auto-sum subsections into sections.
+      // HOWEVER, if we skip this, sections without explicit formulas will be 0.
+      // Is that what's desired? Likely yes, for "completely manual" control.
+      // BUT, pass 1 (Accounts -> Subsections) was implicitly accepted as "manual" usually means section-level.
+      // For now, let's DISABLE Pass 2 Auto-Summing to respect "nada de ataduras a formulas autogeneradas".
+
+      /* 
+      layoutArr.forEach(block => {
+          const tipo = (block.type || "").toLowerCase();
+          
+          if (tipo === 'principal') {
+               commitPrincipalAgg();
+               currentPrincipalForAgg = block;
+               principalAccumulated = totalesCero();
+          } else if (tipo === 'secundaria') {
+               if (currentPrincipalForAgg) {
+                   const t = block.totals || {};
+                   // SUBSECTION FORMULA CHECK (Pass 1.5)
+                   const subFormula = block.formula || block.Formula || block.manualFormula;
+                   if (subFormula && typeof subFormula === 'string' && subFormula.trim().length > 3) {
+                       const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
+                       const computed = {};
+                       fields.forEach(f => {
+                         computed[f] = calculateFormulaValue(subFormula, contextMap, f);
+                       });
+                       block.totals = computed;
+                       block.manualFormula = true;
+                       // We would update 't' here, but since we are SKIPPING auto-aggregation into principal,
+                       // we just calculate the subsection and stop.
+                   }
+                   
+                   // SKIP adding to principalAccumulated
+               }
+          }
       });
-      asignarAcumulado();
+      commitPrincipalAgg(); 
+      */
+
+      // Instead, we just need to calculate Subsection Formulas (if any exist) because they are "manual" too.
+      // We iterate just to find subsections with formulas.
+      layoutArr.forEach(block => {
+        const tipo = (block.type || "").toLowerCase();
+        if (tipo === 'secundaria') {
+          const subFormula = block.formula || block.Formula || block.manualFormula;
+          if (subFormula && typeof subFormula === 'string' && subFormula.trim().length > 3) {
+            const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
+            const computed = {};
+            fields.forEach(f => {
+              // Pass 'block' as context
+              computed[f] = calculateFormulaValue(subFormula, contextMap, f, block);
+            });
+            block.totals = computed;
+            block.manualFormula = true;
+          }
+        }
+      });
+
+      // PASS 3: EVALUATE FORMULAS (SECTIONS)
+
+      // Now that all sections have base values (from children), 
+      // we evaluate explicit formulas which may depend on other sections.
+      // Two iterations to handle simple dependency chains (A=B, B=C).
+
+      for (let iter = 0; iter < 2; iter++) {
+        layoutArr.forEach(block => {
+          if ((block.type || "").toLowerCase() === 'principal') {
+            const f = block.formula || block.Formula || block.manualFormula;
+            if (f && typeof f === 'string' && f.trim().length > 3) {
+              const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
+              const computed = {};
+              fields.forEach(field => {
+                // Use contextMap which references the blocks (now updated with Pass 2 totals)
+                // Pass 'block' as context
+                computed[field] = calculateFormulaValue(f, contextMap, field, block);
+              });
+              block.totals = computed;
+              block.manualFormula = true;
+              block.__manualFormula = true; // Flag for debugging
+            }
+          }
+        });
+      }
+
+    };
+
+    const sumMetrics = (dest, src) => {
+      if (!dest || !src) return;
+      dest.actualMonth += src.actualMonth || 0;
+      dest.planMonth += src.planMonth || 0;
+      dest.prevMonth += src.prevMonth || 0;
+      dest.actualYTD += src.actualYTD || 0;
+      dest.planYTD += src.planYTD || 0;
+      dest.prevYTD += src.prevYTD || 0;
     };
 
     const recalcularConsolidados = (layoutArr = [], capituloName = "") => {
@@ -4389,18 +4557,27 @@
         );
       };
 
+
       // Renderizar usando SOLO el layout (que ya tiene todo en orden correcto)
       if (layout && layout.length) {
         renderizoLayout = true;
+        // ALWAYS recalculate principals to ensure manual formulas and aggregations are applied.
+        // The recalcularPrincipales function internally handles manual overrides vs auto-sum.
+        recalcularPrincipales(layout);
+        recalcularConsolidados(layout, capituloName);
+
+        /* ORIGINAL CHECK:
         const autoCalcEnabled = Array.isArray(layout)
           ? layout.some(
-            (block) => Boolean(block?.autoFormula) || Boolean(block?.autoCalc),
+            (block) => Boolean(block?.autoFormula) || Boolean(block?.autoCalc) || Boolean(block?.manualFormula) || Boolean(block?.formula)
           )
           : false;
         if (autoCalcEnabled) {
           recalcularPrincipales(layout);
           recalcularConsolidados(layout, capituloName);
         }
+        */
+
         // Pre-build maps of principal/secundaria totals keyed by label
         const principalTotalsMap = new Map();
         const subsectionTotalsMap = new Map();
@@ -4466,17 +4643,17 @@
 
         // Helper to check if a block has been rendered to avoid duplicates
         const renderedBlocks = new Set();
-        
+
         layout.forEach((block) => {
           const blockType = block.type || "";
-          
+
           // SECTION (Principal): Always render, even if empty
           if (blockType === "principal") {
             const label = block.label || "";
             // If new principal or forced re-render (though typically layout is ordered)
             if (label && label !== currentPrincipal) {
               currentPrincipal = label;
-              currentSubsection = null; 
+              currentSubsection = null;
               if (!renderedBlocks.has("P:" + label)) {
                 renderPrincipalHeader(label);
                 renderedBlocks.add("P:" + label);

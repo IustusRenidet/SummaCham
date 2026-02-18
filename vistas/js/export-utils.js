@@ -1336,15 +1336,13 @@
       const cells = Array.from(fila?.cells || []);
       if (!cells.length) return "";
       for (let idx = 1; idx < cells.length; idx += 1) {
-        const text = (cells[idx]?.textContent || "").replace(/\s+/g, " ").trim();
+        const text = this._leerTextoCelda(cells[idx]);
         if (/[A-Za-z\u00c0-\u024f]/.test(text)) {
           return this._limpiarEtiquetaOperativo(text);
         }
       }
       return this._limpiarEtiquetaOperativo(
-        (cells[1]?.textContent || cells[0]?.textContent || "")
-          .replace(/\s+/g, " ")
-          .trim()
+        this._leerTextoCelda(cells[1] || cells[0])
       );
     },
 
@@ -1500,18 +1498,21 @@
       const rows = filas
         .map((fila) => {
           const etiqueta = this._resolverEtiquetaFilaOperativa(fila);
+          if (!etiqueta) return null;
+          const identifier = this._resolverIdentificadorFilaOperativa(fila);
+          const etiquetaDisplay = this._formatearEtiquetaConId(etiqueta, identifier);
           const presupuesto = this._parseNumeroTexto(
-            fila.cells?.[indices.budget]?.textContent || ""
+            this._leerTextoCelda(fila.cells?.[indices.budget])
           );
           const real = this._parseNumeroTexto(
-            fila.cells?.[indices.real]?.textContent || ""
+            this._leerTextoCelda(fila.cells?.[indices.real])
           );
           const anual = this._parseNumeroTexto(
-            fila.cells?.[annualIdx]?.textContent || ""
+            this._leerTextoCelda(fila.cells?.[annualIdx])
           );
-          return { etiqueta, presupuesto, real, anual };
+          return { etiqueta: etiquetaDisplay, presupuesto, real, anual };
         })
-        .filter((item) => item.etiqueta);
+        .filter(Boolean);
 
       if (rows.length) return rows;
       return this._obtenerDatosOperativoDesdeGraficas(this._resolverGraficas());
@@ -1527,15 +1528,21 @@
       let idxBudgetFallback = -1;
 
       const buscarPorTexto = (matcher) => {
-        for (const row of headerRows) {
-          const headers = Array.from(row.children || []);
-          for (let idx = 0; idx < headers.length; idx += 1) {
-            const text = (headers[idx]?.textContent || "")
-              .replace(/\s+/g, " ")
-              .trim()
-              .toLowerCase();
-            if (!text) continue;
-            if (matcher(text)) return idx;
+        for (let pass = 0; pass < 2; pass += 1) {
+          const allowColspan = pass === 1;
+          for (const row of headerRows) {
+            const headers = Array.from(row.children || []);
+            for (const headerCell of headers) {
+              const span = Number(headerCell?.colSpan) || 1;
+              if (!allowColspan && span > 1) continue;
+              const text = this._normalizeWhitespace(
+                headerCell?.textContent || ""
+              ).toLowerCase();
+              if (!text) continue;
+              if (matcher(text)) {
+                return this._getHeaderCellStartIndex(headerCell);
+              }
+            }
           }
         }
         return -1;
@@ -1543,7 +1550,8 @@
 
       headerRows.forEach((row) => {
         const headers = Array.from(row.children || []);
-        headers.forEach((th, idx) => {
+        headers.forEach((th) => {
+          const idx = this._getHeaderCellStartIndex(th);
           if (idxTotalBudget < 0 && th.classList.contains("total-budget-column")) {
             idxTotalBudget = idx;
           }
@@ -1583,20 +1591,97 @@
       };
     },
 
-    _limpiarEtiquetaOperativo(texto) {
-      const base = (texto || "").toString().trim();
-      if (!base) return "";
-      const lower = base.toLowerCase();
-      const prefijo = "resultado operativo";
-      if (lower.startsWith(prefijo)) {
-        const recorte = base.slice(prefijo.length).trim();
-        return recorte || base;
+    _normalizeWhitespace(value) {
+      return (value || "").toString().replace(/\s+/g, " ").trim();
+    },
+
+    _getHeaderCellStartIndex(cell) {
+      if (!cell) return -1;
+      let idx = 0;
+      let cursor = cell;
+      while ((cursor = cursor.previousElementSibling)) {
+        idx += Number(cursor.colSpan) || 1;
       }
-      return base;
+      return idx;
+    },
+
+    _leerTextoCelda(cell) {
+      if (!cell) return "";
+      try {
+        const input = cell.querySelector?.("input, textarea, select");
+        if (input) {
+          if (input.tagName === "SELECT") {
+            const option = input.options?.[input.selectedIndex];
+            return this._normalizeWhitespace(option?.textContent || input.value || "");
+          }
+          return this._normalizeWhitespace(input.value || "");
+        }
+        const dataset =
+          cell.dataset?.rawValue ??
+          cell.dataset?.value ??
+          cell.dataset?.valor ??
+          cell.getAttribute?.("data-raw-value") ??
+          cell.getAttribute?.("data-value") ??
+          cell.getAttribute?.("data-valor");
+        if (dataset != null && String(dataset).trim() !== "") {
+          return this._normalizeWhitespace(dataset);
+        }
+        const dataEl = cell.querySelector?.(
+          "[data-raw-value],[data-value],[data-valor]"
+        );
+        if (dataEl) {
+          const inner =
+            dataEl.getAttribute("data-raw-value") ||
+            dataEl.getAttribute("data-value") ||
+            dataEl.getAttribute("data-valor") ||
+            "";
+          if (inner && inner.trim()) return this._normalizeWhitespace(inner);
+        }
+      } catch (_) {
+        // ignore
+      }
+      return this._normalizeWhitespace(cell.textContent || "");
+    },
+
+    _resolverIdentificadorFilaOperativa(fila) {
+      if (!fila) return "";
+      const cells = fila.cells || [];
+      const fromCell = this._normalizeWhitespace(this._leerTextoCelda(cells?.[0]));
+      if (fromCell) return fromCell;
+      const data = fila.dataset || {};
+      const fromDataset =
+        this._normalizeWhitespace(data.cuentaVisible) ||
+        this._normalizeWhitespace(data.cuenta21) ||
+        this._normalizeWhitespace(data.cuenta) ||
+        this._normalizeWhitespace(data.operationId) ||
+        this._normalizeWhitespace(data.operacionClave) ||
+        this._normalizeWhitespace(data.layoutOrder);
+      return fromDataset || "";
+    },
+
+    _formatearEtiquetaConId(etiqueta, identifier) {
+      const cleanLabel = this._normalizeWhitespace(etiqueta);
+      const cleanId = this._normalizeWhitespace(identifier);
+      if (!cleanLabel) return "";
+      if (!cleanId) return cleanLabel;
+      if (cleanLabel.includes(cleanId)) return cleanLabel;
+      return `${cleanLabel} (${cleanId})`;
+    },
+
+    _limpiarEtiquetaOperativo(texto) {
+      return this._normalizeWhitespace(texto);
     },
 
     _parseNumeroTexto(texto) {
-      let limpio = (texto || "").replace(/[^0-9+.,-]/g, "");
+      const raw = (texto ?? "").toString();
+      const trimmed = raw.trim();
+      if (!trimmed) return 0;
+      const parenNegative =
+        trimmed.includes("(") && trimmed.includes(")") && !trimmed.includes("-");
+      let limpio = raw
+        .replace(/[−–—]/g, "-")
+        .replace(/[()]/g, "")
+        .replace(/[^0-9+.,-]/g, "");
       if (!limpio) return 0;
       const tieneComma = limpio.indexOf(",") >= 0;
       const tieneDot = limpio.indexOf(".") >= 0;
@@ -1623,7 +1708,8 @@
         limpio = `${partes.join("")}.${decimal}`;
       }
       const numero = Number(limpio);
-      return Number.isFinite(numero) ? numero : 0;
+      if (!Number.isFinite(numero)) return 0;
+      return parenNegative ? -Math.abs(numero) : numero;
     },
 
     _extraerTablaComoMatriz(tabla) {

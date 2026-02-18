@@ -161,6 +161,123 @@
     return valor || fallback;
   };
 
+  const normalizeWhitespace = (value) =>
+    (value || "").toString().replace(/\s+/g, " ").trim();
+
+  const getHeaderCellStartIndex = (cell) => {
+    if (!cell) return -1;
+    let idx = 0;
+    let cursor = cell;
+    while ((cursor = cursor.previousElementSibling)) {
+      idx += Number(cursor.colSpan) || 1;
+    }
+    return idx;
+  };
+
+  const getCellText = (cell) => {
+    if (!cell) return "";
+    try {
+      const input = cell.querySelector?.("input, textarea, select");
+      if (input) {
+        if (input.tagName === "SELECT") {
+          const option = input.options?.[input.selectedIndex];
+          return normalizeWhitespace(option?.textContent || input.value || "");
+        }
+        return normalizeWhitespace(input.value || "");
+      }
+      const dataset =
+        cell.dataset?.rawValue ??
+        cell.dataset?.value ??
+        cell.dataset?.valor ??
+        cell.getAttribute?.("data-raw-value") ??
+        cell.getAttribute?.("data-value") ??
+        cell.getAttribute?.("data-valor");
+      if (dataset != null && String(dataset).trim() !== "") {
+        return normalizeWhitespace(dataset);
+      }
+      const dataEl = cell.querySelector?.(
+        "[data-raw-value],[data-value],[data-valor]"
+      );
+      if (dataEl) {
+        const inner =
+          dataEl.getAttribute("data-raw-value") ||
+          dataEl.getAttribute("data-value") ||
+          dataEl.getAttribute("data-valor") ||
+          "";
+        if (inner && inner.trim()) return normalizeWhitespace(inner);
+      }
+    } catch (_) {
+      // ignore
+    }
+    return normalizeWhitespace(cell.textContent || "");
+  };
+
+  const parseNumero = (texto) => {
+    const raw = (texto ?? "").toString();
+    const trimmed = raw.trim();
+    if (!trimmed) return 0;
+    const parenNegative =
+      trimmed.includes("(") && trimmed.includes(")") && !trimmed.includes("-");
+    let limpio = raw
+      .replace(/[−–—]/g, "-")
+      .replace(/[()]/g, "")
+      .replace(/[^0-9+.,-]/g, "");
+    if (!limpio) return 0;
+    const tieneComma = limpio.indexOf(",") >= 0;
+    const tieneDot = limpio.indexOf(".") >= 0;
+    if (tieneComma && tieneDot) {
+      const lastDot = limpio.lastIndexOf(".");
+      const lastComma = limpio.lastIndexOf(",");
+      if (lastDot > lastComma) {
+        limpio = limpio.replace(/,/g, "");
+      } else {
+        limpio = limpio.replace(/\./g, "");
+        limpio = limpio.replace(/,/g, ".");
+      }
+    } else if (tieneComma && !tieneDot) {
+      const partes = limpio.split(",");
+      if (partes.length > 1 && partes[1].length === 3) {
+        limpio = limpio.replace(/,/g, "");
+      } else {
+        limpio = limpio.replace(/,/g, ".");
+      }
+    }
+    if ((limpio.match(/\./g) || []).length > 1) {
+      const partes = limpio.split(".");
+      const decimal = partes.pop();
+      limpio = `${partes.join("")}.${decimal}`;
+    }
+    const numero = Number(limpio);
+    if (!Number.isFinite(numero)) return 0;
+    return parenNegative ? -Math.abs(numero) : numero;
+  };
+
+  const resolverIdentificadorFila = (row) => {
+    if (!row) return "";
+    const cells = row.cells || [];
+    const fromCell = normalizeWhitespace(getCellText(cells?.[0]));
+    if (fromCell) return fromCell;
+    const data = row.dataset || {};
+    return (
+      normalizeWhitespace(data.cuentaVisible) ||
+      normalizeWhitespace(data.cuenta21) ||
+      normalizeWhitespace(data.cuenta) ||
+      normalizeWhitespace(data.operationId) ||
+      normalizeWhitespace(data.operacionClave) ||
+      normalizeWhitespace(data.layoutOrder) ||
+      ""
+    );
+  };
+
+  const formatLabelWithId = (label, identifier) => {
+    const cleanLabel = normalizeWhitespace(label);
+    const cleanId = normalizeWhitespace(identifier);
+    if (!cleanLabel) return "";
+    if (!cleanId) return cleanLabel;
+    if (cleanLabel.includes(cleanId)) return cleanLabel;
+    return `${cleanLabel} (${cleanId})`;
+  };
+
   const formatearNumero = (valor) => {
     const numero = Number(valor);
     if (!Number.isFinite(numero)) return "0.00";
@@ -774,17 +891,25 @@
   };
 
   const getGastosTableIndices = (tabla) => {
-    const headers = Array.from(tabla?.querySelectorAll("thead th") || []);
-    const annualIndex = headers.findIndex((th) =>
-      th.classList.contains("budget-annual-column")
-    );
+    const headerRows = Array.from(tabla?.querySelectorAll("thead tr") || []);
+    if (!headerRows.length) {
+      return { annualIndex: -1, budgetMonthIndices: [], realMonthIndices: [] };
+    }
+    const leafCells = Array.from(headerRows[headerRows.length - 1].cells || []);
+
+    let annualIndex = -1;
     const budgetMonthIndices = [];
     const realMonthIndices = [];
-    headers.forEach((th, idx) => {
+    let colIndex = 0;
+    leafCells.forEach((th) => {
+      const idx = colIndex;
+      colIndex += Number(th?.colSpan) || 1;
       if (th.classList.contains("month-budget")) {
         budgetMonthIndices.push(idx);
       } else if (th.classList.contains("month-real")) {
         realMonthIndices.push(idx);
+      } else if (annualIndex < 0 && th.classList.contains("budget-annual-column")) {
+        annualIndex = idx;
       }
     });
     return { annualIndex, budgetMonthIndices, realMonthIndices };
@@ -816,29 +941,33 @@
         }
         const cells = Array.from(row.cells || []);
         if (cells.length < 2) return null;
-        const labelRaw = (cells[1]?.textContent || "").toString().trim();
-        const accountRaw = (cells[0]?.textContent || "").toString().trim();
+        const labelRaw = getCellText(cells[1]);
+        const identifier = resolverIdentificadorFila(row);
+        const accountRaw = identifier || getCellText(cells[0]);
         if (!labelRaw && !accountRaw) return null;
         const budget = indices.budgetMonthIndices.reduce(
-          (sum, idx) => sum + parseNumero(cells[idx]?.textContent || "0"),
+          (sum, idx) => sum + parseNumero(getCellText(cells[idx])),
           0
         );
         const real = indices.realMonthIndices.reduce(
-          (sum, idx) => sum + parseNumero(cells[idx]?.textContent || "0"),
+          (sum, idx) => sum + parseNumero(getCellText(cells[idx])),
           0
         );
         const annual =
           indices.annualIndex >= 0
-            ? parseNumero(cells[indices.annualIndex]?.textContent || "0")
+            ? parseNumero(getCellText(cells[indices.annualIndex]))
             : budget;
         const label = labelRaw || accountRaw;
+        const displayLabel = formatLabelWithId(label, accountRaw);
         return {
           label,
+          displayLabel,
           key: normalizarTexto(label),
           accountKey: normalizarTexto(accountRaw),
           budget,
           real,
           annual,
+          identifier: accountRaw,
         };
       })
       .filter(Boolean);
@@ -964,12 +1093,13 @@
       const resolvedRows = rowsCfg.map((row) => {
         const variants = Array.isArray(row?.variants) ? row.variants : [];
         const match = matchRowByVariants(rowsData, variants);
+        const labelBase =
+          (typeof row?.alias === "string" && row.alias.trim()
+            ? row.alias.trim()
+            : (variants[0] || "").toString().trim()) ||
+          `Fila ${index + 1}`;
         return {
-          label:
-            (typeof row?.alias === "string" && row.alias.trim()
-              ? row.alias.trim()
-              : (variants[0] || "").toString().trim()) ||
-            `Fila ${index + 1}`,
+          label: match ? formatLabelWithId(labelBase, match.identifier) : labelBase,
           budget: match ? match.budget : 0,
           real: match ? match.real : 0,
           annual: match ? match.annual : 0,

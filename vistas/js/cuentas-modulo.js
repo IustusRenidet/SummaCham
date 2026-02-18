@@ -952,6 +952,16 @@
       if (!clave || seen.has(clave)) return;
       const terminos = construirTerminosOperativoDesdeFormula(op);
       if (!terminos.length) return;
+      const operationId = (
+        op?.OperacionId ||
+        op?.OperacionID ||
+        op?.Clase ||
+        op?.clase ||
+        op?.id ||
+        ""
+      )
+        .toString()
+        .trim();
       const orden = Number.isFinite(Number(op?.orden_presentacion))
         ? Number(op.orden_presentacion)
         : Number.isFinite(Number(op?.orden))
@@ -961,6 +971,7 @@
         clave,
         nombre: label,
         label,
+        operationId,
         terminos,
         orden,
       });
@@ -1017,6 +1028,10 @@
         placeholdersPorFila,
       });
       if (fila) {
+        if (operacion.operationId) {
+          fila.dataset.operationId = operacion.operationId;
+        }
+        fila.dataset.operationLabel = texto;
         fila.dataset.operacionClave = operacion.clave;
         filasOperativo.set(operacion.clave, {
           fila,

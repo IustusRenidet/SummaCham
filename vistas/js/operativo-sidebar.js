@@ -26,14 +26,88 @@
       annual: { label: "Presupuesto {year}", color: "#22c55e", enabled: true },
     },
   };
-  const ocultarCeros = (valor) => {
-    const numero = Number(valor) || 0;
-    return numero === 0 ? null : numero;
+
+  const normalizeWhitespace = (value) =>
+    (value || "").toString().replace(/\s+/g, " ").trim();
+
+  const getHeaderCellStartIndex = (cell) => {
+    if (!cell) return -1;
+    let idx = 0;
+    let cursor = cell;
+    while ((cursor = cursor.previousElementSibling)) {
+      idx += Number(cursor.colSpan) || 1;
+    }
+    return idx;
   };
+
+  const getCellText = (cell) => {
+    if (!cell) return "";
+    try {
+      const input = cell.querySelector?.("input, textarea, select");
+      if (input) {
+        if (input.tagName === "SELECT") {
+          const option = input.options?.[input.selectedIndex];
+          return normalizeWhitespace(option?.textContent || input.value || "");
+        }
+        return normalizeWhitespace(input.value || "");
+      }
+      const dataset =
+        cell.dataset?.rawValue ??
+        cell.dataset?.value ??
+        cell.dataset?.valor ??
+        cell.getAttribute?.("data-raw-value") ??
+        cell.getAttribute?.("data-value") ??
+        cell.getAttribute?.("data-valor");
+      if (dataset != null && String(dataset).trim() !== "") {
+        return normalizeWhitespace(dataset);
+      }
+      const dataEl = cell.querySelector?.(
+        "[data-raw-value],[data-value],[data-valor]"
+      );
+      if (dataEl) {
+        const inner =
+          dataEl.getAttribute("data-raw-value") ||
+          dataEl.getAttribute("data-value") ||
+          dataEl.getAttribute("data-valor") ||
+          "";
+        if (inner && inner.trim()) return normalizeWhitespace(inner);
+      }
+    } catch (_) {
+      // ignore
+    }
+    return normalizeWhitespace(cell.textContent || "");
+  };
+
+  const resolverIdentificadorFila = (fila) => {
+    if (!fila) return "";
+    const cells = fila.cells || [];
+    const fromCell = normalizeWhitespace(getCellText(cells?.[0]));
+    if (fromCell) return fromCell;
+    const data = fila.dataset || {};
+    const fromDataset =
+      normalizeWhitespace(data.cuentaVisible) ||
+      normalizeWhitespace(data.cuenta21) ||
+      normalizeWhitespace(data.cuenta) ||
+      normalizeWhitespace(data.operationId) ||
+      normalizeWhitespace(data.operacionClave) ||
+      normalizeWhitespace(data.layoutOrder);
+    return fromDataset || "";
+  };
+
+  const formatLabelWithId = (label, identifier) => {
+    const cleanLabel = normalizeWhitespace(label);
+    const cleanId = normalizeWhitespace(identifier);
+    if (!cleanLabel) return "";
+    if (!cleanId) return cleanLabel;
+    if (cleanLabel.includes(cleanId)) return cleanLabel;
+    return `${cleanLabel} (${cleanId})`;
+  };
+
   const normalizarSerie = (values = []) => {
-    const numericos = values.map((value) => Number(value) || 0);
-    const hasNonZero = numericos.some((value) => Math.abs(value) > 0.000001);
-    return hasNonZero ? numericos.map((value) => ocultarCeros(value)) : numericos;
+    return values.map((value) => {
+      const numero = Number(value);
+      return Number.isFinite(numero) ? numero : 0;
+    });
   };
   let updateTimer = null;
 
@@ -259,7 +333,15 @@
   };
 
   const parseNumero = (texto) => {
-    let limpio = (texto || "").replace(/[^0-9+.,-]/g, "");
+    const raw = (texto ?? "").toString();
+    const trimmed = raw.trim();
+    if (!trimmed) return 0;
+    const parenNegative =
+      trimmed.includes("(") && trimmed.includes(")") && !trimmed.includes("-");
+    let limpio = raw
+      .replace(/[−–—]/g, "-")
+      .replace(/[()]/g, "")
+      .replace(/[^0-9+.,-]/g, "");
     if (!limpio) return 0;
     const tieneComma = limpio.indexOf(",") >= 0;
     const tieneDot = limpio.indexOf(".") >= 0;
@@ -286,7 +368,8 @@
       limpio = `${partes.join("")}.${decimal}`;
     }
     const numero = Number(limpio);
-    return Number.isFinite(numero) ? numero : 0;
+    if (!Number.isFinite(numero)) return 0;
+    return parenNegative ? -Math.abs(numero) : numero;
   };
 
   const formatearNumero = (valor) => {
@@ -422,17 +505,23 @@
     console.log("📊 obtenerIndices: Analizando", headerRows.length, "filas de encabezado");
 
     const buscarPorTexto = (matcher) => {
-      for (const row of headerRows) {
-        const headers = Array.from(row.children || []);
-        for (let idx = 0; idx < headers.length; idx += 1) {
-          const text = (headers[idx]?.textContent || "")
-            .replace(/\s+/g, " ")
-            .trim()
-            .toLowerCase();
-          if (!text) continue;
-          if (matcher(text)) {
-            console.log(`📊 obtenerIndices: Encontrada columna en índice ${idx} con texto: "${text}"`);
-            return idx;
+      // Preferir celdas "hoja" (sin colspan) para que el índice coincida con tbody.
+      for (let pass = 0; pass < 2; pass += 1) {
+        const allowColspan = pass === 1;
+        for (const row of headerRows) {
+          const headers = Array.from(row.children || []);
+          for (const headerCell of headers) {
+            const span = Number(headerCell?.colSpan) || 1;
+            if (!allowColspan && span > 1) continue;
+            const text = normalizeWhitespace(headerCell?.textContent || "").toLowerCase();
+            if (!text) continue;
+            if (matcher(text)) {
+              const idx = getHeaderCellStartIndex(headerCell);
+              console.log(
+                `📊 obtenerIndices: Encontrada columna en índice ${idx} con texto: "${text}"`
+              );
+              return idx;
+            }
           }
         }
       }
@@ -441,9 +530,9 @@
 
     headerRows.forEach((row) => {
       const headers = Array.from(row.children || []);
-      headers.forEach((th, idx) => {
-        const classes = Array.from(th.classList || []);
-        const text = (th?.textContent || "").replace(/\s+/g, " ").trim();
+      headers.forEach((th) => {
+        const idx = getHeaderCellStartIndex(th);
+        const text = normalizeWhitespace(th?.textContent || "");
 
         if (idxTotalBudget < 0 && th.classList.contains("total-budget-column")) {
           console.log(`📊 obtenerIndices: total-budget-column encontrada en índice ${idx}: "${text}"`);
@@ -541,8 +630,12 @@
       defs.push(definition);
     };
 
-    headerCells.forEach((cell, index) => {
-      const text = (cell?.textContent || "").replace(/\s+/g, " ").trim();
+    let colIndex = 0;
+    headerCells.forEach((cell) => {
+      const index = colIndex;
+      const span = Number(cell?.colSpan) || 1;
+      colIndex += span;
+      const text = normalizeWhitespace(cell?.textContent || "");
       if (cell.classList.contains("budget-annual-column")) {
         pushDef({
           key: "budgetAnnual",
@@ -612,16 +705,12 @@
     const cells = Array.from(fila?.cells || []);
     if (!cells.length) return "";
     for (let idx = 1; idx < cells.length; idx += 1) {
-      const text = (cells[idx]?.textContent || "").replace(/\s+/g, " ").trim();
+      const text = getCellText(cells[idx]);
       if (/[A-Za-z\u00c0-\u024f]/.test(text)) {
-        return limpiarEtiqueta(text);
+        return text;
       }
     }
-    return limpiarEtiqueta(
-      (cells[1]?.textContent || cells[0]?.textContent || "")
-        .replace(/\s+/g, " ")
-        .trim()
-    );
+    return getCellText(cells[1] || cells[0]);
   };
 
   const obtenerFilasOperativas = (tabla) => {
@@ -660,17 +749,18 @@
     const datos = filas
       .map((fila) => {
         const etiqueta = resolverEtiquetaFila(fila);
-        const presupuesto = parseNumero(
-          fila.cells?.[indices.budgetTotal]?.textContent
-        );
-        const real = parseNumero(fila.cells?.[indices.realTotal]?.textContent);
-        const anual = parseNumero(fila.cells?.[annualIdx]?.textContent);
+        if (!etiqueta) return null;
+        const identifier = resolverIdentificadorFila(fila);
+        const displayLabel = formatLabelWithId(etiqueta, identifier);
+        const presupuesto = parseNumero(getCellText(fila.cells?.[indices.budgetTotal]));
+        const real = parseNumero(getCellText(fila.cells?.[indices.realTotal]));
+        const anual = parseNumero(getCellText(fila.cells?.[annualIdx]));
 
         if (etiqueta) {
           console.log(`📊 obtenerDatos: ${etiqueta} - presupuesto: ${presupuesto}, real: ${real}, anual: ${anual}`);
         }
 
-        return { etiqueta, presupuesto, real, anual };
+        return { etiqueta, displayLabel, identifier, presupuesto, real, anual };
       })
       .filter((item) => item.etiqueta);
 
@@ -692,27 +782,26 @@
     return filas
       .map((fila) => {
         const cells = fila.cells || [];
-        const cuentaRaw = (cells?.[0]?.textContent || "")
-          .replace(/\s+/g, " ")
-          .trim();
+        const identifier = resolverIdentificadorFila(fila);
         const etiqueta = resolverEtiquetaFila(fila);
         if (!etiqueta) return null;
+        const displayLabel = formatLabelWithId(etiqueta, identifier);
         const values = {};
         columnDefs.forEach((def) => {
-          values[def.key] = parseNumero(cells?.[def.index]?.textContent || "");
+          values[def.key] = parseNumero(getCellText(cells?.[def.index]));
         });
         const totalBudgetValue = Number(values.totalBudget);
         const totalRealValue = Number(values.totalReal);
         const budgetAnnualValue = Number(values.budgetAnnual);
         const presupuesto = Number.isFinite(totalBudgetValue)
           ? totalBudgetValue
-          : parseNumero(cells?.[indices.budgetTotal]?.textContent);
+          : parseNumero(getCellText(cells?.[indices.budgetTotal]));
         const real = Number.isFinite(totalRealValue)
           ? totalRealValue
-          : parseNumero(cells?.[indices.realTotal]?.textContent);
+          : parseNumero(getCellText(cells?.[indices.realTotal]));
         const anual = Number.isFinite(budgetAnnualValue)
           ? budgetAnnualValue
-          : parseNumero(cells?.[annualIdx]?.textContent);
+          : parseNumero(getCellText(cells?.[annualIdx]));
 
         if (!Number.isFinite(totalBudgetValue)) {
           values.totalBudget = presupuesto;
@@ -725,11 +814,13 @@
         }
         return {
           etiqueta,
+          displayLabel,
           key: normalizeKey(etiqueta),
-          accountKey: normalizeKey(cuentaRaw),
+          accountKey: normalizeKey(identifier),
           presupuesto,
           real,
           anual,
+          identifier,
           values,
         };
       })
@@ -1224,7 +1315,7 @@
         const label =
           row?.alias || row?.label || variants[0] || `Fila ${rowIndex + 1}`;
         const match = matchRowByVariants(rowsData, variants);
-        labels.push(label);
+        labels.push(match ? formatLabelWithId(label, match.identifier) : label);
         datasetDefs.forEach((def) => {
           const value = match ? Number(match.values?.[def.valueKey]) || 0 : 0;
           seriesData[def.key].push(value);
@@ -1233,9 +1324,7 @@
 
       const datasets = datasetDefs.map((def) => {
         const rawValues = seriesData[def.key] || [];
-        const data = isPie
-          ? rawValues
-          : rawValues.map((value) => ocultarCeros(value));
+        const data = rawValues;
         const dataset = {
           label: def.label,
           data,
@@ -1262,9 +1351,17 @@
         return dataset;
       });
 
-      const hasData = datasets.some((dataset) =>
-        (dataset.data || []).some((value) => Number(value) !== 0 && value !== null)
-      );
+      const hasData = rows.some((row) => {
+        const variants =
+          Array.isArray(row?.variants) && row.variants.length
+            ? row.variants
+            : row?.label
+              ? [row.label]
+              : row?.alias
+                ? [row.alias]
+                : [];
+        return Boolean(matchRowByVariants(rowsData, variants));
+      });
 
       const safeId = (chart?.id || `custom-${index + 1}`)
         .toString()
@@ -1512,7 +1609,7 @@
       const datos = obtenerDatos(tabla);
       console.log("📊 actualizarSidebar: Datos obtenidos:", datos);
 
-      const labels = datos.map((item) => item.etiqueta);
+      const labels = datos.map((item) => item.displayLabel || item.etiqueta);
       const presupuestos = normalizarSerie(
         datos.map((item) => item.presupuesto)
       );

@@ -290,6 +290,21 @@
   };
 
   const SNAPSHOT_PREFIX = "resumen_tabla_snapshot";
+  const buildSnapshotKey = (empresaId, anio, mes) =>
+    `${SNAPSHOT_PREFIX}:${empresaId || "sin"}:${anio || "sin"}:${mes || "sin"}`;
+
+  const readSnapshotByKey = (empresaId, anio, mes) => {
+    if (typeof localStorage === "undefined") return null;
+    if (!empresaId || !anio || !mes) return null;
+    try {
+      const key = buildSnapshotKey(empresaId, anio, mes);
+      const snapshot = JSON.parse(localStorage.getItem(key) || "null");
+      if (!snapshot || !Array.isArray(snapshot.filas)) return null;
+      return snapshot;
+    } catch (_) {
+      return null;
+    }
+  };
 
   const getSelectedCapitulo = () => {
     const select = document.getElementById("capituloSelect");
@@ -593,12 +608,23 @@
 
   const getPreviewContext = () => {
     const capituloSeleccionado = getSelectedCapitulo();
-    const snapshot = readLatestSnapshot(capituloSeleccionado);
+    const empresaIdBase = getPreviewEmpresaId(null);
+    const anioBase = getPreviewYear(null);
+    const preferredMonthIndex = resolvePreviewMonthIndex();
+    const mesBase = Number.isInteger(preferredMonthIndex)
+      ? preferredMonthIndex + 1
+      : null;
+
+    const snapshotPreferido =
+      mesBase && empresaIdBase && anioBase
+        ? readSnapshotByKey(empresaIdBase, anioBase, mesBase)
+        : null;
+    const snapshot = snapshotPreferido || readLatestSnapshot(capituloSeleccionado);
     return {
       snapshot,
       snapshotMap: buildSnapshotMap(snapshot),
-      empresaId: getPreviewEmpresaId(snapshot),
-      anio: getPreviewYear(snapshot),
+      empresaId: getPreviewEmpresaId(snapshot) || empresaIdBase,
+      anio: getPreviewYear(snapshot) || anioBase,
       capitulo: snapshot?.capitulo || capituloSeleccionado || "",
     };
   };
@@ -2482,8 +2508,6 @@
   }) => {
     const empresaId = context?.empresaId;
     const anio = context?.anio;
-    const capitulo =
-      kind === "ingresoNacional" ? "" : (context?.capitulo || "").trim();
     const ingresoConfig = config?.[kind] || defaults?.[kind] || {};
     if (ingresoConfig.enabled === false) return null;
     const ingresoSources =
@@ -2501,76 +2525,67 @@
         ),
       }))
       .filter((serie) => serie.enabled && serie.variants.length);
-    const fallbackSeries = Object.entries(ingresoConfig.series || {})
-      .map(([key, serie]) => ({
-        key,
-        label: serie?.label || key,
-        color: serie?.color || "#0d47a1",
-        enabled: serie?.enabled !== false,
-      }))
-      .filter((serie) => serie.enabled);
 
-    const buildSample = (seriesFallback = datasetsConfig) => {
-      const seriesToUse = Array.isArray(seriesFallback) && seriesFallback.length
-        ? seriesFallback
-        : fallbackSeries;
-      if (!seriesToUse.length) return null;
-      const datasets = buildDatasetsFromList(seriesToUse, MONTH_LABELS, chartType);
-      return datasets.length
-        ? { chartType, labels: MONTH_LABELS, datasets }
-        : null;
-    };
-
-    if (!empresaId || !anio) return buildSample(fallbackSeries);
-
-    if (!datasetsConfig.length) return buildSample(fallbackSeries);
-
-    const responses = await loadResumenMensual(empresaId, anio, capitulo);
-    if (!responses || !responses.length) return buildSample();
+    if (!empresaId || !anio) return null;
+    if (!datasetsConfig.length) return null;
 
     const series = datasetsConfig.reduce((acc, item) => {
-      acc[item.key] = [];
+      acc[item.key] = Array.from({ length: MONTH_LABELS.length }, () => null);
       return acc;
     }, {});
 
-    responses.forEach((data, idx) => {
-      const layout = data?.resumen?.[0]?.layout || [];
+    let hasAnySnapshot = false;
+    for (let idx = 0; idx < MONTH_LABELS.length; idx += 1) {
+      const snapshot = readSnapshotByKey(empresaId, anio, idx + 1);
+      if (!snapshot) continue;
+      hasAnySnapshot = true;
+      const map = buildSnapshotMap(snapshot);
+      if (!map) continue;
+
       datasetsConfig.forEach((dataset) => {
-        const row = obtenerFilaIngreso(layout, dataset.variants);
-        const value = toNumber(row?.totals?.actualYTD);
-        series[dataset.key][idx] = value;
+        const totals = getRowTotalsLoose(map, dataset.variants);
+        series[dataset.key][idx] = toNumber(totals?.actualYTD);
       });
-    });
+    }
+
+    if (!hasAnySnapshot) return null;
 
     const isPie = isPieType(chartType);
+    const datasets = datasetsConfig.map((dataset) => {
+      const data = series[dataset.key] || [];
+      const entry = {
+        label: dataset.label,
+        data,
+        borderWidth: chartType === "line" ? 2 : 1,
+      };
+      if (isPie) {
+        entry.backgroundColor = buildSlicePalette(data.length, dataset.color);
+        entry.borderColor = "#ffffff";
+        entry.borderWidth = 1;
+        return entry;
+      }
+      entry.backgroundColor = dataset.color;
+      entry.borderColor = dataset.color;
+      if (chartType === "line") {
+        entry.tension = 0.2;
+        entry.fill = false;
+        entry.pointRadius = 3;
+        entry.pointHoverRadius = 4;
+      } else if (chartType === "bar") {
+        entry.borderRadius = 6;
+        entry.maxBarThickness = 18;
+      }
+      return entry;
+    });
+
+    const hasData = datasets.some((dataset) =>
+      (dataset.data || []).some((value) => value !== null && Number(value) !== 0)
+    );
+    if (!hasData) return null;
+
     return {
       labels: MONTH_LABELS,
-      datasets: datasetsConfig.map((dataset) => {
-        const data = series[dataset.key] || [];
-        const entry = {
-          label: dataset.label,
-          data,
-          borderWidth: chartType === "line" ? 2 : 1,
-        };
-        if (isPie) {
-          entry.backgroundColor = buildSlicePalette(data.length, dataset.color);
-          entry.borderColor = "#ffffff";
-          entry.borderWidth = 1;
-          return entry;
-        }
-        entry.backgroundColor = dataset.color;
-        entry.borderColor = dataset.color;
-        if (chartType === "line") {
-          entry.tension = 0.2;
-          entry.fill = false;
-          entry.pointRadius = 3;
-          entry.pointHoverRadius = 4;
-        } else if (chartType === "bar") {
-          entry.borderRadius = 6;
-          entry.maxBarThickness = 18;
-        }
-        return entry;
-      }),
+      datasets,
       chartType,
     };
   };
@@ -2584,7 +2599,6 @@
     const empresaId = context?.empresaId;
     const anio = context?.anio;
     if (!empresaId || !anio) return null;
-    const capitulo = (context?.capitulo || "").trim();
     const customRows = Array.isArray(rows) ? rows : [];
     if (!customRows.length) return null;
     const activeSeries = (seriesList || []).filter(
@@ -2592,17 +2606,24 @@
     );
     if (!activeSeries.length) return null;
 
-    const responses = await loadResumenMensual(empresaId, anio, capitulo);
-    if (!responses || !responses.length) return null;
-
     const seriesData = activeSeries.reduce((acc, serie) => {
-      acc[serie.key] = Array.from({ length: MONTH_LABELS.length }, () => 0);
+      acc[serie.key] = Array.from({ length: MONTH_LABELS.length }, () => null);
       return acc;
     }, {});
 
-    responses.forEach((data, idx) => {
-      const layout = data?.resumen?.[0]?.layout || [];
-      if (!Array.isArray(layout) || !layout.length) return;
+    let hasAnySnapshot = false;
+    for (let idx = 0; idx < MONTH_LABELS.length; idx += 1) {
+      const snapshot = readSnapshotByKey(empresaId, anio, idx + 1);
+      if (!snapshot) continue;
+      hasAnySnapshot = true;
+      const map = buildSnapshotMap(snapshot);
+      if (!map) continue;
+
+      // Inicializar el mes en 0 si tenemos snapshot (para que null signifique "sin snapshot")
+      activeSeries.forEach((serie) => {
+        seriesData[serie.key][idx] = 0;
+      });
+
       customRows.forEach((row) => {
         const variants = Array.isArray(row?.variants)
           ? row.variants
@@ -2614,16 +2635,18 @@
           ? [row.alias]
           : [];
         if (!variants.length) return;
-        const match = obtenerFilaIngreso(layout, variants);
-        if (!match?.totals) return;
+
+        const totals = getRowTotalsLoose(map, variants);
         activeSeries.forEach((serie) => {
           seriesData[serie.key][idx] += resolveSummarySeriesValue(
-            match.totals || {},
+            totals || {},
             serie.key
           );
         });
       });
-    });
+    }
+
+    if (!hasAnySnapshot) return null;
 
     const isPie = isPieType(chartType);
     const datasets = activeSeries.map((serie, index) => {
@@ -2661,7 +2684,7 @@
     const hasData = datasets.some((dataset) =>
       (dataset.data || []).some((value) => Number(value) !== 0 && value !== null)
     );
-    if (!hasData) return buildSample();
+    if (!hasData) return null;
 
     return {
       chartType,
@@ -2753,9 +2776,7 @@
       );
       const rows =
         definition.chartKey === "net" ? rowsConfig.net : rowsConfig.operating;
-      const samplePreview = () =>
-        buildSampleSummaryPreview(rows, summarySeriesList, chartType, capituloLabel);
-      if (snapshotMap) {
+      if (!snapshotMap) return null;
       const data = buildDatasetsFromSnapshot({
         rows,
         snapshotMap,
@@ -2764,26 +2785,7 @@
         capituloLabel,
         looseMatch: true,
       });
-        return data ? { chartType, ...data } : samplePreview();
-      }
-      if (!empresaId || !anio) return samplePreview();
-      return loadResumenMensual(empresaId, anio, capituloLabel).then(
-        (responses) => {
-          const layout = pickLayoutFromResponses(responses);
-          if (!layout.length) return samplePreview();
-          const liveMap = buildSnapshotMapFromLayout(layout);
-          if (!liveMap) return samplePreview();
-          const data = buildDatasetsFromSnapshot({
-            rows,
-            snapshotMap: liveMap,
-            seriesList,
-            chartType,
-            capituloLabel,
-            looseMatch: true,
-          });
-          return data ? { chartType, ...data } : samplePreview();
-        }
-      );
+      return data ? { chartType, ...data } : null;
     }
     if (definition.previewKind === "consolidated") {
       const consolidatedSources =
@@ -2827,32 +2829,6 @@
           dataset.maxBarThickness = 18;
         }
         return dataset;
-      };
-      const buildSample = () => {
-        if (!labels.length) return null;
-        const opData = buildSampleValues(labels.length, 150, 12);
-        const netData = buildSampleValues(labels.length, 110, 9);
-        return {
-          chartType,
-          labels,
-          datasets: [
-            buildConsolidatedDataset(
-              {
-                label:
-                  operatingCfg.label || "CONSOLIDATED OPERATING RESULTS",
-                color: operatingCfg.color || "#0d47a1",
-              },
-              opData
-            ),
-            buildConsolidatedDataset(
-              {
-                label: netCfg.label || "CONSOLIDATED NET RESULTS",
-                color: netCfg.color || "#94a3b8",
-              },
-              netData
-            ),
-          ],
-        };
       };
       const resolveTotals = (map) => {
         const opTotals = getRowTotalsLoose(
@@ -2902,16 +2878,7 @@
       if (snapshotMap) {
         return resolveTotals(snapshotMap);
       }
-      if (!empresaId || !anio) return buildSample();
-      return loadResumenMensual(empresaId, anio, capituloLabel).then(
-        (responses) => {
-          const layout = pickLayoutFromResponses(responses);
-          if (!layout.length) return buildSample();
-          const liveMap = buildSnapshotMapFromLayout(layout);
-          if (!liveMap) return buildSample();
-          return resolveTotals(liveMap);
-        }
-      );
+      return null;
     }
     if (definition.previewKind === "ingreso") {
       return buildIngresoPreviewData({
@@ -2932,39 +2899,14 @@
       });
     }
     if (definition.previewKind === "operativo") {
-      const labels = ["Fila 1", "Fila 2", "Fila 3"];
-      const datasets = buildDatasetsFromList(
-        operativoSeriesList,
-        labels,
-        chartType
-      );
-      return datasets.length ? { chartType, labels, datasets } : null;
+      return null;
     }
     if (definition.previewKind === "gastos") {
-      const ggCharts =
-        config.gastosGenerales?.charts || defaults.gastosGenerales?.charts || {};
-      const chartKey = definition.chartKey || "rendimientos";
-      const chartCfg = ggCharts?.[chartKey] || {};
-      const seriesList = listFromMap(chartCfg.series || {}).map((serie) => ({
-        key: serie.key,
-        label: serie.label || serie.key,
-        color: serie.color || "#0d47a1",
-        enabled: serie.enabled !== false,
-      }));
-      const datasets = buildDatasetsFromList(
-        seriesList,
-        MONTH_LABELS,
-        chartType
-      );
-      return datasets.length
-        ? { chartType, labels: MONTH_LABELS, datasets }
-        : null;
+      return null;
     }
     if (definition.previewKind === "custom") {
       const rows = Array.isArray(definition.rows) ? definition.rows : [];
-      const samplePreview = () =>
-        buildCustomSamplePreview(rows, customSeriesList, chartType, capituloLabel);
-      if (!customIsSummaryModule) return samplePreview();
+      if (!customIsSummaryModule) return null;
       const sourceType = (definition.sourceType || "snapshot").toString().toLowerCase();
       if (sourceType === "mensual") {
         return buildCustomMensualPreviewData({
@@ -2972,7 +2914,7 @@
           seriesList: customSeriesList,
           context,
           chartType,
-        }).then((data) => data || samplePreview());
+        });
       }
       const buildFromMap = (map) => {
         if (!map) return null;
@@ -2983,21 +2925,11 @@
           chartType,
           capituloLabel,
           looseMatch: true,
-        });
+         });
         return data ? { chartType, ...data } : null;
       };
-      if (snapshotMap) {
-        return buildFromMap(snapshotMap) || samplePreview();
-      }
-      if (!empresaId || !anio) return samplePreview();
-      return loadResumenMensual(empresaId, anio, capituloLabel).then(
-        (responses) => {
-          const layout = pickLayoutFromResponses(responses);
-          if (!layout.length) return samplePreview();
-          const liveMap = buildSnapshotMapFromLayout(layout);
-          return buildFromMap(liveMap) || samplePreview();
-        }
-      );
+      if (!snapshotMap) return null;
+      return buildFromMap(snapshotMap);
     }
     return null;
   };
@@ -3216,7 +3148,7 @@
 
   const getPreviewFallbackMessage = (definition, context) => {
     if (definition.previewKind === "operativo" || definition.previewKind === "gastos") {
-      return "Activa al menos una serie para ver la vista previa.";
+      return "Vista previa no disponible (solo datos reales de la tabla).";
     }
     if (definition.previewKind === "custom") {
       const chartModule = normalizeModuleKey(definition.module || "RESUMEN");
@@ -3244,6 +3176,9 @@
       (definition.sourceType || "").toString().toLowerCase() === "mensual";
     if (isCustomMensual && (!context?.empresaId || !context?.anio)) {
       return "Selecciona empresa y ano para ver datos.";
+    }
+    if (isCustomMensual && !context?.snapshotMap) {
+      return "Sin snapshots de RESUMEN. Abre RESUMEN y guarda mes a mes para generar snapshots.";
     }
     const isCustomSnapshot =
       definition.previewKind === "custom" && !isCustomMensual;

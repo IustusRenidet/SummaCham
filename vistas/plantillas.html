@@ -3623,11 +3623,71 @@
             return null;
           };
 
+          const resolveMes = () => {
+            const parseMes = (value) => {
+              const text = (value ?? "").toString().trim();
+              if (!text) return null;
+              const parsed = Number(text);
+              if (!Number.isInteger(parsed)) return null;
+              if (parsed < 1 || parsed > 12) return null;
+              return parsed;
+            };
+
+            try {
+              const ctx = window.Sesion?.obtenerContextoPlaneacion?.() || {};
+              const parsedCtx = parseMes(ctx?.mes);
+              if (parsedCtx != null) return parsedCtx;
+            } catch (_) {
+              // ignore
+            }
+
+            try {
+              const raw =
+                localStorage.getItem("planeacionContexto") ||
+                localStorage.getItem("planeacion_contexto") ||
+                "{}";
+              const ctx = JSON.parse(raw || "{}");
+              const parsedCtx = parseMes(ctx?.mes);
+              if (parsedCtx != null) return parsedCtx;
+            } catch (_) {
+              // ignore
+            }
+
+            try {
+              const params = new URLSearchParams(window.location.search || "");
+              const fromUrl =
+                params.get("mes") ||
+                params.get("month") ||
+                params.get("m");
+              const parsedUrl = parseMes(fromUrl);
+              if (parsedUrl != null) return parsedUrl;
+            } catch (_) {
+              // ignore
+            }
+
+            return null;
+          };
+
           const desiredEmpresa = resolveEmpresa();
           const desiredAnio = resolveAnio();
+          const desiredMes = resolveMes();
+
+          // Si tenemos empresa/año/mes, intentar lectura directa por llave primero (100% fiel a la tabla)
+          if (desiredEmpresa && desiredAnio != null && desiredMes != null) {
+            const key = `${SNAPSHOT_PREFIX}:${desiredEmpresa}:${desiredAnio}:${desiredMes}`;
+            try {
+              const direct = JSON.parse(localStorage.getItem(key) || "null");
+              if (direct && Array.isArray(direct.filas)) {
+                return direct;
+              }
+            } catch (_) {
+              // ignore
+            }
+          }
 
           let latestAny = null;
-          let latestMatch = null;
+          let latestMatchEmpresaAnio = null;
+          let latestMatchEmpresaAnioMes = null;
 
           for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -3645,17 +3705,32 @@
                 !desiredEmpresa || String(snapshot.empresaId || "") === desiredEmpresa;
               const anioOk =
                 desiredAnio == null || Number(snapshot.anio) === Number(desiredAnio);
-              if (!empresaOk || !anioOk) continue;
+              if (empresaOk && anioOk) {
+                if (
+                  !latestMatchEmpresaAnio ||
+                  createdAt > (Number(latestMatchEmpresaAnio.createdAt || 0) || 0)
+                ) {
+                  latestMatchEmpresaAnio = snapshot;
+                }
 
-              if (!latestMatch || createdAt > (Number(latestMatch.createdAt || 0) || 0)) {
-                latestMatch = snapshot;
+                const mesOk =
+                  desiredMes == null || Number(snapshot.mes) === Number(desiredMes);
+                if (mesOk) {
+                  if (
+                    !latestMatchEmpresaAnioMes ||
+                    createdAt >
+                      (Number(latestMatchEmpresaAnioMes.createdAt || 0) || 0)
+                  ) {
+                    latestMatchEmpresaAnioMes = snapshot;
+                  }
+                }
               }
             } catch (err) {
               continue;
             }
           }
 
-          return latestMatch || latestAny;
+          return latestMatchEmpresaAnioMes || latestMatchEmpresaAnio || latestAny;
         };
 
         // Obtener labels del snapshot
@@ -4704,30 +4779,6 @@
           }
 
           const labels = selectedRows.map((row) => row.alias || "");
-          const buildSampleValues = (count, start, drop) => {
-            const result = [];
-            let value = start;
-            for (let i = 0; i < count; i += 1) {
-              result.push(Math.max(0, Math.round(value)));
-              value -= drop;
-            }
-            return result;
-          };
-
-          const buildSampleDatasets = () =>
-            enabledSeries
-              .map((serieKey, index) => {
-                const serie = getSeriesOverride(serieKey);
-                if (!serie) return null;
-                return {
-                  label: serie.label,
-                  data: buildSampleValues(labels.length, 140 + index * 35, 12 + index * 2),
-                  backgroundColor: serie.color,
-                  borderColor: serie.color,
-                  borderWidth: 1,
-                };
-              })
-              .filter(Boolean);
 
           const buildDatasetsFromSnapshot = (snapshot) => {
             const snapshotMap = new Map();
@@ -4737,7 +4788,7 @@
                 if (label) snapshotMap.set(label, row?.totals || {});
               });
             }
-            const getTotalsForVariants = (variants) => {
+            const resolveTotalsForVariants = (variants) => {
               if (!variants || variants.length === 0) return {};
               const normalized = variants.map(normalizeRowKey).filter(Boolean);
               for (const key of normalized) {
@@ -4751,12 +4802,23 @@
               }
               return {};
             };
-            return enabledSeries
+
+            const missingRows = [];
+            const resolvedRows = selectedRows.map((row) => {
+              const totals = resolveTotalsForVariants(row.variants || []);
+              const found = totals && Object.keys(totals).length > 0;
+              if (!found) {
+                missingRows.push(row.alias || "(sin nombre)");
+              }
+              return { row, totals: found ? totals : null };
+            });
+
+            const datasets = enabledSeries
               .map((serieKey) => {
                 const serie = getSeriesOverride(serieKey);
                 if (!serie) return null;
-                const data = selectedRows.map((row) => {
-                  const totals = getTotalsForVariants(row.variants || []);
+                const data = resolvedRows.map(({ totals }) => {
+                  if (!totals) return 0;
                   const value = Number(totals[serieKey]);
                   if (Number.isFinite(value)) return value;
                   return 0;
@@ -4770,18 +4832,33 @@
                 };
               })
               .filter(Boolean);
+
+            return { datasets, missingRows };
           };
 
           const moduleKey = normalizeModuleKey(currentModule || "RESUMEN");
           const snapshot = getSnapshot();
           const canUseSnapshot =
             isSummaryModuleKey(moduleKey) && snapshot && Array.isArray(snapshot.filas);
-          let datasets = canUseSnapshot ? buildDatasetsFromSnapshot(snapshot) : [];
-          const hasRealData = datasets.some((dataset) =>
-            (dataset.data || []).some((value) => Number(value) !== 0),
-          );
-          if (!datasets.length || !hasRealData) {
-            datasets = buildSampleDatasets();
+          if (!canUseSnapshot) {
+            previewCanvas.classList.add("d-none");
+            previewFallback.classList.remove("d-none");
+            previewFallback.textContent =
+              isSummaryModuleKey(moduleKey)
+                ? "Sin snapshot de RESUMEN. Abre RESUMEN y guarda para generar el snapshot."
+                : "Vista previa disponible solo para RESUMEN (snapshot).";
+            return;
+          }
+          const { datasets, missingRows } = buildDatasetsFromSnapshot(snapshot);
+          if (missingRows.length) {
+            previewCanvas.classList.add("d-none");
+            previewFallback.classList.remove("d-none");
+            const first = missingRows[0] || "";
+            previewFallback.textContent =
+              missingRows.length === 1
+                ? `No se encontró la fila en el snapshot: ${first}`
+                : `No se encontraron ${missingRows.length} filas en el snapshot (ej. ${first}).`;
+            return;
           }
 
           if (!datasets.length) {
