@@ -1441,6 +1441,7 @@
         cachedConfig: null,
         loadedFromServer: false,
         loadingPromise: null,
+        lastLocalSaveAt: 0,
       });
     }
     return contextState.get(key);
@@ -1450,9 +1451,14 @@
     const entry = getContextEntry(ctx);
     if (entry.loadedFromServer) return;
     entry.loadedFromServer = true;
+    const hydrateStartedAt = Date.now();
     entry.loadingPromise = fetchServerConfig(ctx)
       .then((serverConfig) => {
         if (!serverConfig) return;
+        if ((entry.lastLocalSaveAt || 0) > hydrateStartedAt) {
+          // Evita sobrescribir cambios locales recientes con una carga asíncrona vieja.
+          return;
+        }
         entry.cachedConfig = clone(serverConfig);
         persistLocalConfig(ctx, entry.cachedConfig);
         dispatchConfigUpdate(entry.cachedConfig, "server", ctx);
@@ -1483,6 +1489,7 @@
     const ctx = resolveContext(overrides);
     const entry = getContextEntry(ctx);
     const normalized = normalizeConfig(config);
+    entry.lastLocalSaveAt = Date.now();
     entry.cachedConfig = clone(normalized);
     persistLocalConfig(ctx, entry.cachedConfig);
     dispatchConfigUpdate(entry.cachedConfig, "local", ctx);

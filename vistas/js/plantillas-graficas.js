@@ -1432,8 +1432,11 @@
       );
     };
 
-    const customCharts = [];
+    let customCharts = Array.isArray(baseConfig.customCharts)
+      ? clone(baseConfig.customCharts)
+      : [];
     if (customList) {
+      customCharts = [];
       const existingCustomCharts = Array.isArray(baseConfig.customCharts)
         ? baseConfig.customCharts
         : [];
@@ -4993,10 +4996,11 @@
   }
 
   // Exponer funcion para recargar graficas personalizadas desde el editor inline
-  window.reloadCustomCharts = () => {
+  window.reloadCustomCharts = (nextConfig = null) => {
     const api = getGraficasConfigApi();
     if (!api) return;
-    const config = api.load();
+    const config =
+      nextConfig && typeof nextConfig === "object" ? nextConfig : api.load();
     applyConfigToForm(config);
     updateContextChips();
     renderGallery(config);

@@ -3499,7 +3499,7 @@
     <script src="js/importar-estructura-resumen.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="js/graficas-config.js?v=20260217193000"></script>
+    <script src="js/graficas-config.js?v=20260218195500"></script>
 
     <!-- Editor de Graficas Inline -->
     <script>
@@ -5057,8 +5057,8 @@
                 console.log("Gráfica creada:", chartData);
               }
 
-              // Guardar configuración
-              window.GraficasConfig?.save(config);
+              // Guardar configuración y reutilizar el resultado normalizado.
+              const savedConfig = window.GraficasConfig?.save(config) || config;
 
               // Mostrar mensaje de éxito
               if (window.bootstrap?.Toast) {
@@ -5078,7 +5078,7 @@
 
               // Recargar la vista de plantillas si existe la función
               if (typeof window.reloadCustomCharts === "function") {
-                window.reloadCustomCharts();
+                window.reloadCustomCharts(savedConfig);
               }
 
               // Cerrar panel
@@ -5126,8 +5126,8 @@
                 config.customCharts.splice(existingIndex, 1);
                 console.log("Gráfica eliminada:", currentChartId);
 
-                // Guardar configuración
-                window.GraficasConfig?.save(config);
+                // Guardar configuración y reutilizar el resultado normalizado.
+                const savedConfig = window.GraficasConfig?.save(config) || config;
 
                 // Mostrar mensaje de éxito
                 if (window.bootstrap?.Toast) {
@@ -5144,7 +5144,7 @@
 
                 // Recargar la vista de plantillas si existe la función
                 if (typeof window.reloadCustomCharts === "function") {
-                  window.reloadCustomCharts();
+                  window.reloadCustomCharts(savedConfig);
                 }
 
                 // Cerrar panel
@@ -5180,7 +5180,7 @@
     <input type="file" id="fileImportInput" accept=".json,.xlsx,.xls" style="display: none;" />
 
     <script src="js/guided-tour.js"></script>
-    <script src="js/plantillas-graficas.js?v=20260218194500"></script>
+    <script src="js/plantillas-graficas.js?v=20260218202000"></script>
     <script src="js/drag-and-drop-reorder.js?v=20260212193000"></script>
     <script src="js/plantillas.js?v=20260212193000"></script>
     <script>
@@ -5238,3 +5238,5 @@
     </script>
   </body>
 </html>
+
+
