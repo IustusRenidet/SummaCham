@@ -668,6 +668,7 @@
                 },
               },
               y: {
+                ...(resolvedType === "bar" ? { beginAtZero: true } : {}),
                 grid: {
                   color: gridColor,
                 },

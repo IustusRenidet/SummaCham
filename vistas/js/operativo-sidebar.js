@@ -12,7 +12,8 @@
   const TOGGLE_SELECTOR = '[data-operativo-toggle="panel"]';
   const CANVAS_COMBINED_ID = "operativoChartCombined";
   const charts = { combined: null, combinedType: null, custom: {} };
-  const MIN_BAR_LENGTH = 18;
+  // 0 = proporción real (sin "inflar" barras pequeñas).
+  const MIN_BAR_LENGTH = 0;
   const POINT_RADIUS = 6;
   const POINT_HOVER_RADIUS = 8;
   const DEFAULT_OPERATIVO_CONFIG = {
@@ -199,9 +200,9 @@
   const getCurrentModuleKey = () =>
     normalizeModuleKey(
       document.body?.dataset?.modulo ||
-        document.body?.dataset?.moduloAlias ||
-        document.body?.dataset?.moduloId ||
-        ""
+      document.body?.dataset?.moduloAlias ||
+      document.body?.dataset?.moduloId ||
+      ""
     );
 
   const hasEnabledCustomChartsForModule = (graficasConfig, moduleKey) => {
@@ -354,8 +355,8 @@
     row.innerHTML = `
       <div class="col-12">
         <div class="collapse operativo-panel" id="${PANEL_ID}" data-operativo-label="${escapeHtml(
-          getDefaultOperativoLabel()
-        )}">
+      getDefaultOperativoLabel()
+    )}">
           <div class="sidebar-card">
             <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
               <div>
@@ -417,9 +418,9 @@
     let idxTotalBudget = -1;
     let idxTotalReal = -1;
     let idxBudgetAnnual = -1;
-    
+
     console.log("📊 obtenerIndices: Analizando", headerRows.length, "filas de encabezado");
-    
+
     const buscarPorTexto = (matcher) => {
       for (const row of headerRows) {
         const headers = Array.from(row.children || []);
@@ -443,7 +444,7 @@
       headers.forEach((th, idx) => {
         const classes = Array.from(th.classList || []);
         const text = (th?.textContent || "").replace(/\s+/g, " ").trim();
-        
+
         if (idxTotalBudget < 0 && th.classList.contains("total-budget-column")) {
           console.log(`📊 obtenerIndices: total-budget-column encontrada en índice ${idx}: "${text}"`);
           idxTotalBudget = idx;
@@ -654,7 +655,7 @@
     }
     const annualIdx = indices.annual >= 0 ? indices.annual : indices.budgetTotal;
     console.log("📊 obtenerDatos: usando annualIdx =", annualIdx, ", indices.annual =", indices.annual);
-    
+
     const filas = obtenerFilasOperativas(tabla);
     const datos = filas
       .map((fila) => {
@@ -664,15 +665,15 @@
         );
         const real = parseNumero(fila.cells?.[indices.realTotal]?.textContent);
         const anual = parseNumero(fila.cells?.[annualIdx]?.textContent);
-        
+
         if (etiqueta) {
           console.log(`📊 obtenerDatos: ${etiqueta} - presupuesto: ${presupuesto}, real: ${real}, anual: ${anual}`);
         }
-        
+
         return { etiqueta, presupuesto, real, anual };
       })
       .filter((item) => item.etiqueta);
-    
+
     console.log("📊 obtenerDatos: Total filas obtenidas:", datos.length);
     return datos;
   };
@@ -1026,6 +1027,7 @@
         },
         scales: {
           x: {
+            ...(resolvedType === "bar" ? { beginAtZero: true } : {}),
             grid: {
               color: gridColor,
               drawBorder: false,
@@ -1215,10 +1217,10 @@
           Array.isArray(row?.variants) && row.variants.length
             ? row.variants
             : row?.label
-            ? [row.label]
-            : row?.alias
-            ? [row.alias]
-            : [];
+              ? [row.label]
+              : row?.alias
+                ? [row.alias]
+                : [];
         const label =
           row?.alias || row?.label || variants[0] || `Fila ${rowIndex + 1}`;
         const match = matchRowByVariants(rowsData, variants);
@@ -1287,15 +1289,14 @@
         <div class="chart-block">
           <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
             <div class="chart-title mb-0">${escapeHtml(titleText)}</div>
-            ${
-              chartIdRaw
-                ? `<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" data-operativo-delete-chart data-chart-id="${escapeHtml(
-                    chartIdRaw
-                  )}" title="Eliminar grafica">
+            ${chartIdRaw
+          ? `<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" data-operativo-delete-chart data-chart-id="${escapeHtml(
+            chartIdRaw
+          )}" title="Eliminar grafica">
                     <i class="bi bi-trash"></i>
                   </button>`
-                : ""
-            }
+          : ""
+        }
           </div>
           ${subtitleText ? `<div class="text-muted small mb-1">${escapeHtml(subtitleText)}</div>` : ""}
           <div class="chart-container" data-operativo-chart="${chartKey}">
@@ -1378,25 +1379,26 @@
           scales: isPie
             ? {}
             : {
-                x: {
-                  grid: { color: "rgba(47, 84, 150, 0.08)", drawBorder: false },
-                  ticks: {
-                    color: "rgba(47, 84, 150, 0.55)",
-                    font: { size: 11, weight: "500" },
-                    callback: (valor) => formatearNumero(valor),
-                  },
-                },
-                y: {
-                  grid: { display: false },
-                  ticks: {
-                    autoSkip: false,
-                    color: "#1f2937",
-                    font: { size: 12, weight: "700" },
-                    padding: 10,
-                    callback: (valor, idx, ticks) => ticks?.[idx]?.label || "",
-                  },
+              x: {
+                ...(chartType === "bar" ? { beginAtZero: true } : {}),
+                grid: { color: "rgba(47, 84, 150, 0.08)", drawBorder: false },
+                ticks: {
+                  color: "rgba(47, 84, 150, 0.55)",
+                  font: { size: 11, weight: "500" },
+                  callback: (valor) => formatearNumero(valor),
                 },
               },
+              y: {
+                grid: { display: false },
+                ticks: {
+                  autoSkip: false,
+                  color: "#1f2937",
+                  font: { size: 12, weight: "700" },
+                  padding: 10,
+                  callback: (valor, idx, ticks) => ticks?.[idx]?.label || "",
+                },
+              },
+            },
         },
       });
     });

@@ -24,7 +24,7 @@
     const numero = Number(valor);
     return Number.isFinite(numero) ? numero : 0;
   };
-  
+
   // Helper para normalizar IDs de operaciones
   const normalizeOperationId = (value) => {
     return (value || "")
@@ -760,12 +760,12 @@
     const numero = Number(preferido);
     const anio = Number(anioSeleccionado);
     const anioActual = new Date().getFullYear();
-    
+
     // Si hay un mes preferido válido, usarlo
     if (Number.isInteger(numero) && numero >= 1 && numero <= MESES.length) {
       return numero;
     }
-    
+
     const actualSelect = Number(monthSelect?.value);
     if (
       Number.isInteger(actualSelect) &&
@@ -774,7 +774,7 @@
     ) {
       return actualSelect;
     }
-    
+
     // Determinar mes por defecto según el año
     // Si es año actual: mes actual del sistema
     // Si es año pasado: último mes disponible (diciembre)
@@ -1046,20 +1046,20 @@
         scales: isPie
           ? {}
           : {
-              y: {
-                beginAtZero: false,
-                stacked: shouldStack,
-                ticks: {
-                  callback: (value) => formatNumber(value),
-                },
-              },
-              x: {
-                stacked: shouldStack,
-                ticks: {
-                  font: { size: 11 },
-                },
+            y: {
+              beginAtZero: chartType === "bar",
+              stacked: shouldStack,
+              ticks: {
+                callback: (value) => formatNumber(value),
               },
             },
+            x: {
+              stacked: shouldStack,
+              ticks: {
+                font: { size: 11 },
+              },
+            },
+          },
       },
     });
   };
@@ -1441,8 +1441,8 @@
           Array.isArray(row?.variants) && row.variants.length
             ? row.variants
             : row?.alias
-            ? [row.alias]
-            : [];
+              ? [row.alias]
+              : [];
         if (!variants.length) return null;
         const normalizedVariants = variants
           .map((v) => normalizarLabelResumen(v))
@@ -1594,8 +1594,8 @@
             Array.isArray(row?.variants) && row.variants.length
               ? row.variants
               : row?.alias
-              ? [row.alias]
-              : [];
+                ? [row.alias]
+                : [];
           if (!variants.length) return null;
           return {
             label: resolveChartLabel(row?.alias || variants[0], context),
@@ -1674,8 +1674,8 @@
           Array.isArray(row?.variants) && row.variants.length
             ? row.variants
             : row?.alias
-            ? [row.alias]
-            : [];
+              ? [row.alias]
+              : [];
         if (!variants.length) return;
         const match = buscarFilaIngreso(layout, variants);
         if (!match?.totals) return;
@@ -2689,42 +2689,42 @@
         asignarSiNumero(principal, "prevYTD", comparativoYTD);
       }
       (principal.children || []).forEach((seccion) => {
-      const seccionKey = normalizarEtiquetaComparativa(seccion.label || "");
-      const compSeccion = seccionKey ? secciones.get(seccionKey) : null;
-      if (compSeccion && permiteComparativoPrev(seccion, "secundaria")) {
-        // Comparativo solo llena columnas "Prev" (AA) en totales de sección
-        const comparativoMonth = resolverComparativoPrevio(
-          compSeccion,
-          "totalPrevMonth",
-          "totalActualMonth"
-        );
-        const comparativoYTD = resolverComparativoPrevio(
-          compSeccion,
-          "totalPrevYTD",
-          "totalActualYTD"
-        );
-        asignarSiNumero(seccion, "totalPrevMonth", comparativoMonth);
-        asignarSiNumero(seccion, "totalPrevYTD", comparativoYTD);
-      }
-      (seccion.cuentas || []).forEach((cta) => {
-        const cuentaKey = obtenerClaveCuentaComparativa(cta);
-        const compCuenta = cuentaKey ? cuentas.get(cuentaKey) : null;
-        if (compCuenta) {
-          // Comparativo solo llena columnas "Prev" (AA) a nivel cuenta
+        const seccionKey = normalizarEtiquetaComparativa(seccion.label || "");
+        const compSeccion = seccionKey ? secciones.get(seccionKey) : null;
+        if (compSeccion && permiteComparativoPrev(seccion, "secundaria")) {
+          // Comparativo solo llena columnas "Prev" (AA) en totales de sección
           const comparativoMonth = resolverComparativoPrevio(
-            compCuenta,
-            "prevMonth",
-            "actualMonth"
+            compSeccion,
+            "totalPrevMonth",
+            "totalActualMonth"
           );
           const comparativoYTD = resolverComparativoPrevio(
-            compCuenta,
-            "prevYTD",
-            "actualYTD"
+            compSeccion,
+            "totalPrevYTD",
+            "totalActualYTD"
           );
-          asignarSiNumero(cta, "prevMonth", comparativoMonth);
-          asignarSiNumero(cta, "prevYTD", comparativoYTD);
+          asignarSiNumero(seccion, "totalPrevMonth", comparativoMonth);
+          asignarSiNumero(seccion, "totalPrevYTD", comparativoYTD);
         }
-      });
+        (seccion.cuentas || []).forEach((cta) => {
+          const cuentaKey = obtenerClaveCuentaComparativa(cta);
+          const compCuenta = cuentaKey ? cuentas.get(cuentaKey) : null;
+          if (compCuenta) {
+            // Comparativo solo llena columnas "Prev" (AA) a nivel cuenta
+            const comparativoMonth = resolverComparativoPrevio(
+              compCuenta,
+              "prevMonth",
+              "actualMonth"
+            );
+            const comparativoYTD = resolverComparativoPrevio(
+              compCuenta,
+              "prevYTD",
+              "actualYTD"
+            );
+            asignarSiNumero(cta, "prevMonth", comparativoMonth);
+            asignarSiNumero(cta, "prevYTD", comparativoYTD);
+          }
+        });
       });
     });
 
@@ -3047,9 +3047,8 @@
     if (valores.length <= limite) {
       return valores.join(", ");
     }
-    return `${valores.slice(0, limite).join(", ")} y ${
-      valores.length - limite
-    } mas`;
+    return `${valores.slice(0, limite).join(", ")} y ${valores.length - limite
+      } mas`;
   };
 
   const describirFactor = (factor) => {
@@ -3068,9 +3067,8 @@
       .map((op) => {
         const accion = describirFactor(op.factor);
         const secciones = formatList(op.sections || [], 4);
-        return `${accion} ${op.principal}${
-          secciones ? ` (secciones: ${secciones})` : ""
-        }`;
+        return `${accion} ${op.principal}${secciones ? ` (secciones: ${secciones})` : ""
+          }`;
       });
     return fragmentos.join("; ");
   };
@@ -3088,33 +3086,27 @@
         const principal = context.principal
           ? ` del principal "${context.principal}"`
           : "";
-        return `Seccion "${
-          context.label || ""
-        }"${principal} acumula reales (servicio de planeacion) y presupuestos (PRESUPYY) de ${
-          cuentas.length
-        } cuentas${listado ? ` (${listado})` : ""}.`;
+        return `Seccion "${context.label || ""
+          }"${principal} acumula reales (servicio de planeacion) y presupuestos (PRESUPYY) de ${cuentas.length
+          } cuentas${listado ? ` (${listado})` : ""}.`;
       }
       case "principal": {
         const secciones = formatList(context.sections || [], 5);
         const signo =
           Number(context.sign) < 0 ? "resta (gastos)" : "suma (ingresos)";
-        return `Principal "${
-          context.label || ""
-        }" ${signo} los totales de las secciones ${
-          secciones || "definidas en el capitulo"
-        } antes de consolidarse.`;
+        return `Principal "${context.label || ""
+          }" ${signo} los totales de las secciones ${secciones || "definidas en el capitulo"
+          } antes de consolidarse.`;
       }
       case "group": {
         const detalle = describirOperaciones(context.operaciones || []);
         if (detalle) {
-          return `Grupo "${
-            context.label || ""
-          }" consolida los principales indicados: ${detalle}.`;
+          return `Grupo "${context.label || ""
+            }" consolida los principales indicados: ${detalle}.`;
         }
         const lista = formatList(context.principals || [], 6);
-        return `Grupo "${context.label || ""}" consolida los principales ${
-          lista || ""
-        } mediante sumatoria directa.`;
+        return `Grupo "${context.label || ""}" consolida los principales ${lista || ""
+          } mediante sumatoria directa.`;
       }
       case "result":
         return (
@@ -3448,8 +3440,7 @@
     if (classes) classList.push(classes);
     const attrs = [
       `class="${classList.join(" ")}"`,
-      `data-valor-original="${
-        text ? escapeAttr(val ?? "") : Number(val ?? 0)
+      `data-valor-original="${text ? escapeAttr(val ?? "") : Number(val ?? 0)
       }"`,
       `data-editable-real="${esEditableReal}"`,
     ];
@@ -3572,29 +3563,29 @@
         const orderA = Number.isFinite(Number(a.item?.order))
           ? Number(a.item.order)
           : Number.isFinite(Number(a.item?.orden_presentacion))
-          ? Number(a.item.orden_presentacion)
-          : Number.isFinite(Number(a.item?.orden))
-          ? Number(a.item.orden)
-          : a.idx;
+            ? Number(a.item.orden_presentacion)
+            : Number.isFinite(Number(a.item?.orden))
+              ? Number(a.item.orden)
+              : a.idx;
         const orderB = Number.isFinite(Number(b.item?.order))
           ? Number(b.item.order)
           : Number.isFinite(Number(b.item?.orden_presentacion))
-          ? Number(b.item.orden_presentacion)
-          : Number.isFinite(Number(b.item?.orden))
-          ? Number(b.item.orden)
-          : b.idx;
+            ? Number(b.item.orden_presentacion)
+            : Number.isFinite(Number(b.item?.orden))
+              ? Number(b.item.orden)
+              : b.idx;
         if (orderA !== orderB) return orderA - orderB;
 
         const orderIdxA = Number.isFinite(Number(a.item?.orderIndex))
           ? Number(a.item.orderIndex)
           : Number.isFinite(Number(a.item?.ordenIndex))
-          ? Number(a.item.ordenIndex)
-          : a.idx;
+            ? Number(a.item.ordenIndex)
+            : a.idx;
         const orderIdxB = Number.isFinite(Number(b.item?.orderIndex))
           ? Number(b.item.orderIndex)
           : Number.isFinite(Number(b.item?.ordenIndex))
-          ? Number(b.item.ordenIndex)
-          : b.idx;
+            ? Number(b.item.ordenIndex)
+            : b.idx;
         if (orderIdxA !== orderIdxB) return orderIdxA - orderIdxB;
         return a.idx - b.idx;
       })
@@ -3669,33 +3660,196 @@
       prevYTD: 0,
     });
 
+    // --- Formula Evaluation Helper ---
+    const evaluateFormula = (formulaStr, contextMap) => {
+      if (!formulaStr) return 0;
+      // Basic implementation for manual formulas (supports +, -, *, /, ())
+      // Resolves labels/IDs against contextMap (map of label -> totals object)
+      
+      const tokens = formulaStr.match(/([0-9.]+|[\+\-\*\/\(\)]|"[^"]*"|'[^']*'|[^ \+\-\*\/\(\)]+)/g) || [];
+      const terms = tokens.map(t => t.trim()).filter(t => t);
+      
+      // Expand references
+      const expanded = terms.map(term => {
+        if (/^[\+\-\*\/\(\)]$/.test(term)) return term;
+        if (/^[0-9.]+$/.test(term)) return term;
+        
+        // Resolve reference (Label, ID, Account Code)
+        const key = normalizarLabel(term.replace(/['"]/g, ''));
+        const target = contextMap.get(key);
+        // Use actualYTD by default if no specific field requested
+        // TODO: Support specific fields like .plan, .prev? Assuming YTD for now or aggregate.
+        // Actually, we need to return an object with all fields (actualMonth, planMonth...), 
+        // but for simplicity in this evaluator, let's assume we run it for each field separately?
+        // OR return the block itself?
+        // Let's return a placeholder ID to be resolved later? No, eval needs values.
+        
+        // Complex: formulas operate on scalar numbers, but we have 6 data columns.
+        // We need to evaluate the formula for EACH column: actualMonth, planMonth, prevMonth, actualYTD, planYTD, prevYTD.
+        return `REF:${key}`;
+      });
+
+      return expanded; 
+    };
+    
+    // Evaluate formula for a specific field (e.g., 'actualMonth')
+    const calculateFormulaValue = (formulaStr, contextMap, field) => {
+      if (!formulaStr) return 0;
+      // Replace references with values
+      // Sort keys by length desc to match longest labels first? 
+      // Better: Tokenize properly. The regex above tokenizes.
+      
+      // Normalized Map Keys must be uppercase
+      
+      const tokens = formulaStr.match(/(".*?"|'.*?'|[\w\s\-\.]+|[\+\-\*\/\(\)])/g) || [];
+      
+      let evalExpr = "";
+      
+      for (let token of tokens) {
+        let t = token.trim();
+        if (!t) continue;
+        
+        if (/^[\+\-\*\/\(\)]$/.test(t)) {
+          evalExpr += t;
+          continue;
+        }
+        
+        if (/^[0-9]+(\.[0-9]+)?$/.test(t)) {
+          evalExpr += t;
+          continue;
+        }
+        
+        // It's a reference
+        let refKey = normalizarLabel(t.replace(/['"]/g, ''));
+        let val = 0;
+        
+        // ID lookup
+        let block = contextMap.get(refKey);
+        
+        // Fallback: Try exact label if normalization stripped too much?
+        if (!block) block = contextMap.get(t.toUpperCase());
+        
+        if (block && block.totals) {
+          val = toNumber(block.totals[field]);
+        }
+        
+        evalExpr += val; // Append value
+        // Note: Check for negative values handling with operators? 
+        // e.g. "A - B" -> "10 - -5" -> "10--5" (valid JS? Yes)
+      }
+      
+      try {
+        // Safe check before eval? 
+        // Remove anything not allowed
+        const safeExpr = evalExpr.replace(/[^0-9\.\+\-\*\/\(\) ]/g, ''); 
+        // Note: If references were not resolved, they become 0 or removed.
+        // But if normalizer failed, we might have issues.
+        
+        if (!safeExpr) return 0;
+        return Function('"use strict";return (' + safeExpr + ')')() || 0;
+      } catch (e) {
+        console.warn("Error evaluating formula:", formulaStr, e);
+        return 0;
+      }
+    };
+
     const recalcularPrincipales = (layoutArr = []) => {
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
+      
+      // 1. Build a map of all available blocks for reference
+      const contextMap = new Map();
+      layoutArr.forEach(b => {
+        if (b.label) contextMap.set(normalizarLabel(b.label), b);
+        if (b.nombre) contextMap.set(normalizarLabel(b.nombre), b);
+        if (b.id) contextMap.set(normalizarLabel(b.id), b); // ID fallback
+        if (b.Clase) contextMap.set(normalizarLabel(b.Clase), b); // Operation Class fallback
+      });
+
       let principalActual = null;
       let acumulado = totalesCero();
       let principalManual = false;
       const applySign = (valor, signo = 1) =>
         Number.isFinite(signo) ? signo : 1;
+        
       const asignarAcumulado = () => {
-        if (principalActual && !principalManual) {
-          principalActual.totals = { ...acumulado };
+        if (principalActual) {
+          // Look for formula on the block itself. 
+          // CRITICAL CHANGE: Do NOT look up implicitly in contextMap. 
+          // If the user wants a formula, they must have set it on this specific block in the layout editor.
+          // Fallback to auto-summing children (acumulado) if no explicit formula is on the block.
+          let formulaToUse = principalActual.formula || principalActual.Formula || principalActual.manualFormula;
+          
+          if (formulaToUse && typeof formulaToUse === 'string' && formulaToUse.trim().length > 3) { 
+             const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
+             const computed = {};
+             fields.forEach(f => {
+               computed[f] = calculateFormulaValue(formulaToUse, contextMap, f);
+             });
+             principalActual.totals = computed;
+             // Mark as computed so it sticks
+             principalActual.manualFormula = true; 
+             principalActual.__manualFormula = true;
+          } else if (!principalManual) {
+             // Default Sum Behavior (Sum of Subsections)
+             principalActual.totals = { ...acumulado };
+          }
         }
       };
-      layoutArr.forEach((block) => {
-        const tipo = (block.type || "").toLowerCase();
-        if (tipo === "principal") {
-          // Cierra el anterior y abre uno nuevo
-          asignarAcumulado();
-          principalActual = block;
-          principalManual = Boolean(block?.manualFormula || block?.__manualFormula);
-          acumulado = totalesCero();
-          return;
+      
+      // FIRST PASS: Aggregate Accounts into Subsections (Secundarias)
+      // We must do this before aggregating Sections because Subsections need to be ready.
+      let currentSecundariaForAgg = null;
+      let secundariaAccumulated = totalsZero();
+      
+      // Helper to close current secundaria aggregation
+      const closeSecundariaAgg = () => {
+        if (currentSecundariaForAgg) {
+            // Only update totals if not already calculated/manual
+            if (!currentSecundariaForAgg.manualFormula && !currentSecundariaForAgg.Formula) {
+                currentSecundariaForAgg.totals = { ...secundariaAccumulated };
+            }
         }
-        if (!principalActual) return;
-        if (tipo === "secundaria") {
-          if (principalManual) return;
+      };
+
+      layoutArr.forEach(block => {
+        const tipo = (block.type || "").toLowerCase();
+        
+        if (tipo === 'principal') {
+             closeSecundariaAgg();
+             currentSecundariaForAgg = null;
+        } else if (tipo === 'secundaria') {
+             closeSecundariaAgg();
+             currentSecundariaForAgg = block;
+             secundariaAccumulated = totalsZero();
+        } else if (tipo === 'cuenta') {
+             if (currentSecundariaForAgg) {
+                 const t = block.totals || {};
+                 const sign = applySign(block.sign, 1); // Should account sign apply here? usually 1
+                 secundariaAccumulated.actualMonth += toNumber(t.actualMonth) * sign;
+                 secundariaAccumulated.planMonth += toNumber(t.planMonth) * sign;
+                 secundariaAccumulated.prevMonth += toNumber(t.prevMonth) * sign;
+                 secundariaAccumulated.actualYTD += toNumber(t.actualYTD) * sign;
+                 secundariaAccumulated.planYTD += toNumber(t.planYTD) * sign;
+                 secundariaAccumulated.prevYTD += toNumber(t.prevYTD) * sign;
+             }
+        }
+      });
+      closeSecundariaAgg(); // Close last one
+
+      // SECOND PASS: Aggregate Subsections into Principals (Sections)
+             });
+             block.totals = computed;
+             block.manualFormula = true;
+             // Do NOT add to accumulated if it's a manual formula subsection? 
+             // Logic: If Principal is SUM, it adds Subsections. 
+             // If subsection is Manual, its total is calculated, THEN added to Principal.
+           }
+        
+          if (principalManual) return; // If parent is manual, don't accumulate derived children totals
+          
           const sign = applySign(block.sign, 1);
           const t = block.totals || {};
+          
           acumulado.actualMonth += toNumber(t.actualMonth) * sign;
           acumulado.planMonth += toNumber(t.planMonth) * sign;
           acumulado.prevMonth += toNumber(t.prevMonth) * sign;
@@ -4102,12 +4256,12 @@
             const orden = Number.isFinite(Number(sec?.orden_presentacion))
               ? Number(sec.orden_presentacion)
               : Number.isFinite(Number(sec?.ordenPresentacion))
-              ? Number(sec.ordenPresentacion)
-              : Number.isFinite(Number(sec?.orden))
-              ? Number(sec.orden)
-              : Number.isFinite(Number(sec?.order))
-              ? Number(sec.order)
-              : null;
+                ? Number(sec.ordenPresentacion)
+                : Number.isFinite(Number(sec?.orden))
+                  ? Number(sec.orden)
+                  : Number.isFinite(Number(sec?.order))
+                    ? Number(sec.order)
+                    : null;
             return orden != null ? orden : idx;
           }
         );
@@ -4120,12 +4274,12 @@
               const orden = Number.isFinite(Number(cta?.orden_presentacion))
                 ? Number(cta.orden_presentacion)
                 : Number.isFinite(Number(cta?.ordenPresentacion))
-                ? Number(cta.ordenPresentacion)
-                : Number.isFinite(Number(cta?.orden))
-                ? Number(cta.orden)
-                : Number.isFinite(Number(cta?.order))
-                ? Number(cta.order)
-                : null;
+                  ? Number(cta.ordenPresentacion)
+                  : Number.isFinite(Number(cta?.orden))
+                    ? Number(cta.orden)
+                    : Number.isFinite(Number(cta?.order))
+                      ? Number(cta.order)
+                      : null;
               return orden != null ? orden : idx;
             }
           );
@@ -4141,8 +4295,7 @@
             row.dataset.cuenta21 = cta.cuentaCanonica || "";
             row.dataset.rowRole = "account";
             const detalleCuenta = [
-              `Cuenta ${cta.cuenta || "sin codigo"} - Sección ${
-                seccion.label || "sin sección"
+              `Cuenta ${cta.cuenta || "sin codigo"} - Sección ${seccion.label || "sin sección"
               }${principal.label ? ` - Principal ${principal.label}` : ""}`,
               "Real: saldos COI via planeación",
               `Presupuesto: ${planColumnKey.toUpperCase()} / PRESUP01-12 (tabla PRESUPYY)`,
@@ -4151,59 +4304,59 @@
             row.setAttribute("data-bs-toggle", "tooltip");
             row.innerHTML = `
               ${createEditableCell(cta.cuenta || "", {
-                columnKey: "cuenta",
-                rowRole: "account",
-                tooltipKey: "account",
-                text: true,
-                classes: "account-column font-monospace small text-start",
-              })}
+              columnKey: "cuenta",
+              rowRole: "account",
+              tooltipKey: "account",
+              text: true,
+              classes: "account-column font-monospace small text-start",
+            })}
               ${createCell(cta.actualMonth, {
-                rowRole: "account",
-                tooltipKey: "actualMonth",
-              })}
+              rowRole: "account",
+              tooltipKey: "actualMonth",
+            })}
               ${createCell(cta.planMonth, {
-                rowRole: "account",
-                tooltipKey: "planMonth",
-              })}
+              rowRole: "account",
+              tooltipKey: "planMonth",
+            })}
               ${createCell(cta.prevMonth, {
-                rowRole: "account",
-                tooltipKey: "prevMonth",
-              })}
+              rowRole: "account",
+              tooltipKey: "prevMonth",
+            })}
               ${createPercentCell(varPlan, {
-                rowRole: "account",
-                tooltipKey: "varMonthPlan",
-              })}
+              rowRole: "account",
+              tooltipKey: "varMonthPlan",
+            })}
               ${createPercentCell(varPrev, {
-                rowRole: "account",
-                tooltipKey: "varMonthPrev",
-              })}
+              rowRole: "account",
+              tooltipKey: "varMonthPrev",
+            })}
               ${createEditableCell(cta.descripcion || "", {
-                columnKey: "descripcion",
-                rowRole: "account",
-                tooltipKey: "account",
-                text: true,
-                classes: "text-center",
-              })}
+              columnKey: "descripcion",
+              rowRole: "account",
+              tooltipKey: "account",
+              text: true,
+              classes: "text-center",
+            })}
               ${createCell(cta.actualYTD, {
-                rowRole: "account",
-                tooltipKey: "actualYTD",
-              })}
+              rowRole: "account",
+              tooltipKey: "actualYTD",
+            })}
               ${createCell(cta.planYTD, {
-                rowRole: "account",
-                tooltipKey: "planYTD",
-              })}
+              rowRole: "account",
+              tooltipKey: "planYTD",
+            })}
               ${createCell(cta.prevYTD, {
-                rowRole: "account",
-                tooltipKey: "prevYTD",
-              })}
+              rowRole: "account",
+              tooltipKey: "prevYTD",
+            })}
               ${createPercentCell(varPlanYTD, {
-                rowRole: "account",
-                tooltipKey: "varYtdPlan",
-              })}
+              rowRole: "account",
+              tooltipKey: "varYtdPlan",
+            })}
               ${createPercentCell(varPrevYTD, {
-                rowRole: "account",
-                tooltipKey: "varYtdPrev",
-              })}
+              rowRole: "account",
+              tooltipKey: "varYtdPrev",
+            })}
             `;
             tablaBody.appendChild(row);
           });
@@ -4241,8 +4394,8 @@
         renderizoLayout = true;
         const autoCalcEnabled = Array.isArray(layout)
           ? layout.some(
-              (block) => Boolean(block?.autoFormula) || Boolean(block?.autoCalc),
-            )
+            (block) => Boolean(block?.autoFormula) || Boolean(block?.autoCalc),
+          )
           : false;
         if (autoCalcEnabled) {
           recalcularPrincipales(layout);
@@ -4302,9 +4455,8 @@
           });
           const cells = secRow.querySelectorAll("td");
           if (cells[6]) {
-            cells[6].innerHTML = `<i class="bi bi-chevron-down collapse-icon me-2" style="cursor:pointer;"></i>${
-              label
-            }`;
+            cells[6].innerHTML = `<i class="bi bi-chevron-down collapse-icon me-2" style="cursor:pointer;"></i>${label
+              }`;
             cells[6].style.cursor = "pointer";
             cells[6].classList.add("collapse-trigger");
             secRow.dataset.sectionName = label;
@@ -4312,30 +4464,64 @@
           tablaBody.appendChild(secRow);
         };
 
+        // Helper to check if a block has been rendered to avoid duplicates
+        const renderedBlocks = new Set();
+        
         layout.forEach((block) => {
           const blockType = block.type || "";
-
-          // Skip standalone principal/secundaria blocks — they are now
-          // rendered on-demand when a cuenta's parentSection changes.
-          if (blockType === "principal" || blockType === "secundaria") {
+          
+          // SECTION (Principal): Always render, even if empty
+          if (blockType === "principal") {
+            const label = block.label || "";
+            // If new principal or forced re-render (though typically layout is ordered)
+            if (label && label !== currentPrincipal) {
+              currentPrincipal = label;
+              currentSubsection = null; 
+              if (!renderedBlocks.has("P:" + label)) {
+                renderPrincipalHeader(label);
+                renderedBlocks.add("P:" + label);
+              }
+            }
             return;
           }
-          // CUENTA: Fila de datos — insert section headers on transitions
+
+          // SUBSECTION (Secundaria): Always render, even if empty
+          else if (blockType === "secundaria") {
+            const label = block.label || "";
+            if (label && label !== currentSubsection) {
+              currentSubsection = label;
+              // Ensure we are in a principal context (optional safety)
+              const key = (currentPrincipal || "") + "::" + label;
+              if (!renderedBlocks.has("S:" + key)) {
+                renderSubsectionHeader(label, currentPrincipal);
+                renderedBlocks.add("S:" + key);
+              }
+            }
+            return;
+          }
+
+          // CUENTA: Fila de datos
           else if (blockType === "cuenta") {
             const acctPrincipal = block.parentSection || "";
             const acctSubsection = block.parentSubsection || "";
 
-            // If principal changed, render new principal header
+            // Fallback: If layout missed the header block (e.g. malformed layout), render it on demand
             if (acctPrincipal && acctPrincipal !== currentPrincipal) {
               currentPrincipal = acctPrincipal;
-              currentSubsection = null; // reset subsection on principal change
-              renderPrincipalHeader(acctPrincipal);
+              currentSubsection = null;
+              if (!renderedBlocks.has("P:" + acctPrincipal)) {
+                renderPrincipalHeader(acctPrincipal);
+                renderedBlocks.add("P:" + acctPrincipal);
+              }
             }
 
-            // If subsection changed, render new subsection header
             if (acctSubsection && acctSubsection !== currentSubsection) {
               currentSubsection = acctSubsection;
-              renderSubsectionHeader(acctSubsection, currentPrincipal);
+              const key = (currentPrincipal || "") + "::" + acctSubsection;
+              if (!renderedBlocks.has("S:" + key)) {
+                renderSubsectionHeader(acctSubsection, currentPrincipal);
+                renderedBlocks.add("S:" + key);
+              }
             }
             const cta = block.totals || {};
             const varPlan = calculateVar(cta.actualMonth, cta.planMonth);
@@ -4355,59 +4541,59 @@
 
             row.innerHTML = `
               ${createEditableCell(block.cuenta || "", {
-                columnKey: "cuenta",
-                rowRole: "account",
-                tooltipKey: "account",
-                text: true,
-                classes: "account-column font-monospace small text-start ps-4",
-              })}
+              columnKey: "cuenta",
+              rowRole: "account",
+              tooltipKey: "account",
+              text: true,
+              classes: "account-column font-monospace small text-start ps-4",
+            })}
               ${createCell(cta.actualMonth, {
-                rowRole: "account",
-                tooltipKey: "actualMonth",
-              })}
+              rowRole: "account",
+              tooltipKey: "actualMonth",
+            })}
               ${createCell(cta.planMonth, {
-                rowRole: "account",
-                tooltipKey: "planMonth",
-              })}
+              rowRole: "account",
+              tooltipKey: "planMonth",
+            })}
               ${createCell(cta.prevMonth, {
-                rowRole: "account",
-                tooltipKey: "prevMonth",
-              })}
+              rowRole: "account",
+              tooltipKey: "prevMonth",
+            })}
               ${createPercentCell(varPlan, {
-                rowRole: "account",
-                tooltipKey: "varMonthPlan",
-              })}
+              rowRole: "account",
+              tooltipKey: "varMonthPlan",
+            })}
               ${createPercentCell(varPrev, {
-                rowRole: "account",
-                tooltipKey: "varMonthPrev",
-              })}
+              rowRole: "account",
+              tooltipKey: "varMonthPrev",
+            })}
               ${createEditableCell(nombreCuenta, {
-                columnKey: "descripcion",
-                rowRole: "account",
-                tooltipKey: "account",
-                text: true,
-                classes: "text-center",
-              })}
+              columnKey: "descripcion",
+              rowRole: "account",
+              tooltipKey: "account",
+              text: true,
+              classes: "text-center",
+            })}
               ${createCell(cta.actualYTD, {
-                rowRole: "account",
-                tooltipKey: "actualYTD",
-              })}
+              rowRole: "account",
+              tooltipKey: "actualYTD",
+            })}
               ${createCell(cta.planYTD, {
-                rowRole: "account",
-                tooltipKey: "planYTD",
-              })}
+              rowRole: "account",
+              tooltipKey: "planYTD",
+            })}
               ${createCell(cta.prevYTD, {
-                rowRole: "account",
-                tooltipKey: "prevYTD",
-              })}
+              rowRole: "account",
+              tooltipKey: "prevYTD",
+            })}
               ${createPercentCell(varPlanYTD, {
-                rowRole: "account",
-                tooltipKey: "varYtdPlan",
-              })}
+              rowRole: "account",
+              tooltipKey: "varYtdPlan",
+            })}
               ${createPercentCell(varPrevYTD, {
-                rowRole: "account",
-                tooltipKey: "varYtdPrev",
-              })}
+              rowRole: "account",
+              tooltipKey: "varYtdPrev",
+            })}
             `;
             tablaBody.appendChild(row);
           }
@@ -4416,7 +4602,7 @@
             // Usar el estilo visual personalizado si existe
             const rowStyle = block.rowStyle || block.estilo_fila || "operation-row";
             const rowClass = `${rowStyle} free-operation-row fw-semibold`;
-            
+
             const opRow = createResumenTotalsRow(block.totals || {}, {
               label: block.label || "",
               rowRole: "operation",
@@ -4654,13 +4840,13 @@
   const fetchResumen = async (empresaId, anio, mes) => {
     if (!empresaId || !anio) return;
     const mesEntero = Number(mes);
-    
+
     // Validar que el mes sea un número válido entre 1 y 12
     if (!Number.isInteger(mesEntero) || mesEntero < 1 || mesEntero > 12) {
       console.error('fetchResumen: mes inválido', mes, mesEntero);
       return;
     }
-    
+
     setStatusRow("Cargando resumen financiero...");
     actualizarMesContexto(mesEntero);
     try {
@@ -4720,9 +4906,8 @@
           const empresaLabel =
             extraerNumeroEmpresa(empresaComparativaId) ||
             empresaComparativaId;
-          const mensaje = `Comparativo no disponible (empresa ${empresaLabel}). ${detalle}${
-            status ? ` [HTTP ${status}]` : ""
-          }`;
+          const mensaje = `Comparativo no disponible (empresa ${empresaLabel}). ${detalle}${status ? ` [HTTP ${status}]` : ""
+            }`;
           registrarErrorComparativa(empresaId, mensaje);
           marcarComparativaNoDisponible(empresaId);
           actualizarComparativaUI(empresaId);
@@ -4953,27 +5138,27 @@
     try {
       const { jsPDF } = jspdf;
       const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
-      
+
       const { titulo, mesNombre, anio, empresaTexto } = construirMetadataExportacion();
-      
+
       // === PÁGINA 1: Tabla de Resumen ===
       const tabla = document.getElementById('tablaComparacion');
-      
+
       // Título
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text('RESUMEN FINANCIERO', 15, 15);
-      
+
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.text(`Empresa: ${empresaTexto}`, 15, 22);
       doc.text(`Periodo: ${mesNombre} ${anio}`, 15, 27);
-      
+
       // Usar autoTable para la tabla con encabezados HTML completos
       if (typeof doc.autoTable === 'function' && tabla) {
         const thead = tabla.querySelector('thead');
         const tbody = tabla.querySelector('tbody');
-        
+
         // Procesar encabezados respetando colspan, rowspan, y saltos de línea
         const headers = [];
         if (thead) {
@@ -4981,23 +5166,23 @@
           headerRows.forEach(row => {
             const headerRow = [];
             const cells = Array.from(row.querySelectorAll('th'));
-            
+
             cells.forEach(cell => {
               // Extraer texto con saltos de línea preservados
               let texto = cell.textContent.trim();
               // Reemplazar múltiples espacios/saltos por salto simple
               texto = texto.replace(/\s+/g, ' ').trim();
-              
+
               const colspan = parseInt(cell.getAttribute('colspan')) || 1;
               const rowspan = parseInt(cell.getAttribute('rowspan')) || 1;
-              
+
               // Configurar celda con formato
               const cellConfig = {
                 content: texto,
                 colSpan: colspan,
                 rowSpan: rowspan,
-                styles: { 
-                  halign: 'center', 
+                styles: {
+                  halign: 'center',
                   valign: 'middle',
                   fontStyle: 'bold',
                   fontSize: 7,
@@ -5006,10 +5191,10 @@
                   lineWidth: 0.1
                 }
               };
-              
+
               headerRow.push(cellConfig);
             });
-            
+
             headers.push(headerRow);
           });
         }
@@ -5021,13 +5206,13 @@
           bodyRows.forEach(row => {
             const rowData = [];
             const cells = Array.from(row.querySelectorAll('td'));
-            
+
             cells.forEach((cell, idx) => {
               let texto = cell.textContent.trim();
-              
+
               // Configurar estilo según clase de fila
               let styles = { fontSize: 6, cellPadding: 1.5 };
-              
+
               // Detectar tipo de fila por clases
               if (row.classList.contains('section-header-row')) {
                 styles.fillColor = [30, 58, 138]; // Azul oscuro
@@ -5056,17 +5241,17 @@
                 styles.textColor = [14, 116, 144];
                 styles.fontStyle = 'bold';
               }
-              
+
               // Alineación: primera y segunda columna a la izquierda, resto a la derecha
               if (idx <= 1 || idx === 6) {
                 styles.halign = 'left';
               } else {
                 styles.halign = 'right';
               }
-              
+
               rowData.push({ content: texto, styles: styles });
             });
-            
+
             body.push(rowData);
           });
         }
@@ -5075,7 +5260,7 @@
           head: headers,
           body: body,
           startY: 30,
-          styles: { 
+          styles: {
             fontSize: 7,
             cellPadding: 2,
             lineColor: [200, 200, 200],
@@ -5085,7 +5270,7 @@
             minCellHeight: 8,
             valign: 'middle'
           },
-          headStyles: { 
+          headStyles: {
             fillColor: [13, 71, 161],
             textColor: 255,
             fontStyle: 'bold',
@@ -5151,17 +5336,17 @@
 
         for (const data of graficaData) {
           doc.addPage();
-          
+
           doc.setFontSize(16);
           doc.setFont('helvetica', 'bold');
           doc.text('GRÁFICAS DE ANÁLISIS', 15, 15);
-          
+
           doc.setFontSize(14);
           doc.text(data.titulo, 15, 25);
-          
+
           const ctx = canvas.getContext('2d');
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          
+
           const chart = new Chart(ctx, {
             type: data.type || 'bar',
             data: {
@@ -5172,10 +5357,10 @@
               responsive: false,
               maintainAspectRatio: false,
               plugins: {
-                legend: { 
+                legend: {
                   display: true,
                   position: 'bottom',
-                  labels: { 
+                  labels: {
                     font: { size: 24, weight: 'bold' },
                     padding: 30,
                     usePointStyle: true,
@@ -5187,15 +5372,15 @@
                 }
               },
               scales: {
-                y: { 
+                y: {
                   beginAtZero: true,
-                  ticks: { 
+                  ticks: {
                     font: { size: 20 },
-                    callback: function(value) {
+                    callback: function (value) {
                       return value.toLocaleString('es-MX', { maximumFractionDigits: 0 });
                     }
                   },
-                  grid: { 
+                  grid: {
                     color: 'rgba(0,0,0,0.08)',
                     lineWidth: 2
                   }
@@ -5217,22 +5402,22 @@
             },
             plugins: [{
               id: 'customDataLabels',
-              afterDatasetsDraw: function(chart) {
+              afterDatasetsDraw: function (chart) {
                 const ctx = chart.ctx;
-                chart.data.datasets.forEach(function(dataset, i) {
+                chart.data.datasets.forEach(function (dataset, i) {
                   const meta = chart.getDatasetMeta(i);
                   if (!meta.hidden) {
-                    meta.data.forEach(function(element, index) {
+                    meta.data.forEach(function (element, index) {
                       const value = dataset.data[index];
                       if (value === 0) return;
-                      
+
                       ctx.fillStyle = '#000';
                       ctx.font = 'bold 22px Arial';
                       ctx.textAlign = 'center';
                       ctx.textBaseline = 'bottom';
-                      
+
                       const dataString = value.toLocaleString('es-MX', { maximumFractionDigits: 0 });
-                      
+
                       // Colocar el texto arriba de la barra (fuera)
                       const yOffset = value >= 0 ? -15 : 30;
                       ctx.fillText(dataString, element.x, element.y + yOffset);
@@ -5269,7 +5454,7 @@
 
       // Guardar PDF
       doc.save(`RESUMEN_${empresaTexto}_${anio}_${mesNombre}.pdf`);
-      
+
       if (typeof showToast === "function") {
         showToast("✅ PDF con gráficas generado correctamente.");
       }
@@ -5357,24 +5542,24 @@
             scales: esPie
               ? {}
               : {
-                  y: {
-                    beginAtZero: true,
-                    ticks: {
-                      font: { size: 18 },
-                      callback: (value) =>
-                        Number(value || 0).toLocaleString("es-MX", {
-                          maximumFractionDigits: 0,
-                        }),
-                    },
-                    grid: {
-                      color: "rgba(0,0,0,0.08)",
-                    },
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    font: { size: 18 },
+                    callback: (value) =>
+                      Number(value || 0).toLocaleString("es-MX", {
+                        maximumFractionDigits: 0,
+                      }),
                   },
-                  x: {
-                    ticks: { font: { size: 16 } },
-                    grid: { display: false },
+                  grid: {
+                    color: "rgba(0,0,0,0.08)",
                   },
                 },
+                x: {
+                  ticks: { font: { size: 16 } },
+                  grid: { display: false },
+                },
+              },
           },
         });
         await new Promise((resolve) => setTimeout(resolve, 140));
@@ -6109,18 +6294,18 @@
               operatingCfg.label
                 ? operatingCfg
                 : {
-                    label: "CONSOLIDATED OPERATING RESULTS",
-                    color: "#0d47a1",
-                  },
+                  label: "CONSOLIDATED OPERATING RESULTS",
+                  color: "#0d47a1",
+                },
               opData
             ),
             buildConsolidatedDataset(
               netCfg.label
                 ? netCfg
                 : {
-                    label: "CONSOLIDATED NET RESULTS",
-                    color: "#94a3b8",
-                  },
+                  label: "CONSOLIDATED NET RESULTS",
+                  color: "#94a3b8",
+                },
               netData
             ),
           ],
@@ -6190,7 +6375,7 @@
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null);
 
-        
+
 
         if (layoutServidor?.layout) {
           console.log(
@@ -6361,9 +6546,8 @@
           const fecha = item.fecha
             ? new Date(item.fecha).toLocaleString("es-MX")
             : "";
-          li.textContent = `${WORKFLOW_LABEL[item.estado] || item.estado}${
-            fecha ? ` · ${fecha}` : ""
-          }${item.usuario ? ` · ${item.usuario}` : ""}`;
+          li.textContent = `${WORKFLOW_LABEL[item.estado] || item.estado}${fecha ? ` · ${fecha}` : ""
+            }${item.usuario ? ` · ${item.usuario}` : ""}`;
           workflowHistory.appendChild(li);
         });
       }

@@ -672,6 +672,7 @@
             plugins: { legend: { display: false } },
             scales: {
               x: {
+                beginAtZero: true,
                 grace: "40%",
                 ticks: {
                   font: { size: 12 },

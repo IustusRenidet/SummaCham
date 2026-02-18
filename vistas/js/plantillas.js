@@ -1620,14 +1620,21 @@
     // Evita capturar operaciones hijas por placement (p.ej. parentSection = INCOME)
     // cuando se edita la fórmula de la sección principal.
     const byIdentity = (state.operaciones || []).filter((op) => {
-      if (!isHeaderLinkedOperation(op)) return false;
+      // RELAXED CHECK: If user wants full manual control, allow matching by Label even if not strictly "header linked"
+      // because sometimes metadata is lost.
+      // if (!isHeaderLinkedOperation(op)) return false; 
+      
       const sameId =
         normalizeOperationMatch(getOperationId(op)) === target;
       const sameLabel =
         normalizeOperationMatch(getOperationLabel(op)) === target;
+      
       if (!sameId && !sameLabel) return false;
-      if (!parentKey) return true;
-      return getOperationParentMatchScore(op, parentSection) >= 1;
+      
+      // Still respect parent context if provided to avoid cross-section matches for generic names "Total"
+      if (parentKey && getOperationParentMatchScore(op, parentSection) < 1) return false;
+
+      return true;
     });
     if (byIdentity.length) {
       return { field: "", operations: byIdentity };
@@ -1712,15 +1719,22 @@
     }
 
     if (match.operations.length > 1) {
-      if (typeof window.editConsolidatedLabel === "function") {
-        window.editConsolidatedLabel(
-          label,
-          match.field || preferredField || "sum-row",
-          parentSection,
-          match.operations,
-        );
-        return;
+      // Modo estricto: no editar "consolidado" (cada fila es única).
+      // Abrir la primera coincidencia y advertir para que el usuario elimine duplicados si aplica.
+      const sorted = sortOperations(match.operations || []);
+      const first = sorted[0] || match.operations[0];
+      showToast(
+        `Hay ${match.operations.length} operaciones ligadas a "${label}". Edita cada una por separado.`,
+        "warning",
+      );
+      const firstId =
+        getOperationId(first) || getOperationDisplayName(first) || label;
+      if (window.editOperation) {
+        window.editOperation(firstId);
+      } else {
+        editOperation(firstId);
       }
+      return;
     }
 
     const op = match.operations[0];
@@ -1740,14 +1754,12 @@
 
     const terms = [];
     const seen = new Set();
+    let idCounter = Date.now();
 
     ops.forEach((op) => {
       const section =
         op.SECCION || op.parentSection || op.parentSubsection || op.Clase || "";
       if (!section) return;
-      const key = normalizeOperationMatch(section);
-      if (!key || seen.has(key)) return;
-      seen.add(key);
 
       let sign = Number(op.signos?.[resolvedField]);
       if (!Number.isFinite(sign)) {
@@ -1756,12 +1768,43 @@
       }
       if (!Number.isFinite(sign) || sign === 0) sign = 1;
 
-      terms.push({
-        id: Date.now() + terms.length,
+      const opParent = (op?.parentSection || "").toString().trim();
+      const opSub = (op?.parentSubsection || "").toString().trim();
+      const sectionKey = normalizeOperationMatch(section);
+      const parentKey = normalizeOperationMatch(opParent);
+      const subKey = normalizeOperationMatch(opSub);
+
+      let term = {
+        id: idCounter++,
         operator: sign < 0 ? "-" : "+",
         type: "section",
         value: section,
-      });
+      };
+
+      // Si la operación está ligada a una subsección, conservar el parentSection
+      // para que el término se resuelva como subsección (y no como sección principal).
+      if (
+        opParent &&
+        sectionKey &&
+        ((opSub && subKey === sectionKey) ||
+          (parentKey && parentKey !== sectionKey))
+      ) {
+        term.parentSection = opParent;
+      }
+
+      // En caso de layouts legacy, intentar inferir el parentSection cuando el
+      // término representa una subsección ambigua.
+      term = (applyParentSectionHints(op, [term]) || [term])[0] || term;
+
+      const dedupeKey = buildFormulaSelectionKey(
+        term.type,
+        term.value,
+        term.parentSection,
+      );
+      if (!dedupeKey || seen.has(dedupeKey)) return;
+      seen.add(dedupeKey);
+
+      terms.push(term);
     });
 
     return terms;
@@ -2905,8 +2948,10 @@
         const opId = op ? getOperationId(op) : row.opId || "";
         const kind = row.kind || "";
         const kindMeta = getOperationKindMeta(kind);
-        const formulaTerms = op ? extractFormulaTerms(op) : [];
-        const formula = formulaTerms.length ? formatFormula(op) : "";
+        // Modo estricto: respetar la fórmula manual tal cual esté guardada.
+        // No depender de `formula_terms` porque algunas operaciones legacy guardan
+        // la fórmula como texto (`op.formula`) o en `formula_json` no-tokenizado.
+        const formula = op ? formatFormula(op) || "" : "";
         const parentSection = (row.parentSection || op?.parentSection || "")
           .toString()
           .trim();
@@ -3213,8 +3258,10 @@
         const opId = op ? getOperationId(op) : row.opId || "";
         const kind = row.kind || "";
         const kindMeta = getOperationKindMeta(kind);
-        const formulaTerms = op ? extractFormulaTerms(op) : [];
-        const formula = formulaTerms.length ? formatFormula(op) : "";
+        // Modo estricto: respetar la fórmula manual tal cual esté guardada.
+        // No depender de `formula_terms` porque algunas operaciones legacy guardan
+        // la fórmula como texto (`op.formula`) o en `formula_json` no-tokenizado.
+        const formula = op ? formatFormula(op) || "" : "";
         const cells = [];
         if (showOrder) {
           cells.push(renderInlineOrderCell(row, rowIndex));
@@ -4276,12 +4323,14 @@
           return;
         }
         if (match.operations.length > 1) {
-          editConsolidatedLabel(
-            label,
-            match.field || kind || "sum-row",
-            "",
-            match.operations,
+          // Modo estricto: no consolidar. Abrir la primera coincidencia.
+          const sorted = sortOperations(match.operations || []);
+          const first = sorted[0] || match.operations[0];
+          showToast(
+            `Hay ${match.operations.length} operaciones para "${label}". Edita cada una por separado.`,
+            "warning",
           );
+          editOperation(getOperationId(first) || label);
           return;
         }
 
@@ -7655,7 +7704,10 @@
     const clase = getOperationLabel(op) || "Operacion";
     const displayName = getOperationDisplayName(op);
     const tipo = detectOperationType(op);
-    const formula = formatFormula(op);
+    const formula = formatFormula(op) || "";
+    const formulaHtml = formula
+      ? escapeHtml(formula)
+      : '<span class="text-muted">Sin fórmula</span>';
     const isVisible = op.visible !== false;
     const hiddenClass = !isVisible ? "hidden-row" : "";
     const canEdit = state.editMode;
@@ -7674,7 +7726,7 @@
             <span class="operation-type badge bg-warning text-dark">SUM</span>
           </div>
           <div class="operation-formula small text-muted ms-3" style="flex: 2; font-style: italic;">
-            ${escapeHtml(formula)}
+            ${formulaHtml}
           </div>
           <div class="account-actions">
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
@@ -7702,11 +7754,12 @@
     const hiddenClass = !isVisible ? "hidden-row" : "";
     const canEdit = state.editMode;
     const disabledAttr = !canEdit ? "disabled" : "";
-    // Build formula from actual account names
-    const formula = (accounts || [])
-      .filter((account) => !isPlaceholderAccount(account))
-      .map((a) => a.NOMBRE || a.nombre || a.CUENTA)
-      .join(" + ");
+    // Modo estricto: mostrar SOLO la fórmula manual guardada en la operación.
+    // Nunca inferir fórmulas por sección/cuentas.
+    const formula = formatFormula(op) || "";
+    const formulaHtml = formula
+      ? `= ${escapeHtml(formula)}`
+      : `<span class="text-muted">Sin fórmula</span>`;
 
     return `
       <div class="inline-operation-row ${hiddenClass}" data-operation-id="${escapeAttr(
@@ -7722,7 +7775,7 @@
           <span class="op-badge badge bg-warning text-dark ms-2">SUM</span>
         </div>
         <div class="inline-op-formula">
-          = ${escapeHtml(formula)}
+          ${formulaHtml}
         </div>
         <div class="inline-op-actions">
           <button class="btn btn-sm btn-link p-0" onclick="event.stopPropagation(); editOperation('${escapeAttr(
@@ -10704,9 +10757,9 @@
       const bySumVarios = sectionMatches.find(
         (op) =>
           normalizeOperationMatch(op?.["sum-row-sumavarios"] || "") ===
-            target ||
+          target ||
           normalizeOperationMatch(op?.["sum-row-sumavarios2"] || "") ===
-            target,
+          target,
       );
       if (bySumVarios) return bySumVarios;
       return sectionMatches[0] || null;
@@ -11185,20 +11238,15 @@
 
   function buildOperationDedupeKey(op) {
     if (!op) return "";
-    const parentSection = normalizeOperationKey(op.parentSection || "");
-    const parentSubsection = normalizeOperationKey(
-      op.parentSubsection || op.SECCION || "",
+    // Modo estricto: cada operación es única por su ID.
+    // No deduplicar por "display name" porque puede coincidir entre filas distintas
+    // (p.ej. varias filas con la misma etiqueta de tabla pero fórmulas diferentes).
+    const explicitId = normalizeOperationKey(
+      op?.OperacionId || op?.operacion_id || op?.id || "",
     );
-    const label = normalizeOperationKey(
-      getOperationDisplayName(op) ||
-      getOperationLabel(op) ||
-      getOperationId(op),
-    );
-    if (!label) {
-      const opId = normalizeOperationKey(getOperationId(op));
-      return opId ? `${parentSection}||${parentSubsection}||${opId}` : "";
-    }
-    return `${parentSection}||${parentSubsection}||${label}`;
+    if (explicitId) return explicitId;
+    const fallbackId = normalizeOperationKey(getOperationId(op));
+    return fallbackId || "";
   }
 
   function isExplicitEmptyFormulaRaw(rawValue) {
@@ -13475,27 +13523,8 @@
     state.selectedElement = { type: "operation", op };
     updateSelectionInfo();
 
-    // Asegurar que op tenga formula_terms poblados antes de pasarlo a FormulaBuilder
-    console.log("📝 editOperation - formulaTerms construidos:", formulaTerms);
-    let termsForBuilder = formulaTerms;
-    if (termsForBuilder.length === 1 && termsForBuilder[0].type === "section") {
-      const expanded = expandSectionTerms(termsForBuilder);
-      if (expanded.some((term) => term.type === "account")) {
-        termsForBuilder = expanded;
-      }
-    }
-    formulaTerms = termsForBuilder;
-    const normalizedForBuilder = normalizeFormulaTerms(termsForBuilder);
-    const tokensForBuilder = convertLegacyTermsToV2Tokens(
-      normalizedForBuilder,
-      op,
-    );
-    applyStrictFormulaTermsToOperation(
-      op,
-      normalizedForBuilder,
-      tokensForBuilder,
-    );
-    console.log("📝 editOperation - op completo:", op);
+    // Modo estricto: NO modificar la fórmula al abrir el editor.
+    // La fórmula solo se actualiza cuando el usuario guarda desde el panel.
 
     // SIEMPRE usar panel lateral - nunca modal
     const panelOpened = openOperationEditorPanel(op, availableElements);
@@ -13614,7 +13643,9 @@
     }
   };
 
-  // Edit a consolidated label (shows all contributing operations and accounts)
+  // Etiqueta "consolidada" (múltiples operaciones con el mismo label).
+  // Modo estricto: cada fila es única, así que aquí NO se edita en bloque ni se
+  // infiere fórmula. Se abre una operación individual.
   window.editConsolidatedLabel = function (
     label,
     field,
@@ -13622,156 +13653,21 @@
     sourceOperations = [],
   ) {
     if (!requireEditMode()) return;
-    const modalTitle = dom.modalEditar?.querySelector(".modal-title");
-    if (modalTitle) {
-      modalTitle.textContent = `Editar etiqueta: ${label}`;
-    }
-
-    const match = findOperationsByRowLabel(label, field);
-    const resolvedField = match.field || field;
-    let affectedOps = match.operations.length
-      ? match.operations
-      : state.operaciones.filter((op) => op[resolvedField] === label);
-
-    if (
-      !affectedOps.length &&
-      Array.isArray(sourceOperations) &&
-      sourceOperations.length
-    ) {
-      affectedOps = sourceOperations.slice();
-    }
-
-    if (!affectedOps.length) {
-      const targetKey = normalizeOperationMatch(label || "");
-      const parentKey = normalizeOperationMatch(parentSection || "");
-      let fallback = (state.operaciones || []).filter((op) => {
-        const byIdOrLabel =
-          normalizeOperationMatch(getOperationId(op)) === targetKey ||
-          normalizeOperationMatch(getOperationLabel(op)) === targetKey;
-        if (byIdOrLabel) return true;
-        return getOperationPlacementCandidates(op).some(
-          (candidate) => normalizeOperationMatch(candidate) === targetKey,
-        );
-      });
-
-      if (parentKey) {
-        const narrowed = fallback.filter((op) =>
-          getOperationParentCandidates(op).some(
-            (candidate) => normalizeOperationMatch(candidate) === parentKey,
-          ),
-        );
-        if (narrowed.length) {
-          fallback = narrowed;
-        }
-      }
-      affectedOps = fallback;
-    }
-
-    if (affectedOps.length > 1) {
-      const seen = new Set();
-      affectedOps = affectedOps.filter((op) => {
-        const key = normalizeOperationMatch(
-          getOperationId(op) || getOperationLabel(op) || "",
-        );
-        if (!key) return true;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-    }
-
-    if (affectedOps.length === 0) {
-      showToast("No se encontraron operaciones para esta etiqueta", "error");
+    const candidates =
+      Array.isArray(sourceOperations) && sourceOperations.length
+        ? sourceOperations.slice()
+        : (findOperationsByRowLabel(label, field)?.operations || []);
+    if (!candidates.length) {
+      showToast("No se encontraron operaciones para esta etiqueta", "warning");
       return;
     }
-
-    const derivedTerms = buildFormulaTermsForRowLabel(label, resolvedField);
-    if (derivedTerms.length) {
-      formulaTerms = derivedTerms;
-    } else {
-      // Collect all formula terms from all affected operations
-      formulaTerms = [];
-      let idCounter = Date.now();
-
-      affectedOps.forEach((op) => {
-        // Extract formula terms from this operation
-        const opTerms = extractFormulaTerms(op);
-
-        // Add each term with unique ID and the operation operator
-        opTerms.forEach((term) => {
-          formulaTerms.push({
-            id: idCounter++,
-            operator: term.operator || "+",
-            type: term.type || "section",
-            value: term.value || "",
-            sourceOperation: op.Clase || op.SECCION, // Track which operation this came from
-          });
-        });
-      });
-    }
-
-    // Expand section terms to individual accounts
-    expandSectionTermsToAccounts();
-
-    // Build modal content
-    dom.formEditar.innerHTML = `
-      <div class="mb-3">
-        <label class="form-label">Etiqueta Consolidada</label>
-        <input type="text" class="form-control" id="editConsolidatedLabelName" value="${escapeHtml(
-      label,
-    )}" />
-        <small class="text-muted">Tipo: ${escapeHtml(resolvedField)}</small>
-      </div>
-      
-      <div class="mb-3">
-        <label class="form-label">Operaciones que contribuyen (${affectedOps.length
-      })</label>
-        <div class="bg-light p-2 rounded border" style="max-height: 100px; overflow-y: auto;">
-          ${affectedOps
-        .map(
-          (op) => `
-            <div class="d-flex align-items-center mb-1">
-              <i class="bi bi-arrow-right-short text-muted me-1"></i>
-              <span class="small">${escapeHtml(op.Clase || op.SECCION)}</span>
-            </div>
-          `,
-        )
-        .join("")}
-        </div>
-      </div>
-
-      <div class="mt-3">
-        <label class="form-label">Mapa de Operación (por subsección)</label>
-        <div id="formulaMap" class="formula-map mb-3">
-          <!-- Se poblará dinámicamente -->
-        </div>
-
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <label class="form-label mb-0">Cuentas incluidas (editable)</label>
-          <button type="button" class="btn btn-outline-success btn-sm" onclick="addFormulaTerm()">
-            <i class="bi bi-plus-lg me-1"></i>Agregar cuenta
-          </button>
-        </div>
-        <div id="formulaTerms" class="formula-terms mb-2">
-          <!-- Se poblará dinámicamente -->
-        </div>
-        <div class="alert alert-info small">
-          <i class="bi bi-info-circle me-1"></i>
-          Esta vista muestra todas las cuentas que contribuyen al total consolidado.
-        </div>
-      </div>
-    `;
-
-    state.selectedElement = {
-      type: "consolidatedLabel",
-      label,
-      field: resolvedField,
-      affectedOps,
-    };
-    updateSelectionInfo();
-
-    renderFormulaTerms();
-    new bootstrap.Modal(dom.modalEditar).show();
+    showToast(
+      `"${label}" aparece en ${candidates.length} operaciones. Edita cada una por separado.`,
+      "warning",
+    );
+    const first = sortOperations(candidates)[0] || candidates[0];
+    const firstId = getOperationId(first) || label;
+    window.editOperation?.(firstId);
   };
 
   // Delete a consolidated label (removes it from all operations)

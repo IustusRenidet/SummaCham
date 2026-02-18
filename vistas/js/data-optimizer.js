@@ -8,6 +8,35 @@
 
   const DataOptimizer = {
     /**
+     * Obtiene el valor numérico real que se está graficando (soporta barras horizontales).
+     */
+    getParsedValue(context) {
+      if (!context) return 0;
+
+      const parsed = context.parsed;
+      if (typeof parsed === 'number' && Number.isFinite(parsed)) {
+        return parsed;
+      }
+
+      if (parsed && typeof parsed === 'object') {
+        const indexAxis = context?.chart?.options?.indexAxis || 'x';
+        if (indexAxis === 'y') {
+          const x = Number(parsed.x);
+          if (Number.isFinite(x)) return x;
+        }
+        const y = Number(parsed.y);
+        if (Number.isFinite(y)) return y;
+        const x = Number(parsed.x);
+        if (Number.isFinite(x)) return x;
+      }
+
+      const raw = context.raw;
+      if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+      const coerced = Number(raw);
+      return Number.isFinite(coerced) ? coerced : 0;
+    },
+
+    /**
      * Formatea números para mejor legibilidad
      */
     formatNumber(value, options = {}) {
@@ -123,6 +152,15 @@
      * Optimiza opciones de gráfica para mejor legibilidad
      */
     getOptimizedChartOptions(chartType = 'bar', customOptions = {}) {
+      const isHorizontalBar =
+        chartType === 'bar' && (customOptions?.indexAxis || 'x') === 'y';
+      const beginAtZero = chartType === 'bar';
+      const numericTickFormatter = (value) =>
+        DataOptimizer.formatNumber(value, {
+          compact: true,
+          decimals: 0,
+        });
+
       const baseOptions = {
         responsive: true,
         maintainAspectRatio: false,
@@ -159,7 +197,7 @@
                 if (label) {
                   label += ': ';
                 }
-                label += DataOptimizer.formatNumber(context.parsed.y || context.parsed, {
+                label += DataOptimizer.formatNumber(DataOptimizer.getParsedValue(context), {
                   decimals: 0,
                   compact: true,
                   currency: true
@@ -173,41 +211,40 @@
 
       // Opciones específicas por tipo de gráfica
       if (chartType === 'bar' || chartType === 'line') {
-        baseOptions.scales = {
-          x: {
-            grid: {
-              display: false,
-              drawBorder: false
-            },
-            ticks: {
-              font: {
-                size: 11,
-                family: "'Inter', sans-serif"
-              },
-              maxRotation: 45,
-              minRotation: 0
-            }
+        const buildLabelScale = () => ({
+          grid: {
+            display: false,
+            drawBorder: false
           },
-          y: {
-            beginAtZero: false,
-            grace: '10%',
-            grid: {
-              color: 'rgba(0, 0, 0, 0.05)',
-              drawBorder: false
+          ticks: {
+            font: {
+              size: 11,
+              family: "'Inter', sans-serif"
             },
-            ticks: {
-              font: {
-                size: 11,
-                family: "'Inter', sans-serif"
-              },
-              callback: function(value) {
-                return DataOptimizer.formatNumber(value, {
-                  compact: true,
-                  decimals: 0
-                });
-              }
-            }
+            maxRotation: 45,
+            minRotation: 0
           }
+        });
+
+        const buildValueScale = () => ({
+          beginAtZero,
+          grace: '10%',
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)',
+            drawBorder: false
+          },
+          ticks: {
+            font: {
+              size: 11,
+              family: "'Inter', sans-serif"
+            },
+            callback: numericTickFormatter
+          }
+        });
+
+        baseOptions.scales = {
+          x: isHorizontalBar ? buildValueScale() : buildLabelScale(),
+          y: isHorizontalBar ? buildLabelScale() : buildValueScale(),
         };
       }
 

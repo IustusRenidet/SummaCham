@@ -109,7 +109,8 @@
       maximumFractionDigits: 2,
     }).format(n);
 
-  const MIN_BAR_LENGTH = 14;
+  // 0 = proporción real (sin "inflar" barras pequeñas).
+  const MIN_BAR_LENGTH = 0;
   const POINT_RADIUS = 6;
   const POINT_HOVER_RADIUS = 8;
   const ocultarCeros = (valor) => {
@@ -272,7 +273,7 @@
     if (mes != null) ctx.mes = mes;
     try {
       localStorage.setItem(CONTEXT_KEY, JSON.stringify(ctx));
-    } catch {}
+    } catch { }
   };
 
   // === SNAPSHOT DE LA TABLA RESUMEN ===
@@ -1441,48 +1442,48 @@
           const variants = Array.isArray(row?.variants)
             ? row.variants
             : Array.isArray(row?.labels)
-            ? row.labels
-            : [];
+              ? row.labels
+              : [];
           const cleaned = variants
             .map((v) => (typeof v === "string" ? v.trim() : ""))
             .filter(Boolean);
           if (!cleaned.length) return null;
-           const alias =
-             typeof row?.alias === "string" && row.alias.trim()
-               ? row.alias.trim()
-               : cleaned[0];
-           const color =
-             typeof row?.color === "string" && row.color.trim()
-               ? row.color.trim()
-               : null;
-           const normalized = { alias, variants: cleaned };
-           if (color) normalized.color = color;
-           return normalized;
-         })
-         .filter(Boolean);
+          const alias =
+            typeof row?.alias === "string" && row.alias.trim()
+              ? row.alias.trim()
+              : cleaned[0];
+          const color =
+            typeof row?.color === "string" && row.color.trim()
+              ? row.color.trim()
+              : null;
+          const normalized = { alias, variants: cleaned };
+          if (color) normalized.color = color;
+          return normalized;
+        })
+        .filter(Boolean);
       const seriesKeys = Array.isArray(chart?.seriesKeys)
         ? chart.seriesKeys
-            .map((key) => (key != null ? String(key).trim() : ""))
-            .filter(Boolean)
+          .map((key) => (key != null ? String(key).trim() : ""))
+          .filter(Boolean)
         : [];
       const series = Array.isArray(chart?.series)
         ? chart.series
-            .map((serie) => {
-              const key = serie?.key != null ? String(serie.key).trim() : "";
-              if (!key) return null;
-              const label =
-                typeof serie?.label === "string" && serie.label.trim()
-                  ? serie.label.trim()
-                  : key;
-              const color =
-                typeof serie?.color === "string" && serie.color.trim()
-                  ? serie.color.trim()
-                  : "#0d47a1";
-              const enabled =
-                typeof serie?.enabled === "boolean" ? serie.enabled : true;
-              return { key, label, color, enabled };
-            })
-            .filter(Boolean)
+          .map((serie) => {
+            const key = serie?.key != null ? String(serie.key).trim() : "";
+            if (!key) return null;
+            const label =
+              typeof serie?.label === "string" && serie.label.trim()
+                ? serie.label.trim()
+                : key;
+            const color =
+              typeof serie?.color === "string" && serie.color.trim()
+                ? serie.color.trim()
+                : "#0d47a1";
+            const enabled =
+              typeof serie?.enabled === "boolean" ? serie.enabled : true;
+            return { key, label, color, enabled };
+          })
+          .filter(Boolean)
         : [];
       const mergedSeriesKeys = Array.from(
         new Set([
@@ -1985,10 +1986,10 @@
           Array.isArray(row?.variants) && row.variants.length
             ? row.variants
             : row?.label
-            ? [row.label]
-            : row?.alias
-            ? [row.alias]
-            : [];
+              ? [row.label]
+              : row?.alias
+                ? [row.alias]
+                : [];
         if (!variants.length) return null;
         const match = findSnapshotMatch(snapshotMap, variants);
         if (!match?.data) return null;
@@ -2099,10 +2100,10 @@
             Array.isArray(row?.variants) && row.variants.length
               ? row.variants
               : row?.label
-              ? [row.label]
-              : row?.alias
-              ? [row.alias]
-              : [];
+                ? [row.label]
+                : row?.alias
+                  ? [row.alias]
+                  : [];
           if (!variants.length) return null;
           return {
             label: resolveChartLabel(row?.alias || variants[0], context),
@@ -2180,10 +2181,10 @@
           Array.isArray(row?.variants) && row.variants.length
             ? row.variants
             : row?.label
-            ? [row.label]
-            : row?.alias
-            ? [row.alias]
-            : [];
+              ? [row.label]
+              : row?.alias
+                ? [row.alias]
+                : [];
         if (!variants.length) return;
         const match = obtenerFilaIngreso(layout, variants);
         if (!match?.totals) return;
@@ -2331,7 +2332,7 @@
             },
             scales: {
               y: {
-                beginAtZero: false,
+                beginAtZero: chartType === "bar",
                 grace: "10%",
                 ticks: {
                   callback: function (value) {
@@ -2474,8 +2475,8 @@
         key === "ingreso"
           ? config.ingreso || {}
           : key === "ingresoNacional"
-          ? config.ingresoNacional || {}
-          : config.charts?.[key] || {};
+            ? config.ingresoNacional || {}
+            : config.charts?.[key] || {};
       const titleEl = document.getElementById(value.titleId);
       const subtitleEl = document.getElementById(value.subtitleId);
       const cardEl = document.getElementById(value.cardId);
@@ -2641,9 +2642,9 @@
               ),
               backgroundColor: isPieType(consolidatedType)
                 ? buildSlicePalette(
-                    consolidatedColumns.length,
-                    graficasConfig.consolidatedSeries?.operating?.color || "#0d47a1"
-                  )
+                  consolidatedColumns.length,
+                  graficasConfig.consolidatedSeries?.operating?.color || "#0d47a1"
+                )
                 : graficasConfig.consolidatedSeries?.operating?.color || "#0d47a1",
               borderColor: isPieType(consolidatedType)
                 ? "#ffffff"
@@ -2651,21 +2652,21 @@
               borderWidth: isPieType(consolidatedType)
                 ? 1
                 : consolidatedType === "line"
-                ? 2
-                : 1,
+                  ? 2
+                  : 1,
               ...(consolidatedType === "line"
                 ? {
-                    fill: false,
-                    tension: 0.32,
-                    pointRadius: POINT_RADIUS,
-                    pointHoverRadius: POINT_HOVER_RADIUS,
-                    pointBackgroundColor:
-                      graficasConfig.consolidatedSeries?.operating?.color ||
-                      "#0d47a1",
-                  }
+                  fill: false,
+                  tension: 0.32,
+                  pointRadius: POINT_RADIUS,
+                  pointHoverRadius: POINT_HOVER_RADIUS,
+                  pointBackgroundColor:
+                    graficasConfig.consolidatedSeries?.operating?.color ||
+                    "#0d47a1",
+                }
                 : consolidatedType === "bar"
-                ? { minBarLength: MIN_BAR_LENGTH }
-                : {}),
+                  ? { minBarLength: MIN_BAR_LENGTH }
+                  : {}),
             },
             {
               label:
@@ -2676,9 +2677,9 @@
               ),
               backgroundColor: isPieType(consolidatedType)
                 ? buildSlicePalette(
-                    consolidatedColumns.length,
-                    graficasConfig.consolidatedSeries?.net?.color || "#94a3b8"
-                  )
+                  consolidatedColumns.length,
+                  graficasConfig.consolidatedSeries?.net?.color || "#94a3b8"
+                )
                 : graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
               borderColor: isPieType(consolidatedType)
                 ? "#ffffff"
@@ -2686,20 +2687,20 @@
               borderWidth: isPieType(consolidatedType)
                 ? 1
                 : consolidatedType === "line"
-                ? 2
-                : 1,
+                  ? 2
+                  : 1,
               ...(consolidatedType === "line"
                 ? {
-                    fill: false,
-                    tension: 0.32,
-                    pointRadius: POINT_RADIUS,
-                    pointHoverRadius: POINT_HOVER_RADIUS,
-                    pointBackgroundColor:
-                      graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
-                  }
+                  fill: false,
+                  tension: 0.32,
+                  pointRadius: POINT_RADIUS,
+                  pointHoverRadius: POINT_HOVER_RADIUS,
+                  pointBackgroundColor:
+                    graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
+                }
                 : consolidatedType === "bar"
-                ? { minBarLength: MIN_BAR_LENGTH }
-                : {}),
+                  ? { minBarLength: MIN_BAR_LENGTH }
+                  : {}),
             },
           ],
         },
@@ -2713,7 +2714,7 @@
               },
               tooltip: {
                 callbacks: {
-                  label: function(context) {
+                  label: function (context) {
                     let label = context.dataset.label || '';
                     if (label) {
                       label += ': ';
@@ -2724,11 +2725,11 @@
                 }
               }
             },
-            scales: { 
-              y: { 
-                beginAtZero: false,
+            scales: {
+              y: {
+                beginAtZero: consolidatedType === "bar",
                 ticks: {
-                  callback: function(value) {
+                  callback: function (value) {
                     return formatNumber(value);
                   }
                 }
@@ -2863,7 +2864,7 @@
               },
               scales: {
                 y: {
-                  beginAtZero: false,
+                  beginAtZero: operatingType === "bar",
                   ticks: {
                     callback: function (value) {
                       return formatNumber(value);
@@ -2939,7 +2940,7 @@
               },
               scales: {
                 y: {
-                  beginAtZero: false,
+                  beginAtZero: netType === "bar",
                   grace: "10%",
                   ticks: {
                     callback: function (value) {
@@ -3034,7 +3035,7 @@
               },
               scales: {
                 y: {
-                  beginAtZero: false,
+                  beginAtZero: operatingType === "bar",
                   ticks: {
                     callback: function (value) {
                       return formatNumber(value);
@@ -3113,7 +3114,7 @@
               },
               scales: {
                 y: {
-                  beginAtZero: false,
+                  beginAtZero: netType === "bar",
                   grace: "10%",
                   ticks: {
                     callback: function (value) {
@@ -3199,7 +3200,7 @@
             },
             scales: {
               y: {
-                beginAtZero: false,
+                beginAtZero: chartType === "bar",
                 grace: "10%",
                 ticks: {
                   callback: function (value) {
@@ -3213,7 +3214,7 @@
             },
           },
           graficasConfig,
-          consolidatedType
+          chartType
         ),
       });
     } catch (err) {
@@ -3289,7 +3290,7 @@
             },
             scales: {
               y: {
-                beginAtZero: false,
+                beginAtZero: chartType === "bar",
                 grace: "10%",
                 ticks: {
                   callback: function (value) {
@@ -3303,7 +3304,7 @@
             },
           },
           graficasConfig,
-          consolidatedType
+          chartType
         ),
       });
     } catch (err) {
@@ -3421,8 +3422,8 @@
       const data = await res.json();
       const lista = Array.isArray(data?.anios)
         ? data.anios
-            .filter((a) => Number.isInteger(Number(a)))
-            .sort((a, b) => b - a)
+          .filter((a) => Number.isInteger(Number(a)))
+          .sort((a, b) => b - a)
         : [];
 
       yearSelect.innerHTML = "";
@@ -3644,20 +3645,20 @@
           scales: isPie
             ? {}
             : {
-                y: {
-                  beginAtZero: false,
-                  ticks: {
-                    callback: (value) => formatNumber(value),
-                  },
-                },
-                x: {
-                  ticks: {
-                    autoSkip: false,
-                    maxRotation: 50,
-                    minRotation: 0,
-                  },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: (value) => formatNumber(value),
                 },
               },
+              x: {
+                ticks: {
+                  autoSkip: false,
+                  maxRotation: 50,
+                  minRotation: 0,
+                },
+              },
+            },
         },
       });
       await waitForCapture(180);
@@ -3888,7 +3889,7 @@
 
     return out;
   };
-  
+
   /**
    * Obtiene los datos actuales de las gráficas para exportación
    */
@@ -3897,17 +3898,17 @@
     const capitulo = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresa?.id);
     const anio = Number(yearSelect?.value);
     const mes = Number(monthSelect?.value);
-    
+
     const snapshot = leerSnapshot(empresa?.id, anio, mes);
     if (!snapshot?.map) {
       alert('No hay datos disponibles para exportar. Por favor, visita primero la vista RESUMEN.');
       return null;
     }
-    
+
     const graficasConfig = getGraficasConfig();
     const config = getRowsConfig(capitulo, graficasConfig);
     const flags = resolveExportFlags(graficasConfig, config);
-    
+
     // Preparar datos para exportación
     const datos = {
       empresa: empresa?.nombre || empresa?.id,
@@ -3923,13 +3924,13 @@
       flags,
       graficasConfig
     };
-    
+
     // Datos operativos
     const etiqueta = config?.isCdmx
       ? "CDMX"
       : window.CapitulosModulos?.obtenerConfigEmpresa?.(empresa?.id)?.etiqueta ||
-        empresa?.etiqueta ||
-        "Capitulo";
+      empresa?.etiqueta ||
+      "Capitulo";
     const resolveLabel = (label) =>
       (label || etiqueta).toString().replace(/\{capitulo\}/gi, etiqueta);
 
@@ -3942,7 +3943,7 @@
         realAcumAA: data.prevYTD
       });
     });
-    
+
     // Datos netos
     config.net.forEach(row => {
       const data = getRowData(snapshot.map, row.variants);
@@ -3953,7 +3954,7 @@
         realAcumAA: data.prevYTD
       });
     });
-    
+
     // Datos consolidados (solo CDMX)
     if (flags.consolidated) {
       const consolidatedSources =
@@ -3976,7 +3977,7 @@
           DEFAULT_GRAFICAS_CONFIG.sources?.consolidated || {}
         )
       );
-      
+
       datos.consolidados.push(
         {
           concepto: 'CONSOLIDATED OPERATING RESULTS',
@@ -3992,10 +3993,10 @@
         }
       );
     }
-    
+
     return datos;
   };
-  
+
   /**
    * Exporta los datos y gráficas a Excel usando ExcelJS
    */
@@ -4004,7 +4005,7 @@
     if (!datos) return;
     const flags = datos.flags || {};
     const customChartItems = getCustomChartsForExport();
-    
+
     // Verificar que ExcelJS esté disponible
     if (typeof ExcelJS === 'undefined') {
       // Fallback a SheetJS si ExcelJS no está disponible
@@ -4038,16 +4039,16 @@
       const ingresoFallbackSeries =
         flags.ingreso !== false
           ? await safeResolve(
-              () => buildIngresoPorCapituloSeries(datos.empresaId, datos.anio),
-              'ingreso por capitulo'
-            )
+            () => buildIngresoPorCapituloSeries(datos.empresaId, datos.anio),
+            'ingreso por capitulo'
+          )
           : null;
       const ingresoNacionalFallbackSeries =
         flags.ingresoNacional !== false
           ? await safeResolve(
-              () => buildIngresoNacionalSeries(datos.empresaId, datos.anio),
-              'ingreso nacional'
-            )
+            () => buildIngresoNacionalSeries(datos.empresaId, datos.anio),
+            'ingreso nacional'
+          )
           : null;
 
       const workbook = new ExcelJS.Workbook();
@@ -4059,7 +4060,7 @@
       if (flags.operating !== false) {
         const wsOperativos = workbook.addWorksheet('Resultados Operativos');
         sheetCount += 1;
-        
+
         // Información general
         wsOperativos.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
         wsOperativos.addRow(['Empresa:', datos.empresa]);
@@ -4108,7 +4109,7 @@
       if (flags.net !== false) {
         const wsNetos = workbook.addWorksheet('Resultados Netos');
         sheetCount += 1;
-        
+
         wsNetos.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
         wsNetos.addRow(['Empresa:', datos.empresa]);
         wsNetos.addRow(['Capítulo:', datos.capitulo]);
@@ -4154,7 +4155,7 @@
       if (flags.consolidated && datos.consolidados) {
         const wsConsolidados = workbook.addWorksheet('Consolidados');
         sheetCount += 1;
-        
+
         wsConsolidados.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
         wsConsolidados.addRow(['Empresa:', datos.empresa]);
         wsConsolidados.addRow(['Capítulo:', datos.capitulo]);
@@ -4350,7 +4351,7 @@
     const customChartItems = getCustomChartsForExport();
     const workbook = XLSX.utils.book_new();
     let sheetCount = 0;
-    
+
     // Información general
     const info = [
       ['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS'],
@@ -4361,7 +4362,7 @@
       ['Fecha de exportación:', datos.fecha],
       []
     ];
-    
+
     // Hoja 1: Resultados Operativos
     if (flags.operating !== false) {
       const wsOperativos = XLSX.utils.aoa_to_sheet([
@@ -4369,24 +4370,24 @@
         ['RESULTADOS OPERATIVOS POR CAPÍTULO'],
         ['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']
       ]);
-      
+
       XLSX.utils.sheet_add_json(wsOperativos, datos.operativos, {
         origin: -1,
         skipHeader: true,
         header: ['concepto', 'realAcumulado', 'pptoAcumulado', 'realAcumAA']
       });
-      
+
       wsOperativos['!cols'] = [
         { wch: 40 },
         { wch: 18 },
         { wch: 18 },
         { wch: 25 }
       ];
-      
+
       XLSX.utils.book_append_sheet(workbook, wsOperativos, 'Resultados Operativos');
       sheetCount += 1;
     }
-    
+
     // Hoja 2: Resultados Netos
     if (flags.net !== false) {
       const wsNetos = XLSX.utils.aoa_to_sheet([
@@ -4394,24 +4395,24 @@
         ['RESULTADOS NETOS POR CAPÍTULO'],
         ['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']
       ]);
-      
+
       XLSX.utils.sheet_add_json(wsNetos, datos.netos, {
         origin: -1,
         skipHeader: true,
         header: ['concepto', 'realAcumulado', 'pptoAcumulado', 'realAcumAA']
       });
-      
+
       wsNetos['!cols'] = [
         { wch: 40 },
         { wch: 18 },
         { wch: 18 },
         { wch: 25 }
       ];
-      
+
       XLSX.utils.book_append_sheet(workbook, wsNetos, 'Resultados Netos');
       sheetCount += 1;
     }
-    
+
     // Hoja 3: Consolidados
     if (flags.consolidated && datos.consolidados) {
       const wsConsolidados = XLSX.utils.aoa_to_sheet([
@@ -4419,20 +4420,20 @@
         ['RESULTADOS CONSOLIDADOS'],
         ['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']
       ]);
-      
+
       XLSX.utils.sheet_add_json(wsConsolidados, datos.consolidados, {
         origin: -1,
         skipHeader: true,
         header: ['concepto', 'realAcumulado', 'pptoAcumulado', 'realAcumAA']
       });
-      
+
       wsConsolidados['!cols'] = [
         { wch: 40 },
         { wch: 18 },
         { wch: 18 },
         { wch: 25 }
       ];
-      
+
       XLSX.utils.book_append_sheet(workbook, wsConsolidados, 'Consolidados');
       sheetCount += 1;
     }
@@ -4495,11 +4496,11 @@
       ]);
       XLSX.utils.book_append_sheet(workbook, wsEmpty, 'Graficas');
     }
-    
+
     const fileName = `Graficas_Resumen_${datos.anio}_${datos.mes}_${Date.now()}.xlsx`;
     XLSX.writeFile(workbook, fileName);
   }
-  
+
   /**
    * Exporta las gráficas a PDF usando jsPDF y html2canvas
    */
@@ -4508,13 +4509,13 @@
     if (!datos) return;
     const flags = datos.flags || {};
     const customChartItems = getCustomChartsForExport();
-    
+
     // Verificar que las librerías estén disponibles
     if (typeof jspdf === 'undefined') {
       alert('La librería jsPDF no está disponible.');
       return;
     }
-    
+
     try {
       const safeResolve = async (factory, label) => {
         try {
@@ -4537,16 +4538,16 @@
       const ingresoFallbackSeries =
         flags.ingreso !== false
           ? await safeResolve(
-              () => buildIngresoPorCapituloSeries(datos.empresaId, datos.anio),
-              'ingreso por capitulo'
-            )
+            () => buildIngresoPorCapituloSeries(datos.empresaId, datos.anio),
+            'ingreso por capitulo'
+          )
           : null;
       const ingresoNacionalFallbackSeries =
         flags.ingresoNacional !== false
           ? await safeResolve(
-              () => buildIngresoNacionalSeries(datos.empresaId, datos.anio),
-              'ingreso nacional'
-            )
+            () => buildIngresoNacionalSeries(datos.empresaId, datos.anio),
+            'ingreso nacional'
+          )
           : null;
 
       const { jsPDF } = jspdf;
@@ -4555,13 +4556,13 @@
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 15;
       let yPosition = margin;
-      
+
       // Título y metadatos
       pdf.setFontSize(16);
       pdf.setFont(undefined, 'bold');
       pdf.text('GRÁFICAS DE RESUMEN - DATOS ACUMULADOS', pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 10;
-      
+
       pdf.setFontSize(10);
       pdf.setFont(undefined, 'normal');
       pdf.text(`Empresa: ${datos.empresa}`, margin, yPosition);
@@ -4572,14 +4573,14 @@
       yPosition += 6;
       pdf.text(`Fecha: ${datos.fecha}`, margin, yPosition);
       yPosition += 10;
-      
+
       // Función para agregar tabla al PDF
       const agregarTabla = (titulo, datos, startY) => {
         pdf.setFontSize(12);
         pdf.setFont(undefined, 'bold');
         pdf.text(titulo, margin, startY);
         startY += 8;
-        
+
         // Encabezados de tabla con wrap text
         const headers = [['Concepto', 'Real\nAcumulado', 'Ppto.\nAcumulado', 'Real Acum.\nAño Anterior']];
         const rows = datos.map(item => [
@@ -4588,7 +4589,7 @@
           formatNumber(item.pptoAcumulado),
           formatNumber(item.realAcumAA)
         ]);
-        
+
         pdf.autoTable({
           startY: startY,
           head: headers,
@@ -4621,10 +4622,10 @@
             cellWidth: 'wrap'
           }
         });
-        
+
         return pdf.lastAutoTable.finalY + 10;
       };
-      
+
       const tablas = [];
       if (flags.operating !== false) {
         tablas.push({
@@ -4656,17 +4657,17 @@
       if (tablas.length > 0) {
         yPosition = agregarTabla(tablas[0].titulo, tablas[0].datos, yPosition);
       }
-      
+
       // Nueva página si es necesario
       if (yPosition > pageHeight - 60) {
         pdf.addPage();
         yPosition = margin;
       }
-      
+
       if (tablas.length > 1) {
         yPosition = agregarTabla(tablas[1].titulo, tablas[1].datos, yPosition);
       }
-      
+
       if (tablas.length > 2) {
         if (yPosition > pageHeight - 60) {
           pdf.addPage();
@@ -4674,17 +4675,17 @@
         }
         yPosition = agregarTabla(tablas[2].titulo, tablas[2].datos, yPosition);
       }
-      
+
       // Agregar gráficas como imágenes
       const capturaGraficas = async () => {
         pdf.addPage();
         yPosition = margin;
-        
+
         pdf.setFontSize(14);
         pdf.setFont(undefined, 'bold');
         pdf.text('GRÁFICAS VISUALES', pageWidth / 2, yPosition, { align: 'center' });
         yPosition += 10;
-        
+
         // Capturar cada gráfica
         const graficas = [];
         if (flags.operating !== false) {
@@ -4760,7 +4761,7 @@
           }
           return false;
         });
-         
+
         if (!graficasFiltradas.length) {
           pdf.setFontSize(11);
           pdf.setFont(undefined, 'normal');
@@ -4768,7 +4769,7 @@
           yPosition += 10;
           return;
         }
-         
+
         for (const grafica of graficasFiltradas) {
           const canvas = grafica.canvas;
           try {
@@ -4784,7 +4785,7 @@
               imgDataUrl = await renderFallbackChartDataUrl(fallbackData);
             }
             if (!isDataUrlImagenValida(imgDataUrl)) continue;
-            
+
             // Calcular dimensiones proporcionales
             const baseWidth =
               Number(canvas?.width) || Number(canvas?.clientWidth) || 1200;
@@ -4793,17 +4794,17 @@
             const canvasAspectRatio = baseHeight / Math.max(baseWidth, 1);
             const imgWidth = pageWidth - 2 * margin;
             const imgHeight = imgWidth * (canvasAspectRatio > 0 ? canvasAspectRatio : 0.55);
-            
+
             if (yPosition + imgHeight > pageHeight - margin) {
               pdf.addPage();
               yPosition = margin;
             }
-            
+
             pdf.setFontSize(10);
             pdf.setFont(undefined, 'bold');
             pdf.text(grafica.titulo, margin, yPosition);
             yPosition += 5;
-            
+
             pdf.addImage(imgDataUrl, 'PNG', margin, yPosition, imgWidth, imgHeight);
             yPosition += imgHeight + 10;
           } catch (err) {
@@ -4811,19 +4812,19 @@
           }
         }
       };
-      
+
       await capturaGraficas();
-      
+
       // Descargar PDF
       const fileName = `Graficas_Resumen_${datos.anio}_${datos.mes}_${Date.now()}.pdf`;
       pdf.save(fileName);
-      
+
     } catch (error) {
       console.error('Error al exportar PDF:', error);
       alert('Error al generar el PDF. Por favor, intente nuevamente.');
     }
   };
-  
+
   /**
    * Imprime las gráficas
    */
