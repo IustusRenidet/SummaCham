@@ -1522,6 +1522,60 @@
     return candidates.filter(Boolean);
   }
 
+  function operationMatchesParentSectionHint(op, parentSection = "") {
+    const parentRaw = (parentSection || "").toString().trim();
+    const parentKey = normalizeOperationMatch(parentRaw);
+    if (!parentKey) return true;
+
+    const parentByCandidates = getOperationParentCandidates(op).some(
+      (candidate) => normalizeOperationMatch(candidate || "") === parentKey,
+    );
+    if (parentByCandidates) return true;
+
+    const displayKey = normalizeOperationMatch(
+      getOperationDisplayName(op) || getOperationLabel(op) || getOperationId(op),
+    );
+    if (displayKey) {
+      if (displayKey.includes(parentKey)) return true;
+      const parentTokens = parentRaw
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .split(/[^a-z0-9]+/g)
+        .map((token) => normalizeOperationMatch(token))
+        .filter((token) => token && token.length >= 3);
+      if (parentTokens.some((token) => displayKey.includes(token))) {
+        return true;
+      }
+    }
+
+    const legacyAnchors = [
+      op?.["sum-row-sumavarios"],
+      op?.["sum-row-sumavarios2"],
+      op?.["sum-row-operativo"],
+      op?.["result-row"],
+      op?.["net-row"],
+      op?.["result-net-row"],
+      op?.SECCION,
+      op?.seccion,
+    ];
+    return legacyAnchors.some(
+      (anchor) => normalizeOperationMatch(anchor || "") === parentKey,
+    );
+  }
+
+  function getOperationParentMatchScore(op, parentSection = "") {
+    const parentKey = normalizeOperationMatch(parentSection || "");
+    if (!parentKey || !op) return 0;
+    const parentExact = normalizeOperationMatch(op?.parentSection || "");
+    if (parentExact && parentExact === parentKey) return 3;
+    const parentFromCandidates = getOperationParentCandidates(op).some(
+      (candidate) => normalizeOperationMatch(candidate || "") === parentKey,
+    );
+    if (parentFromCandidates) return 2;
+    return operationMatchesParentSectionHint(op, parentSection) ? 1 : 0;
+  }
+
   function isHeaderLinkedOperation(op) {
     if (!op) return false;
     const parentSection = (op.parentSection || "").toString().trim();
@@ -1544,12 +1598,13 @@
     const parentKey = normalizeOperationMatch(parentSection);
     const filterByParent = (ops = []) => {
       if (!parentKey) return ops;
-      const withParent = ops.filter((op) =>
-        getOperationParentCandidates(op).some(
-          (candidate) => normalizeOperationMatch(candidate) === parentKey,
-        ),
+      const explicit = ops.filter(
+        (op) => getOperationParentMatchScore(op, parentSection) >= 2,
       );
-      return withParent;
+      if (explicit.length) return explicit;
+      return ops.filter(
+        (op) => getOperationParentMatchScore(op, parentSection) >= 1,
+      );
     };
 
     const rowMatch = findOperationsByRowLabel(label, preferredField);
@@ -1572,9 +1627,7 @@
         normalizeOperationMatch(getOperationLabel(op)) === target;
       if (!sameId && !sameLabel) return false;
       if (!parentKey) return true;
-      return getOperationParentCandidates(op).some(
-        (candidate) => normalizeOperationMatch(candidate) === parentKey,
-      );
+      return getOperationParentMatchScore(op, parentSection) >= 1;
     });
     if (byIdentity.length) {
       return { field: "", operations: byIdentity };
@@ -4525,7 +4578,9 @@
     const safeSection = (sectionName || "").toString().trim();
     const safeSubsection = (subsectionName || "").toString().trim();
     if (kind === "section") {
-      const match = findOperationBySectionName(safeSection, safeSection);
+      const match = findOperationBySectionName(safeSection, safeSection, {
+        scope: "section",
+      });
       if (match) {
         return match;
       }
@@ -4537,32 +4592,88 @@
           const subKey = normalizeOperationMatch(op?.parentSubsection || "");
           const sumRowKey = normalizeOperationMatch(op?.["sum-row"] || "");
           const placementKey = normalizeOperationMatch(op?.SECCION || "");
-          return (
-            parentKey === targetKey &&
-            !subKey &&
-            (!sumRowKey || sumRowKey === targetKey) &&
-            (!placementKey || placementKey === targetKey)
+          const sumRowVariosKey = normalizeOperationMatch(
+            op?.["sum-row-sumavarios"] || "",
           );
+          const sumRowVarios2Key = normalizeOperationMatch(
+            op?.["sum-row-sumavarios2"] || "",
+          );
+          const sumRowOperativoKey = normalizeOperationMatch(
+            op?.["sum-row-operativo"] || "",
+          );
+          const resultRowKey = normalizeOperationMatch(op?.["result-row"] || "");
+          const netRowKey = normalizeOperationMatch(op?.["net-row"] || "");
+          const resultNetRowKey = normalizeOperationMatch(
+            op?.["result-net-row"] || "",
+          );
+          const hasSectionRowAnchor =
+            sumRowVariosKey === targetKey ||
+            sumRowVarios2Key === targetKey ||
+            sumRowOperativoKey === targetKey ||
+            resultRowKey === targetKey ||
+            netRowKey === targetKey ||
+            resultNetRowKey === targetKey;
+          const hasPlacementSectionAnchor =
+            placementKey === targetKey && !subKey && !sumRowKey;
+          const hasLegacySectionAnchor =
+            hasSectionRowAnchor || hasPlacementSectionAnchor;
+          const matchesByParent =
+            parentKey === targetKey && !subKey && !sumRowKey;
+          const matchesLegacy = !parentKey && hasLegacySectionAnchor;
+          return matchesByParent || matchesLegacy;
         }) || null
       );
     }
-    const match = findOperationBySectionName(safeSubsection, safeSection);
+    const match = findOperationBySectionName(safeSubsection, safeSection, {
+      scope: "subsection",
+    });
     if (match) {
       return match;
     }
     const sectionKey = normalizeOperationMatch(safeSection);
     const subsectionKey = normalizeOperationMatch(safeSubsection);
+    const candidates = (state.operaciones || []).filter((op) => {
+      if (!isHeaderLinkedOperation(op)) return false;
+      const parentKey = normalizeOperationMatch(op?.parentSection || "");
+      const subKey = normalizeOperationMatch(op?.parentSubsection || "");
+      const sumRowKey = normalizeOperationMatch(op?.["sum-row"] || "");
+      const placementKey = normalizeOperationMatch(op?.SECCION || op?.seccion || "");
+      const isHomonymScope = Boolean(
+        sectionKey && subsectionKey && sectionKey === subsectionKey,
+      );
+      const matchesSubAnchor =
+        subKey === subsectionKey ||
+        sumRowKey === subsectionKey ||
+        placementKey === subsectionKey;
+      if (!matchesSubAnchor) return false;
+      if (isHomonymScope && !subKey && !sumRowKey) return false;
+      if (parentKey) return parentKey === sectionKey;
+      if (!sectionKey) return true;
+      return operationMatchesParentSectionHint(op, safeSection);
+    });
+    if (!candidates.length) return null;
+    const scored = candidates
+      .map((op) => ({ op, score: getOperationParentMatchScore(op, safeSection) }))
+      .sort((a, b) => b.score - a.score);
+    const topScore = scored[0]?.score ?? 0;
+    const topMatches = scored
+      .filter((entry) => entry.score === topScore)
+      .map((entry) => entry.op);
+    if (sectionKey && topScore === 0) return null;
+    if (sectionKey && topScore <= 1 && topMatches.length > 1) return null;
     return (
-      (state.operaciones || []).find((op) => {
-        if (!isHeaderLinkedOperation(op)) return false;
-        const parentKey = normalizeOperationMatch(op?.parentSection || "");
-        const subKey = normalizeOperationMatch(op?.parentSubsection || "");
-        const sumRowKey = normalizeOperationMatch(op?.["sum-row"] || "");
-        return (
-          parentKey === sectionKey &&
-          (subKey === subsectionKey || sumRowKey === subsectionKey)
-        );
-      }) || null
+      topMatches.find(
+        (op) => normalizeOperationMatch(op?.parentSubsection || "") === subsectionKey,
+      ) ||
+      topMatches.find(
+        (op) => normalizeOperationMatch(op?.["sum-row"] || "") === subsectionKey,
+      ) ||
+      topMatches.find(
+        (op) =>
+          normalizeOperationMatch(op?.SECCION || op?.seccion || "") === subsectionKey,
+      ) ||
+      topMatches[0] ||
+      null
     );
   }
 
@@ -9578,6 +9689,15 @@
     return matches.length === 1 ? matches[0] : "";
   }
 
+  function subsectionExistsInParent(parentSection = "", subsectionName = "") {
+    const parentKey = normalizeOperationMatch(parentSection || "");
+    const subsectionKey = normalizeOperationMatch(subsectionName || "");
+    if (!parentKey || !subsectionKey) return false;
+    return getManualSubsectionNames(parentSection).some(
+      (sub) => normalizeOperationMatch(sub || "") === subsectionKey,
+    );
+  }
+
   function buildRefTokenFromValue(valueRaw = "", options = {}) {
     const value = (valueRaw || "").toString().trim();
     if (!value) return null;
@@ -9617,6 +9737,9 @@
     const parsedSection = parseSectionSelection(value);
     const sectionLabel = parsedSection.section || value;
     const explicitParent = (parsedSection.parent || "").toString().trim();
+    const parentHintRaw =
+      options.parentSection || options.defaultParentSection || "";
+    const parentHint = (parentHintRaw || "").toString().trim();
 
     // Si el usuario escribe "PARENT||SUB", es una subsección explícita.
     if (explicitParent) {
@@ -9627,6 +9750,25 @@
         refId,
         label: sectionLabel,
         parentSection: explicitParent,
+        unresolved: !refId,
+      };
+    }
+
+    // Caso homónimo: si en el contexto actual existe subsección con el mismo nombre
+    // que su sección principal (ej: "Monterrey Income"), priorizar subsección.
+    const sameNameInContext =
+      parentHint &&
+      normalizeOperationMatch(parentHint) ===
+      normalizeOperationMatch(sectionLabel) &&
+      subsectionExistsInParent(parentHint, sectionLabel);
+    if (sameNameInContext) {
+      const refId = buildSubsectionRefId(parentHint, sectionLabel);
+      return {
+        kind: FORMULA_KIND_REF,
+        refType: "subsection",
+        refId,
+        label: sectionLabel,
+        parentSection: parentHint,
         unresolved: !refId,
       };
     }
@@ -9642,10 +9784,6 @@
         unresolved: !refId,
       };
     }
-
-    const parentHintRaw =
-      options.parentSection || options.defaultParentSection || "";
-    const parentHint = (parentHintRaw || "").toString().trim();
 
     // Si estamos dentro de una sección (contexto), asumir subsección cuando NO es una sección principal.
     if (parentHint) {
@@ -10276,7 +10414,14 @@
 
     let existing = null;
     if (rowSection) {
-      existing = findOperationBySectionName(rowSection, parentSection || "");
+      const lookupScope = parentSubsection
+        ? "subsection"
+        : parentSection
+          ? "section"
+          : "auto";
+      existing = findOperationBySectionName(rowSection, parentSection || "", {
+        scope: lookupScope,
+      });
     }
     if (!existing && normalizedLabel) {
       existing = (state.operaciones || []).find((item) => {
@@ -10418,59 +10563,145 @@
     return labels;
   }
 
-  function findOperationBySectionName(sectionName, parentSection = "") {
+  function findOperationBySectionName(
+    sectionName,
+    parentSection = "",
+    options = {},
+  ) {
     if (!sectionName) return null;
     const target = normalizeOperationMatch(sectionName);
     const parentKey = normalizeOperationMatch(parentSection);
+    const scopeHintRaw =
+      typeof options === "string" ? options : options?.scope || "";
+    const scopeHint = (scopeHintRaw || "").toString().trim().toLowerCase();
+    const forceSubsectionScope = scopeHint === "subsection";
+    const forceSectionScope = scopeHint === "section";
     const isSubsectionScope = Boolean(
-      parentKey && target && parentKey !== target,
+      forceSubsectionScope ||
+      (!forceSectionScope && parentKey && target && parentKey !== target),
     );
     const isSectionScope = Boolean(
-      parentKey && target && parentKey === target,
+      forceSectionScope ||
+      (!forceSubsectionScope && parentKey && target && parentKey === target),
     );
     const matches = (state.operaciones || []).filter((op) => {
       if (!op || !isHeaderLinkedOperation(op)) return false;
       const opParentKey = normalizeOperationMatch(op.parentSection || "");
       const opSubKey = normalizeOperationMatch(op.parentSubsection || "");
+      const sumRowKey = normalizeOperationMatch(op?.["sum-row"] || "");
+      const placementKey = normalizeOperationMatch(
+        op.SECCION || op.seccion || "",
+      );
+      const sumRowVariosKey = normalizeOperationMatch(
+        op?.["sum-row-sumavarios"] || "",
+      );
+      const sumRowVarios2Key = normalizeOperationMatch(
+        op?.["sum-row-sumavarios2"] || "",
+      );
       const hasRowLabel = ROW_LABEL_FIELDS.some(
         (field) => normalizeOperationMatch(op?.[field]) === target,
       );
 
       if (isSubsectionScope) {
-        if (opParentKey !== parentKey) return false;
-        const bySumRow =
-          normalizeOperationMatch(op?.["sum-row"] || "") === target;
-        return opSubKey === target || bySumRow;
+        const matchesSubAnchor =
+          opSubKey === target || sumRowKey === target || placementKey === target;
+        if (!matchesSubAnchor) return false;
+        if (opParentKey) return opParentKey === parentKey;
+        if (!parentKey) return true;
+        return operationMatchesParentSectionHint(op, parentSection);
       }
 
       if (isSectionScope) {
-        if (opParentKey !== parentKey) return false;
-        if (opSubKey) return false;
-        const sumRowKey = normalizeOperationMatch(op?.["sum-row"] || "");
+        const hasLegacySectionAnchor =
+          placementKey === target ||
+          sumRowVariosKey === target ||
+          sumRowVarios2Key === target ||
+          hasRowLabel;
+        const parentMatches = opParentKey === parentKey;
+        const legacyMatches = !opParentKey && hasLegacySectionAnchor;
+        if (!parentMatches && !legacyMatches) return false;
+        if (opSubKey && opSubKey !== target) return false;
         if (sumRowKey && sumRowKey !== target) return false;
-        return (
-          normalizeOperationMatch(op?.["sum-row-sumavarios"] || "") === target ||
-          normalizeOperationMatch(op?.["sum-row-sumavarios2"] || "") ===
-            target ||
-          hasRowLabel
-        );
+        return hasLegacySectionAnchor;
       }
 
       return hasRowLabel;
     });
     if (!matches.length) return null;
     if (isSubsectionScope) {
-      const exactSub = matches.find(
+      const explicitSubMatches = matches.filter((op) => {
+        const opSubKey = normalizeOperationMatch(op?.parentSubsection || "");
+        const sumRowKey = normalizeOperationMatch(op?.["sum-row"] || "");
+        return opSubKey === target || sumRowKey === target;
+      });
+      const candidatePool =
+        explicitSubMatches.length > 0 ? explicitSubMatches : matches;
+      const scored = candidatePool
+        .map((op) => ({
+          op,
+          score: getOperationParentMatchScore(op, parentSection),
+        }))
+        .sort((a, b) => b.score - a.score);
+      const topScore = scored[0]?.score ?? 0;
+      const topMatches = scored
+        .filter((entry) => entry.score === topScore)
+        .map((entry) => entry.op);
+      if (parentKey && topScore === 0) return null;
+      if (parentKey && topScore <= 1 && topMatches.length > 1) return null;
+
+      const exactSub = topMatches.find(
         (op) => normalizeOperationMatch(op?.parentSubsection || "") === target,
       );
       if (exactSub) return exactSub;
-      const bySumRow = matches.find(
+      const bySumRow = topMatches.find(
         (op) => normalizeOperationMatch(op?.["sum-row"] || "") === target,
       );
       if (bySumRow) return bySumRow;
+      const byPlacement = topMatches.find(
+        (op) =>
+          normalizeOperationMatch(op?.SECCION || op?.seccion || "") === target,
+      );
+      if (byPlacement) {
+        const placementSubKey = normalizeOperationMatch(
+          byPlacement?.parentSubsection || "",
+        );
+        const placementSumRowKey = normalizeOperationMatch(
+          byPlacement?.["sum-row"] || "",
+        );
+        const isHomonymScope = Boolean(parentKey && parentKey === target);
+        if (isHomonymScope && !placementSubKey && !placementSumRowKey) {
+          return null;
+        }
+        return byPlacement;
+      }
+      return topMatches[0] || null;
     }
     if (isSectionScope) {
-      const bySumVarios = matches.find(
+      const isSectionCandidate = (op) => {
+        const subKey = normalizeOperationMatch(op?.parentSubsection || "");
+        const sumRowKey = normalizeOperationMatch(op?.["sum-row"] || "");
+        const hasSubAnchor = Boolean(subKey || sumRowKey);
+        const sectionAnchorKeys = [
+          normalizeOperationMatch(op?.["sum-row-sumavarios"] || ""),
+          normalizeOperationMatch(op?.["sum-row-sumavarios2"] || ""),
+          normalizeOperationMatch(op?.["sum-row-operativo"] || ""),
+          normalizeOperationMatch(op?.["result-row"] || ""),
+          normalizeOperationMatch(op?.["net-row"] || ""),
+          normalizeOperationMatch(op?.["result-net-row"] || ""),
+        ];
+        const hasSectionAnchor = sectionAnchorKeys.some((key) => key === target);
+        if (hasSectionAnchor) return true;
+        return !hasSubAnchor;
+      };
+
+      const sectionMatches = matches.filter((op) => isSectionCandidate(op));
+      if (!sectionMatches.length) {
+        // Evitar enlazar una operación de subsección cuando principal/subsección
+        // comparten nombre (ej. "Monterrey Income").
+        return null;
+      }
+
+      const bySumVarios = sectionMatches.find(
         (op) =>
           normalizeOperationMatch(op?.["sum-row-sumavarios"] || "") ===
             target ||
@@ -10478,6 +10709,7 @@
             target,
       );
       if (bySumVarios) return bySumVarios;
+      return sectionMatches[0] || null;
     }
     return matches[0] || null;
   }
@@ -10725,7 +10957,9 @@
         : "";
       let op = null;
       if (sectionName) {
-        op = findOperationBySectionName(sectionName, parentSection || "");
+        op = findOperationBySectionName(sectionName, parentSection || "", {
+          scope: isSubsectionSelection ? "subsection" : "section",
+        });
       }
 
       if (
@@ -17782,6 +18016,7 @@
             existing = findOperationBySectionName(
               placement,
               parentSection || "",
+              { scope: sectionSub ? "subsection" : "section" },
             );
           }
           if (!existing && rawClase) {
