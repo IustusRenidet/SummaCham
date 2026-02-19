@@ -2949,11 +2949,20 @@
         r.classList.contains("free-operation-row")
       );
     };
+    const rowLevel = (row.dataset?.level || "subsection");
     const esCorte = (r) => {
       if (!r) return true;
-      if (r.classList.contains("collapsible-section")) return true;
       const rol = (r.dataset?.rowRole || "").toLowerCase();
-      return ["principal", "group", "result", "net", "final"].includes(rol);
+      if (rowLevel === "principal") {
+        // When collapsing a principal: walk through subsection rows; stop only at next principal or totals
+        return r.dataset?.level === "principal" ||
+          rol === "principal" ||
+          ["group", "result", "net", "final"].includes(rol);
+      } else {
+        // When collapsing a subsection: stop at any collapsible section or principal
+        if (r.classList.contains("collapsible-section")) return true;
+        return ["principal", "group", "result", "net", "final"].includes(rol);
+      }
     };
     while (siguiente && !esCorte(siguiente)) {
       if (!esOperacion(siguiente)) {
@@ -3715,7 +3724,7 @@
     // Evaluate formula for a specific field (e.g., 'actualMonth')
     const calculateFormulaValue = (formulaStr, contextMap, field, currentBlock = null) => {
       if (!formulaStr) return 0;
-      
+
       const tokens = formulaStr.match(/(".*?"|'.*?'|[\w\s\-\.]+|[\+\-\*\/\(\)])/g) || [];
       let evalExpr = "";
 
@@ -3750,25 +3759,25 @@
             // Priority:
             // 1. Any block that HAS DATA (Pass 1 populated) and IS NOT ME
             // 2. Any block that IS NOT ME
-            
+
             // First, filter out self
             const others = entry.filter(b => b !== currentBlock);
-            
+
             // Find one with data in the requested field
             const withData = others.find(c => c.totals && (Math.abs(toNumber(c.totals[field])) > 0.001));
-            
+
             if (withData) {
-                block = withData;
-                console.log(`[FORMULA REF] Using block with data: "${withData.label}" (${field}: ${withData.totals[field]})`);
+              block = withData;
+              console.log(`[FORMULA REF] Using block with data: "${withData.label}" (${field}: ${withData.totals[field]})`);
             } else if (others.length > 0) {
-                // Secondary preference: 'secundaria' type
-                const sub = others.find(c => (c.type||"").toLowerCase().startsWith('secundaria') || (c.type||"").toLowerCase().startsWith('sub'));
-                block = sub || others[0];
-                console.log(`[FORMULA REF] Using fallback block: "${block.label}" (${field}: ${block.totals?.[field] || 'no totals'})`);
+              // Secondary preference: 'secundaria' type
+              const sub = others.find(c => (c.type || "").toLowerCase().startsWith('secundaria') || (c.type || "").toLowerCase().startsWith('sub'));
+              block = sub || others[0];
+              console.log(`[FORMULA REF] Using fallback block: "${block.label}" (${field}: ${block.totals?.[field] || 'no totals'})`);
             } else {
-                // Only self in array?
-                block = entry[0];
-                console.log(`[FORMULA REF] Only self available: "${block.label}"`);
+              // Only self in array?
+              block = entry[0];
+              console.log(`[FORMULA REF] Only self available: "${block.label}"`);
             }
           } else {
             block = entry;
@@ -3779,8 +3788,8 @@
           // Fallback: Try exact label or variants?
           let entry2 = contextMap.get(t.toUpperCase());
           if (entry2) {
-             block = Array.isArray(entry2) ? entry2[0] : entry2;
-             console.log(`[FORMULA REF] Found via uppercase fallback: "${block.label}"`);
+            block = Array.isArray(entry2) ? entry2[0] : entry2;
+            console.log(`[FORMULA REF] Found via uppercase fallback: "${block.label}"`);
           }
         }
 
@@ -3791,20 +3800,20 @@
           console.log(`[FORMULA REF] No value found for "${refKey}"`);
         }
 
-        evalExpr += val; 
+        evalExpr += val;
       }
 
       try {
         const safeExpr = evalExpr.replace(/[^0-9\.\+\-\*\/\(\) ]/g, '');
         if (!safeExpr) return 0;
-        
+
         const result = Function('"use strict";return (' + safeExpr + ')')() || 0;
-        
+
         // Debug specifically for INCOME
         if (field === 'actualYTD' && result === 0 && (formulaStr.includes('MEMBERSHIP') || formulaStr.includes('EVENTS'))) {
-             console.log(`[DEBUG FORMULA ZERO] Formula: "${formulaStr}" Field: ${field} Result: ${result}`);
+          console.log(`[DEBUG FORMULA ZERO] Formula: "${formulaStr}" Field: ${field} Result: ${result}`);
         }
-        
+
         return result;
       } catch (e) {
         console.warn("Error evaluating formula:", formulaStr, e);
@@ -3843,7 +3852,7 @@
         if (b.nombre) addToMap(b.nombre, b);
         if (b.id) addToMap(b.id, b); // ID fallback
         if (b.Clase) addToMap(b.Clase, b); // Operation Class fallback
-        
+
         // Add explicit subsection property if available
         if (b.subseccion) addToMap(b.subseccion, b);
       });
@@ -3897,7 +3906,7 @@
       layoutArr.forEach(block => {
         const tipoKey = block.type || block.tipo || "";
         const tipo = tipoKey.toLowerCase();
-        
+
         // Map synonyms
         const isPrincipal = tipo === 'principal' || tipo === 'sum-row-sumavarios' || tipo.includes('principal') || tipo === 'section' || tipo === 'title-row';
         const isSecundaria = tipo === 'secundaria' || tipo === 'sum-row' || tipo.includes('secundaria') || tipo === 'subsection';
@@ -3947,79 +3956,17 @@
       };
 
 
-      // PASS 2: AUTO-SUM SKIPPED (MANUAL MODE)
-      // The user requested that sections be completely manual and obey formulas only.
-      // "no se va a ocupar recalcular las secciones principales... solo obedecera a la formula que tengan".
-      // This implies we should NOT auto-sum subsections into sections.
-      // HOWEVER, if we skip this, sections without explicit formulas will be 0.
-      // Is that what's desired? Likely yes, for "completely manual" control.
-      // BUT, pass 1 (Accounts -> Subsections) was implicitly accepted as "manual" usually means section-level.
-      // For now, let's DISABLE Pass 2 Auto-Summing to respect "nada de ataduras a formulas autogeneradas".
-
-      /* 
-      layoutArr.forEach(block => {
-          const tipo = (block.type || "").toLowerCase();
-          
-          if (tipo === 'principal') {
-               commitPrincipalAgg();
-               currentPrincipalForAgg = block;
-               principalAccumulated = totalesCero();
-          } else if (tipo === 'secundaria') {
-               if (currentPrincipalForAgg) {
-                   const t = block.totals || {};
-                   // SUBSECTION FORMULA CHECK (Pass 1.5)
-                   const subFormula = block.formula || block.Formula || block.manualFormula;
-                   if (subFormula && typeof subFormula === 'string' && subFormula.trim().length > 3) {
-                       const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
-                       const computed = {};
-                       fields.forEach(f => {
-                         computed[f] = calculateFormulaValue(subFormula, contextMap, f);
-                       });
-                       block.totals = computed;
-                       block.manualFormula = true;
-                       // We would update 't' here, but since we are SKIPPING auto-aggregation into principal,
-                       // we just calculate the subsection and stop.
-                   }
-                   
-                   // SKIP adding to principalAccumulated
-               }
-          }
-      });
-      commitPrincipalAgg(); 
-      */
-
-      // PASS 2: SUBSECTIONS -> PRINCIPALS (AUTO-SUM)
-      // RE-ENABLING PASS 2 but only for explicit requests?
-      // No, user said "totalmente manual".
-      // But if a section like 'GUADALAJARA INCOME' contains only one subsection 'Guadalajara Income',
-      // the user expects it to sum that subsection without writing "Guadalajara Income" as a formula?
-      // The user said: "no pueden autogenerarse nigun tipo de fila en resumen... las secciones no deben tener ni una sola formula que se defina en programacion, todo en base de daatos"
-      // This means: Only explicit formulas in the DB work.
-      // If 'GUADALAJARA INCOME' is 0, it means it has NO formula in the DB.
-      // If the user *expects* it to sum, they must ADD the formula in the DB (Template Manager).
-      // They showed a screenshot of a formula editor, implying they *are* adding formulas.
-      // So why is it 0?
-      // Because `calculateFormulaValue` is failing to find the target blocks (Subsections).
-
-      // Let's debug `calculateFormulaValue` by making it extremely robust for Subsections.
-      
-      // Instead, we just need to calculate Subsection Formulas (if any exist) because they are "manual" too.
-      // We iterate just to find subsections with formulas.
+      // PASS 2a: Evaluate subsection formula strings (if any)
       layoutArr.forEach(block => {
         const tipoKey = block.type || block.tipo || "";
         const tipo = tipoKey.toLowerCase();
         const isSecundaria = tipo === 'secundaria' || tipo === 'sum-row' || tipo.includes('secundaria') || tipo === 'subsection';
-        
-        // Ensure ALL subsections are properly indexed with their totals BEFORE Pass 3
-        
         if (isSecundaria) {
           const subFormula = getFormulaString(block);
           if (subFormula && typeof subFormula === 'string' && subFormula.trim().length > 3) {
-            console.log(`[FORMULA CALC] Subsection "${block.label}" formula: "${subFormula}"`);
             const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
             const computed = {};
             fields.forEach(f => {
-              // Pass 'block' as context
               computed[f] = calculateFormulaValue(subFormula, contextMap, f, block);
             });
             block.totals = computed;
@@ -4027,6 +3974,36 @@
           }
         }
       });
+
+      // PASS 2b: Auto-sum subsection totals into principals (baseline before formula override)
+      // Fixes sign inversion: engine values from calcularTotales may carry wrong sign when
+      // factor*actual is negative; subsection totals from Pass 1 are always correct (pure sum of accounts).
+      // Pass 3 will overwrite any principal that has an explicit formula string in the DB.
+      {
+        const principalAggMap = new Map(); // label -> { block, acc }
+        layoutArr.forEach(block => {
+          const tipo = (block.type || block.tipo || "").toLowerCase();
+          const isPrincipal = tipo === 'principal' || tipo === 'sum-row-sumavarios' || tipo.includes('principal') || tipo === 'section' || tipo === 'title-row';
+          const isSecundaria = tipo === 'secundaria' || tipo === 'sum-row' || tipo.includes('secundaria') || tipo === 'subsection';
+          if (isPrincipal) {
+            principalAggMap.set(block.label, { block, acc: totalesCero(), hasSubs: false });
+          } else if (isSecundaria && block.parentSection) {
+            const entry = principalAggMap.get(block.parentSection);
+            if (entry) {
+              entry.hasSubs = true;
+              sumMetricsLocal(entry.acc, block.totals || {});
+            }
+          }
+        });
+        principalAggMap.forEach(({ block, acc, hasSubs }) => {
+          // Only override if the section has child subsections AND no explicit formula string
+          const fStr = getFormulaString(block);
+          const hasFormulaStr = fStr && typeof fStr === 'string' && fStr.trim().length > 3;
+          if (hasSubs && !hasFormulaStr) {
+            block.totals = { ...acc };
+          }
+        });
+      }
 
       // PASS 3: EVALUATE FORMULAS (SECTIONS)
 
@@ -4047,12 +4024,12 @@
           const tipoKey = block.type || block.tipo || "";
           const tipo = tipoKey.toLowerCase();
           const isPrincipal = tipo === 'principal' || tipo === 'sum-row-sumavarios' || tipo.includes('principal') || tipo === 'section';
-    
+
           if (isPrincipal) {
             const f = getFormulaString(block);
             // Debug check for the specific failing section
             // if (block.label === "INCOME") console.log("Calculating INCOME formula:", f);
-            
+
             if (f && typeof f === 'string' && f.trim().length > 3) {
               console.log(`[FORMULA CALC] Section "${block.label}" formula: "${f}"`);
               const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
@@ -4066,11 +4043,11 @@
               block.manualFormula = true;
               block.__manualFormula = true; // Flag for debugging
             } else {
-               // Manual mode: If no formula, ensure it is 0.
-               // Unless it was already 0.
-               // block.totals = totalesCero();
-               // Actually, if we reset it to 0, we might lose something?
-               // But since Pass 2 is skipped, it should be 0 anyway.
+              // Manual mode: If no formula, ensure it is 0.
+              // Unless it was already 0.
+              // block.totals = totalesCero();
+              // Actually, if we reset it to 0, we might lose something?
+              // But since Pass 2 is skipped, it should be 0 anyway.
             }
           }
         });
@@ -4656,13 +4633,21 @@
           const principalRow = createResumenTotalsRow(pBlock.totals || {}, {
             label: label,
             rowRole: "principal",
-            rowClass: "section-header-row table-info fw-bold text-center",
+            rowClass: "section-header-row table-info fw-bold text-center collapsible-section",
             rowContext: {
               label: label,
               sections: (pBlock.children || []).map((ch) => ch.label || ""),
               sign: 1,
             },
           });
+          principalRow.dataset.sectionName = label;
+          principalRow.dataset.level = "principal";
+          const pCells = principalRow.querySelectorAll("td");
+          if (pCells[6]) {
+            pCells[6].innerHTML = `<i class="bi bi-chevron-down collapse-icon me-2" style="cursor:pointer;"></i>${label}`;
+            pCells[6].style.cursor = "pointer";
+            pCells[6].classList.add("collapse-trigger");
+          }
           tablaBody.appendChild(principalRow);
         };
 
@@ -4684,11 +4669,11 @@
           });
           const cells = secRow.querySelectorAll("td");
           if (cells[6]) {
-            cells[6].innerHTML = `<i class="bi bi-chevron-down collapse-icon me-2" style="cursor:pointer;"></i>${label
-              }`;
+            cells[6].innerHTML = `<i class="bi bi-chevron-down collapse-icon me-2" style="cursor:pointer;"></i>${label}`;
             cells[6].style.cursor = "pointer";
             cells[6].classList.add("collapse-trigger");
             secRow.dataset.sectionName = label;
+            secRow.dataset.level = "subsection";
           }
           tablaBody.appendChild(secRow);
         };

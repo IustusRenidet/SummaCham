@@ -1395,14 +1395,14 @@ const construirReporteResumen = (
 
   const definicionesOrdenadas = Array.isArray(definiciones)
     ? definiciones
-        .map((item, idx) => ({ item, idx }))
-        .sort((a, b) => {
-          const ordenA = obtenerOrden(a.item, a.idx);
-          const ordenB = obtenerOrden(b.item, b.idx);
-          if (ordenA !== ordenB) return ordenA - ordenB;
-          return a.idx - b.idx;
-        })
-        .map(({ item }) => item)
+      .map((item, idx) => ({ item, idx }))
+      .sort((a, b) => {
+        const ordenA = obtenerOrden(a.item, a.idx);
+        const ordenB = obtenerOrden(b.item, b.idx);
+        if (ordenA !== ordenB) return ordenA - ordenB;
+        return a.idx - b.idx;
+      })
+      .map(({ item }) => item)
     : [];
 
   // Procesar definiciones RESPETANDO el orden de presentación
@@ -1787,8 +1787,8 @@ const construirReporteResumen = (
           );
           const hasSecInPrincipal = principalNode
             ? Array.from(principalNode.secciones.values()).some(
-                (sec) => normalizarTexto(sec?.label || "") === placementKey,
-              )
+              (sec) => normalizarTexto(sec?.label || "") === placementKey,
+            )
             : false;
           const candidates = principalPorSubseccion.get(placementKey);
           if (
@@ -1875,9 +1875,9 @@ const construirReporteResumen = (
           .sort(
             (a, b) =>
               (definicionCuentas.get(a)?.orden ?? 0) -
-                (definicionCuentas.get(b)?.orden ?? 0) ||
+              (definicionCuentas.get(b)?.orden ?? 0) ||
               (definicionCuentas.get(a)?.ordenIndex ?? 0) -
-                (definicionCuentas.get(b)?.ordenIndex ?? 0),
+              (definicionCuentas.get(b)?.ordenIndex ?? 0),
           );
         return construirNodoSeccion({
           seccion: sec.label,
@@ -1893,16 +1893,16 @@ const construirReporteResumen = (
       const totalesPrincipal = modoFormulaEstricto
         ? crearAcumulador()
         : children.reduce(
-            (acc, nodo) => ({
-              actualMonth: acc.actualMonth + nodo.totalActualMonth,
-              planMonth: acc.planMonth + nodo.totalPlanMonth,
-              prevMonth: acc.prevMonth + nodo.totalPrevMonth,
-              actualYTD: acc.actualYTD + nodo.totalActualYTD,
-              planYTD: acc.planYTD + nodo.totalPlanYTD,
-              prevYTD: acc.prevYTD + nodo.totalPrevYTD,
-            }),
-            crearAcumulador(),
-          );
+          (acc, nodo) => ({
+            actualMonth: acc.actualMonth + nodo.totalActualMonth,
+            planMonth: acc.planMonth + nodo.totalPlanMonth,
+            prevMonth: acc.prevMonth + nodo.totalPrevMonth,
+            actualYTD: acc.actualYTD + nodo.totalActualYTD,
+            planYTD: acc.planYTD + nodo.totalPlanYTD,
+            prevYTD: acc.prevYTD + nodo.totalPrevYTD,
+          }),
+          crearAcumulador(),
+        );
 
       const clase = (principal.clase || "").toLowerCase();
       const sign = clase.includes("expense") ? -1 : 1;
@@ -3048,10 +3048,10 @@ const construirReporteResumen = (
 
     const operativo = participaEnOperativo(principal)
       ? ensureAggregator(
-          operativoRowMap,
-          principal.operativoLabel || "",
-          operativoOrden,
-        )
+        operativoRowMap,
+        principal.operativoLabel || "",
+        operativoOrden,
+      )
       : null;
     if (operativo) {
       operativo.principals.push(principal.label);
@@ -3061,10 +3061,10 @@ const construirReporteResumen = (
 
     const operativoConsolidado = participaEnOperativo(principal)
       ? ensureAggregator(
-          operativoRowMap,
-          principal.operativoConsolidado || "",
-          operativoOrden,
-        )
+        operativoRowMap,
+        principal.operativoConsolidado || "",
+        operativoOrden,
+      )
       : null;
     if (operativoConsolidado) {
       operativoConsolidado.principals.push(principal.label);
@@ -3454,13 +3454,13 @@ const construirReporteResumen = (
     const label = obtenerNombreOperacion(op);
     const opKey = normalizarTexto(
       op?.OperacionId ||
-        op?.operacion_id ||
-        op?.Clase ||
-        op?.clase ||
-        op?.operacion_etiqueta ||
-        label ||
-        op?.id ||
-        "",
+      op?.operacion_id ||
+      op?.Clase ||
+      op?.clase ||
+      op?.operacion_etiqueta ||
+      label ||
+      op?.id ||
+      "",
     );
     if (opKey) mapOperaciones.set(opKey, totals);
     const rowStyle = op?.rowStyle || op?.estilo_fila || "operation-row";
@@ -3615,8 +3615,8 @@ async function generarReporte(
   // Filtrar definiciones por capítulo
   const listaFiltrada = capituloEncontrado
     ? lista.filter(
-        (item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave,
-      )
+      (item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave,
+    )
     : lista;
 
   const cuentas = Array.from(
