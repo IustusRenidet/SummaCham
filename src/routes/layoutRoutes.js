@@ -7,7 +7,7 @@ const express = require("express");
 const router = express.Router();
 const layoutService = require("../services/layoutService");
 const { requireAuth } = require("../middleware/auth");
-const { normalizarNombreModulo } = require("../config/modulos");
+const { MODULOS, normalizarNombreModulo } = require("../config/modulos");
 const fs = require("fs");
 const path = require("path");
 
@@ -774,6 +774,147 @@ router.post("/:modulo/:anio/:capitulo/versions/:id/restore", requireAuth, (req, 
 });
 
 /**
+ * POST /api/layouts-config/copiar
+ * Copiar layouts de un año a otro (varios módulos)
+ *
+ * Body:
+ * - empresaId (opcional)
+ * - anioOrigen (requerido)
+ * - anioDestino (requerido)
+ * - modulos (opcional: array de módulos). Si no se manda, copia todos los módulos del catálogo (excepto "Layouts").
+ *
+ * Reglas:
+ * - Se omiten módulos sin permiso de "Cargar y guardar"
+ * - Se omiten módulos que no tienen layout en el año origen (para no borrar el destino por accidente)
+ * - Para módulos copiados, el destino se sobrescribe (borra + inserta)
+ */
+router.post("/copiar", requireAuth, (req, res) => {
+  try {
+    const { empresaId = "EMPRESA01", anioOrigen, anioDestino, modulos } = req.body || {};
+
+    if (!anioOrigen || !anioDestino) {
+      return res.status(400).json({
+        success: false,
+        mensaje: "anioOrigen y anioDestino son requeridos",
+      });
+    }
+
+    const origen = parseInt(anioOrigen, 10);
+    const destino = parseInt(anioDestino, 10);
+    if (!Number.isInteger(origen) || !Number.isInteger(destino)) {
+      return res.status(400).json({
+        success: false,
+        mensaje: "anioOrigen y anioDestino deben ser números enteros",
+      });
+    }
+
+    if (origen === destino) {
+      return res.status(400).json({
+        success: false,
+        mensaje: "anioDestino debe ser diferente a anioOrigen",
+      });
+    }
+
+    const modulosDestino = Array.isArray(modulos) && modulos.length
+      ? modulos
+      : MODULOS.filter((m) => m !== "Layouts");
+
+    const copiados = [];
+    const omitidosSinPermiso = [];
+    const omitidosSinOrigen = [];
+    const errores = [];
+
+    modulosDestino.forEach((modulo) => {
+      if (!tienePermisoGuardar(req, empresaId, modulo)) {
+        omitidosSinPermiso.push(modulo);
+        return;
+      }
+
+      const existeOrigen = layoutService.existeLayout({
+        empresaId,
+        modulo,
+        anio: origen,
+      });
+      if (!existeOrigen) {
+        omitidosSinOrigen.push(modulo);
+        return;
+      }
+
+      try {
+        layoutService.copiarLayout({
+          empresaId,
+          modulo,
+          anioOrigen: origen,
+          anioDestino: destino,
+        });
+        copiados.push(modulo);
+      } catch (err) {
+        errores.push({ modulo, error: err?.message || String(err) });
+      }
+    });
+
+    // Copiar gráficas por año (una sola vez por año destino).
+    // Regla: si el año destino YA tiene config, no sobrescribir.
+    // Origen: primero `graficas_config_anio(anioOrigen)`, fallback a `graficas_config` legacy.
+    let graficasCopiadas = false;
+    let graficasSource = null;
+    try {
+      if (copiados.length > 0) {
+        const exists = db
+          .prepare(
+            "SELECT 1 as ok FROM graficas_config_anio WHERE empresa_id = ? AND anio = ? LIMIT 1",
+          )
+          .get(empresaId, destino);
+
+        if (!exists) {
+          const fromYear = db
+            .prepare(
+              "SELECT config_json FROM graficas_config_anio WHERE empresa_id = ? AND anio = ?",
+            )
+            .get(empresaId, origen);
+
+          const fromLegacy = !fromYear
+            ? db.prepare("SELECT config_json FROM graficas_config WHERE empresa_id = ?").get(empresaId)
+            : null;
+
+          const payload = fromYear?.config_json || fromLegacy?.config_json || null;
+          if (payload) {
+            db.prepare(
+              `
+                INSERT INTO graficas_config_anio (empresa_id, anio, config_json, updated_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(empresa_id, anio) DO NOTHING
+              `,
+            ).run(empresaId, destino, payload);
+            graficasCopiadas = true;
+            graficasSource = fromYear ? "anio" : "legacy";
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[layoutRoutes] No se pudieron copiar gráficas (bulk):", err?.message || err);
+    }
+
+    res.json({
+      success: true,
+      copiados,
+      omitidosSinPermiso,
+      omitidosSinOrigen,
+      errores,
+      graficasCopiadas,
+      graficasSource,
+    });
+  } catch (error) {
+    console.error("Error al copiar layouts (bulk):", error);
+    res.status(500).json({
+      success: false,
+      mensaje: "Error al copiar layouts",
+      error: error.message,
+    });
+  }
+});
+
+/**
  * POST /api/layouts/:modulo/copiar
  * Copiar layout de un año a otro
  */
@@ -796,11 +937,26 @@ router.post("/:modulo/copiar", requireAuth, (req, res) => {
       });
     }
 
+    const origen = parseInt(anioOrigen, 10);
+    const destino = parseInt(anioDestino, 10);
+    if (!Number.isInteger(origen) || !Number.isInteger(destino)) {
+      return res.status(400).json({
+        success: false,
+        mensaje: "anioOrigen y anioDestino deben ser números enteros",
+      });
+    }
+    if (origen === destino) {
+      return res.status(400).json({
+        success: false,
+        mensaje: "anioDestino debe ser diferente a anioOrigen",
+      });
+    }
+
     const resultado = layoutService.copiarLayout({
       empresaId,
       modulo,
-      anioOrigen: parseInt(anioOrigen),
-      anioDestino: parseInt(anioDestino),
+      anioOrigen: origen,
+      anioDestino: destino,
     });
 
     // Copiar gráficas por año (una sola vez por año destino).
@@ -809,8 +965,6 @@ router.post("/:modulo/copiar", requireAuth, (req, res) => {
     let graficasCopiadas = false;
     let graficasSource = null;
     try {
-      const origen = parseInt(anioOrigen);
-      const destino = parseInt(anioDestino);
       if (Number.isInteger(origen) && Number.isInteger(destino) && origen !== destino) {
         const exists = db
           .prepare(

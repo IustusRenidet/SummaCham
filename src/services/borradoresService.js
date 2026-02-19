@@ -978,8 +978,9 @@ const persistirEnFirebird = async (borrador) => {
 };
 
 /**
- * Actualiza las cuentas padre (TIPO='A') con la suma de sus cuentas hijas (TIPO='D')
- * Para cada cuenta acumulativa, suma los presupuestos de todas sus cuentas de detalle
+ * Actualiza las cuentas padre con la suma de sus cuentas hijas.
+ * Nota: en COI puede haber presupuesto capturado en cuentas acumulativas (TIPO='A').
+ * Para no excluir montos válidos, la suma considera hijas sin importar su TIPO.
  */
 const calcularManualPadres = async (empresaId, anio, tablaPresup) => {
   const { ejecutarConsulta } = require("./firebirdService");
@@ -1049,7 +1050,9 @@ const calcularManualPadres = async (empresaId, anio, tablaPresup) => {
         return;
       }
       const actual = Number(padrePresup[col]) || 0;
-      manualCalculado[col] = actual - sumasMensuales[col];
+      const manual = actual - sumasMensuales[col];
+      // Manual es ADITIVO: no permitir que reste a la suma de hijas.
+      manualCalculado[col] = manual > 0 ? manual : 0;
     });
 
     manualMap.set(numCta, manualCalculado);
@@ -1076,7 +1079,7 @@ const actualizarCuentasPadre = async (
   
   const tablaCuentas = `CUENTAS${anio.toString().slice(-2).padStart(2, '0')}`;
   
-  // Obtener todas las cuentas acumulativas (TIPO='A')
+  // Obtener todas las cuentas que funcionan como padre (tienen hijas directas).
   const queryCuentasPadre = `
     SELECT DISTINCT p.NUM_CTA, p.CTA_PAPA, p.NIVEL, p.NOMBRE, p.TIPO
     FROM ${tablaCuentas} h
@@ -1088,17 +1091,17 @@ const actualizarCuentasPadre = async (
     ORDER BY p.NIVEL DESC, p.NUM_CTA
   `;
   
-  console.log(`🔍 Buscando cuentas TIPO='A' en ${tablaCuentas}...`);
+  console.log(`🔍 Buscando cuentas padre (con hijas) en ${tablaCuentas}...`);
   const cuentasPadre = await ejecutarConsulta(empresaId, queryCuentasPadre, []);
   
   if (!cuentasPadre || cuentasPadre.length === 0) {
-    console.log(`⚠️ No se encontraron cuentas padre (TIPO='A') en ${tablaCuentas}`);
-    console.log(`⚠️ Verificar que existan cuentas con TIPO='A' y STATUS='A'`);
+    console.log(`⚠️ No se encontraron cuentas padre (con hijas) en ${tablaCuentas}`);
+    console.log(`⚠️ Verificar que existan cuentas con CTA_PAPA y STATUS='A'`);
     finalizarProgresoRecontabilizacion(borradorId, "sin-datos");
     return;
   }
   
-  console.log(`✅ Se encontraron ${cuentasPadre.length} cuentas padre (TIPO='A')`);
+  console.log(`✅ Se encontraron ${cuentasPadre.length} cuentas padre (con hijas)`);
   console.log(`📋 Procesando de nivel más profundo a más superficial...\n`);
   
   let contadorActualizadas = 0;
@@ -1219,7 +1222,9 @@ const actualizarCuentasPadre = async (
             return;
           }
           const actual = Number(padrePresup[col]) || 0;
-          manualCalculado[col] = actual - sumasMensuales[col];
+          const manual = actual - sumasMensuales[col];
+          // Manual es ADITIVO: no permitir que reste a la suma de hijas.
+          manualCalculado[col] = manual > 0 ? manual : 0;
         });
       }
 

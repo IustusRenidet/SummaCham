@@ -126,7 +126,9 @@ const obtenerTotalesPresupuestoCapitulo = async (empresaId, anio) => {
   const tablaPresupuesto = construirNombreTabla('PRESUP', ejercicio);
   const tablaCuentas = construirNombreTabla('CUENTAS', ejercicio);
 
-  // Consultar todas las cuentas 400-950
+  // Consultar SOLO cuentas nivel 1 (mayor) para evitar doble conteo:
+  // en COI es común que PRESUP se capture tanto en cuentas mayor como en auxiliares.
+  // Si sumamos todos los niveles (A/D) se duplican montos (ej: 405000 + 405001).
   const consulta = `
     SELECT
       c.NUM_CTA AS CUENTA,
@@ -140,6 +142,7 @@ const obtenerTotalesPresupuestoCapitulo = async (empresaId, anio) => {
      AND p.EJERCICIO = ?
     WHERE c.STATUS = 'A'
       AND c.TIPO IN ('A', 'D')
+      AND c.NIVEL = '1'
       AND SUBSTRING(c.NUM_CTA FROM 1 FOR 3) BETWEEN '400' AND '950'
   `;
 

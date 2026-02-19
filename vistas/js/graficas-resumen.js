@@ -3748,11 +3748,30 @@
       console.warn(`No se pudo capturar la grafica para Excel: ${titulo}`);
       return false;
     }
-    // ExcelJS requiere solo la cadena base64, no el Data URL completo
-    const imageId = workbook.addImage({
-      base64: extraerBase64DeDataUrl(dataUrl),
-      extension: 'png',
-    });
+    const match = dataUrl.match(/^data:image\/(png|jpe?g|webp);base64,/i);
+    const rawExt = (match?.[1] || 'png').toLowerCase();
+    const extension = rawExt === 'jpg' ? 'jpeg' : rawExt;
+
+    let imageId = null;
+    try {
+      imageId = workbook.addImage({
+        base64: dataUrl,
+        extension,
+      });
+    } catch (firstError) {
+      try {
+        imageId = workbook.addImage({
+          base64: extraerBase64DeDataUrl(dataUrl),
+          extension,
+        });
+      } catch (secondError) {
+        console.warn(
+          `No se pudo registrar imagen para Excel: ${titulo}`,
+          secondError || firstError
+        );
+        return false;
+      }
+    }
     worksheet.addImage(imageId, {
       tl: { col, row },
       ext: { width, height },
@@ -3998,11 +4017,19 @@
   };
 
   /**
-   * Exporta los datos y gráficas a Excel usando ExcelJS
+   * Exporta los datos a Excel (gráficas manuales)
    */
   window.exportarGraficasExcel = async () => {
     const datos = obtenerDatosParaExportar();
     if (!datos) return;
+
+    // Exportación solo datos: las gráficas se crean manualmente en Excel.
+    if (typeof XLSX === 'undefined') {
+      alert('La librería de exportación no está disponible.');
+      return;
+    }
+    await exportarGraficasExcelLegacy(datos);
+    return;
     const flags = datos.flags || {};
     const customChartItems = getCustomChartsForExport();
 

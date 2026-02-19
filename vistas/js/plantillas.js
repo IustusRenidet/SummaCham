@@ -301,6 +301,7 @@
     dom.formEditar = document.getElementById("formEditar");
     dom.copiaOrigen = document.getElementById("copiaOrigen");
     dom.anioDestino = document.getElementById("anioDestino");
+    dom.copiaAlcance = document.getElementById("copiaAlcance");
     dom.previewContainer = document.getElementById("previewContainer");
     dom.bulkModeToggle = document.getElementById("bulkModeToggle");
     dom.bulkInsertPanel = document.getElementById("bulkInsertPanel");
@@ -457,6 +458,8 @@
     document.querySelectorAll('input[name="tipoElemento"]').forEach((radio) => {
       radio.addEventListener("change", updateAddForm);
     });
+
+    dom.copiaAlcance?.addEventListener("change", updateCopyModalLabels);
 
     dom.bulkModeToggle?.addEventListener("change", () => {
       setBulkMode(Boolean(dom.bulkModeToggle?.checked));
@@ -3376,7 +3379,7 @@
     const resumenSectionOpsEmbedded =
       normalizeOperationMatch(state.modulo || "") === "resumen";
     // DEBUG TEMPORAL
-    console.error("[DEBUG] buildPreviewRowsForEditor → modulo:", state.modulo, "resumenSectionOpsEmbedded:", resumenSectionOpsEmbedded, "operacionesRaw.length:", operacionesRaw.length, "state.operaciones.length:", (state.operaciones||[]).length);
+    console.error("[DEBUG] buildPreviewRowsForEditor → modulo:", state.modulo, "resumenSectionOpsEmbedded:", resumenSectionOpsEmbedded, "operacionesRaw.length:", operacionesRaw.length, "state.operaciones.length:", (state.operaciones || []).length);
 
     const placeholderDefs = [];
     const cuentas = [];
@@ -12948,13 +12951,27 @@
   // ==========================================
   // MODAL: COPY
   // ==========================================
+  function resolveCopyScope() {
+    return dom.copiaAlcance?.value === "all" ? "all" : "current";
+  }
+
+  function updateCopyModalLabels() {
+    if (!dom.copiaOrigen) return;
+    const scope = resolveCopyScope();
+    dom.copiaOrigen.textContent =
+      scope === "all"
+        ? `Todos los módulos · ${state.anio}`
+        : `${state.modulo} ${state.anio}`;
+  }
+
   function openCopyModal() {
     if (!state.editMode) {
       showToast("Activa el modo edición primero", "warning");
       return;
     }
 
-    dom.copiaOrigen.textContent = `${state.modulo} ${state.anio}`;
+    if (dom.copiaAlcance) dom.copiaAlcance.value = "current";
+    updateCopyModalLabels();
     dom.anioDestino.value = "";
 
     new bootstrap.Modal(dom.modalCopiar).show();
@@ -12962,38 +12979,79 @@
 
   async function confirmCopy() {
     const anioDestino = dom.anioDestino.value?.trim();
+    const anioOrigen = parseInt(state.anio, 10);
 
     if (!anioDestino || isNaN(anioDestino)) {
       showToast("Ingresa un año válido", "warning");
       return;
     }
 
-    try {
-      const response = await fetch(
-        `${API_BASE}/${encodeURIComponent(state.modulo)}/copiar`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders(),
-          },
-          body: JSON.stringify({
-            empresaId: obtenerEmpresaIdApi(),
-            anioOrigen: parseInt(state.anio),
-            anioDestino: parseInt(anioDestino),
-          }),
-        },
-      );
+    if (!Number.isInteger(anioOrigen)) {
+      showToast("Año origen inválido", "warning");
+      return;
+    }
 
-      if (!response.ok) throw new Error("No se pudo copiar el layout");
+    const destinoNumero = parseInt(anioDestino, 10);
+    if (anioOrigen === destinoNumero) {
+      showToast("El año destino debe ser diferente al origen", "warning");
+      return;
+    }
+
+    try {
+      const scope = resolveCopyScope();
+      const requestUrl =
+        scope === "all"
+          ? `${API_BASE}/copiar`
+          : `${API_BASE}/${encodeURIComponent(state.modulo)}/copiar`;
+
+      const response = await fetch(requestUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          empresaId: obtenerEmpresaIdApi(),
+          anioOrigen,
+          anioDestino: destinoNumero,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.mensaje || "No se pudo copiar el layout");
+      }
+      const data = await response.json().catch(() => ({}));
 
       bootstrap.Modal.getInstance(dom.modalCopiar)?.hide();
-      showToast(`Layout copiado a ${anioDestino}`, "success");
+      if (scope === "all") {
+        const copiados = Array.isArray(data.copiados) ? data.copiados.length : 0;
+        const omitidosSinOrigen = Array.isArray(data.omitidosSinOrigen)
+          ? data.omitidosSinOrigen.length
+          : 0;
+        const omitidosSinPermiso = Array.isArray(data.omitidosSinPermiso)
+          ? data.omitidosSinPermiso.length
+          : 0;
+        const errores = Array.isArray(data.errores) ? data.errores.length : 0;
+
+        let msg = `Layouts copiados a ${destinoNumero} (${copiados} módulos)`;
+        const extras = [];
+        if (omitidosSinOrigen) extras.push(`${omitidosSinOrigen} sin layout en origen`);
+        if (omitidosSinPermiso) extras.push(`${omitidosSinPermiso} sin permiso`);
+        if (errores) extras.push(`${errores} con error`);
+        if (extras.length) msg += ` · ${extras.join(" · ")}`;
+
+        showToast(msg, errores ? "warning" : "success");
+      } else {
+        showToast(`Layout copiado a ${destinoNumero}`, "success");
+      }
 
       // Registrar en bitácora
       await addToBitacora(
         "COPIAR",
-        `Se copió el layout de ${state.anio} a ${anioDestino} para el capítulo ${state.capitulo}`,
+        scope === "all"
+          ? `Se copiaron layouts de ${anioOrigen} a ${destinoNumero} para todos los módulos`
+          : `Se copió el layout de ${anioOrigen} a ${destinoNumero} (${state.modulo})`,
       );
 
       await loadYears();

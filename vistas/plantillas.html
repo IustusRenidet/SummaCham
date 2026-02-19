@@ -215,7 +215,7 @@
                 >
                   <i class="bi bi-copy me-1"></i> Copiar a otro año
                 </button>
-                <div class="btn-group" role="group">
+                <!-- <div class="btn-group" role="group">
                   <button
                     type="button"
                     id="btnDescargarPlantilla"
@@ -232,7 +232,7 @@
                   >
                     <i class="bi bi-upload me-1"></i> Importar
                   </button>
-                </div>
+                </div> -->
                 <button
                   type="button"
                   id="btnGuardar"
@@ -3015,10 +3015,24 @@
                 />
               </div>
             </div>
+            <div class="mb-3">
+              <label
+                for="copiaAlcance"
+                class="form-label fw-semibold text-muted small mb-2"
+                >Qué copiar</label
+              >
+              <select id="copiaAlcance" class="form-select">
+                <option value="current">Solo este módulo</option>
+                <option value="all">Todos los módulos</option>
+              </select>
+            </div>
             <div class="alert alert-info">
               <i class="bi bi-info-circle me-2"></i>
-              Se copiará la estructura completa: cuentas, secciones y
-              operaciones.
+              Se copiará la estructura completa: cuentas, secciones y operaciones.
+              <strong
+                >Si el año destino ya tenía layout, se eliminará y se reemplazará</strong
+              >
+              (para el/los módulos seleccionados).
             </div>
           </div>
           <div class="modal-footer">

@@ -518,17 +518,7 @@
     return DEFAULT_GRAFICAS_CONFIG;
   };
 
-  const hasEnabledManualCharts = (graficasConfig) =>
-    Array.isArray(graficasConfig?.customCharts) &&
-    graficasConfig.customCharts.some(
-      (chart) =>
-        chart?.enabled !== false &&
-        Array.isArray(chart?.rows) &&
-        chart.rows.length > 0
-    );
-
-  const isManualOnly = (graficasConfig) =>
-    graficasConfig?.manualOnly === true && hasEnabledManualCharts(graficasConfig);
+  const isManualOnly = (graficasConfig) => graficasConfig?.manualOnly === true;
 
   const hasEnabledCustomChartsForResumen = (graficasConfig) =>
     Array.isArray(graficasConfig?.customCharts) &&
@@ -2575,13 +2565,6 @@
     return Number.isFinite(actual) ? actual : null;
   };
 
-  const permiteComparativoPrev = (entity, fallbackType = "") => {
-    if (!entity) return false;
-    const type = (entity.type || fallbackType || "").toString().toLowerCase();
-    if (type === "cuenta" || type === "account") return true;
-    return Boolean(entity.manualFormula || entity.__manualFormula);
-  };
-
   const indexarLayoutComparativo = (layout = []) => {
     const cuentas = new Map();
     const etiquetas = new Map();
@@ -2590,7 +2573,16 @@
       const tipo = (block.type || "").toLowerCase();
       const etiqueta = normalizarEtiquetaComparativa(block.label || "");
       if (etiqueta) {
-        etiquetas.set(`${tipo}|${etiqueta}`, block);
+        // Secundarias pueden repetirse (ej: Membership en INCOME y EXPENSE); incluir parentSection si existe.
+        const parent = normalizarEtiquetaComparativa(block.parentSection || "");
+        const keys = parent
+          ? [`${tipo}|${parent}|${etiqueta}`, `${tipo}|${etiqueta}`]
+          : [`${tipo}|${etiqueta}`];
+        keys.forEach((key) => {
+          if (!etiquetas.has(key)) {
+            etiquetas.set(key, block);
+          }
+        });
       }
       if (tipo === "cuenta") {
         const claveCuenta = (block.cuenta || "").toString().trim();
@@ -2606,7 +2598,6 @@
     layoutBase.forEach((block) => {
       if (!block || !block.totals) return;
       const tipo = (block.type || "").toLowerCase();
-      if (!permiteComparativoPrev(block, tipo)) return;
       let comparativo = null;
       if (tipo === "cuenta") {
         const claveCuenta = (block.cuenta || "").toString().trim();
@@ -2614,24 +2605,25 @@
       }
       if (!comparativo) {
         const etiqueta = normalizarEtiquetaComparativa(block.label || "");
-        comparativo = etiqueta ? etiquetas.get(`${tipo}|${etiqueta}`) : null;
+        if (etiqueta) {
+          const parent = normalizarEtiquetaComparativa(block.parentSection || "");
+          comparativo =
+            (parent ? etiquetas.get(`${tipo}|${parent}|${etiqueta}`) : null) ||
+            etiquetas.get(`${tipo}|${etiqueta}`) ||
+            null;
+        }
       }
       if (!comparativo?.totals) return;
-      // Si la fila comparativa no está marcada como manual (en no-cuenta),
-      // no debe sobreescribir el prev del layout base con ceros de fallback.
-      if (tipo !== "cuenta" && !permiteComparativoPrev(comparativo, tipo)) {
-        return;
-      }
-      // Comparativo solo llena columnas "Prev" (AA), no reemplaza Actual
-      const comparativoMonth = resolverComparativoPrevio(
+      // Comparativa de empresas: llena columnas Prev con el "Actual" del comparativo.
+      const comparativoMonth = resolverComparativoNumero(
         comparativo.totals,
-        "prevMonth",
-        "actualMonth"
+        "actualMonth",
+        "prevMonth"
       );
-      const comparativoYTD = resolverComparativoPrevio(
+      const comparativoYTD = resolverComparativoNumero(
         comparativo.totals,
-        "prevYTD",
-        "actualYTD"
+        "actualYTD",
+        "prevYTD"
       );
       asignarSiNumero(block.totals, "prevMonth", comparativoMonth);
       asignarSiNumero(block.totals, "prevYTD", comparativoYTD);
@@ -2656,6 +2648,12 @@
       }
       (principal.children || []).forEach((seccion) => {
         const seccionKey = normalizarEtiquetaComparativa(seccion.label || "");
+        const fullKey =
+          principalKey && seccionKey ? `${principalKey}::${seccionKey}` : "";
+        if (fullKey && !secciones.has(fullKey)) {
+          secciones.set(fullKey, seccion);
+        }
+        // Fallback por etiqueta (por compatibilidad con layouts viejos)
         if (seccionKey && !secciones.has(seccionKey)) {
           secciones.set(seccionKey, seccion);
         }
@@ -2681,35 +2679,39 @@
       const compPrincipal = principalKey
         ? principales.get(principalKey)
         : null;
-      if (compPrincipal && permiteComparativoPrev(principal, "principal")) {
-        // Comparativo solo llena columnas "Prev" (AA)
-        const comparativoMonth = resolverComparativoPrevio(
+      if (compPrincipal) {
+        // Comparativa de empresas: llenar Prev con "Actual" del comparativo.
+        const comparativoMonth = resolverComparativoNumero(
           compPrincipal,
-          "prevMonth",
-          "actualMonth"
+          "actualMonth",
+          "prevMonth"
         );
-        const comparativoYTD = resolverComparativoPrevio(
+        const comparativoYTD = resolverComparativoNumero(
           compPrincipal,
-          "prevYTD",
-          "actualYTD"
+          "actualYTD",
+          "prevYTD"
         );
         asignarSiNumero(principal, "prevMonth", comparativoMonth);
         asignarSiNumero(principal, "prevYTD", comparativoYTD);
       }
       (principal.children || []).forEach((seccion) => {
         const seccionKey = normalizarEtiquetaComparativa(seccion.label || "");
-        const compSeccion = seccionKey ? secciones.get(seccionKey) : null;
-        if (compSeccion && permiteComparativoPrev(seccion, "secundaria")) {
-          // Comparativo solo llena columnas "Prev" (AA) en totales de sección
-          const comparativoMonth = resolverComparativoPrevio(
+        const seccionCompositeKey =
+          principalKey && seccionKey ? `${principalKey}::${seccionKey}` : "";
+        const compSeccion =
+          (seccionCompositeKey ? secciones.get(seccionCompositeKey) : null) ||
+          (seccionKey ? secciones.get(seccionKey) : null);
+        if (compSeccion) {
+          // Comparativa de empresas: llenar Prev con "Actual" del comparativo.
+          const comparativoMonth = resolverComparativoNumero(
             compSeccion,
-            "totalPrevMonth",
-            "totalActualMonth"
+            "totalActualMonth",
+            "totalPrevMonth"
           );
-          const comparativoYTD = resolverComparativoPrevio(
+          const comparativoYTD = resolverComparativoNumero(
             compSeccion,
-            "totalPrevYTD",
-            "totalActualYTD"
+            "totalActualYTD",
+            "totalPrevYTD"
           );
           asignarSiNumero(seccion, "totalPrevMonth", comparativoMonth);
           asignarSiNumero(seccion, "totalPrevYTD", comparativoYTD);
@@ -2718,16 +2720,16 @@
           const cuentaKey = obtenerClaveCuentaComparativa(cta);
           const compCuenta = cuentaKey ? cuentas.get(cuentaKey) : null;
           if (compCuenta) {
-            // Comparativo solo llena columnas "Prev" (AA) a nivel cuenta
-            const comparativoMonth = resolverComparativoPrevio(
+            // Comparativa de empresas: llenar Prev con "Actual" del comparativo.
+            const comparativoMonth = resolverComparativoNumero(
               compCuenta,
-              "prevMonth",
-              "actualMonth"
+              "actualMonth",
+              "prevMonth"
             );
-            const comparativoYTD = resolverComparativoPrevio(
+            const comparativoYTD = resolverComparativoNumero(
               compCuenta,
-              "prevYTD",
-              "actualYTD"
+              "actualYTD",
+              "prevYTD"
             );
             asignarSiNumero(cta, "prevMonth", comparativoMonth);
             asignarSiNumero(cta, "prevYTD", comparativoYTD);
@@ -5996,11 +5998,30 @@
       wsCharts.getCell(rowCursor, 2).value = img.title || `Grafica ${idx + 1}`;
       wsCharts.getCell(rowCursor, 2).font = { bold: true, color: { argb: "FF1E3A8A" } };
 
-      // ExcelJS espera solo la cadena base64, no el Data URL completo
-      const imageId = workbook.addImage({
-        base64: extraerBase64DeDataUrl(img.dataUrl),
-        extension: "png",
-      });
+      const match = img.dataUrl.match(/^data:image\/(png|jpe?g|webp);base64,/i);
+      const rawExt = (match?.[1] || "png").toLowerCase();
+      const extension = rawExt === "jpg" ? "jpeg" : rawExt;
+
+      let imageId = null;
+      try {
+        imageId = workbook.addImage({
+          base64: img.dataUrl,
+          extension,
+        });
+      } catch (firstError) {
+        try {
+          imageId = workbook.addImage({
+            base64: extraerBase64DeDataUrl(img.dataUrl),
+            extension,
+          });
+        } catch (secondError) {
+          console.warn(
+            "No se pudo registrar la imagen de gráfica para Excel.",
+            secondError || firstError
+          );
+          return;
+        }
+      }
       wsCharts.addImage(imageId, {
         tl: { col: 0, row: rowCursor + 1 },
         ext: { width, height },
@@ -6038,7 +6059,6 @@
     let fallbackBuffer = null;
     let fallbackName = "";
     let workbook = null;
-    let graficaImages = [];
     try {
       workbook = new ExcelJS.Workbook();
       workbook.creator = "SummaCham";
@@ -6239,101 +6259,92 @@
       });
       console.log("📊 EXPORT: graficaData obtenidos:", graficaData.length);
 
-      // Intentar renderizar gráficas programáticamente
-      graficaImages = await renderizarImagenesGraficasResumen(graficaData);
-      console.log("📊 EXPORT: imágenes renderizadas:", graficaImages.length);
+      const chartsSheetName = "Gráficas";
+      const dataSheetName = "GraficasData";
+      const tableSheetName = "Resumen";
 
-      // Si no hay imágenes, intentar capturar del panel de gráficas
-      if (!graficaImages.length) {
-        console.log("📊 EXPORT: Intentando capturar desde panel...");
-        graficaImages = await capturarGraficasResumenDesdePanel();
-        console.log("📊 EXPORT: imágenes capturadas del panel:", graficaImages.length);
+      if (!workbook.getWorksheet(chartsSheetName)) {
+        workbook.addWorksheet(chartsSheetName);
       }
 
-      // Si aún no hay imágenes, abrir el panel, renderizar y capturar
-      if (!graficaImages.length) {
-        console.log("📊 EXPORT: Intentando forzar renderizado de panel...");
-        const panel = document.getElementById("resumenChartsPanel");
-        const wasHidden = panel && !panel.classList.contains("open");
-        if (wasHidden && panel) {
-          panel.classList.add("open");
-          panel.style.position = "absolute";
-          panel.style.left = "-10000px";
-          panel.style.visibility = "hidden";
-        }
-        // Esperar a que las gráficas se rendericen
-        await new Promise((r) => setTimeout(r, 500));
-        graficaImages = await capturarGraficasResumenDesdePanel();
-        console.log("📊 EXPORT: imágenes después de forzar panel:", graficaImages.length);
-        if (wasHidden && panel) {
-          panel.classList.remove("open");
-          panel.style.position = "";
-          panel.style.left = "";
-          panel.style.visibility = "";
-        }
+      const existingDataSheet = workbook.getWorksheet(dataSheetName);
+      if (existingDataSheet) {
+        workbook.removeWorksheet(existingDataSheet.id);
       }
-
-      // Si no hay datos de gráficas para el servidor, exportar solo tabla/data (sin imágenes)
-      if (graficaData.length === 0) {
-        if (typeof showToast === "function") {
-          showToast("No hay datos de gráficas nativas. Exportando solo tabla.", "text-bg-warning");
-        }
-        const buffer = await workbook.xlsx.writeBuffer();
-        fallbackBuffer = buffer;
-        descargarBufferExcel(buffer, `${baseName}.xlsx`);
-        return;
-      }
-
-      workbook.addWorksheet("Gráficas");
-      const wsData = workbook.addWorksheet("GraficasData");
-      let rowCursor = 1;
-      graficaData.forEach((grafica, idx) => {
-        wsData.getCell(rowCursor, 1).value = "CHART";
-        wsData.getCell(rowCursor, 2).value = grafica.titulo || `Grafica ${idx + 1}`;
-        rowCursor += 1;
-        wsData.getCell(rowCursor, 1).value = "Categoria";
-        (grafica.datasets || []).forEach((dataset, dIdx) => {
-          wsData.getCell(rowCursor, dIdx + 2).value =
-            dataset.label || `Serie ${dIdx + 1}`;
-        });
-        rowCursor += 1;
-        (grafica.labels || []).forEach((label, lIdx) => {
-          wsData.getCell(rowCursor, 1).value = label;
+      const wsData = workbook.addWorksheet(dataSheetName);
+      if (!graficaData.length) {
+        wsData.getCell("A1").value = "Sin datos de gráficas disponibles para exportar.";
+      } else {
+        let rowCursor = 1;
+        graficaData.forEach((grafica, idx) => {
+          wsData.getCell(rowCursor, 1).value = "CHART";
+          wsData.getCell(rowCursor, 2).value =
+            grafica.titulo || `Grafica ${idx + 1}`;
+          rowCursor += 1;
+          wsData.getCell(rowCursor, 1).value = "Categoria";
           (grafica.datasets || []).forEach((dataset, dIdx) => {
-            const rawValue = Array.isArray(dataset.data) ? dataset.data[lIdx] : 0;
-            const value =
-              typeof rawValue === "number" && Number.isFinite(rawValue)
-                ? rawValue
-                : Number(rawValue) || 0;
-            wsData.getCell(rowCursor, dIdx + 2).value = value;
+            wsData.getCell(rowCursor, dIdx + 2).value =
+              dataset.label || `Serie ${dIdx + 1}`;
+          });
+          rowCursor += 1;
+          (grafica.labels || []).forEach((label, lIdx) => {
+            wsData.getCell(rowCursor, 1).value = label;
+            (grafica.datasets || []).forEach((dataset, dIdx) => {
+              const rawValue = Array.isArray(dataset.data)
+                ? dataset.data[lIdx]
+                : 0;
+              const value =
+                typeof rawValue === "number" && Number.isFinite(rawValue)
+                  ? rawValue
+                  : Number(rawValue) || 0;
+              wsData.getCell(rowCursor, dIdx + 2).value = value;
+            });
+            rowCursor += 1;
           });
           rowCursor += 1;
         });
-        rowCursor += 1;
-      });
+      }
 
       const buffer = await workbook.xlsx.writeBuffer();
       fallbackBuffer = buffer;
+
+      if (!graficaData.length) {
+        descargarBufferExcel(buffer, `${baseName}.xlsx`);
+        if (typeof showToast === "function") {
+          showToast("✅ Resumen exportado (sin gráficas).", "text-bg-warning");
+        }
+        return;
+      }
+
+      const binaryBody =
+        buffer instanceof ArrayBuffer
+          ? buffer
+          : buffer.buffer.slice(
+              buffer.byteOffset,
+              buffer.byteOffset + buffer.byteLength
+            );
+
       const params = new URLSearchParams({
         nombreArchivo: baseName,
         empresa: empresaTexto || nombreEmpresa || "",
         mes: mesNombre || "",
-        anio: anio || "",
-        dataSheetName: "GraficasData",
-        chartsSheetName: "Gráficas",
-        tableSheetName: "Resumen",
+        anio: String(anio || ""),
+        dataSheetName,
+        chartsSheetName,
+        tableSheetName,
       });
 
       if (typeof showToast === "function") {
         showToast("Generando Excel con gráficas...");
       }
+
       const response = await fetch(
         `${base}/api/reportes/resumen-excel-native?${params.toString()}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/octet-stream" },
           credentials: "include",
-          body: buffer,
+          body: binaryBody,
         }
       );
 
@@ -6342,15 +6353,10 @@
         throw new Error(text || "No fue posible generar el Excel con gráficas.");
       }
 
-      const obtenerNombreDescarga = (resp) => {
-        const header = resp.headers.get("content-disposition") || "";
-        const match = header.match(/filename=\"?([^\";]+)\"?/i);
-        return match ? match[1] : "";
-      };
-
       const blob = await response.blob();
-      const filename =
-        obtenerNombreDescarga(response) || `${baseName}_Graficas.xlsx`;
+      const header = response.headers.get("content-disposition") || "";
+      const match = header.match(/filename=\"?([^\";]+)\"?/i);
+      const filename = match ? match[1] : `${baseName}_Graficas.xlsx`;
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -6359,10 +6365,11 @@
       window.URL.revokeObjectURL(url);
 
       if (typeof showToast === "function") {
-        showToast("✅ Resumen con gráficas exportado correctamente.");
+        showToast("✅ Resumen exportado con gráficas.");
       }
     } catch (error) {
       console.error("Error al exportar con gráficas:", error);
+
       if (fallbackBuffer) {
         descargarBufferExcel(fallbackBuffer, `${fallbackName || "Resumen"}.xlsx`);
       }

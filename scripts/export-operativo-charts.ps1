@@ -11,6 +11,109 @@ param(
 
 Add-Type -AssemblyName System.Drawing | Out-Null
 
+if (-not ("ExcelMessageFilter" -as [type])) {
+  Add-Type -Language CSharp -ErrorAction SilentlyContinue -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public class ExcelMessageFilter : IOleMessageFilter {
+  [DllImport("Ole32.dll")]
+  private static extern int CoRegisterMessageFilter(IOleMessageFilter newFilter, out IOleMessageFilter oldFilter);
+
+  public static void Register() {
+    IOleMessageFilter oldFilter = null;
+    CoRegisterMessageFilter(new ExcelMessageFilter(), out oldFilter);
+  }
+
+  public static void Revoke() {
+    IOleMessageFilter oldFilter = null;
+    CoRegisterMessageFilter(null, out oldFilter);
+  }
+
+  int IOleMessageFilter.HandleInComingCall(int dwCallType, IntPtr hTaskCaller, int dwTickCount, IntPtr lpInterfaceInfo) {
+    return 0; // SERVERCALL_ISHANDLED
+  }
+
+  int IOleMessageFilter.RetryRejectedCall(IntPtr hTaskCallee, int dwTickCount, int dwRejectType) {
+    if (dwRejectType == 2) { // SERVERCALL_RETRYLATER
+      return 120; // retry in 120ms
+    }
+    return -1; // cancel
+  }
+
+  int IOleMessageFilter.MessagePending(IntPtr hTaskCallee, int dwTickCount, int dwPendingType) {
+    return 2; // PENDINGMSG_WAITDEFPROCESS
+  }
+}
+
+[ComImport, Guid("00000016-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IOleMessageFilter {
+  [PreserveSig]
+  int HandleInComingCall(int dwCallType, IntPtr hTaskCaller, int dwTickCount, IntPtr lpInterfaceInfo);
+
+  [PreserveSig]
+  int RetryRejectedCall(IntPtr hTaskCallee, int dwTickCount, int dwRejectType);
+
+  [PreserveSig]
+  int MessagePending(IntPtr hTaskCallee, int dwTickCount, int dwPendingType);
+}
+"@
+}
+
+function Invoke-ComRetry {
+  param(
+    [Parameter(Mandatory = $true)]
+    [scriptblock]$Action,
+    [int]$Retries = 30,
+    [int]$DelayMs = 150
+  )
+
+  for ($attempt = 0; $attempt -lt $Retries; $attempt++) {
+    try {
+      return & $Action
+    } catch [System.Runtime.InteropServices.COMException] {
+      $hr = $_.Exception.HResult
+      # 0x80010001 RPC_E_CALL_REJECTED, 0x800AC472 (Excel busy)
+      if ($hr -eq -2147418111 -or $hr -eq -2146777998) {
+        Start-Sleep -Milliseconds $DelayMs
+        continue
+      }
+      throw
+    }
+  }
+
+  return & $Action
+}
+
+function Get-WorkbookSheetNames {
+  param([Parameter(Mandatory = $true)]$Workbook)
+  $names = @()
+  $count = Invoke-ComRetry { $Workbook.Worksheets.Count }
+  for ($i = 1; $i -le $count; $i++) {
+    try {
+      $ws = Invoke-ComRetry { $Workbook.Worksheets.Item($i) }
+      $names += (Invoke-ComRetry { [string]$ws.Name })
+    } catch {
+    }
+  }
+  return $names
+}
+
+$excel = $null
+$wb = $null
+
+trap {
+  $msg = $_.Exception.Message
+  if (-not $msg) { $msg = $_.ToString() }
+  Write-Error $msg
+  try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+  try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
+  try { [ExcelMessageFilter]::Revoke() } catch {}
+  exit 1
+}
+
+try { [ExcelMessageFilter]::Register() } catch {}
+
 $xlChartTypeLine = 4
 $xlChartTypeBarClustered = 57
 $xlLegendPositionBottom = -4107
@@ -195,15 +298,24 @@ if ($SeriesMeta) {
 $excel = New-Object -ComObject Excel.Application
 $excel.Visible = $false
 $excel.DisplayAlerts = $false
+try { $excel.AskToUpdateLinks = $false } catch {}
+try { $excel.EnableEvents = $false } catch {}
+try { $excel.ScreenUpdating = $false } catch {}
 
-$wb = $excel.Workbooks.Open($inputFull)
+$wb = Invoke-ComRetry { $excel.Workbooks.Open($inputFull) }
 
 try {
-  $wsData = $wb.Worksheets.Item($DataSheetName)
+  $wsData = Invoke-ComRetry { $wb.Worksheets.Item($DataSheetName) }
 } catch {
-  Write-Error "Data sheet not found: $DataSheetName"
-  $wb.Close($false)
-  $excel.Quit()
+  $sheets = @()
+  try { $sheets = Get-WorkbookSheetNames -Workbook $wb } catch {}
+  if ($sheets.Count) {
+    Write-Error ("Data sheet not found: {0}. Disponibles: {1}" -f $DataSheetName, ($sheets -join ", "))
+  } else {
+    Write-Error "Data sheet not found: $DataSheetName"
+  }
+  try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+  try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
   exit 1
 }
 
@@ -340,16 +452,16 @@ while ($dataStart -le $lastRow -and -not ([string]$wsData.Cells.Item($dataStart,
 
 if ($lastRow -lt $dataStart) {
   Write-Error "No data rows found in $DataSheetName."
-  $wb.Close($false)
-  $excel.Quit()
+  try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+  try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
   exit 1
 }
 
 $chartBlocks = Get-ChartBlocks -Sheet $wsData
 if ($seriesColumns.Count -eq 0 -and $chartBlocks.Count -eq 0) {
   Write-Error "No series columns found in $DataSheetName."
-  $wb.Close($false)
-  $excel.Quit()
+  try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+  try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
   exit 1
 }
 
@@ -362,10 +474,11 @@ if ($ChartsSheetName -and $ChartsSheetName -ne $DataSheetName) {
   }
 
   if ($wsCharts) {
-    $wsCharts.Cells.Clear()
+    try { Invoke-ComRetry { $wsCharts.Cells.Clear() } } catch {}
+    try { Invoke-ComRetry { $wsCharts.ChartObjects().Delete() } } catch {}
   } else {
-    $wsCharts = $wb.Worksheets.Add($null, $wb.Worksheets.Item($wb.Worksheets.Count))
-    $wsCharts.Name = $ChartsSheetName
+    $wsCharts = Invoke-ComRetry { $wb.Worksheets.Add($null, $wb.Worksheets.Item($wb.Worksheets.Count)) }
+    Invoke-ComRetry { $wsCharts.Name = $ChartsSheetName }
   }
 } else {
   $wsCharts = $wsData
@@ -521,7 +634,8 @@ if ($wsTable) {
   $wsCharts.Activate()
 }
 $wb.SaveAs($OutputPath)
-$wb.Close($false)
-$excel.Quit()
+try { Invoke-ComRetry { $wb.Close($false) } } catch {}
+try { Invoke-ComRetry { $excel.Quit() } } catch {}
+try { [ExcelMessageFilter]::Revoke() } catch {}
 
 Write-Host "Charts created: $OutputPath"

@@ -3,6 +3,7 @@ const os = require("os");
 const path = require("path");
 const { spawn } = require("child_process");
 const XLSX = require("xlsx");
+const { withExcelNativeLock } = require("./excelNativeMutex");
 
 const limpiarTexto = (valor) => (valor == null ? "" : String(valor).trim());
 
@@ -99,7 +100,7 @@ const resolverPowerShell = () => {
 const ejecutarPowerShell = (args) =>
   new Promise((resolve, reject) => {
     const bin = resolverPowerShell();
-    const proc = spawn(bin, ["-NoProfile", "-ExecutionPolicy", "Bypass", ...args], {
+    const proc = spawn(bin, ["-NoProfile", "-ExecutionPolicy", "Bypass", "-STA", ...args], {
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -184,7 +185,7 @@ const generarOperativoExcel = async ({
       psArgs.push("-SeriesMeta", seriesMeta.trim());
     }
 
-    await ejecutarPowerShell(psArgs);
+    await withExcelNativeLock(() => ejecutarPowerShell(psArgs));
 
     const baseName = `${limpiarTexto(nombreArchivo || "Operativo")}_${limpiarTexto(
       empresa || "Reporte"

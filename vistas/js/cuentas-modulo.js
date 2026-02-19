@@ -1324,7 +1324,11 @@
       }
 
       const limiteMaximo = MESES.length - 1;
-      const limite = indiceDesdeContexto != null ? indiceDesdeContexto : indiceMesActual;
+      const limitePorFecha = indiceMesActual - 1;
+      let limite = limitePorFecha;
+      if (indiceDesdeContexto != null) {
+        limite = Math.min(indiceDesdeContexto, limitePorFecha);
+      }
       return Math.max(-1, Math.min(limite, limiteMaximo));
     };
 

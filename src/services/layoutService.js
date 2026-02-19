@@ -2724,6 +2724,14 @@ const copiarLayout = ({
   anioOrigen,
   anioDestino,
 }) => {
+  const origen = Number(anioOrigen);
+  const destino = Number(anioDestino);
+  if (!Number.isInteger(origen) || !Number.isInteger(destino)) {
+    throw new Error("anioOrigen y anioDestino deben ser números enteros");
+  }
+  if (origen === destino) {
+    throw new Error("anioDestino debe ser diferente a anioOrigen");
+  }
   const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
   const limpiarCuentas = db.prepare(`
     DELETE FROM layout_cuentas
@@ -2774,18 +2782,18 @@ const copiarLayout = ({
   `);
 
   const transaction = db.transaction(() => {
-    limpiarCuentas.run(empresaCanonica, modulo, anioDestino);
-    limpiarOperaciones.run(empresaCanonica, modulo, anioDestino);
-    limpiarSecciones.run(empresaCanonica, modulo, anioDestino);
-    copiarCuentas.run(anioDestino, empresaCanonica, modulo, anioOrigen);
-    copiarOperaciones.run(anioDestino, empresaCanonica, modulo, anioOrigen);
-    copiarSecciones.run(anioDestino, empresaCanonica, modulo, anioOrigen);
+    limpiarCuentas.run(empresaCanonica, modulo, destino);
+    limpiarOperaciones.run(empresaCanonica, modulo, destino);
+    limpiarSecciones.run(empresaCanonica, modulo, destino);
+    copiarCuentas.run(destino, empresaCanonica, modulo, origen);
+    copiarOperaciones.run(destino, empresaCanonica, modulo, origen);
+    copiarSecciones.run(destino, empresaCanonica, modulo, origen);
   });
 
   transaction();
   return {
     success: true,
-    mensaje: `Layout copiado de ${anioOrigen} a ${anioDestino}`,
+    mensaje: `Layout copiado de ${origen} a ${destino}`,
   };
 };
 
