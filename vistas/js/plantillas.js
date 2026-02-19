@@ -744,12 +744,12 @@
   const CDMX_PRESUPUESTO_CONSOLIDACION_DEFAULT = Object.freeze({
     enabled: true,
     cuentas: {
-      "450-001-000-00": { capitulo: "GUADALAJARA", tipo: "income" },
-      "950-001-000-00": { capitulo: "GUADALAJARA", tipo: "expense" },
-      "450-002-000-00": { capitulo: "NORESTE", tipo: "income" },
-      "950-002-000-00": { capitulo: "NORESTE", tipo: "expense" },
-      "450-003-000-00": { capitulo: "NOROESTE", tipo: "income" },
-      "950-003-000-00": { capitulo: "NOROESTE", tipo: "expense" },
+      "450-001-000-00": { capitulo: "GUADALAJARA", fila: "INCOME" },
+      "950-001-000-00": { capitulo: "GUADALAJARA", fila: "EXPENSE" },
+      "450-002-000-00": { capitulo: "NORESTE", fila: "INCOME" },
+      "950-002-000-00": { capitulo: "NORESTE", fila: "EXPENSE" },
+      "450-003-000-00": { capitulo: "NOROESTE", fila: "INCOME" },
+      "950-003-000-00": { capitulo: "NOROESTE", fila: "EXPENSE" },
     },
   });
   const CDMX_PRESUPUESTO_CONSOLIDACION_CAPITULOS = [
@@ -757,10 +757,10 @@
     "NORESTE",
     "NOROESTE",
   ];
-  const CDMX_PRESUPUESTO_CONSOLIDACION_TIPOS = [
-    { value: "income", label: "Income" },
-    { value: "expense", label: "Expense" },
-  ];
+  const CDMX_PRESUPUESTO_CONSOLIDACION_TIPO_A_FILA = Object.freeze({
+    income: "INCOME",
+    expense: "EXPENSE",
+  });
   const MESES_CORTOS = [
     "ene",
     "feb",
@@ -786,6 +786,21 @@
   function puedeEditarCdmxPresupuestoConsolidacion() {
     const hasLayout = state.layout !== null;
     return (FORCE_EDIT_MODE || state.editMode) && hasLayout;
+  }
+
+  function resolverFilaCdmxConsolidacion(regla, cuenta = "") {
+    const raw = (regla?.fila || regla?.filaResumen || regla?.row || "")
+      .toString()
+      .trim();
+    if (raw) return raw;
+    const tipoLegacy = (regla?.tipo || "").toString().trim().toLowerCase();
+    if (tipoLegacy === "expense") {
+      return CDMX_PRESUPUESTO_CONSOLIDACION_TIPO_A_FILA.expense;
+    }
+    if (tipoLegacy === "income") {
+      return CDMX_PRESUPUESTO_CONSOLIDACION_TIPO_A_FILA.income;
+    }
+    return cuenta.toString().trim().startsWith("950") ? "EXPENSE" : "INCOME";
   }
 
   function buildDefaultCdmxPresupuestoConsolidacion() {
@@ -854,6 +869,7 @@
 
     const { config, fromDefault } = obtenerCdmxPresupuestoConsolidacionConfig();
     const canEdit = puedeEditarCdmxPresupuestoConsolidacion();
+    const isEnabled = config.enabled !== false;
 
     if (dom.cdmxPresupuestoConsolidacionEnabled) {
       dom.cdmxPresupuestoConsolidacionEnabled.checked = config.enabled !== false;
@@ -864,7 +880,7 @@
     }
     if (dom.cdmxPresupuestoConsolidacionApply) {
       dom.cdmxPresupuestoConsolidacionApply.disabled =
-        cdmxConsolidacionAplicando || !state.anio;
+        cdmxConsolidacionAplicando || !state.anio || !isEnabled;
     }
 
     const capitulos = [
@@ -882,7 +898,7 @@
         (cuenta) => {
           const cfg = (config.cuentas || {})[cuenta] || {};
           const capitulo = normalizarTextoCapitulo(cfg.capitulo) || "";
-          const tipo = (cfg.tipo || "").toString().trim().toLowerCase();
+          const fila = resolverFilaCdmxConsolidacion(cfg, cuenta);
           const disabledAttr = canEdit ? "" : "disabled";
 
           const capituloOptions = [
@@ -898,22 +914,9 @@
             }),
           ].join("");
 
-          const tipoOptions = [
-            `<option value="" ${tipo ? "" : "selected"}>-</option>`,
-            ...CDMX_PRESUPUESTO_CONSOLIDACION_TIPOS.map((opt) => {
-              const selected = opt.value === tipo ? "selected" : "";
-              return `<option value="${escapeAttr(opt.value)}" ${selected}>${escapeHtml(
-                opt.label,
-              )}</option>`;
-            }),
-          ].join("");
-
-          const detalleTipo =
-            tipo === "income"
-              ? "Income (total mensual)"
-              : tipo === "expense"
-                ? "Expense (total mensual)"
-                : "Sin tipo";
+          const detalleFila = fila
+            ? `${fila} · Ppto (mes)`
+            : "Sin fila (RESUMEN)";
 
           return `
             <tr data-cuenta="${escapeAttr(cuenta)}">
@@ -924,11 +927,17 @@
                 </select>
               </td>
               <td>
-                <select class="form-select form-select-sm" data-field="tipo" ${disabledAttr}>
-                  ${tipoOptions}
-                </select>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  data-field="fila"
+                  list="cdmxPresupuestoConsolidacionFilaDatalist"
+                  value="${escapeHtml(fila)}"
+                  placeholder="INCOME / EXPENSE / NET RESULTS..."
+                  ${disabledAttr}
+                />
               </td>
-              <td class="small text-muted">${escapeHtml(capitulo || "-")} · ${escapeHtml(detalleTipo)}</td>
+              <td class="small text-muted">${escapeHtml(capitulo || "-")} · ${escapeHtml(detalleFila)}</td>
             </tr>
           `;
         },
@@ -938,6 +947,13 @@
     if (!canEdit) {
       setCdmxPresupuestoConsolidacionStatus(
         "Modo solo lectura: activa permisos de edición para cambiar la consolidación.",
+      );
+      return;
+    }
+
+    if (!isEnabled) {
+      setCdmxPresupuestoConsolidacionStatus(
+        "Consolidación deshabilitada. Activa el switch para poder aplicar.",
       );
       return;
     }
@@ -984,13 +1000,15 @@
 
   function handleCdmxPresupuestoConsolidacionRowChange(event) {
     if (!esContextoCdmxResumen()) return;
-    const select = event?.target;
-    if (!select || select.tagName !== "SELECT") return;
+    const element = event?.target;
+    if (!element || (element.tagName !== "SELECT" && element.tagName !== "INPUT")) {
+      return;
+    }
 
-    const row = select.closest("tr");
+    const row = element.closest("tr");
     const cuenta = row?.dataset?.cuenta || "";
-    const field = select.dataset.field || "";
-    if (!cuenta || (field !== "capitulo" && field !== "tipo")) return;
+    const field = element.dataset.field || "";
+    if (!cuenta || (field !== "capitulo" && field !== "fila")) return;
 
     if (!puedeEditarCdmxPresupuestoConsolidacion() || !requireEditMode()) {
       renderCdmxPresupuestoConsolidacionPanel();
@@ -1000,13 +1018,16 @@
     const cfg = asegurarCdmxPresupuestoConsolidacionConfigEditable();
     if (!cfg.cuentas || typeof cfg.cuentas !== "object") cfg.cuentas = {};
     if (!cfg.cuentas[cuenta] || typeof cfg.cuentas[cuenta] !== "object") {
-      cfg.cuentas[cuenta] = { capitulo: "", tipo: "income" };
+      cfg.cuentas[cuenta] = {
+        capitulo: "",
+        fila: resolverFilaCdmxConsolidacion({}, cuenta),
+      };
     }
 
     if (field === "capitulo") {
-      cfg.cuentas[cuenta].capitulo = select.value;
-    } else if (field === "tipo") {
-      cfg.cuentas[cuenta].tipo = select.value;
+      cfg.cuentas[cuenta].capitulo = element.value;
+    } else if (field === "fila") {
+      cfg.cuentas[cuenta].fila = element.value;
     }
 
     state.layoutConfigChanged = true;
@@ -1031,26 +1052,222 @@
     showToast("Defaults restaurados (pendiente de guardar)", "info");
   }
 
-  async function cargarTotalesPresupuestoCapitulo({ capitulo, anio }) {
+  const CDMX_CONSOLIDACION_RESUMEN_CONCURRENCY = 4;
+  const CDMX_CONSOLIDACION_INGRESO_LABELS = ["INCOME", "INGRESO", "INGRESOS"];
+  const CDMX_CONSOLIDACION_GASTO_LABELS = [
+    "EXPENSE",
+    "EXPENSES",
+    "GASTO",
+    "GASTOS",
+    "EGRESO",
+    "EGRESOS",
+  ];
+  const CDMX_CONSOLIDACION_LAYOUT_TIPO_PRIORITY = Object.freeze({
+    final: 0,
+    net: 1,
+    result: 2,
+    group: 3,
+    principal: 4,
+    secundaria: 5,
+    operation: 6,
+    cuenta: 7,
+  });
+  const CDMX_CONSOLIDACION_LAYOUT_TIPO_PRIORITY_DEFAULT = 99;
+  const cdmxResumenMensualCache = new Map();
+
+  const numeroSeguroCdmxConsolidacion = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const normalizarEtiquetaResumen = (value) =>
+    normalizarTextoCapitulo(value).replace(/\s+/g, " ");
+
+  const mapWithConcurrency = async (items, limit, mapper) => {
+    const list = Array.isArray(items) ? items : [];
+    const max = Math.max(1, Number(limit) || 1);
+    const workers = Math.min(max, list.length);
+    const results = new Array(list.length);
+    let cursor = 0;
+    const runWorker = async () => {
+      while (true) {
+        const current = cursor;
+        cursor += 1;
+        if (current >= list.length) return;
+        results[current] = await mapper(list[current], current);
+      }
+    };
+    await Promise.all(Array.from({ length: workers }, () => runWorker()));
+    return results;
+  };
+
+  async function fetchReporteResumenMes({ empresaId, anio, mes, capitulo }) {
+    const params = new URLSearchParams({
+      empresaId: (empresaId || "").toString(),
+      anio: (anio || "").toString(),
+      mes: (mes || "").toString(),
+    });
+    if (capitulo) {
+      params.set("capitulo", capitulo.toString());
+    }
+    const resp = await fetch(`${API_ROOT}/reportes/resumen?${params.toString()}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!resp.ok) {
+      const payload = await resp.json().catch(() => ({}));
+      const msg = payload?.mensaje || `Error ${resp.status} consultando resumen`;
+      throw new Error(msg);
+    }
+    return resp.json();
+  }
+
+  const extraerLayoutReporteResumen = (payload) => {
+    if (!payload || typeof payload !== "object") return [];
+    if (Array.isArray(payload.layout)) return payload.layout;
+    if (Array.isArray(payload.resumen) && Array.isArray(payload.resumen?.[0]?.layout)) {
+      return payload.resumen[0].layout;
+    }
+    if (Array.isArray(payload.resumen) && Array.isArray(payload.resumen?.[0]?.layoutFinal)) {
+      return payload.resumen[0].layoutFinal;
+    }
+    return [];
+  };
+
+  const obtenerOrdenBloqueResumen = (block, fallback = 0) => {
+    const raw = block?.order ?? block?.orden ?? block?.Orden ?? fallback;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const obtenerOrdenIndexBloqueResumen = (block, fallback = 0) => {
+    const raw =
+      block?.orderIndex ?? block?.ordenIndex ?? block?.OrdenIndex ?? fallback;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const obtenerPrioridadTipoBloqueResumen = (block) => {
+    const tipo = (block?.type || "").toString().trim().toLowerCase();
+    if (!tipo) return CDMX_CONSOLIDACION_LAYOUT_TIPO_PRIORITY_DEFAULT;
+    return (
+      CDMX_CONSOLIDACION_LAYOUT_TIPO_PRIORITY[tipo] ??
+      CDMX_CONSOLIDACION_LAYOUT_TIPO_PRIORITY_DEFAULT
+    );
+  };
+
+  const elegirMejorBloqueResumen = (candidatos = []) => {
+    const list = (Array.isArray(candidatos) ? candidatos : []).slice();
+    list.sort((a, b) => {
+      const prA = obtenerPrioridadTipoBloqueResumen(a);
+      const prB = obtenerPrioridadTipoBloqueResumen(b);
+      if (prA !== prB) return prA - prB;
+      const ordA = obtenerOrdenBloqueResumen(a, 0);
+      const ordB = obtenerOrdenBloqueResumen(b, 0);
+      if (ordA !== ordB) return ordA - ordB;
+      const idxA = obtenerOrdenIndexBloqueResumen(a, 0);
+      const idxB = obtenerOrdenIndexBloqueResumen(b, 0);
+      return idxA - idxB;
+    });
+    return list[0] || null;
+  };
+
+  const buscarBloqueResumenPorEtiqueta = (layout = [], etiqueta = "") => {
+    const queryNorm = normalizarEtiquetaResumen(etiqueta);
+    if (!queryNorm) return null;
+    const list = Array.isArray(layout) ? layout : [];
+    const exact = list.filter(
+      (b) => normalizarEtiquetaResumen(b?.label || "") === queryNorm,
+    );
+    if (exact.length) {
+      return elegirMejorBloqueResumen(exact);
+    }
+    const contains = list.filter((b) =>
+      normalizarEtiquetaResumen(b?.label || "").includes(queryNorm),
+    );
+    if (contains.length) {
+      return elegirMejorBloqueResumen(contains);
+    }
+    return null;
+  };
+
+  const extraerPlanMonthBloqueResumen = (block) => {
+    const raw =
+      block?.totals?.planMonth ??
+      block?.planMonth ??
+      block?.totalPlanMonth ??
+      block?.totals?.totalPlanMonth ??
+      block?.plan ??
+      block?.presupuesto ??
+      0;
+    return Math.abs(numeroSeguroCdmxConsolidacion(raw));
+  };
+
+  const canonicalizarFilaBusquedaResumen = (fila = "") => {
+    const raw = (fila || "").toString().trim();
+    const norm = normalizarEtiquetaResumen(raw);
+    if (!norm) return "";
+    if (
+      CDMX_CONSOLIDACION_INGRESO_LABELS.some((l) =>
+        norm.includes(normalizarEtiquetaResumen(l)),
+      )
+    ) {
+      return "INCOME";
+    }
+    if (
+      CDMX_CONSOLIDACION_GASTO_LABELS.some((l) =>
+        norm.includes(normalizarEtiquetaResumen(l)),
+      )
+    ) {
+      return "EXPENSE";
+    }
+    return raw;
+  };
+
+  const extraerPlanMonthDeFilaResumen = (payload, fila) => {
+    const etiqueta = canonicalizarFilaBusquedaResumen(fila);
+    const layout = extraerLayoutReporteResumen(payload);
+    const block = buscarBloqueResumenPorEtiqueta(layout, etiqueta);
+    if (!block) {
+      throw new Error(
+        `No se encontró la fila "${(fila || "").toString().trim()}" en RESUMEN`,
+      );
+    }
+    return extraerPlanMonthBloqueResumen(block);
+  };
+
+  async function cargarResumenMensualCapitulo({ capitulo, anio }) {
     const empresaId = obtenerEmpresaIdPorCapitulo(capitulo);
     if (!empresaId) {
       throw new Error(`No se pudo resolver empresaId para capítulo: ${capitulo}`);
     }
-    const params = new URLSearchParams({
-      empresaId: empresaId.toString(),
-      anio: anio.toString(),
-    });
-    const resp = await fetch(
-      `${API_ROOT}/presupuestos/totales-capitulo?${params.toString()}`,
-      { headers: getAuthHeaders() },
-    );
-    if (!resp.ok) {
-      const payload = await resp.json().catch(() => ({}));
-      const msg = payload?.mensaje || `Error ${resp.status} consultando totales`;
-      throw new Error(msg);
-    }
-    const data = await resp.json();
-    return data?.totales || null;
+    const cacheKey = `${empresaId}::${anio}::${normalizarEtiquetaResumen(capitulo)}`;
+    const cached = cdmxResumenMensualCache.get(cacheKey);
+    if (cached?.data) return cached.data;
+    if (cached?.promise) return cached.promise;
+
+    const meses = Array.from({ length: 12 }, (_, idx) => idx + 1);
+    const promise = mapWithConcurrency(
+      meses,
+      CDMX_CONSOLIDACION_RESUMEN_CONCURRENCY,
+      async (mes) =>
+        fetchReporteResumenMes({
+          empresaId,
+          anio,
+          mes,
+          capitulo,
+        }),
+    )
+      .then((data) => {
+        cdmxResumenMensualCache.set(cacheKey, { data, at: Date.now() });
+        return data;
+      })
+      .catch((error) => {
+        cdmxResumenMensualCache.delete(cacheKey);
+        throw error;
+      });
+
+    cdmxResumenMensualCache.set(cacheKey, { promise });
+    return promise;
   }
 
   async function handleCdmxPresupuestoConsolidacionApply() {
@@ -1063,6 +1280,10 @@
     if (cdmxConsolidacionAplicando) return;
 
     const { config } = obtenerCdmxPresupuestoConsolidacionConfig();
+    if (config.enabled === false) {
+      showToast("Consolidación deshabilitada", "warning");
+      return;
+    }
     const reglas = config.cuentas || {};
 
     // Determinar capítulos requeridos
@@ -1080,12 +1301,18 @@
 
     cdmxConsolidacionAplicando = true;
     renderCdmxPresupuestoConsolidacionPanel();
-    setCdmxPresupuestoConsolidacionStatus("Cargando totales por capítulo...");
+    setCdmxPresupuestoConsolidacionStatus(
+      "Cargando RESUMEN (12 meses) por capítulo...",
+    );
 
     try {
-      const totalesPorCapitulo = {};
-      for (const capitulo of capitulos) {
-        totalesPorCapitulo[capitulo] = await cargarTotalesPresupuestoCapitulo({
+      const resumenMensualPorCapitulo = {};
+      for (let idx = 0; idx < capitulos.length; idx += 1) {
+        const capitulo = capitulos[idx];
+        setCdmxPresupuestoConsolidacionStatus(
+          `Cargando RESUMEN: ${capitulo} (${idx + 1}/${capitulos.length})...`,
+        );
+        resumenMensualPorCapitulo[capitulo] = await cargarResumenMensualCapitulo({
           capitulo,
           anio,
         });
@@ -1095,14 +1322,21 @@
       CDMX_PRESUPUESTO_CONSOLIDACION_CUENTAS_ORDEN.forEach((cuenta) => {
         const regla = reglas[cuenta];
         const capitulo = normalizarTextoCapitulo(regla?.capitulo);
-        const tipo = (regla?.tipo || "").toString().trim().toLowerCase();
-        const totales = capitulo ? totalesPorCapitulo[capitulo] : null;
-        const valoresTipo = totales?.[tipo];
-        if (!capitulo || !valoresTipo) return;
+        const fila = resolverFilaCdmxConsolidacion(regla, cuenta);
+        const mensual = capitulo ? resumenMensualPorCapitulo[capitulo] : null;
+        if (!capitulo || !mensual || !fila) return;
 
         const valores = {};
-        MESES_CORTOS.forEach((mes) => {
-          valores[mes] = Number(valoresTipo?.[mes] || 0);
+        MESES_CORTOS.forEach((mes, mesIdx) => {
+          const payload = mensual?.[mesIdx];
+          try {
+            valores[mes] = extraerPlanMonthDeFilaResumen(payload, fila);
+          } catch (errorFila) {
+            const detalle = (errorFila?.message || "").toString();
+            throw new Error(
+              `${capitulo} · ${cuenta} · ${mes.toUpperCase()}: ${detalle}`.trim(),
+            );
+          }
         });
         cuentas.push({ numCta: cuenta, valores });
       });
@@ -1113,7 +1347,7 @@
       }
 
       setCdmxPresupuestoConsolidacionStatus(
-        `Actualizando ${cuentas.length} cuentas en Presupuestos...`,
+        `Actualizando ${cuentas.length} cuentas en Presupuesto (CDMX)...`,
       );
       const resp = await fetch(`${API_ROOT}/presupuestos/actualizar-consolidados`, {
         method: "POST",

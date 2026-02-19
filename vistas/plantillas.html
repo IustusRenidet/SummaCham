@@ -358,7 +358,8 @@
                     <div>
                       <h2 class="h5 mb-1">Consolidación CDMX → Presupuesto</h2>
                       <p class="small text-muted mb-0">
-                        Define qué capítulo (Income/Gasto) se copia a cada cuenta
+                        Define qué capítulo y qué fila del <strong>RESUMEN</strong>
+                        (columna <strong>Ppto</strong>) se copia a cada cuenta
                         consolidada (450-001/002/003 y 950-001/002/003).
                       </p>
                     </div>
@@ -400,13 +401,20 @@
                         <tr class="text-muted small">
                           <th style="width: 180px">Cuenta destino</th>
                           <th style="width: 220px">Capítulo origen</th>
-                          <th style="width: 160px">Tipo</th>
-                          <th>Detalle</th>
-                        </tr>
-                      </thead>
-                      <tbody id="cdmxPresupuestoConsolidacionTbody"></tbody>
-                    </table>
-                  </div>
+                           <th style="width: 240px">Fila RESUMEN</th>
+                           <th>Detalle</th>
+                         </tr>
+                       </thead>
+                       <tbody id="cdmxPresupuestoConsolidacionTbody"></tbody>
+                     </table>
+                     <datalist id="cdmxPresupuestoConsolidacionFilaDatalist">
+                       <option value="INCOME"></option>
+                       <option value="EXPENSE"></option>
+                       <option value="OPERATING RESULTS"></option>
+                       <option value="NET RESULTS"></option>
+                       <option value="FINAL"></option>
+                     </datalist>
+                   </div>
 
                   <div
                     class="small text-muted"

@@ -2581,13 +2581,7 @@
     estadoModulo.hayCambios = false;
     estadoModulo.editSnapshot = null;
 
-    // Aplicar datos autom├íticos de SUMMARY si corresponde
-    const anio = obtenerAnioSeleccionado();
-    if (Number.isInteger(anio)) {
-      aplicarDatosAutomaticos(anio).catch((err) => {
-        console.warn('Error aplicando datos autom├íticos:', err);
-      });
-    }
+    // Nota: Consolidación CDMX -> Presupuesto se gestiona manualmente desde Plantillas (RESUMEN).
   };
 
   const obtenerCuentasSolicitadas = () => {
