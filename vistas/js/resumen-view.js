@@ -4457,12 +4457,10 @@
         .toString()
         .trim()
         .toUpperCase();
+      // visibilidad por-subsección: controlada en cada block.mostrarEnResumen (set by backend)
       const layout = Array.isArray(capitulo.layout)
         ? ordenarLayoutPorOrdenGlobal(capitulo.layout)
         : null;
-      // Leer configuración de layout: mostrarSubsecciones (por defecto true)
-      const mostrarSubseccionesEnResumen =
-        capitulo.config?.mostrarSubsecciones !== false;
       const principales = Array.isArray(capitulo.children)
         ? capitulo.children.slice()
         : [];
@@ -4720,8 +4718,8 @@
           else if (blockType === "secundaria") {
             const label = block.label || "";
             if (!label) return;
-            // Si el usuario ocultó subsecciones en Resumen, saltar sin renderizar
-            if (!mostrarSubseccionesEnResumen) return;
+            // Si esta subsección específica está oculta en Resumen, saltarla
+            if (block.mostrarEnResumen === false) return;
             // Guard: renderizar primero el principal padre si aún no ha aparecido
             const blockParent = block.parentSection || "";
             if (blockParent && blockParent !== currentPrincipal) {
@@ -4758,7 +4756,7 @@
               }
             }
 
-            if (mostrarSubseccionesEnResumen && acctSubsection && acctSubsection !== currentSubsection) {
+            if (acctSubsection && acctSubsection !== currentSubsection) {
               currentSubsection = acctSubsection;
               const key = (currentPrincipal || "") + "::" + acctSubsection;
               if (!renderedBlocks.has("S:" + key)) {

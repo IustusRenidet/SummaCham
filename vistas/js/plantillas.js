@@ -889,7 +889,7 @@
         // Extraer configuración de layout (mostrarSubsecciones, etc.)
         const layoutExtracted = extractLayoutConfigFromOperations(state.operaciones);
         state.operaciones = layoutExtracted.operaciones;
-        state.layoutConfig = layoutExtracted.layoutConfig || { mostrarSubsecciones: true };
+        state.layoutConfig = layoutExtracted.layoutConfig || { subseccionesOcultas: [] };
         state.layoutConfigChanged = false;
       } else {
         state.columnasConfig = null;
@@ -2142,7 +2142,6 @@
 
   function renderEditableLayoutPiloto() {
     const rows = buildPreviewRowsForEditor();
-    const mostrarSubsecciones = state.layoutConfig?.mostrarSubsecciones !== false;
     const inlineOrderHeader = INLINE_ORDER_UI_ENABLED
       ? `
             <div class="template-table-actions">
@@ -2161,21 +2160,6 @@
             </div>
         `
       : "";
-    const subseccionesToggle = isModuloPiloto() ? `
-            <div class="template-table-actions ms-2">
-              <div class="form-check form-switch m-0">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  id="toggleMostrarSubsecciones"
-                  ${mostrarSubsecciones ? "checked" : ""}
-                />
-                <label class="form-check-label small" for="toggleMostrarSubsecciones">
-                  <i class="bi bi-layers me-1"></i>Subsecciones en Resumen
-                </label>
-              </div>
-            </div>
-        ` : "";
     return `
       <div class="template-pilot">
         ${renderTemplateSummary(rows, [])}
@@ -2184,7 +2168,6 @@
             <span>Elementos de la plantilla</span>
             <div class="d-flex align-items-center flex-wrap gap-2">
               ${inlineOrderHeader}
-              ${subseccionesToggle}
             </div>
           </div>
           <div class="card-body">
@@ -2926,6 +2909,15 @@
         const subsectionOpBtnTitle = hasSubsectionOp
           ? "Editar operación"
           : "Crear operación";
+        const ocultasArr = Array.isArray(state.layoutConfig?.subseccionesOcultas)
+          ? state.layoutConfig.subseccionesOcultas
+          : [];
+        const subVisKey = (parentSection || "").trim().toLowerCase() + "|" + (subsectionName || "").trim().toLowerCase();
+        const isSubseccionOculta = ocultasArr.some(
+          (k) => (k || "").trim().toLowerCase() === subVisKey,
+        );
+        const eyeIcon = isSubseccionOculta ? "bi-eye-slash text-secondary" : "bi-eye text-success";
+        const eyeTitle = isSubseccionOculta ? "Oculta en Resumen (click para mostrar)" : "Visible en Resumen (click para ocultar)";
         html += `
           <div class="list-item section-secondary ${hiddenClass}" data-row-type="subsection" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(subsectionName)}" data-parent-section="${escapeAttr(parentSection)}" data-row-index="${rowIndex}">
             ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ""}
@@ -2941,6 +2933,9 @@
           parentSection,
         )}')" title="${subsectionOpBtnTitle}" ${disabledAttr}>
                   <i class="bi bi-calculator"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); toggleSubseccionVisibility('${escapeAttr(parentSection)}', '${escapeAttr(subsectionName)}')" title="${eyeTitle}" ${disabledAttr}>
+                  <i class="bi ${eyeIcon}"></i>
                 </button>
                 <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSubsection('${escapeAttr(parentSection)}', '${escapeAttr(subsectionName)}')" title="Editar subsección" ${disabledAttr}>
                   <i class="bi bi-pencil"></i>
@@ -4311,17 +4306,6 @@
       inlineToggle?.addEventListener("change", (event) => {
         state.inlineOrderMode = Boolean(event.target.checked);
         renderLayout();
-      });
-    }
-
-    const subseccionesToggleEl = dom.layoutPreview?.querySelector("#toggleMostrarSubsecciones");
-    if (isPiloto && subseccionesToggleEl) {
-      subseccionesToggleEl.addEventListener("change", (event) => {
-        if (!state.layoutConfig) state.layoutConfig = {};
-        state.layoutConfig.mostrarSubsecciones = Boolean(event.target.checked);
-        state.layoutConfigChanged = true;
-        state.unsavedChanges = true;
-        updateButtonStates();
       });
     }
 
@@ -13042,6 +13026,29 @@
       if (!requireEditMode()) return;
       state.selectedElement = { type: "subsection", principal, name };
       deleteElement();
+    };
+
+    window.toggleSubseccionVisibility = function (principal, name) {
+      if (!requireEditMode()) return;
+      if (!state.layoutConfig) state.layoutConfig = {};
+      if (!Array.isArray(state.layoutConfig.subseccionesOcultas)) {
+        state.layoutConfig.subseccionesOcultas = [];
+      }
+      const subKey = (principal || "").trim().toLowerCase() + "|" + (name || "").trim().toLowerCase();
+      const idx = state.layoutConfig.subseccionesOcultas.findIndex(
+        (k) => (k || "").trim().toLowerCase() === subKey,
+      );
+      if (idx >= 0) {
+        // Actualmente oculta → mostrar en Resumen
+        state.layoutConfig.subseccionesOcultas.splice(idx, 1);
+      } else {
+        // Actualmente visible → ocultar en Resumen
+        state.layoutConfig.subseccionesOcultas.push(principal + "|" + name);
+      }
+      state.layoutConfigChanged = true;
+      state.unsavedChanges = true;
+      updateButtonStates();
+      renderLayout();
     };
 
     window.addToSection = function (principal) {
