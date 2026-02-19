@@ -866,6 +866,7 @@
     "result-net-row",
   ];
   const COLUMN_CONFIG_ID = "COLUMN_CONFIG";
+  const LAYOUT_CONFIG_ID = "LAYOUT_CONFIG";
   const esOperacionConfigColumnas = (op) => {
     if (!op) return false;
     const rawId =
@@ -876,6 +877,30 @@
       return true;
     }
     return false;
+  };
+
+  const esOperacionLayoutConfig = (op) => {
+    if (!op) return false;
+    const rawId =
+      op.OperacionId || op.operacion_id || op.id || op.Clase || op.clase || "";
+    const id = rawId.toString().trim().toUpperCase();
+    if (id === LAYOUT_CONFIG_ID) return true;
+    if (op["layout-config"] || op["layoutconfig"]) return true;
+    return false;
+  };
+
+  const extraerLayoutConfig = (ops = []) => {
+    for (const op of ops) {
+      if (!esOperacionLayoutConfig(op)) continue;
+      if (!op.formula_json) continue;
+      try {
+        const parsed = JSON.parse(op.formula_json);
+        if (parsed && typeof parsed === "object") return parsed;
+      } catch (_) {
+        // ignore
+      }
+    }
+    return null;
   };
 
   const obtenerNombreOperacion = (op) =>
@@ -2193,6 +2218,22 @@
     '450-003-000-00': { capitulo: 'NOROESTE', tipo: 'income' },
     '950-003-000-00': { capitulo: 'NOROESTE', tipo: 'expense' },
   };
+  const CDMX_PRESUPUESTO_CONSOLIDACION_KEY = "cdmxPresupuestoConsolidacion";
+
+  const obtenerConfigConsolidacionPresupuestoCdmx = () => {
+    const ops = Array.isArray(estadoModulo.layoutOperaciones)
+      ? estadoModulo.layoutOperaciones
+      : [];
+    const layoutConfig = extraerLayoutConfig(ops);
+    const cfg = layoutConfig?.[CDMX_PRESUPUESTO_CONSOLIDACION_KEY] || null;
+    if (!cfg || typeof cfg !== "object") {
+      return { enabled: true, cuentas: CUENTAS_AUTO_CDMX };
+    }
+    const enabled = cfg.enabled !== false;
+    const cuentas =
+      cfg.cuentas && typeof cfg.cuentas === "object" ? cfg.cuentas : CUENTAS_AUTO_CDMX;
+    return { enabled, cuentas };
+  };
 
   // Mapeo de cap├¡tulo a empresaId (usar claves normalizadas)
   const CAPITULO_A_EMPRESA = {
@@ -2234,12 +2275,11 @@
   };
 
   /**
-   * Carga valores mensuales de INCOME y EXPENSE del RESUMEN (columna "Ppto.")
-   * Para cada mes del a├▒o, obtiene el valor planMonth de los principales
+   * Carga totales mensuales de presupuesto (income/expense) por capítulo,
+   * leyendo directamente de PRESUPxx (via /api/presupuestos/totales-capitulo).
    */
-  const cargarDatosSummaryCapitulo = async (capitulo, anio) => {
+  const cargarTotalesPresupuestoCapitulo = async (capitulo, anio) => {
     try {
-      // Obtener el empresaId del cap├¡tulo usando el mapeo normalizado
       const claveCapitulo = normalizarTexto(capitulo);
       let empresaId = CAPITULO_A_EMPRESA[claveCapitulo];
       if (!empresaId && window.CapitulosModulos?.EMPRESA_CONFIG) {
@@ -2250,64 +2290,33 @@
       }
 
       if (!empresaId) {
-        console.warn(`ÔØî No se encontr├│ empresaId para cap├¡tulo: ${capitulo}`);
+        console.warn(`No se encontró empresaId para capítulo: ${capitulo}`);
         return null;
       }
 
-      console.log(`­ƒôè Cargando valores mensuales de RESUMEN de ${capitulo} (empresa: ${empresaId})`);
-
-      // Cargar los 12 meses del resumen
-      const valoresPorMes = { income: {}, expense: {} };
-      
-      for (let mes = 1; mes <= 12; mes++) {
-        const params = new URLSearchParams({
-          empresaId: empresaId.toString(),
-          anio: anio.toString(),
-          mes: mes.toString(),
-          capitulo: capitulo
-        });
-
-        const respuesta = await fetch(`${API_BASE}/reportes/resumen?${params.toString()}`, {
-          headers: Sesion.headersAutenticacion()
-        });
-
-        if (!respuesta.ok) {
-          console.error(`ÔØî Error al cargar resumen ${capitulo} mes ${mes}`);
-          continue;
-        }
-
-        const datos = await respuesta.json();
-
-        // Buscar los principales INCOME y EXPENSE
-        const principales =
-          datos.principals ||
-          datos.principales ||
-          datos.resumen?.[0]?.children ||
-          [];
-        const income = principales.find((p) => {
-          const label = normalizarTexto(p.label || "");
-          return label === "INCOME" || label === "INGRESOS";
-        });
-        const expense = principales.find((p) => {
-          const label = normalizarTexto(p.label || "");
-          return label === "EXPENSE" || label === "GASTOS" || label === "EXPENSES";
-        });
-
-        // Guardar el valor de planMonth (columna "Ppto." del RESUMEN)
-        const nombreMes = MESES[mes - 1];
-        const incomePlan = income?.planMonth ?? income?.totals?.planMonth ?? 0;
-        const expensePlan = expense?.planMonth ?? expense?.totals?.planMonth ?? 0;
-        valoresPorMes.income[nombreMes] = incomePlan || 0;
-        valoresPorMes.expense[nombreMes] = expensePlan || 0;
-      }
-
-      console.log(`Ô£à Valores mensuales cargados para ${capitulo}:`, {
-        enero: { income: valoresPorMes.income.ene, expense: valoresPorMes.expense.ene }
+      const params = new URLSearchParams({
+        empresaId: empresaId.toString(),
+        anio: anio.toString(),
       });
 
-      return valoresPorMes;
+      const respuesta = await fetch(
+        `${API_BASE}/presupuestos/totales-capitulo?${params.toString()}`,
+        {
+          headers: Sesion.headersAutenticacion(),
+        }
+      );
+
+      if (!respuesta.ok) {
+        console.error(
+          `Error al cargar totales de presupuesto de ${capitulo}: ${respuesta.status}`
+        );
+        return null;
+      }
+
+      const datos = await respuesta.json();
+      return datos?.totales || null;
     } catch (error) {
-      console.error(`ÔØî Error al cargar totales de ${capitulo}:`, error);
+      console.error(`Error al cargar totales de presupuesto de ${capitulo}:`, error);
       return null;
     }
   };
@@ -2325,34 +2334,44 @@
       return;
     }
 
-    console.log('­ƒöä Consolidando presupuestos de cap├¡tulos en CDMX (desde columna "Ppto." del RESUMEN)');
+    const consolidacionCfg = obtenerConfigConsolidacionPresupuestoCdmx();
+    if (consolidacionCfg.enabled === false) {
+      return;
+    }
+    const cuentasConfig = consolidacionCfg.cuentas || CUENTAS_AUTO_CDMX;
 
-    // Cargar datos de los tres cap├¡tulos
-    const [gdlData, neData, noData] = await Promise.all([
-      cargarDatosSummaryCapitulo('GUADALAJARA', anio),
-      cargarDatosSummaryCapitulo('NORESTE', anio),
-      cargarDatosSummaryCapitulo('NOROESTE', anio),
-    ]);
+    console.log('­ƒöä Consolidando presupuestos de capítulos en CDMX (totales por capítulo)');
 
-    console.log('­ƒôª Datos cargados:', { gdlData, neData, noData });
+    const capitulosRequeridos = [
+      ...new Set(
+        Object.values(cuentasConfig)
+          .map((cfg) => cfg?.capitulo)
+          .filter(Boolean),
+      ),
+    ];
 
-    const datosCapitulos = {
-      GUADALAJARA: gdlData,
-      NORESTE: neData,
-      NOROESTE: noData,
-    };
+    const datosCapitulos = {};
+    await Promise.all(
+      capitulosRequeridos.map(async (cap) => {
+        const data = await cargarTotalesPresupuestoCapitulo(cap, anio);
+        if (data) {
+          datosCapitulos[normalizarTexto(cap)] = data;
+        }
+      }),
+    );
 
     // Preparar datos para actualizar en la base de datos
     const cuentasParaActualizar = [];
 
-    Object.entries(CUENTAS_AUTO_CDMX).forEach(([cuentaVisible, config]) => {
+    Object.entries(cuentasConfig).forEach(([cuentaVisible, config]) => {
       const cuenta21 = convertirCuenta21(cuentaVisible);
       if (!cuenta21) return;
 
-      const datos = datosCapitulos[config.capitulo];
+      const datos = datosCapitulos[normalizarTexto(config?.capitulo)];
       if (!datos) return;
 
-      const valoresTipo = datos[config.tipo]; // income o expense
+      const tipo = (config?.tipo || '').toString().trim().toLowerCase();
+      const valoresTipo = datos[tipo]; // income o expense
       if (!valoresTipo) return;
 
       // Preparar objeto de valores mensuales

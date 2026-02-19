@@ -323,6 +323,26 @@
     // Toast
     dom.toastNotification = document.getElementById("toastNotification");
     dom.toastMessage = document.getElementById("toastMessage");
+
+    // Consolidación CDMX -> Presupuestos
+    dom.cdmxPresupuestoConsolidacionRow = document.getElementById(
+      "cdmxPresupuestoConsolidacionRow",
+    );
+    dom.cdmxPresupuestoConsolidacionTbody = document.getElementById(
+      "cdmxPresupuestoConsolidacionTbody",
+    );
+    dom.cdmxPresupuestoConsolidacionStatus = document.getElementById(
+      "cdmxPresupuestoConsolidacionStatus",
+    );
+    dom.cdmxPresupuestoConsolidacionEnabled = document.getElementById(
+      "cdmxPresupuestoConsolidacionEnabled",
+    );
+    dom.cdmxPresupuestoConsolidacionReset = document.getElementById(
+      "cdmxPresupuestoConsolidacionReset",
+    );
+    dom.cdmxPresupuestoConsolidacionApply = document.getElementById(
+      "cdmxPresupuestoConsolidacionApply",
+    );
   }
 
   // Prevenir event listeners duplicados
@@ -352,6 +372,24 @@
     dom.btnPreview?.addEventListener("click", showPreview);
     dom.btnPrintPreview?.addEventListener("click", () => window.print());
     dom.btnRefreshOrder?.addEventListener("click", updateLayoutOrderPanel);
+
+    // Consolidación CDMX -> Presupuestos
+    dom.cdmxPresupuestoConsolidacionReset?.addEventListener(
+      "click",
+      handleCdmxPresupuestoConsolidacionReset,
+    );
+    dom.cdmxPresupuestoConsolidacionApply?.addEventListener(
+      "click",
+      handleCdmxPresupuestoConsolidacionApply,
+    );
+    dom.cdmxPresupuestoConsolidacionEnabled?.addEventListener(
+      "change",
+      handleCdmxPresupuestoConsolidacionEnabledChange,
+    );
+    dom.cdmxPresupuestoConsolidacionTbody?.addEventListener(
+      "change",
+      handleCdmxPresupuestoConsolidacionRowChange,
+    );
 
     // Importación/Exportación masiva
     const btnDescargarPlantilla = document.getElementById(
@@ -692,6 +730,423 @@
   }
 
   // ==========================================
+  // CDMX -> PRESUPUESTOS (CONSOLIDACIÓN)
+  // ==========================================
+  const CDMX_PRESUPUESTO_CONSOLIDACION_KEY = "cdmxPresupuestoConsolidacion";
+  const CDMX_PRESUPUESTO_CONSOLIDACION_CUENTAS_ORDEN = [
+    "450-001-000-00",
+    "950-001-000-00",
+    "450-002-000-00",
+    "950-002-000-00",
+    "450-003-000-00",
+    "950-003-000-00",
+  ];
+  const CDMX_PRESUPUESTO_CONSOLIDACION_DEFAULT = Object.freeze({
+    enabled: true,
+    cuentas: {
+      "450-001-000-00": { capitulo: "GUADALAJARA", tipo: "income" },
+      "950-001-000-00": { capitulo: "GUADALAJARA", tipo: "expense" },
+      "450-002-000-00": { capitulo: "NORESTE", tipo: "income" },
+      "950-002-000-00": { capitulo: "NORESTE", tipo: "expense" },
+      "450-003-000-00": { capitulo: "NOROESTE", tipo: "income" },
+      "950-003-000-00": { capitulo: "NOROESTE", tipo: "expense" },
+    },
+  });
+  const CDMX_PRESUPUESTO_CONSOLIDACION_CAPITULOS = [
+    "GUADALAJARA",
+    "NORESTE",
+    "NOROESTE",
+  ];
+  const CDMX_PRESUPUESTO_CONSOLIDACION_TIPOS = [
+    { value: "income", label: "Income" },
+    { value: "expense", label: "Expense" },
+  ];
+  const MESES_CORTOS = [
+    "ene",
+    "feb",
+    "mar",
+    "abr",
+    "may",
+    "jun",
+    "jul",
+    "ago",
+    "sep",
+    "oct",
+    "nov",
+    "dic",
+  ];
+  let cdmxConsolidacionAplicando = false;
+
+  function esContextoCdmxResumen() {
+    const modulo = normalizarTextoCapitulo(state.modulo);
+    const capitulo = normalizarTextoCapitulo(state.capitulo);
+    return modulo === "RESUMEN" && capitulo === "CIUDAD DE MEXICO";
+  }
+
+  function puedeEditarCdmxPresupuestoConsolidacion() {
+    const hasLayout = state.layout !== null;
+    return (FORCE_EDIT_MODE || state.editMode) && hasLayout;
+  }
+
+  function buildDefaultCdmxPresupuestoConsolidacion() {
+    return {
+      enabled: true,
+      cuentas: CDMX_PRESUPUESTO_CONSOLIDACION_CUENTAS_ORDEN.reduce(
+        (acc, cuenta) => {
+          const cfg = CDMX_PRESUPUESTO_CONSOLIDACION_DEFAULT.cuentas[cuenta];
+          if (cfg) acc[cuenta] = { ...cfg };
+          return acc;
+        },
+        {},
+      ),
+    };
+  }
+
+  function obtenerCdmxPresupuestoConsolidacionConfig() {
+    const raw =
+      state.layoutConfig && typeof state.layoutConfig === "object"
+        ? state.layoutConfig[CDMX_PRESUPUESTO_CONSOLIDACION_KEY]
+        : null;
+    if (raw && typeof raw === "object") {
+      const enabled = raw.enabled !== false;
+      const cuentas = raw.cuentas && typeof raw.cuentas === "object" ? raw.cuentas : {};
+      return {
+        config: {
+          enabled,
+          cuentas,
+        },
+        fromDefault: false,
+      };
+    }
+    return { config: buildDefaultCdmxPresupuestoConsolidacion(), fromDefault: true };
+  }
+
+  function asegurarCdmxPresupuestoConsolidacionConfigEditable() {
+    if (!state.layoutConfig || typeof state.layoutConfig !== "object") {
+      state.layoutConfig = { subseccionesOcultas: [] };
+    }
+    const current =
+      state.layoutConfig[CDMX_PRESUPUESTO_CONSOLIDACION_KEY] &&
+        typeof state.layoutConfig[CDMX_PRESUPUESTO_CONSOLIDACION_KEY] === "object"
+        ? state.layoutConfig[CDMX_PRESUPUESTO_CONSOLIDACION_KEY]
+        : null;
+    if (current) return current;
+    const created = buildDefaultCdmxPresupuestoConsolidacion();
+    state.layoutConfig[CDMX_PRESUPUESTO_CONSOLIDACION_KEY] = created;
+    return created;
+  }
+
+  function setCdmxPresupuestoConsolidacionStatus(message) {
+    if (!dom.cdmxPresupuestoConsolidacionStatus) return;
+    dom.cdmxPresupuestoConsolidacionStatus.textContent = message || "";
+  }
+
+  function renderCdmxPresupuestoConsolidacionPanel() {
+    const container = dom.cdmxPresupuestoConsolidacionRow;
+    if (!container) return;
+
+    const shouldShow = esContextoCdmxResumen() && state.anio;
+    if (!shouldShow) {
+      container.classList.add("d-none");
+      return;
+    }
+    container.classList.remove("d-none");
+
+    const { config, fromDefault } = obtenerCdmxPresupuestoConsolidacionConfig();
+    const canEdit = puedeEditarCdmxPresupuestoConsolidacion();
+
+    if (dom.cdmxPresupuestoConsolidacionEnabled) {
+      dom.cdmxPresupuestoConsolidacionEnabled.checked = config.enabled !== false;
+      dom.cdmxPresupuestoConsolidacionEnabled.disabled = !canEdit;
+    }
+    if (dom.cdmxPresupuestoConsolidacionReset) {
+      dom.cdmxPresupuestoConsolidacionReset.disabled = !canEdit;
+    }
+    if (dom.cdmxPresupuestoConsolidacionApply) {
+      dom.cdmxPresupuestoConsolidacionApply.disabled =
+        cdmxConsolidacionAplicando || !state.anio;
+    }
+
+    const capitulos = [
+      ...new Set([
+        ...CDMX_PRESUPUESTO_CONSOLIDACION_CAPITULOS,
+        ...Object.values(config.cuentas || {})
+          .map((c) => normalizarTextoCapitulo(c?.capitulo))
+          .filter(Boolean),
+      ]),
+    ].sort();
+
+    const tbody = dom.cdmxPresupuestoConsolidacionTbody;
+    if (tbody) {
+      tbody.innerHTML = CDMX_PRESUPUESTO_CONSOLIDACION_CUENTAS_ORDEN.map(
+        (cuenta) => {
+          const cfg = (config.cuentas || {})[cuenta] || {};
+          const capitulo = normalizarTextoCapitulo(cfg.capitulo) || "";
+          const tipo = (cfg.tipo || "").toString().trim().toLowerCase();
+          const disabledAttr = canEdit ? "" : "disabled";
+
+          const capituloOptions = [
+            `<option value="" ${capitulo ? "" : "selected"}>-</option>`,
+            ...capitulos.map((opt) => {
+              const selected =
+                normalizarTextoCapitulo(opt) === normalizarTextoCapitulo(capitulo)
+                  ? "selected"
+                  : "";
+              return `<option value="${escapeAttr(opt)}" ${selected}>${escapeHtml(
+                opt,
+              )}</option>`;
+            }),
+          ].join("");
+
+          const tipoOptions = [
+            `<option value="" ${tipo ? "" : "selected"}>-</option>`,
+            ...CDMX_PRESUPUESTO_CONSOLIDACION_TIPOS.map((opt) => {
+              const selected = opt.value === tipo ? "selected" : "";
+              return `<option value="${escapeAttr(opt.value)}" ${selected}>${escapeHtml(
+                opt.label,
+              )}</option>`;
+            }),
+          ].join("");
+
+          const detalleTipo =
+            tipo === "income"
+              ? "Income (total mensual)"
+              : tipo === "expense"
+                ? "Expense (total mensual)"
+                : "Sin tipo";
+
+          return `
+            <tr data-cuenta="${escapeAttr(cuenta)}">
+              <td><code>${escapeHtml(cuenta)}</code></td>
+              <td>
+                <select class="form-select form-select-sm" data-field="capitulo" ${disabledAttr}>
+                  ${capituloOptions}
+                </select>
+              </td>
+              <td>
+                <select class="form-select form-select-sm" data-field="tipo" ${disabledAttr}>
+                  ${tipoOptions}
+                </select>
+              </td>
+              <td class="small text-muted">${escapeHtml(capitulo || "-")} · ${escapeHtml(detalleTipo)}</td>
+            </tr>
+          `;
+        },
+      ).join("");
+    }
+
+    if (!canEdit) {
+      setCdmxPresupuestoConsolidacionStatus(
+        "Modo solo lectura: activa permisos de edición para cambiar la consolidación.",
+      );
+      return;
+    }
+
+    if (cdmxConsolidacionAplicando) {
+      setCdmxPresupuestoConsolidacionStatus("Aplicando consolidación...");
+      return;
+    }
+
+    if (fromDefault) {
+      setCdmxPresupuestoConsolidacionStatus(
+        "Usando defaults. Guarda la plantilla para persistir cambios.",
+      );
+      return;
+    }
+
+    if (state.unsavedChanges) {
+      setCdmxPresupuestoConsolidacionStatus(
+        "Cambios pendientes: presiona Guardar para persistir la configuración.",
+      );
+      return;
+    }
+
+    setCdmxPresupuestoConsolidacionStatus("Listo.");
+  }
+
+  function handleCdmxPresupuestoConsolidacionEnabledChange(event) {
+    if (!esContextoCdmxResumen()) return;
+    const checkbox = event?.target;
+    if (!checkbox) return;
+
+    if (!puedeEditarCdmxPresupuestoConsolidacion() || !requireEditMode()) {
+      renderCdmxPresupuestoConsolidacionPanel();
+      return;
+    }
+
+    const cfg = asegurarCdmxPresupuestoConsolidacionConfigEditable();
+    cfg.enabled = Boolean(checkbox.checked);
+    state.layoutConfigChanged = true;
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderCdmxPresupuestoConsolidacionPanel();
+  }
+
+  function handleCdmxPresupuestoConsolidacionRowChange(event) {
+    if (!esContextoCdmxResumen()) return;
+    const select = event?.target;
+    if (!select || select.tagName !== "SELECT") return;
+
+    const row = select.closest("tr");
+    const cuenta = row?.dataset?.cuenta || "";
+    const field = select.dataset.field || "";
+    if (!cuenta || (field !== "capitulo" && field !== "tipo")) return;
+
+    if (!puedeEditarCdmxPresupuestoConsolidacion() || !requireEditMode()) {
+      renderCdmxPresupuestoConsolidacionPanel();
+      return;
+    }
+
+    const cfg = asegurarCdmxPresupuestoConsolidacionConfigEditable();
+    if (!cfg.cuentas || typeof cfg.cuentas !== "object") cfg.cuentas = {};
+    if (!cfg.cuentas[cuenta] || typeof cfg.cuentas[cuenta] !== "object") {
+      cfg.cuentas[cuenta] = { capitulo: "", tipo: "income" };
+    }
+
+    if (field === "capitulo") {
+      cfg.cuentas[cuenta].capitulo = select.value;
+    } else if (field === "tipo") {
+      cfg.cuentas[cuenta].tipo = select.value;
+    }
+
+    state.layoutConfigChanged = true;
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderCdmxPresupuestoConsolidacionPanel();
+  }
+
+  function handleCdmxPresupuestoConsolidacionReset() {
+    if (!esContextoCdmxResumen()) return;
+    if (!puedeEditarCdmxPresupuestoConsolidacion() || !requireEditMode()) return;
+
+    const cfg = asegurarCdmxPresupuestoConsolidacionConfigEditable();
+    const defaults = buildDefaultCdmxPresupuestoConsolidacion();
+    cfg.enabled = defaults.enabled;
+    cfg.cuentas = defaults.cuentas;
+
+    state.layoutConfigChanged = true;
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderCdmxPresupuestoConsolidacionPanel();
+    showToast("Defaults restaurados (pendiente de guardar)", "info");
+  }
+
+  async function cargarTotalesPresupuestoCapitulo({ capitulo, anio }) {
+    const empresaId = obtenerEmpresaIdPorCapitulo(capitulo);
+    if (!empresaId) {
+      throw new Error(`No se pudo resolver empresaId para capítulo: ${capitulo}`);
+    }
+    const params = new URLSearchParams({
+      empresaId: empresaId.toString(),
+      anio: anio.toString(),
+    });
+    const resp = await fetch(
+      `${API_ROOT}/presupuestos/totales-capitulo?${params.toString()}`,
+      { headers: getAuthHeaders() },
+    );
+    if (!resp.ok) {
+      const payload = await resp.json().catch(() => ({}));
+      const msg = payload?.mensaje || `Error ${resp.status} consultando totales`;
+      throw new Error(msg);
+    }
+    const data = await resp.json();
+    return data?.totales || null;
+  }
+
+  async function handleCdmxPresupuestoConsolidacionApply() {
+    if (!esContextoCdmxResumen()) return;
+    const anio = Number(state.anio);
+    if (!Number.isInteger(anio)) {
+      showToast("Selecciona un año válido", "warning");
+      return;
+    }
+    if (cdmxConsolidacionAplicando) return;
+
+    const { config } = obtenerCdmxPresupuestoConsolidacionConfig();
+    const reglas = config.cuentas || {};
+
+    // Determinar capítulos requeridos
+    const capitulos = [
+      ...new Set(
+        Object.values(reglas)
+          .map((r) => normalizarTextoCapitulo(r?.capitulo))
+          .filter(Boolean),
+      ),
+    ];
+    if (!capitulos.length) {
+      showToast("No hay capítulos configurados para consolidar", "warning");
+      return;
+    }
+
+    cdmxConsolidacionAplicando = true;
+    renderCdmxPresupuestoConsolidacionPanel();
+    setCdmxPresupuestoConsolidacionStatus("Cargando totales por capítulo...");
+
+    try {
+      const totalesPorCapitulo = {};
+      for (const capitulo of capitulos) {
+        totalesPorCapitulo[capitulo] = await cargarTotalesPresupuestoCapitulo({
+          capitulo,
+          anio,
+        });
+      }
+
+      const cuentas = [];
+      CDMX_PRESUPUESTO_CONSOLIDACION_CUENTAS_ORDEN.forEach((cuenta) => {
+        const regla = reglas[cuenta];
+        const capitulo = normalizarTextoCapitulo(regla?.capitulo);
+        const tipo = (regla?.tipo || "").toString().trim().toLowerCase();
+        const totales = capitulo ? totalesPorCapitulo[capitulo] : null;
+        const valoresTipo = totales?.[tipo];
+        if (!capitulo || !valoresTipo) return;
+
+        const valores = {};
+        MESES_CORTOS.forEach((mes) => {
+          valores[mes] = Number(valoresTipo?.[mes] || 0);
+        });
+        cuentas.push({ numCta: cuenta, valores });
+      });
+
+      if (!cuentas.length) {
+        showToast("No se generaron cuentas para actualizar", "warning");
+        return;
+      }
+
+      setCdmxPresupuestoConsolidacionStatus(
+        `Actualizando ${cuentas.length} cuentas en Presupuestos...`,
+      );
+      const resp = await fetch(`${API_ROOT}/presupuestos/actualizar-consolidados`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ anio, cuentas }),
+      });
+      if (!resp.ok) {
+        const payload = await resp.json().catch(() => ({}));
+        throw new Error(payload?.mensaje || `Error ${resp.status} al actualizar`);
+      }
+      const payload = await resp.json().catch(() => ({}));
+      showToast(
+        `✅ ${payload?.mensaje || "Consolidación aplicada"} · cuentas: ${payload?.cuentasActualizadas ?? cuentas.length
+        }`,
+        "success",
+      );
+      setCdmxPresupuestoConsolidacionStatus("Consolidación aplicada.");
+    } catch (error) {
+      console.error("[CDMX Consolidación] Error:", error);
+      showToast(error.message || "Error al aplicar consolidación", "error");
+      setCdmxPresupuestoConsolidacionStatus(
+        `Error: ${(error?.message || "").toString()}`.trim(),
+      );
+    } finally {
+      cdmxConsolidacionAplicando = false;
+      renderCdmxPresupuestoConsolidacionPanel();
+    }
+  }
+
+  // ==========================================
   // DATA LOADING
   // ==========================================
   async function loadInitialData() {
@@ -906,6 +1361,11 @@
       // normalizePresentationOrders(); // No recalcular órdenes
       state.selectedElement = null;
 
+      // DEBUG TEMPORAL
+      console.error("[DEBUG-LOADLAYOUT] ANTES DE RENDER: modulo=", state.modulo, "cuentas=", state.cuentas.length, "operaciones=", state.operaciones.length, "isPiloto=", isModuloPiloto());
+      console.error("[DEBUG-LOADLAYOUT] state.layout keys:", state.layout ? Object.keys(state.layout) : null);
+      console.error("[DEBUG-LOADLAYOUT] state.layout.operaciones:", Array.isArray(state.layout?.operaciones) ? state.layout.operaciones.length : state.layout?.operaciones);
+
       renderLayout();
       updateStats();
       updateHeaderLabels();
@@ -924,6 +1384,7 @@
     if (dom.anioLabel) dom.anioLabel.textContent = state.anio || "-";
     if (dom.capituloLabel)
       dom.capituloLabel.textContent = state.capitulo || "-";
+    renderCdmxPresupuestoConsolidacionPanel();
   }
 
   function showNewLayoutView() {
@@ -2286,6 +2747,8 @@
     );
     const resumenSectionOpsEmbedded =
       normalizeOperationMatch(state.modulo || "") === "resumen";
+    // DEBUG TEMPORAL
+    console.error("[DEBUG] buildPreviewRowsForEditor → modulo:", state.modulo, "resumenSectionOpsEmbedded:", resumenSectionOpsEmbedded, "operacionesRaw.length:", operacionesRaw.length, "state.operaciones.length:", (state.operaciones||[]).length);
 
     const placeholderDefs = [];
     const cuentas = [];
@@ -2477,8 +2940,31 @@
         Boolean(placementKey) &&
         (knownPrincipalKeys.has(placementKey) ||
           knownSubsectionKeys.has(placementKey));
+      // Operaciones de resultados/netos deben mostrarse SIEMPRE en el gestor,
+      // sin importar si tienen campos de sección, para que el usuario pueda verlas y eliminarlas.
+      // Solo se omiten en RESUMEN las operaciones ligadas a totales de sección (sum-row / sum-row-sumavarios),
+      // NO las filas de resultado operativo, neto o consolidado.
+      //
+      // Identificación: las filas resultado/neto tienen rowStyle/estilo_fila seteados
+      // (son filas highlighted), o bien no tienen NINGÚN campo de tipo suma (solo parentSection).
+      const hasSumTypeField = ROW_LABEL_FIELDS.some((f) => Boolean(op?.[f]));
+      const hasStyleField = Boolean(op?.["rowStyle"] || op?.["estilo_fila"]);
+      const isResultNetOperation = hasStyleField || !hasSumTypeField;
+      // DEBUG TEMPORAL
+      if (resumenSectionOpsEmbedded) {
+        console.error("[DEBUG-FILTER] op:", JSON.stringify({
+          Clase: op?.Clase,
+          OperacionId: op?.OperacionId,
+          hasSumTypeField,
+          hasStyleField,
+          isResultNetOperation,
+          isHeaderLinked: isHeaderLinkedOperation(op),
+          placementLooksLikeHeader,
+        }));
+      }
       if (
         resumenSectionOpsEmbedded &&
+        !isResultNetOperation &&
         (isHeaderLinkedOperation(op) || placementLooksLikeHeader)
       ) {
         // En RESUMEN, sección/subsección son la operación visible.
@@ -4525,35 +5011,35 @@
         <div class="mb-3">
           <label class="form-label">Sección Secundaria</label>
           ${(() => {
-            const currentPrincipal = getAccountPrincipalName(cuenta) || "";
-            const currentSecundaria = getAccountSecondaryName(cuenta) || "";
-            const availableSubs = getManualSubsectionNames(currentPrincipal);
-            if (availableSubs.length) {
-              const options = [`<option value="">— Sin subsección —</option>`];
-              availableSubs.forEach((sub) => {
-                options.push(`<option value="${escapeAttr(sub)}"${sub === currentSecundaria ? " selected" : ""}>${escapeHtml(sub)}</option>`);
-              });
-              return `<select class="form-select" id="editSeccionSecundaria">${options.join("")}</select>
+          const currentPrincipal = getAccountPrincipalName(cuenta) || "";
+          const currentSecundaria = getAccountSecondaryName(cuenta) || "";
+          const availableSubs = getManualSubsectionNames(currentPrincipal);
+          if (availableSubs.length) {
+            const options = [`<option value="">— Sin subsección —</option>`];
+            availableSubs.forEach((sub) => {
+              options.push(`<option value="${escapeAttr(sub)}"${sub === currentSecundaria ? " selected" : ""}>${escapeHtml(sub)}</option>`);
+            });
+            return `<select class="form-select" id="editSeccionSecundaria">${options.join("")}</select>
                       <div class="form-text">Selecciona la subsección de esta cuenta o deja vacío.</div>`;
-            }
-            return `<input type="text" class="form-control" id="editSeccionSecundaria" value="${escapeAttr(currentSecundaria)}" placeholder="Nombre de subsección" />`;
-          })()}
+          }
+          return `<input type="text" class="form-control" id="editSeccionSecundaria" value="${escapeAttr(currentSecundaria)}" placeholder="Nombre de subsección" />`;
+        })()}
         </div>
         <div class="mb-3">
           <label class="form-label">Signo/Factor</label>
           <input type="number" step="any" class="form-control" id="editFactor" value="${escapeHtml(
-        Number.isFinite(Number(cuenta.operacion_factor))
-          ? String(Number(cuenta.operacion_factor))
-          : "1",
-      )}" />
+          Number.isFinite(Number(cuenta.operacion_factor))
+            ? String(Number(cuenta.operacion_factor))
+            : "1",
+        )}" />
         </div>
         <div class="mb-3">
           <label class="form-label">Valor plantilla</label>
           <input type="number" step="any" class="form-control" id="editValorPlantilla" value="${escapeHtml(
-        Number.isFinite(Number(cuenta.valor_plantilla))
-          ? String(Number(cuenta.valor_plantilla))
-          : "0",
-      )}" />
+          Number.isFinite(Number(cuenta.valor_plantilla))
+            ? String(Number(cuenta.valor_plantilla))
+            : "0",
+        )}" />
           <div class="form-text">Solo gestor/preview.</div>
         </div>
         <div class="mb-3">
@@ -7125,6 +7611,8 @@
   }
 
   function renderEditableLayout() {
+    // DEBUG TEMPORAL
+    console.error("[DEBUG-RENDER] renderEditableLayout: cuentas=", state.cuentas.length, "operaciones=", state.operaciones.length, "isPiloto=", isModuloPiloto());
     if (!state.cuentas.length && !state.operaciones.length) {
       return `
         <div class="empty-state">
@@ -8116,7 +8604,7 @@
     const sameNameAsParent =
       contextParent &&
       normalizeOperationMatch(contextParent) ===
-        normalizeOperationMatch(sectionValue) &&
+      normalizeOperationMatch(sectionValue) &&
       subsectionExistsInParent(contextParent, sectionValue);
     if (sameNameAsParent) {
       const refId = buildSubsectionRefId(contextParent, sectionValue);
