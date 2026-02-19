@@ -892,6 +892,22 @@
       ]),
     ].sort();
 
+    // Precargar filas disponibles del RESUMEN por capítulo (para poblar dropdown)
+    try {
+      if (state.anio) {
+        capitulos.forEach((cap) => {
+          ensureCdmxConsolidacionFilasResumenLoaded({
+            capitulo: cap,
+            anio: Number(state.anio),
+          }).catch(() => {
+            // El error se refleja en el cache/selector; evitar toasts en render
+          });
+        });
+      }
+    } catch (_) {
+      // ignore
+    }
+
     const tbody = dom.cdmxPresupuestoConsolidacionTbody;
     if (tbody) {
       tbody.innerHTML = CDMX_PRESUPUESTO_CONSOLIDACION_CUENTAS_ORDEN.map(
@@ -900,6 +916,22 @@
           const capitulo = normalizarTextoCapitulo(cfg.capitulo) || "";
           const fila = resolverFilaCdmxConsolidacion(cfg, cuenta);
           const disabledAttr = canEdit ? "" : "disabled";
+          const filaDisabledAttr = canEdit && capitulo ? "" : "disabled";
+          const filaEstado = capitulo
+            ? getCdmxConsolidacionFilasResumenState({
+              capitulo,
+              anio: Number(state.anio),
+            })
+            : null;
+          const filasDisponibles = Array.isArray(filaEstado?.rows)
+            ? filaEstado.rows
+            : [];
+          const filaLoading = Boolean(filaEstado?.loading);
+          const filaError = filaEstado?.error || null;
+          const filaNorm = normalizarEtiquetaResumen(fila);
+          const filaExiste = filasDisponibles.some(
+            (opt) => normalizarEtiquetaResumen(opt) === filaNorm,
+          );
 
           const capituloOptions = [
             `<option value="" ${capitulo ? "" : "selected"}>-</option>`,
@@ -914,6 +946,47 @@
             }),
           ].join("");
 
+          const filaOptions = (() => {
+            const selectedValue = (fila || "").toString().trim();
+            const parts = [];
+            parts.push(
+              `<option value="" ${selectedValue ? "" : "selected"}>-</option>`,
+            );
+            if (!capitulo) {
+              return parts.join("");
+            }
+            if (filaLoading) {
+              parts.push(
+                `<option value="" disabled selected>Cargando filas...</option>`,
+              );
+              return parts.join("");
+            }
+            if (filaError) {
+              parts.push(
+                `<option value="" disabled selected>Error cargando filas</option>`,
+              );
+              return parts.join("");
+            }
+            if (selectedValue && !filaExiste) {
+              parts.push(
+                `<option value="${escapeAttr(selectedValue)}" selected>${escapeHtml(
+                  selectedValue,
+                )} (no encontrada)</option>`,
+              );
+            }
+            filasDisponibles.forEach((opt) => {
+              const value = (opt || "").toString();
+              const selected =
+                normalizarEtiquetaResumen(value) === filaNorm ? "selected" : "";
+              parts.push(
+                `<option value="${escapeAttr(value)}" ${selected}>${escapeHtml(
+                  value,
+                )}</option>`,
+              );
+            });
+            return parts.join("");
+          })();
+
           const detalleFila = fila
             ? `${fila} · Ppto (mes)`
             : "Sin fila (RESUMEN)";
@@ -927,15 +1000,9 @@
                 </select>
               </td>
               <td>
-                <input
-                  type="text"
-                  class="form-control form-control-sm"
-                  data-field="fila"
-                  list="cdmxPresupuestoConsolidacionFilaDatalist"
-                  value="${escapeHtml(fila)}"
-                  placeholder="INCOME / EXPENSE / NET RESULTS..."
-                  ${disabledAttr}
-                />
+                <select class="form-select form-select-sm" data-field="fila" ${filaDisabledAttr}>
+                  ${filaOptions}
+                </select>
               </td>
               <td class="small text-muted">${escapeHtml(capitulo || "-")} · ${escapeHtml(detalleFila)}</td>
             </tr>
@@ -1074,6 +1141,9 @@
   });
   const CDMX_CONSOLIDACION_LAYOUT_TIPO_PRIORITY_DEFAULT = 99;
   const cdmxResumenMensualCache = new Map();
+  const cdmxFilasResumenCache = new Map();
+  const cdmxTotalesCapituloCache = new Map();
+  let cdmxFilasResumenRenderScheduled = false;
 
   const numeroSeguroCdmxConsolidacion = (value) => {
     const parsed = Number(value);
@@ -1082,6 +1152,66 @@
 
   const normalizarEtiquetaResumen = (value) =>
     normalizarTextoCapitulo(value).replace(/\s+/g, " ");
+
+  const obtenerEmpresaNumero = (empresaId) => {
+    const match = String(empresaId || "").match(/empresa0*(\d+)/i);
+    if (!match) return null;
+    const numero = parseInt(match[1], 10);
+    return Number.isFinite(numero) ? numero : null;
+  };
+
+  const esEmpresaComparativa = (empresaId) => {
+    const numero = obtenerEmpresaNumero(empresaId);
+    return Number.isInteger(numero) && numero >= 9 && numero <= 12;
+  };
+
+  const canonicalizarEmpresaId = (empresaId) => {
+    if (!empresaId) return empresaId;
+    const numero = obtenerEmpresaNumero(empresaId);
+    if (!Number.isInteger(numero)) return empresaId;
+    const candidato = `empresa${numero}`;
+    return resolverEmpresaConfigKey(candidato) || resolverEmpresaConfigKey(empresaId) || candidato;
+  };
+
+  const obtenerEmpresaIdDestinoConsolidacion = () =>
+    canonicalizarEmpresaId(obtenerEmpresaIdApi());
+
+  const obtenerEmpresaIdPorCapituloEnGrupo = (capitulo, empresaReferencia) => {
+    const config = window.CapitulosModulos?.EMPRESA_CONFIG || null;
+    if (!config || !capitulo) return obtenerEmpresaIdPorCapitulo(capitulo);
+    const capituloNorm = normalizarTextoCapitulo(capitulo);
+    const matches = [];
+    for (const [id, meta] of Object.entries(config)) {
+      const cap = meta?.capitulo;
+      if (!cap) continue;
+      if (normalizarTextoCapitulo(cap) === capituloNorm) {
+        matches.push(id);
+      }
+    }
+    if (!matches.length) return null;
+
+    const refCanon = canonicalizarEmpresaId(empresaReferencia);
+    const preferBase = esEmpresaBase(refCanon);
+    const preferComparativa = esEmpresaComparativa(refCanon);
+
+    if (preferBase) {
+      const baseMatch = matches.find((id) => esEmpresaBase(id));
+      if (baseMatch) return baseMatch;
+    }
+    if (preferComparativa) {
+      const compMatch = matches.find((id) => esEmpresaComparativa(id));
+      if (compMatch) return compMatch;
+    }
+
+    const baseFallback = matches.find((id) => esEmpresaBase(id));
+    return baseFallback || matches[0];
+  };
+
+  const obtenerEmpresaIdOrigenConsolidacion = (capitulo) =>
+    obtenerEmpresaIdPorCapituloEnGrupo(
+      capitulo,
+      obtenerEmpresaIdDestinoConsolidacion(),
+    );
 
   const mapWithConcurrency = async (items, limit, mapper) => {
     const list = Array.isArray(items) ? items : [];
@@ -1121,6 +1251,27 @@
     return resp.json();
   }
 
+  async function fetchTotalesPresupuestoCapitulo({ empresaId, anio }) {
+    const params = new URLSearchParams({
+      empresaId: (empresaId || "").toString(),
+      anio: (anio || "").toString(),
+    });
+    const resp = await fetch(
+      `${API_ROOT}/presupuestos/totales-capitulo?${params.toString()}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    if (!resp.ok) {
+      const payload = await resp.json().catch(() => ({}));
+      const msg =
+        payload?.mensaje || `Error ${resp.status} consultando totales`;
+      throw new Error(msg);
+    }
+    const payload = await resp.json().catch(() => ({}));
+    return payload?.totales || null;
+  }
+
   const extraerLayoutReporteResumen = (payload) => {
     if (!payload || typeof payload !== "object") return [];
     if (Array.isArray(payload.layout)) return payload.layout;
@@ -1131,6 +1282,113 @@
       return payload.resumen[0].layoutFinal;
     }
     return [];
+  };
+
+  const construirFilasDisponiblesDesdeLayout = (layout = []) => {
+    const blocks = Array.isArray(layout) ? layout : [];
+    const byLabel = new Map(); // normLabel -> blocks[]
+
+    blocks.forEach((block) => {
+      const label = (block?.label || "").toString().trim();
+      if (!label) return;
+      if (!block?.totals || typeof block.totals !== "object") return;
+      const key = normalizarEtiquetaResumen(label);
+      if (!key) return;
+      if (!byLabel.has(key)) byLabel.set(key, []);
+      byLabel.get(key).push(block);
+    });
+
+    const winners = [];
+    byLabel.forEach((list) => {
+      const best = elegirMejorBloqueResumen(list);
+      if (best && best.label) winners.push(best);
+    });
+
+    winners.sort((a, b) => {
+      const ordA = obtenerOrdenBloqueResumen(a, 0);
+      const ordB = obtenerOrdenBloqueResumen(b, 0);
+      if (ordA !== ordB) return ordA - ordB;
+      const idxA = obtenerOrdenIndexBloqueResumen(a, 0);
+      const idxB = obtenerOrdenIndexBloqueResumen(b, 0);
+      if (idxA !== idxB) return idxA - idxB;
+      const prA = obtenerPrioridadTipoBloqueResumen(a);
+      const prB = obtenerPrioridadTipoBloqueResumen(b);
+      if (prA !== prB) return prA - prB;
+      const la = normalizarEtiquetaResumen(a?.label || "");
+      const lb = normalizarEtiquetaResumen(b?.label || "");
+      return la.localeCompare(lb, "es");
+    });
+
+    return winners
+      .map((b) => (b?.label || "").toString().trim())
+      .filter(Boolean);
+  };
+
+  const buildCdmxFilasResumenCacheKey = ({ empresaId, anio, capitulo }) => {
+    const empresa = canonicalizarEmpresaId(empresaId);
+    const ejercicio = Number(anio);
+    const capNorm = normalizarEtiquetaResumen(capitulo);
+    if (!empresa || !Number.isInteger(ejercicio) || !capNorm) return null;
+    return `${empresa}::${ejercicio}::${capNorm}`;
+  };
+
+  const scheduleCdmxFilasResumenRender = () => {
+    if (cdmxFilasResumenRenderScheduled) return;
+    cdmxFilasResumenRenderScheduled = true;
+    setTimeout(() => {
+      cdmxFilasResumenRenderScheduled = false;
+      try {
+        renderCdmxPresupuestoConsolidacionPanel();
+      } catch (_) {
+        // ignore
+      }
+    }, 0);
+  };
+
+  const getCdmxConsolidacionFilasResumenState = ({ capitulo, anio }) => {
+    const empresaId = obtenerEmpresaIdOrigenConsolidacion(capitulo);
+    const cacheKey = buildCdmxFilasResumenCacheKey({ empresaId, anio, capitulo });
+    if (!cacheKey) return { rows: [], loading: false, error: null };
+    const cached = cdmxFilasResumenCache.get(cacheKey);
+    if (cached?.rows) return { rows: cached.rows, loading: false, error: null };
+    if (cached?.error) return { rows: [], loading: false, error: cached.error };
+    if (cached?.promise) return { rows: [], loading: true, error: null };
+    return { rows: [], loading: false, error: null };
+  };
+
+  const ensureCdmxConsolidacionFilasResumenLoaded = async ({ capitulo, anio }) => {
+    const empresaId = obtenerEmpresaIdOrigenConsolidacion(capitulo);
+    const cacheKey = buildCdmxFilasResumenCacheKey({ empresaId, anio, capitulo });
+    if (!cacheKey) return [];
+
+    const cached = cdmxFilasResumenCache.get(cacheKey);
+    if (cached?.rows) return cached.rows;
+    if (cached?.promise) return cached.promise;
+
+    const promise = (async () => {
+      const payload = await fetchReporteResumenMes({
+        empresaId,
+        anio,
+        mes: 12,
+        capitulo,
+      });
+      const layout = extraerLayoutReporteResumen(payload);
+      const rows = construirFilasDisponiblesDesdeLayout(layout);
+      cdmxFilasResumenCache.set(cacheKey, { rows, at: Date.now() });
+      return rows;
+    })()
+      .then((rows) => {
+        scheduleCdmxFilasResumenRender();
+        return rows;
+      })
+      .catch((error) => {
+        cdmxFilasResumenCache.set(cacheKey, { error, at: Date.now() });
+        scheduleCdmxFilasResumenRender();
+        throw error;
+      });
+
+    cdmxFilasResumenCache.set(cacheKey, { promise });
+    return promise;
   };
 
   const obtenerOrdenBloqueResumen = (block, fallback = 0) => {
@@ -1202,20 +1460,38 @@
     return Math.abs(numeroSeguroCdmxConsolidacion(raw));
   };
 
+  const inferirTipoTotalesDesdeFilaResumen = (fila = "") => {
+    const raw = (fila || "").toString().trim();
+    const norm = normalizarEtiquetaResumen(raw);
+    if (!norm) return null;
+
+    const ingreso = CDMX_CONSOLIDACION_INGRESO_LABELS.some(
+      (l) => norm === normalizarEtiquetaResumen(l),
+    );
+    if (ingreso) return "income";
+
+    const gasto = CDMX_CONSOLIDACION_GASTO_LABELS.some(
+      (l) => norm === normalizarEtiquetaResumen(l),
+    );
+    if (gasto) return "expense";
+
+    return null;
+  };
+
   const canonicalizarFilaBusquedaResumen = (fila = "") => {
     const raw = (fila || "").toString().trim();
     const norm = normalizarEtiquetaResumen(raw);
     if (!norm) return "";
     if (
-      CDMX_CONSOLIDACION_INGRESO_LABELS.some((l) =>
-        norm.includes(normalizarEtiquetaResumen(l)),
+      CDMX_CONSOLIDACION_INGRESO_LABELS.some(
+        (l) => norm === normalizarEtiquetaResumen(l),
       )
     ) {
       return "INCOME";
     }
     if (
-      CDMX_CONSOLIDACION_GASTO_LABELS.some((l) =>
-        norm.includes(normalizarEtiquetaResumen(l)),
+      CDMX_CONSOLIDACION_GASTO_LABELS.some(
+        (l) => norm === normalizarEtiquetaResumen(l),
       )
     ) {
       return "EXPENSE";
@@ -1236,7 +1512,7 @@
   };
 
   async function cargarResumenMensualCapitulo({ capitulo, anio }) {
-    const empresaId = obtenerEmpresaIdPorCapitulo(capitulo);
+    const empresaId = obtenerEmpresaIdOrigenConsolidacion(capitulo);
     if (!empresaId) {
       throw new Error(`No se pudo resolver empresaId para capítulo: ${capitulo}`);
     }
@@ -1270,6 +1546,30 @@
     return promise;
   }
 
+  async function cargarTotalesPresupuestoCapitulo({ capitulo, anio }) {
+    const empresaId = obtenerEmpresaIdOrigenConsolidacion(capitulo);
+    if (!empresaId) {
+      throw new Error(`No se pudo resolver empresaId para capítulo: ${capitulo}`);
+    }
+    const cacheKey = `${canonicalizarEmpresaId(empresaId)}::${anio}`;
+    const cached = cdmxTotalesCapituloCache.get(cacheKey);
+    if (cached?.data) return cached.data;
+    if (cached?.promise) return cached.promise;
+
+    const promise = fetchTotalesPresupuestoCapitulo({ empresaId, anio })
+      .then((data) => {
+        cdmxTotalesCapituloCache.set(cacheKey, { data, at: Date.now() });
+        return data;
+      })
+      .catch((error) => {
+        cdmxTotalesCapituloCache.delete(cacheKey);
+        throw error;
+      });
+
+    cdmxTotalesCapituloCache.set(cacheKey, { promise });
+    return promise;
+  }
+
   async function handleCdmxPresupuestoConsolidacionApply() {
     if (!esContextoCdmxResumen()) return;
     const anio = Number(state.anio);
@@ -1286,14 +1586,27 @@
     }
     const reglas = config.cuentas || {};
 
-    // Determinar capítulos requeridos
-    const capitulos = [
-      ...new Set(
-        Object.values(reglas)
-          .map((r) => normalizarTextoCapitulo(r?.capitulo))
-          .filter(Boolean),
-      ),
-    ];
+    const capitulosNecesitanTotales = new Set();
+    const capitulosNecesitanResumen = new Set();
+    CDMX_PRESUPUESTO_CONSOLIDACION_CUENTAS_ORDEN.forEach((cuenta) => {
+      const regla = reglas[cuenta];
+      const capitulo = normalizarTextoCapitulo(regla?.capitulo);
+      const fila = resolverFilaCdmxConsolidacion(regla, cuenta);
+      if (!capitulo || !fila) return;
+      const tipoTotales = inferirTipoTotalesDesdeFilaResumen(fila);
+      if (tipoTotales) {
+        capitulosNecesitanTotales.add(capitulo);
+      } else {
+        capitulosNecesitanResumen.add(capitulo);
+      }
+    });
+
+    const capitulos = Array.from(
+      new Set([
+        ...Array.from(capitulosNecesitanTotales),
+        ...Array.from(capitulosNecesitanResumen),
+      ]),
+    );
     if (!capitulos.length) {
       showToast("No hay capítulos configurados para consolidar", "warning");
       return;
@@ -1301,16 +1614,29 @@
 
     cdmxConsolidacionAplicando = true;
     renderCdmxPresupuestoConsolidacionPanel();
-    setCdmxPresupuestoConsolidacionStatus(
-      "Cargando RESUMEN (12 meses) por capítulo...",
-    );
+    setCdmxPresupuestoConsolidacionStatus("Preparando consolidación...");
 
     try {
       const resumenMensualPorCapitulo = {};
-      for (let idx = 0; idx < capitulos.length; idx += 1) {
-        const capitulo = capitulos[idx];
+      const totalesPorCapitulo = {};
+
+      const capitulosTotales = Array.from(capitulosNecesitanTotales);
+      for (let idx = 0; idx < capitulosTotales.length; idx += 1) {
+        const capitulo = capitulosTotales[idx];
         setCdmxPresupuestoConsolidacionStatus(
-          `Cargando RESUMEN: ${capitulo} (${idx + 1}/${capitulos.length})...`,
+          `Cargando totales de presupuesto: ${capitulo} (${idx + 1}/${capitulosTotales.length})...`,
+        );
+        totalesPorCapitulo[capitulo] = await cargarTotalesPresupuestoCapitulo({
+          capitulo,
+          anio,
+        });
+      }
+
+      const capitulosResumen = Array.from(capitulosNecesitanResumen);
+      for (let idx = 0; idx < capitulosResumen.length; idx += 1) {
+        const capitulo = capitulosResumen[idx];
+        setCdmxPresupuestoConsolidacionStatus(
+          `Cargando RESUMEN (12 meses): ${capitulo} (${idx + 1}/${capitulosResumen.length})...`,
         );
         resumenMensualPorCapitulo[capitulo] = await cargarResumenMensualCapitulo({
           capitulo,
@@ -1323,8 +1649,24 @@
         const regla = reglas[cuenta];
         const capitulo = normalizarTextoCapitulo(regla?.capitulo);
         const fila = resolverFilaCdmxConsolidacion(regla, cuenta);
-        const mensual = capitulo ? resumenMensualPorCapitulo[capitulo] : null;
-        if (!capitulo || !mensual || !fila) return;
+        if (!capitulo || !fila) return;
+
+        const tipoTotales = inferirTipoTotalesDesdeFilaResumen(fila);
+        if (tipoTotales) {
+          const totales = totalesPorCapitulo[capitulo];
+          const mensual = totales?.[tipoTotales] || null;
+          if (!mensual) return;
+
+          const valores = {};
+          MESES_CORTOS.forEach((mes) => {
+            valores[mes] = Math.abs(numeroSeguroCdmxConsolidacion(mensual?.[mes] ?? 0));
+          });
+          cuentas.push({ numCta: cuenta, valores });
+          return;
+        }
+
+        const mensual = resumenMensualPorCapitulo[capitulo] || null;
+        if (!mensual) return;
 
         const valores = {};
         MESES_CORTOS.forEach((mes, mesIdx) => {
@@ -1346,8 +1688,19 @@
         return;
       }
 
+      const todasEnCero = cuentas.every((cuenta) =>
+        MESES_CORTOS.every((mes) => Number(cuenta?.valores?.[mes] || 0) === 0),
+      );
+      if (todasEnCero) {
+        showToast(
+          "⚠️ Todos los valores calculados son 0. Revisa la fila RESUMEN seleccionada (columna Ppto).",
+          "warning",
+        );
+      }
+
+      const empresaIdDestino = obtenerEmpresaIdDestinoConsolidacion();
       setCdmxPresupuestoConsolidacionStatus(
-        `Actualizando ${cuentas.length} cuentas en Presupuesto (CDMX)...`,
+        `Actualizando ${cuentas.length} cuentas en Presupuesto (CDMX: ${empresaIdDestino})...`,
       );
       const resp = await fetch(`${API_ROOT}/presupuestos/actualizar-consolidados`, {
         method: "POST",
@@ -1355,19 +1708,60 @@
           "Content-Type": "application/json",
           ...getAuthHeaders(),
         },
-        body: JSON.stringify({ anio, cuentas }),
+        body: JSON.stringify({ empresaId: empresaIdDestino, anio, cuentas }),
       });
       if (!resp.ok) {
         const payload = await resp.json().catch(() => ({}));
         throw new Error(payload?.mensaje || `Error ${resp.status} al actualizar`);
       }
       const payload = await resp.json().catch(() => ({}));
-      showToast(
-        `✅ ${payload?.mensaje || "Consolidación aplicada"} · cuentas: ${payload?.cuentasActualizadas ?? cuentas.length
-        }`,
-        "success",
-      );
-      setCdmxPresupuestoConsolidacionStatus("Consolidación aplicada.");
+
+      const errores = Array.isArray(payload?.errores) ? payload.errores : [];
+      if (errores.length > 0) {
+        console.warn("[CDMX Consolidación] Errores backend:", errores);
+        showToast(
+          `⚠️ Consolidación aplicada con errores (${errores.length}). Revisa consola/estatus.`,
+          "warning",
+        );
+        setCdmxPresupuestoConsolidacionStatus(
+          `Consolidación aplicada con errores (${errores.length}).`,
+        );
+      } else {
+        showToast(
+          `✅ ${payload?.mensaje || "Consolidación aplicada"} · cuentas: ${payload?.cuentasActualizadas ?? cuentas.length
+          }`,
+          "success",
+        );
+        setCdmxPresupuestoConsolidacionStatus("Consolidación aplicada.");
+      }
+
+      if (Array.isArray(payload?.verificacion) && payload.verificacion.length > 0) {
+        try {
+          const verMap = new Map(
+            payload.verificacion.map((row) => [String(row?.NUM_CTA || "").trim(), row]),
+          );
+          const procesadas = Array.isArray(payload?.cuentasProcesadas)
+            ? payload.cuentasProcesadas
+            : [];
+          const resumenVerif = procesadas
+            .map((c) => {
+              const canon = String(c?.numCtaNormalizada || "").trim();
+              const row = verMap.get(canon) || null;
+              if (!canon || !row) return null;
+              return `${c.numCta || canon}: ENE=${numeroSeguroCdmxConsolidacion(row.PRESUP01)}`;
+            })
+            .filter(Boolean)
+            .slice(0, 3)
+            .join(" · ");
+          if (resumenVerif) {
+            setCdmxPresupuestoConsolidacionStatus(
+              `${(dom.cdmxPresupuestoConsolidacionStatus?.textContent || "").trim()} Verificación: ${resumenVerif}`.trim(),
+            );
+          }
+        } catch (_) {
+          // ignore verificación UI
+        }
+      }
     } catch (error) {
       console.error("[CDMX Consolidación] Error:", error);
       showToast(error.message || "Error al aplicar consolidación", "error");

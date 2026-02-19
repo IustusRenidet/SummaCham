@@ -432,10 +432,18 @@ router.post('/estado', (req, res) => {
 // Endpoint para actualizar presupuestos mensuales de cuentas consolidadas
 router.post('/actualizar-consolidados', requireAuth, async (req, res) => {
   try {
-    const { anio, cuentas } = req.body;
-    const empresaId = 'empresa1'; // Ciudad de México
+    const { anio, cuentas, empresaId: empresaIdBody } = req.body || {};
+    const empresaId = (empresaIdBody || 'empresa1').toString().trim();
+    const empresaIdCanon = empresaId.toLowerCase();
+    const empresasPermitidas = new Set(['empresa1', 'empresa9']); // CDMX base / CDMX comparativa
 
-    if (!req.esAdmin && !tienePermisoEnEmpresa(req.mapaPermisos, empresaId)) {
+    if (!empresasPermitidas.has(empresaIdCanon)) {
+      return res.status(400).json({
+        mensaje: 'empresaId inválida para consolidación (solo CDMX).',
+      });
+    }
+
+    if (!req.esAdmin && !tienePermisoEnEmpresa(req.mapaPermisos, empresaIdCanon)) {
       return res.status(403).json({ mensaje: 'Sin permisos para esta operación.' });
     }
 
@@ -455,6 +463,7 @@ router.post('/actualizar-consolidados', requireAuth, async (req, res) => {
     let cuentasActualizadas = 0;
     let errores = [];
     let cuentasPadreActualizadas = 0;
+    const cuentasProcesadas = [];
     const presupuestosEditados = new Map();
     const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
     const acumuladoPadreIngreso = Object.fromEntries(meses.map((m) => [m, 0]));
@@ -474,6 +483,10 @@ router.post('/actualizar-consolidados', requireAuth, async (req, res) => {
       try {
         const { numCta, valores } = cuenta;
         const numCtaNormalizada = normalizarCuenta21(numCta);
+        if (!numCtaNormalizada) {
+          errores.push({ cuenta: numCta, error: 'Cuenta destino inválida.' });
+          continue;
+        }
         
         // Actualizar o insertar fila de presupuesto si no existe
         const upsertQuery = `
@@ -493,8 +506,12 @@ router.post('/actualizar-consolidados', requireAuth, async (req, res) => {
           valores.sep || 0, valores.oct || 0, valores.nov || 0, valores.dic || 0
         ];
 
-        await ejecutarConsulta(empresaId, upsertQuery, params);
+        await ejecutarConsulta(empresaIdCanon, upsertQuery, params);
         cuentasActualizadas++;
+        cuentasProcesadas.push({
+          numCta: (numCta ?? '').toString(),
+          numCtaNormalizada,
+        });
 
         if (numCtaNormalizada) {
           presupuestosEditados.set(numCtaNormalizada, {
@@ -548,7 +565,7 @@ router.post('/actualizar-consolidados', requireAuth, async (req, res) => {
         acumulado.may || 0, acumulado.jun || 0, acumulado.jul || 0, acumulado.ago || 0,
         acumulado.sep || 0, acumulado.oct || 0, acumulado.nov || 0, acumulado.dic || 0,
       ];
-      await ejecutarConsulta(empresaId, upsertQueryPadre, paramsPadre);
+       await ejecutarConsulta(empresaIdCanon, upsertQueryPadre, paramsPadre);
       cuentasPadreActualizadas++;
     };
 
@@ -563,10 +580,43 @@ router.post('/actualizar-consolidados', requireAuth, async (req, res) => {
       console.error("Error al actualizar cuentas padre consolidadas:", errorPadreManual);
     }
 
+    if (errores.length > 0 && cuentasActualizadas === 0) {
+      return res.status(500).json({
+        mensaje: 'No fue posible actualizar presupuestos consolidados.',
+        cuentasActualizadas,
+        cuentasPadreActualizadas,
+        errores,
+      });
+    }
+
+    let verificacion = [];
+    try {
+      const cuentasParaVerificar = Array.from(new Set(presupuestosEditados.keys()));
+      if (cuentasParaVerificar.length > 0) {
+        const marcadores = cuentasParaVerificar.map(() => '?').join(',');
+        const verifQuery = `
+          SELECT NUM_CTA, EJERCICIO,
+                 PRESUP01, PRESUP02, PRESUP03, PRESUP04, PRESUP05, PRESUP06,
+                 PRESUP07, PRESUP08, PRESUP09, PRESUP10, PRESUP11, PRESUP12
+          FROM ${tablaPresup}
+          WHERE EJERCICIO = ?
+            AND NUM_CTA IN (${marcadores})
+          ORDER BY NUM_CTA
+        `;
+        verificacion = await ejecutarConsulta(empresaIdCanon, verifQuery, [ejercicio, ...cuentasParaVerificar]);
+      }
+    } catch (errorVerif) {
+      console.warn('No fue posible verificar presupuestos consolidados.', errorVerif?.message || errorVerif);
+    }
+
     res.json({
       mensaje: 'Actualización completada',
+      empresaId: empresaIdCanon,
+      anio: ejercicio,
       cuentasActualizadas,
       cuentasPadreActualizadas,
+      cuentasProcesadas: cuentasProcesadas.length > 0 ? cuentasProcesadas : undefined,
+      verificacion: verificacion && verificacion.length > 0 ? verificacion : undefined,
       errores: errores.length > 0 ? errores : undefined
     });
   } catch (error) {
