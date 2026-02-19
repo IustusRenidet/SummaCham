@@ -853,42 +853,38 @@ router.post("/copiar", requireAuth, (req, res) => {
       }
     });
 
-    // Copiar gráficas por año (una sola vez por año destino).
-    // Regla: si el año destino YA tiene config, no sobrescribir.
+    // Copiar gráficas por año.
+    // Regla: si el año destino YA tiene config, sobrescribir.
     // Origen: primero `graficas_config_anio(anioOrigen)`, fallback a `graficas_config` legacy.
     let graficasCopiadas = false;
     let graficasSource = null;
     try {
       if (copiados.length > 0) {
-        const exists = db
+        const fromYear = db
           .prepare(
-            "SELECT 1 as ok FROM graficas_config_anio WHERE empresa_id = ? AND anio = ? LIMIT 1",
+            "SELECT config_json FROM graficas_config_anio WHERE empresa_id = ? AND anio = ?",
           )
-          .get(empresaId, destino);
+          .get(empresaId, origen);
 
-        if (!exists) {
-          const fromYear = db
-            .prepare(
-              "SELECT config_json FROM graficas_config_anio WHERE empresa_id = ? AND anio = ?",
-            )
-            .get(empresaId, origen);
+        const fromLegacy = !fromYear
+          ? db
+              .prepare("SELECT config_json FROM graficas_config WHERE empresa_id = ?")
+              .get(empresaId)
+          : null;
 
-          const fromLegacy = !fromYear
-            ? db.prepare("SELECT config_json FROM graficas_config WHERE empresa_id = ?").get(empresaId)
-            : null;
-
-          const payload = fromYear?.config_json || fromLegacy?.config_json || null;
-          if (payload) {
-            db.prepare(
-              `
-                INSERT INTO graficas_config_anio (empresa_id, anio, config_json, updated_at)
-                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(empresa_id, anio) DO NOTHING
-              `,
-            ).run(empresaId, destino, payload);
-            graficasCopiadas = true;
-            graficasSource = fromYear ? "anio" : "legacy";
-          }
+        const payload = fromYear?.config_json || fromLegacy?.config_json || null;
+        if (payload) {
+          db.prepare(
+            `
+              INSERT INTO graficas_config_anio (empresa_id, anio, config_json, updated_at)
+              VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+              ON CONFLICT(empresa_id, anio) DO UPDATE SET
+                config_json = excluded.config_json,
+                updated_at = CURRENT_TIMESTAMP
+            `,
+          ).run(empresaId, destino, payload);
+          graficasCopiadas = true;
+          graficasSource = fromYear ? "anio" : "legacy";
         }
       }
     } catch (err) {
@@ -959,44 +955,38 @@ router.post("/:modulo/copiar", requireAuth, (req, res) => {
       anioDestino: destino,
     });
 
-    // Copiar gráficas por año (una sola vez por año destino).
-    // Regla: si el año destino YA tiene config, no sobrescribir.
+    // Copiar gráficas por año.
+    // Regla: si el año destino YA tiene config, sobrescribir.
     // Origen: primero `graficas_config_anio(anioOrigen)`, fallback a `graficas_config` legacy.
     let graficasCopiadas = false;
     let graficasSource = null;
     try {
       if (Number.isInteger(origen) && Number.isInteger(destino) && origen !== destino) {
-        const exists = db
+        const fromYear = db
           .prepare(
-            "SELECT 1 as ok FROM graficas_config_anio WHERE empresa_id = ? AND anio = ? LIMIT 1"
+            "SELECT config_json FROM graficas_config_anio WHERE empresa_id = ? AND anio = ?",
           )
-          .get(empresaId, destino);
+          .get(empresaId, origen);
 
-        if (!exists) {
-          const fromYear = db
-            .prepare(
-              "SELECT config_json FROM graficas_config_anio WHERE empresa_id = ? AND anio = ?"
-            )
-            .get(empresaId, origen);
+        const fromLegacy = !fromYear
+          ? db
+              .prepare("SELECT config_json FROM graficas_config WHERE empresa_id = ?")
+              .get(empresaId)
+          : null;
 
-          const fromLegacy = !fromYear
-            ? db
-                .prepare("SELECT config_json FROM graficas_config WHERE empresa_id = ?")
-                .get(empresaId)
-            : null;
-
-          const payload = fromYear?.config_json || fromLegacy?.config_json || null;
-          if (payload) {
-            db.prepare(
-              `
+        const payload = fromYear?.config_json || fromLegacy?.config_json || null;
+        if (payload) {
+          db.prepare(
+            `
               INSERT INTO graficas_config_anio (empresa_id, anio, config_json, updated_at)
               VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-              ON CONFLICT(empresa_id, anio) DO NOTHING
-            `
-            ).run(empresaId, destino, payload);
-            graficasCopiadas = true;
-            graficasSource = fromYear ? "anio" : "legacy";
-          }
+              ON CONFLICT(empresa_id, anio) DO UPDATE SET
+                config_json = excluded.config_json,
+                updated_at = CURRENT_TIMESTAMP
+            `,
+          ).run(empresaId, destino, payload);
+          graficasCopiadas = true;
+          graficasSource = fromYear ? "anio" : "legacy";
         }
       }
     } catch (err) {

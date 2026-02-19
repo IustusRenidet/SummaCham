@@ -1518,8 +1518,7 @@
         chart.rows.length > 0
     );
 
-  const isManualOnlyEnabled = (config) =>
-    config?.manualOnly === true && hasEnabledManualCharts(config?.customCharts);
+  const isManualOnlyEnabled = (config) => config?.manualOnly === true;
 
   const normalizeGraficasConfig = (config = {}) => {
     const base = clone(DEFAULT_GRAFICAS_CONFIG);
@@ -4023,13 +4022,6 @@
     const datos = obtenerDatosParaExportar();
     if (!datos) return;
 
-    // Exportación solo datos: las gráficas se crean manualmente en Excel.
-    if (typeof XLSX === 'undefined') {
-      alert('La librería de exportación no está disponible.');
-      return;
-    }
-    await exportarGraficasExcelLegacy(datos);
-    return;
     const flags = datos.flags || {};
     const customChartItems = getCustomChartsForExport();
 
@@ -4045,6 +4037,108 @@
     }
 
     try {
+      const tryExportNative = async (charts = []) => {
+        if (!Array.isArray(charts) || !charts.length) return false;
+
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'SummaCham';
+        workbook.created = new Date();
+
+        const chartsSheetName = 'Gráficas';
+        const dataSheetName = 'GraficasData';
+
+        workbook.addWorksheet(chartsSheetName);
+        const wsData = workbook.addWorksheet(dataSheetName);
+
+        let rowCursor = 1;
+        charts.forEach((chartDef, idx) => {
+          const data = chartDef?.data || chartDef || {};
+          const labels = Array.isArray(data.labels) ? data.labels : [];
+          const datasets = Array.isArray(data.datasets) ? data.datasets : [];
+          if (!labels.length || !datasets.length) return;
+
+          wsData.getCell(rowCursor, 1).value = 'CHART';
+          wsData.getCell(rowCursor, 2).value =
+            chartDef?.title || chartDef?.titulo || `Grafica ${idx + 1}`;
+          rowCursor += 1;
+
+          wsData.getCell(rowCursor, 1).value = 'Categoria';
+          datasets.forEach((dataset, dIdx) => {
+            wsData.getCell(rowCursor, dIdx + 2).value =
+              dataset?.label || `Serie ${dIdx + 1}`;
+          });
+          rowCursor += 1;
+
+          labels.forEach((label, lIdx) => {
+            wsData.getCell(rowCursor, 1).value = label;
+            datasets.forEach((dataset, dIdx) => {
+              const rawValue = Array.isArray(dataset?.data)
+                ? dataset.data[lIdx]
+                : null;
+              const numeric = toExportNumber(rawValue);
+              wsData.getCell(rowCursor, dIdx + 2).value =
+                typeof numeric === 'number' && Number.isFinite(numeric)
+                  ? numeric
+                  : 0;
+            });
+            rowCursor += 1;
+          });
+
+          rowCursor += 1;
+        });
+
+        if (rowCursor === 1) {
+          wsData.getCell('A1').value =
+            'Sin datos de gráficas disponibles para exportar.';
+        }
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const binaryBody =
+          buffer instanceof ArrayBuffer
+            ? buffer
+            : buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+
+        const params = new URLSearchParams({
+          nombreArchivo: 'GRAFICAS_RESUMEN',
+          empresa: datos.empresa || '',
+          mes: String(datos.mes || ''),
+          anio: String(datos.anio || ''),
+          dataSheetName,
+          chartsSheetName,
+          tableSheetName: '',
+        });
+
+        const response = await fetch(
+          `${base}/api/reportes/resumen-excel-native?${params.toString()}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/octet-stream' },
+            credentials: 'include',
+            body: binaryBody,
+          }
+        );
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || 'No fue posible generar el Excel con gráficas.');
+        }
+
+        const blob = await response.blob();
+        const header = response.headers.get('content-disposition') || '';
+        const match = header.match(/filename=\"?([^\";]+)\"?/i);
+        const filename =
+          (match ? match[1] : '') ||
+          `Graficas_Resumen_${datos.anio}_${datos.mes}_${Date.now()}.xlsx`;
+
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        return true;
+      };
+
       const safeResolve = async (factory, label) => {
         try {
           return await factory();
@@ -4077,6 +4171,16 @@
             'ingreso nacional'
           )
           : null;
+
+      try {
+        const exported = await tryExportNative(customChartDefs || []);
+        if (exported) {
+          console.log('✅ Excel nativo con gráficas exportado correctamente');
+          return;
+        }
+      } catch (nativeError) {
+        console.warn('No se pudo exportar Excel nativo, usando fallback:', nativeError);
+      }
 
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'SummaCham';

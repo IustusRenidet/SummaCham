@@ -2570,7 +2570,8 @@
     const etiquetas = new Map();
     layout.forEach((block) => {
       if (!block) return;
-      const tipo = (block.type || "").toLowerCase();
+      const tipoRaw = (block.type || "").toLowerCase();
+      const tipo = tipoRaw === "cuenta" ? "account" : tipoRaw;
       const etiqueta = normalizarEtiquetaComparativa(block.label || "");
       if (etiqueta) {
         // Secundarias pueden repetirse (ej: Membership en INCOME y EXPENSE); incluir parentSection si existe.
@@ -2584,7 +2585,7 @@
           }
         });
       }
-      if (tipo === "cuenta") {
+      if (tipo === "account") {
         const claveCuenta = (block.cuenta || "").toString().trim();
         if (claveCuenta) cuentas.set(claveCuenta, block);
       }
@@ -2597,9 +2598,10 @@
     const { cuentas, etiquetas } = indexarLayoutComparativo(layoutComp);
     layoutBase.forEach((block) => {
       if (!block || !block.totals) return;
-      const tipo = (block.type || "").toLowerCase();
+      const tipoRaw = (block.type || "").toLowerCase();
+      const tipo = tipoRaw === "cuenta" ? "account" : tipoRaw;
       let comparativo = null;
-      if (tipo === "cuenta") {
+      if (tipo === "account") {
         const claveCuenta = (block.cuenta || "").toString().trim();
         comparativo = claveCuenta ? cuentas.get(claveCuenta) : null;
       }
@@ -5224,9 +5226,14 @@
 
       if (empresaComparativaId) {
         try {
+          const anioComparativo = Number(anio) - 1;
+          const anioComparativoValido =
+            Number.isInteger(anioComparativo) && anioComparativo >= 2000 && anioComparativo <= 2100
+              ? anioComparativo
+              : anio;
           const datosComparativo = await consultarResumen({
             empresaId: empresaComparativaId,
-            anio,
+            anio: anioComparativoValido,
             mes: mesEntero,
             capitulo,
           });
@@ -6166,13 +6173,30 @@
             const cells = Array.from(row.querySelectorAll("td"));
             const rowData = cells.map((cell, idx) => {
               const text = cell.textContent.trim();
-              if (idx !== 0 && idx !== 1 && idx !== 6) {
-                const num = parseFloat(text.replace(/[,$]/g, ""));
-                return isNaN(num) ? text : num;
+              if (idx !== 0 && idx !== 6) {
+                const hasPercent = /%/.test(text);
+                const cleaned = text
+                  .replace(/[,%$]/g, "")
+                  .replace(/\s+/g, "")
+                  .replace(/,/g, "");
+                const num = parseFloat(cleaned);
+                if (Number.isNaN(num)) return text;
+                return hasPercent ? num / 100 : num;
               }
               return text;
             });
             const excelRow = wsResumen.addRow(rowData);
+
+            // Formato para porcentajes: mantener tipo numérico y aplicar numFmt correcto
+            cells.forEach((cell, idx) => {
+              const text = cell.textContent.trim();
+              if (idx !== 0 && idx !== 6 && /%/.test(text)) {
+                const excelCell = excelRow.getCell(idx + 1);
+                if (typeof excelCell.value === "number") {
+                  excelCell.numFmt = "0.00%";
+                }
+              }
+            });
 
             if (row.classList.contains("section-header-row")) {
               excelRow.eachCell((cell) => {
@@ -6237,11 +6261,11 @@
             }
 
             excelRow.eachCell((cell, colNum) => {
-              if (colNum === 1 || colNum === 2 || colNum === 7) {
+              if (colNum === 1 || colNum === 7) {
                 cell.alignment = { horizontal: "left", vertical: "middle" };
               } else {
                 cell.alignment = { horizontal: "right", vertical: "middle" };
-                if (typeof cell.value === "number") {
+                if (typeof cell.value === "number" && !cell.numFmt) {
                   cell.numFmt = "#,##0.00";
                 }
               }
@@ -6320,9 +6344,9 @@
         buffer instanceof ArrayBuffer
           ? buffer
           : buffer.buffer.slice(
-              buffer.byteOffset,
-              buffer.byteOffset + buffer.byteLength
-            );
+            buffer.byteOffset,
+            buffer.byteOffset + buffer.byteLength
+          );
 
       const params = new URLSearchParams({
         nombreArchivo: baseName,

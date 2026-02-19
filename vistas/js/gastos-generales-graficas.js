@@ -87,18 +87,7 @@
     return { gastosGenerales: DEFAULT_GASTOS_CONFIG };
   };
 
-  const hasEnabledManualChartsForModule = (config, moduleKey) =>
-    Array.isArray(config?.customCharts) &&
-    config.customCharts.some((chart) => {
-      if (chart?.enabled === false) return false;
-      if (!Array.isArray(chart?.rows) || chart.rows.length === 0) return false;
-      const chartModuleKey = normalizarClaveModulo(chart?.module || "RESUMEN");
-      return chartModuleKey === moduleKey;
-    });
-
-  const isManualOnlyEnabled = (config) =>
-    config?.manualOnly === true &&
-    hasEnabledManualChartsForModule(config, getCurrentModuleKey());
+  const isManualOnlyEnabled = (config) => config?.manualOnly === true;
 
   const getGastosConfig = () => {
     const config = getGraficasConfig();

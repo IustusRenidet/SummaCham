@@ -921,6 +921,12 @@
             wrapText: metaCell.isHeader || (domCell?.textContent || "").length > 18,
           };
 
+          const rawText = (domCell?.textContent || "").trim();
+          if (cell.t === "n" && rawText.includes("%")) {
+            finalStyle.numFmt = "0.00%";
+            cell.z = "0.00%";
+          }
+
           cell.s = finalStyle;
         }
       }
@@ -1817,6 +1823,7 @@
     _obtenerValorCeldaExcel(celda) {
       const texto = (celda.textContent || "").trim();
       if (!texto) return "";
+      const isPercent = texto.includes("%");
       const tieneLetras = texto.toLowerCase() !== texto.toUpperCase();
       if (tieneLetras) return texto;
       const numeroNormalizado = texto
@@ -1829,7 +1836,9 @@
       }
 
       const numero = Number(numeroNormalizado);
-      if (!Number.isNaN(numero) && texto !== "") return numero;
+      if (!Number.isNaN(numero) && texto !== "") {
+        return isPercent ? numero / 100 : numero;
+      }
       return texto;
     },
 
