@@ -2566,7 +2566,25 @@ const construirReporteResumen = (
     const hasRowAnchor = CAMPOS_FILA_OPERACION.some((field) =>
       Boolean((op?.[field] || "").toString().trim()),
     );
-    if (parentSection || parentSubsection || hasRowAnchor) return true;
+
+    // En RESUMEN (modo estricto/manual), `parentSection/parentSubsection` también se usa
+    // como ubicación visual de una operación libre. NO debemos tratar cualquier operación
+    // con parentSection como override del header, porque eso "desaparece" operaciones
+    // (o sobreescribe totales) cuando el usuario solo quería ubicarlas bajo una sección.
+    if (hasRowAnchor) return true;
+
+    const labelsAreEqual = (left = "", right = "") => {
+      const leftKey = normalizarEtiqueta(left);
+      const rightKey = normalizarEtiqueta(right);
+      return Boolean(leftKey && rightKey && leftKey === rightKey);
+    };
+    const opNombre = (obtenerNombreOperacion(op) || "").toString().trim();
+    if (parentSubsection) {
+      return labelsAreEqual(opNombre, parentSubsection);
+    }
+    if (parentSection) {
+      return labelsAreEqual(opNombre, parentSection);
+    }
     const placement = (op.SECCION || op.seccion || "").toString().trim();
     if (!placement) return false;
     // En modo estricto/manual: permitir anclaje por SECCION solo si apunta
@@ -2574,7 +2592,13 @@ const construirReporteResumen = (
     // operaciones con SECCION=principal actúan como override del header sin
     // necesitar parentSection explícito.
     if (modoFormulaEstricto || seccionesComoOperaciones) {
-      return Boolean(obtenerPrincipalPorEtiqueta(placement));
+      if (obtenerPrincipalPorEtiqueta(placement)) {
+        return labelsAreEqual(opNombre, placement);
+      }
+      if (obtenerSeccionPorEtiqueta(placement)) {
+        return labelsAreEqual(opNombre, placement);
+      }
+      return false;
     }
     if (obtenerPrincipalPorEtiqueta(placement)) return true;
     if (obtenerSeccionPorEtiqueta(placement)) return true;
@@ -3491,57 +3515,61 @@ const construirReporteResumen = (
     layoutFinal = ordenarLayoutGlobal(layout.concat(layoutOps, opBlocks));
   }
 
-  // DEBUG: diagnóstico net results
-  try {
-    const fs = require("fs");
-    const path = require("path");
-    const debugFile = path.join(
-      require("os").homedir(),
-      "Desktop",
-      "debug-net-results.txt",
-    );
-    const lines = ["=== PRINCIPALS netRow ==="];
-    principalList.forEach((p) => {
-      lines.push(
-        `  "${p.label}" netRow="${p.netRow}" resultRow="${p.resultRow}" consolidadoLabel="${p.consolidadoLabel}" resultNetRow="${p.resultNetRow}"`,
+  // DEBUG (opcional): diagnóstico net results
+  // Nota: escribir en disco en cada render puede volver muy lento el cambio de periodo/capítulo.
+  // Activar solo cuando se necesite: DEBUG_NET_RESULTS=1
+  if (process.env.DEBUG_NET_RESULTS === "1") {
+    try {
+      const fs = require("fs");
+      const path = require("path");
+      const debugFile = path.join(
+        require("os").homedir(),
+        "Desktop",
+        "debug-net-results.txt",
       );
-    });
-    lines.push("", "=== configPorPrincipal ===");
-    configPorPrincipal.forEach((cfg, key) => {
-      lines.push(
-        `  key="${key}" principal="${cfg.principal}" netRow="${cfg.netRow}" resultRow="${cfg.resultRow}" consolidado="${cfg.consolidado}"`,
-      );
-    });
-    lines.push("", "=== configPorSeccion (con net-row) ===");
-    configPorSeccion.forEach((cfg, key) => {
-      if (cfg.netRow || cfg.resultRow || cfg.resultNetRow) {
+      const lines = ["=== PRINCIPALS netRow ==="];
+      principalList.forEach((p) => {
         lines.push(
-          `  key="${key}" principal="${cfg.principal}" seccion="${cfg.seccionLabel}" netRow="${cfg.netRow}" resultRow="${cfg.resultRow}" resultNetRow="${cfg.resultNetRow}"`,
+          `  "${p.label}" netRow="${p.netRow}" resultRow="${p.resultRow}" consolidadoLabel="${p.consolidadoLabel}" resultNetRow="${p.resultNetRow}"`,
         );
-      }
-    });
-    lines.push("", "=== configAgrupacion entries con net-row ===");
-    (Array.isArray(configAgrupacion) ? configAgrupacion : []).forEach(
-      (cfg, idx) => {
-        const nr = normalizarConfigValor(cfg["net-row"]);
-        const rr = normalizarConfigValor(cfg["result-row"]);
-        const rnr = normalizarConfigValor(cfg["result-net-row"]);
-        if (nr || rr || rnr) {
+      });
+      lines.push("", "=== configPorPrincipal ===");
+      configPorPrincipal.forEach((cfg, key) => {
+        lines.push(
+          `  key="${key}" principal="${cfg.principal}" netRow="${cfg.netRow}" resultRow="${cfg.resultRow}" consolidado="${cfg.consolidado}"`,
+        );
+      });
+      lines.push("", "=== configPorSeccion (con net-row) ===");
+      configPorSeccion.forEach((cfg, key) => {
+        if (cfg.netRow || cfg.resultRow || cfg.resultNetRow) {
           lines.push(
-            `  [${idx}] SECCION="${cfg.SECCION}" parentSection="${cfg.parentSection}" sum-row-sumavarios="${cfg["sum-row-sumavarios"]}" net-row="${nr}" result-row="${rr}" result-net-row="${rnr}" orden_presentacion=${cfg.orden_presentacion}`,
+            `  key="${key}" principal="${cfg.principal}" seccion="${cfg.seccionLabel}" netRow="${cfg.netRow}" resultRow="${cfg.resultRow}" resultNetRow="${cfg.resultNetRow}"`,
           );
         }
-      },
-    );
-    lines.push("", "=== principalMap netRow (raw) ===");
-    principalMap.forEach((p, key) => {
-      lines.push(
-        `  key="${key}" label="${p.label}" netRow="${p.netRow}" resultRow="${p.resultRow}" consolidadoLabel="${p.consolidadoLabel}"`,
+      });
+      lines.push("", "=== configAgrupacion entries con net-row ===");
+      (Array.isArray(configAgrupacion) ? configAgrupacion : []).forEach(
+        (cfg, idx) => {
+          const nr = normalizarConfigValor(cfg["net-row"]);
+          const rr = normalizarConfigValor(cfg["result-row"]);
+          const rnr = normalizarConfigValor(cfg["result-net-row"]);
+          if (nr || rr || rnr) {
+            lines.push(
+              `  [${idx}] SECCION="${cfg.SECCION}" parentSection="${cfg.parentSection}" sum-row-sumavarios="${cfg["sum-row-sumavarios"]}" net-row="${nr}" result-row="${rr}" result-net-row="${rnr}" orden_presentacion=${cfg.orden_presentacion}`,
+            );
+          }
+        },
       );
-    });
-    fs.writeFileSync(debugFile, lines.join("\n"), "utf8");
-  } catch (e) {
-    /* ignore */
+      lines.push("", "=== principalMap netRow (raw) ===");
+      principalMap.forEach((p, key) => {
+        lines.push(
+          `  key="${key}" label="${p.label}" netRow="${p.netRow}" resultRow="${p.resultRow}" consolidadoLabel="${p.consolidadoLabel}"`,
+        );
+      });
+      fs.writeFileSync(debugFile, lines.join("\n"), "utf8");
+    } catch (e) {
+      /* ignore */
+    }
   }
 
   return {

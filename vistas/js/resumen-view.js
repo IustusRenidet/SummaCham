@@ -1,5 +1,12 @@
 (() => {
-  console.log("[DEBUG] resumen-view.js loaded and executing");
+  const DEBUG_RESUMEN =
+    typeof window !== "undefined" && Boolean(window.DEBUG_RESUMEN);
+  const DEBUG_RESUMEN_SNAPSHOT =
+    typeof window !== "undefined" && Boolean(window.DEBUG_RESUMEN_SNAPSHOT);
+
+  if (DEBUG_RESUMEN) {
+    console.log("[DEBUG] resumen-view.js loaded and executing");
+  }
   const base =
     window.location.protocol === "file:"
       ? "http://localhost:3005"
@@ -2799,45 +2806,51 @@
 
         // Debug especial para CONSOLIDATED NET RESULTS
         if (label.toUpperCase().includes("CONSOLIDATED NET")) {
-          console.log("📸 DEBUG CONSOLIDATED NET:", {
-            row: idx,
-            label,
-            totalCeldas: celdas.length,
-            celda1_raw: celdas[1]?.textContent,
-            celda1_parsed: safeNumber(celdas[1]),
-            celda2_raw: celdas[2]?.textContent,
-            celda6_raw: celdas[6]?.textContent,
-            celda7_raw: celdas[7]?.textContent,
-            registro: registro.totals,
-          });
+          if (DEBUG_RESUMEN_SNAPSHOT) {
+            console.log("📸 DEBUG CONSOLIDATED NET:", {
+              row: idx,
+              label,
+              totalCeldas: celdas.length,
+              celda1_raw: celdas[1]?.textContent,
+              celda1_parsed: safeNumber(celdas[1]),
+              celda2_raw: celdas[2]?.textContent,
+              celda6_raw: celdas[6]?.textContent,
+              celda7_raw: celdas[7]?.textContent,
+              registro: registro.totals,
+            });
+          }
         }
 
         datos.push(registro);
       });
-      console.log("📸 RESUMEN: Capturando snapshot", {
-        empresaId,
-        anio,
-        mes,
-        capitulo: capituloLabel,
-        totalFilas: datos.length,
-      });
+      if (DEBUG_RESUMEN_SNAPSHOT) {
+        console.log("📸 RESUMEN: Capturando snapshot", {
+          empresaId,
+          anio,
+          mes,
+          capitulo: capituloLabel,
+          totalFilas: datos.length,
+        });
+      }
 
       // Logging especial para CONSOLIDATED
       const consolidated = datos.filter((d) =>
         d.label.toUpperCase().includes("CONSOLIDATED")
       );
-      console.log(
-        "📸 RESUMEN: CONSOLIDATED rows:",
-        consolidated.map((d) => ({
-          label: d.label,
-          actual: d.totals.actual,
-          plan: d.totals.plan,
-          prev: d.totals.prev,
-          actualYTD: d.totals.actualYTD,
-          planYTD: d.totals.planYTD,
-          prevYTD: d.totals.prevYTD,
-        }))
-      );
+      if (DEBUG_RESUMEN_SNAPSHOT) {
+        console.log(
+          "📸 RESUMEN: CONSOLIDATED rows:",
+          consolidated.map((d) => ({
+            label: d.label,
+            actual: d.totals.actual,
+            plan: d.totals.plan,
+            prev: d.totals.prev,
+            actualYTD: d.totals.actualYTD,
+            planYTD: d.totals.planYTD,
+            prevYTD: d.totals.prevYTD,
+          }))
+        );
+      }
       return {
         empresaId,
         anio,
@@ -2949,6 +2962,11 @@
         r.classList.contains("free-operation-row")
       );
     };
+    const esCuenta = (r) => {
+      if (!r) return false;
+      const rol = (r.dataset?.rowRole || "").toLowerCase();
+      return rol === "account" || r.classList.contains("account-row");
+    };
     const rowLevel = (row.dataset?.level || "subsection");
     const esCorte = (r) => {
       if (!r) return true;
@@ -2964,13 +2982,49 @@
         return ["principal", "group", "result", "net", "final"].includes(rol);
       }
     };
-    while (siguiente && !esCorte(siguiente)) {
-      if (!esOperacion(siguiente)) {
-        siguiente.style.display = collapsed ? "none" : "";
-      } else {
-        siguiente.style.display = "";
+
+    // Regla principal: solo ocultar filas de CUENTAS.
+    // - Al colapsar un PRINCIPAL no deben desaparecer subsecciones (solo sus cuentas).
+    // - Al expandir, respetar subsecciones colapsadas individualmente.
+    if (rowLevel === "principal") {
+      while (siguiente && !esCorte(siguiente)) {
+        if (esOperacion(siguiente)) {
+          siguiente.style.display = "";
+        } else if (esCuenta(siguiente)) {
+          if (collapsed) {
+            siguiente.style.display = "none";
+          } else {
+            const parentSub = (siguiente.dataset?.parentSubsection || "").trim();
+            const debeOcultarPorSub =
+              parentSub && collapsedSections.has(parentSub);
+            siguiente.style.display = debeOcultarPorSub ? "none" : "";
+          }
+        } else {
+          // Sub-secciones / totales intermedios: siempre visibles
+          siguiente.style.display = "";
+        }
+        siguiente = siguiente.nextElementSibling;
       }
-      siguiente = siguiente.nextElementSibling;
+    } else {
+      const parentPrincipal = (row.dataset?.parentSection || "").trim();
+      const principalColapsado =
+        parentPrincipal && collapsedSections.has(parentPrincipal);
+      while (siguiente && !esCorte(siguiente)) {
+        if (esOperacion(siguiente)) {
+          siguiente.style.display = "";
+        } else if (esCuenta(siguiente)) {
+          if (collapsed) {
+            siguiente.style.display = "none";
+          } else {
+            // Si el principal padre está colapsado, no mostrar cuentas aunque la subsección esté expandida
+            siguiente.style.display = principalColapsado ? "none" : "";
+          }
+        } else {
+          // Por consistencia, no ocultar nada que no sea cuenta
+          siguiente.style.display = "";
+        }
+        siguiente = siguiente.nextElementSibling;
+      }
     }
 
     // Si la fila misma est  marcada para ocultarse al colapsar, aplicar display
@@ -3631,7 +3685,9 @@
    * @param {number} mesSeleccionado - Mes seleccionado (1-12)
    */
   const renderResumen = (resumen = [], mesSeleccionado) => {
-    console.log("[DEBUG] renderResumen called with", resumen.length, "capitulos");
+    if (DEBUG_RESUMEN) {
+      console.log("[DEBUG] renderResumen called with", resumen.length, "capitulos");
+    }
     if (!tablaBody) return;
     limpiarCambios();
     editMode = false;
@@ -3650,6 +3706,8 @@
     );
     const claveMes = mesInfo?.clave || mesClaveActual;
     const planColumnKey = `budget-${claveMes}`;
+    const DEBUG_FORMULAS =
+      typeof window !== "undefined" && Boolean(window.DEBUG_RESUMEN_FORMULAS);
     const normalizarEtiqueta = (texto = "") =>
       texto.toString().trim().toUpperCase().replace(/\s+/g, " ");
     const debeOmitirEtiqueta = () => false;
@@ -3746,15 +3804,18 @@
         let refKey = normalizarLabel(t.replace(/['"]/g, ''));
         let val = 0;
 
-        // DEBUG: Log reference lookup
-        console.log(`[FORMULA REF] Looking for "${t}" -> normalized "${refKey}"`);
+        if (DEBUG_FORMULAS) {
+          console.log(`[FORMULA REF] Looking for "${t}" -> normalized "${refKey}"`);
+        }
 
         // Lookup in contextMap
         let entry = contextMap.get(refKey);
         let block = null;
 
         if (entry) {
-          console.log(`[FORMULA REF] Found ${Array.isArray(entry) ? entry.length : 1} blocks for "${refKey}"`);
+          if (DEBUG_FORMULAS) {
+            console.log(`[FORMULA REF] Found ${Array.isArray(entry) ? entry.length : 1} blocks for "${refKey}"`);
+          }
           if (Array.isArray(entry)) {
             // Priority:
             // 1. Any block that HAS DATA (Pass 1 populated) and IS NOT ME
@@ -3768,36 +3829,52 @@
 
             if (withData) {
               block = withData;
-              console.log(`[FORMULA REF] Using block with data: "${withData.label}" (${field}: ${withData.totals[field]})`);
+              if (DEBUG_FORMULAS) {
+                console.log(`[FORMULA REF] Using block with data: "${withData.label}" (${field}: ${withData.totals[field]})`);
+              }
             } else if (others.length > 0) {
               // Secondary preference: 'secundaria' type
               const sub = others.find(c => (c.type || "").toLowerCase().startsWith('secundaria') || (c.type || "").toLowerCase().startsWith('sub'));
               block = sub || others[0];
-              console.log(`[FORMULA REF] Using fallback block: "${block.label}" (${field}: ${block.totals?.[field] || 'no totals'})`);
+              if (DEBUG_FORMULAS) {
+                console.log(`[FORMULA REF] Using fallback block: "${block.label}" (${field}: ${block.totals?.[field] || 'no totals'})`);
+              }
             } else {
               // Only self in array?
               block = entry[0];
-              console.log(`[FORMULA REF] Only self available: "${block.label}"`);
+              if (DEBUG_FORMULAS) {
+                console.log(`[FORMULA REF] Only self available: "${block.label}"`);
+              }
             }
           } else {
             block = entry;
-            console.log(`[FORMULA REF] Single block: "${block.label}" (${field}: ${block.totals?.[field] || 'no totals'})`);
+            if (DEBUG_FORMULAS) {
+              console.log(`[FORMULA REF] Single block: "${block.label}" (${field}: ${block.totals?.[field] || 'no totals'})`);
+            }
           }
         } else {
-          console.log(`[FORMULA REF] NOT FOUND for "${refKey}"`);
+          if (DEBUG_FORMULAS) {
+            console.log(`[FORMULA REF] NOT FOUND for "${refKey}"`);
+          }
           // Fallback: Try exact label or variants?
           let entry2 = contextMap.get(t.toUpperCase());
           if (entry2) {
             block = Array.isArray(entry2) ? entry2[0] : entry2;
-            console.log(`[FORMULA REF] Found via uppercase fallback: "${block.label}"`);
+            if (DEBUG_FORMULAS) {
+              console.log(`[FORMULA REF] Found via uppercase fallback: "${block.label}"`);
+            }
           }
         }
 
         if (block && block.totals) {
           val = toNumber(block.totals[field]);
-          console.log(`[FORMULA REF] Value for "${refKey}": ${val}`);
+          if (DEBUG_FORMULAS) {
+            console.log(`[FORMULA REF] Value for "${refKey}": ${val}`);
+          }
         } else {
-          console.log(`[FORMULA REF] No value found for "${refKey}"`);
+          if (DEBUG_FORMULAS) {
+            console.log(`[FORMULA REF] No value found for "${refKey}"`);
+          }
         }
 
         evalExpr += val;
@@ -3810,7 +3887,7 @@
         const result = Function('"use strict";return (' + safeExpr + ')')() || 0;
 
         // Debug specifically for INCOME
-        if (field === 'actualYTD' && result === 0 && (formulaStr.includes('MEMBERSHIP') || formulaStr.includes('EVENTS'))) {
+        if (DEBUG_FORMULAS && field === 'actualYTD' && result === 0 && (formulaStr.includes('MEMBERSHIP') || formulaStr.includes('EVENTS'))) {
           console.log(`[DEBUG FORMULA ZERO] Formula: "${formulaStr}" Field: ${field} Result: ${result}`);
         }
 
@@ -3822,7 +3899,9 @@
     };
 
     const recalcularPrincipales = (layoutArr = []) => {
-      console.log("[DEBUG] recalcularPrincipales called with", layoutArr.length, "blocks");
+      if (DEBUG_FORMULAS) {
+        console.log("[DEBUG] recalcularPrincipales called with", layoutArr.length, "blocks");
+      }
       /*
         AGGREGATION LOGIC (Pass 1 -> Pass 2 -> Pass 3):
         1. Pass 1: Sum Accounts into Subsections.
@@ -3858,12 +3937,14 @@
       });
 
       // DEBUG: Log contextMap contents
-      console.log("[CONTEXT MAP DEBUG] Available references:");
-      contextMap.forEach((blocks, key) => {
-        blocks.forEach(block => {
-          console.log(`  "${key}" -> "${block.label}" (type: ${block.type}, hasTotals: ${!!block.totals})`);
+      if (DEBUG_FORMULAS) {
+        console.log("[CONTEXT MAP DEBUG] Available references:");
+        contextMap.forEach((blocks, key) => {
+          blocks.forEach(block => {
+            console.log(`  "${key}" -> "${block.label}" (type: ${block.type}, hasTotals: ${!!block.totals})`);
+          });
         });
-      });
+      }
 
       let principalActual = null;
       let acumulado = totalesCero();
@@ -3998,8 +4079,9 @@
         principalAggMap.forEach(({ block, acc, hasSubs }) => {
           // Only override if the section has child subsections AND no explicit formula string
           const fStr = getFormulaString(block);
-          const hasFormulaStr = fStr && typeof fStr === 'string' && fStr.trim().length > 3;
-          if (hasSubs && !hasFormulaStr) {
+          const hasFormulaStr = typeof fStr === 'string' && fStr.trim().length > 3;
+          const hasManualFlag = block?.manualFormula === true || block?.__manualFormula === true;
+          if (hasSubs && !(hasFormulaStr || hasManualFlag)) {
             block.totals = { ...acc };
           }
         });
@@ -4011,13 +4093,15 @@
       // we evaluate explicit formulas which may depend on other sections.
       // Two iterations to handle simple dependency chains (A=B, B=C).
 
-      console.log("[FORMULA DEBUG] Starting formula evaluation. Layout blocks:");
-      layoutArr.forEach(b => {
-        const f = getFormulaString(b);
-        if (f) {
-          console.log(`  Block "${b.label}" type:"${b.type}" formula:"${f}"`);
-        }
-      });
+      if (DEBUG_FORMULAS) {
+        console.log("[FORMULA DEBUG] Starting formula evaluation. Layout blocks:");
+        layoutArr.forEach(b => {
+          const f = getFormulaString(b);
+          if (f) {
+            console.log(`  Block "${b.label}" type:"${b.type}" formula:"${f}"`);
+          }
+        });
+      }
 
       for (let iter = 0; iter < 2; iter++) {
         layoutArr.forEach(block => {
@@ -4031,7 +4115,9 @@
             // if (block.label === "INCOME") console.log("Calculating INCOME formula:", f);
 
             if (f && typeof f === 'string' && f.trim().length > 3) {
-              console.log(`[FORMULA CALC] Section "${block.label}" formula: "${f}"`);
+              if (DEBUG_FORMULAS) {
+                console.log(`[FORMULA CALC] Section "${block.label}" formula: "${f}"`);
+              }
               const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
               const computed = {};
               fields.forEach(field => {
@@ -4610,6 +4696,13 @@
         // Pre-build maps of principal/secundaria totals keyed by label
         const principalTotalsMap = new Map();
         const subsectionTotalsMap = new Map();
+        const hiddenSubsectionKeys = new Set();
+        const subsectionsWithAccounts = new Set();
+        const buildSubKey = (parentSection = "", subsection = "") => {
+          const parentKey = normalizarLabel(parentSection);
+          const subsectionKey = normalizarLabel(subsection);
+          return parentKey && subsectionKey ? `${parentKey}::${subsectionKey}` : "";
+        };
         layout.forEach((block) => {
           if (block.type === "principal" && block.label) {
             principalTotalsMap.set(block.label, block);
@@ -4620,6 +4713,14 @@
             if (!subsectionTotalsMap.has(block.label)) {
               subsectionTotalsMap.set(block.label, block);
             }
+            const hiddenKey = buildSubKey(block.parentSection || "", block.label || "");
+            if (hiddenKey && block.mostrarEnResumen === false) {
+              hiddenSubsectionKeys.add(hiddenKey);
+            }
+          }
+          if (block.type === "cuenta") {
+            const acctKey = buildSubKey(block.parentSection || "", block.parentSubsection || "");
+            if (acctKey) subsectionsWithAccounts.add(acctKey);
           }
         });
 
@@ -4674,6 +4775,7 @@
             cells[6].classList.add("collapse-trigger");
             secRow.dataset.sectionName = label;
             secRow.dataset.level = "subsection";
+            secRow.dataset.parentSection = parentSection || "";
           }
           tablaBody.appendChild(secRow);
         };
@@ -4703,10 +4805,16 @@
           else if (blockType === "secundaria") {
             const label = block.label || "";
             if (!label) return;
-            // Si esta subsección específica está oculta en Resumen, saltarla
-            if (block.mostrarEnResumen === false) return;
-            // Guard: renderizar primero el principal padre si aún no ha aparecido
             const blockParent = block.parentSection || "";
+            const hiddenKey = buildSubKey(blockParent, label);
+            // Si esta subsección específica está oculta en Resumen, saltarla
+            if (block.mostrarEnResumen === false || (hiddenKey && hiddenSubsectionKeys.has(hiddenKey))) return;
+            // Sub-secciones sin cuentas ligadas no deben mostrarse en RESUMEN
+            const hasLinkedAccounts = Array.isArray(block.cuentas)
+              ? block.cuentas.length > 0
+              : Boolean(hiddenKey && subsectionsWithAccounts.has(hiddenKey));
+            if (!hasLinkedAccounts) return;
+            // Guard: renderizar primero el principal padre si aún no ha aparecido
             if (blockParent && blockParent !== currentPrincipal) {
               currentPrincipal = blockParent;
               currentSubsection = null;
@@ -4730,6 +4838,10 @@
           else if (blockType === "cuenta") {
             const acctPrincipal = block.parentSection || "";
             const acctSubsection = block.parentSubsection || "";
+            const acctHiddenKey = buildSubKey(acctPrincipal, acctSubsection);
+            if (acctSubsection && acctHiddenKey && hiddenSubsectionKeys.has(acctHiddenKey)) {
+              return;
+            }
 
             // Fallback: If layout missed the header block (e.g. malformed layout), render it on demand
             if (acctPrincipal && acctPrincipal !== currentPrincipal) {
@@ -4760,6 +4872,8 @@
             row.dataset.cuenta = block.cuenta || "";
             row.dataset.cuenta21 = block.cuenta || "";
             row.dataset.rowRole = "account";
+            row.dataset.parentSection = acctPrincipal || "";
+            row.dataset.parentSubsection = acctSubsection || "";
 
             // Usar block.nombre (del JSON NOMBRE) en vez de block.label
             const nombreCuenta =
@@ -5064,7 +5178,9 @@
   };
 
   const fetchResumen = async (empresaId, anio, mes) => {
-    console.log("[DEBUG] fetchResumen called with", empresaId, anio, mes);
+    if (DEBUG_RESUMEN) {
+      console.log("[DEBUG] fetchResumen called with", empresaId, anio, mes);
+    }
     if (!empresaId || !anio) return;
     const mesEntero = Number(mes);
 
@@ -5157,11 +5273,13 @@
         );
         if (snapshot) {
           guardarSnapshotTabla(snapshot);
-          console.log(
-            "📸 RESUMEN: Snapshot guardado con éxito",
-            snapshot.filas.length,
-            "filas"
-          );
+          if (DEBUG_RESUMEN_SNAPSHOT) {
+            console.log(
+              "📸 RESUMEN: Snapshot guardado con éxito",
+              snapshot.filas.length,
+              "filas"
+            );
+          }
         } else {
           console.warn("📸 RESUMEN: No se pudo capturar snapshot");
         }

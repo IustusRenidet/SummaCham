@@ -15143,13 +15143,13 @@
       newClase &&
       normalizeOperationMatch(newClase) !==
       normalizeOperationMatch(oldDisplay || oldLabel || "");
+    const oldDisplayKey = normalizeOperationMatch(oldDisplay || "");
+    const oldLabelKey = normalizeOperationMatch(oldLabel || "");
     const normalizeRowLabelInput = (value) => {
       const trimmed = (value || "").trim();
       if (!trimmed) return "";
       if (nameChanged) {
         const normalized = normalizeOperationMatch(trimmed);
-        const oldDisplayKey = normalizeOperationMatch(oldDisplay || "");
-        const oldLabelKey = normalizeOperationMatch(oldLabel || "");
         if (
           normalized &&
           (normalized === oldDisplayKey || normalized === oldLabelKey)
@@ -15169,15 +15169,37 @@
         } else if (op[field]) {
           delete op[field];
         }
+        // Si el campo no es seleccionado, se elimina (modo tipo cambiado/libre).
+        // No aplicar auto-rename aquí para no reintroducir campos que el usuario acaba de des-seleccionar.
       });
     } else {
       OP_ROW_FIELDS.forEach(({ field }) => {
         const input = document.getElementById(rowLabelInputId(field));
         if (!input) return;
-        const value = normalizeRowLabelInput(input.value);
+        const rawTrimmed = (input.value || "").trim();
+        const rawKey = normalizeOperationMatch(rawTrimmed);
+        const wasAutoRename =
+          nameChanged && rawKey && (rawKey === oldDisplayKey || rawKey === oldLabelKey);
+        const value = normalizeRowLabelInput(rawTrimmed);
+
+        if (selectedField && field === selectedField) {
+          // Mantener el campo seleccionado consistente (si queda vacío, usar fallback)
+          op[field] = value || etiquetaFallback;
+          return;
+        }
+
         if (value) {
           op[field] = value;
-        } else if (op[field]) {
+          return;
+        }
+
+        // Si el usuario renombró la operación y el input aún era el nombre anterior, auto-actualizar.
+        if (wasAutoRename && op[field]) {
+          op[field] = etiquetaFallback;
+          return;
+        }
+
+        if (op[field]) {
           delete op[field];
         }
       });
