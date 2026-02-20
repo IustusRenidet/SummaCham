@@ -4006,123 +4006,304 @@
 
     // Evaluate formula for a specific field (e.g., 'actualMonth')
 
+    // Tokenizador tolerante a etiquetas con espacios y cuentas con guiones.
+    // Importante: NO tratar el "-" interno de cuentas (401-000-000-00) como operador,
+    // pero SÍ reconocer "-" como operador cuando está separado (p.ej. "A - B" o "A -B").
+    const tokenizarFormulaTexto = (formulaRaw = "") => {
+      const source = (formulaRaw || "").toString();
+      const tokens = [];
+      let buffer = "";
+
+      const flush = () => {
+        const value = buffer.trim();
+        if (value) tokens.push({ kind: "value", value });
+        buffer = "";
+      };
+
+      const getPrevNonSpace = (idx) => {
+        for (let i = idx - 1; i >= 0; i -= 1) {
+          const ch = source[i];
+          if (!/\s/.test(ch)) return ch;
+        }
+        return "";
+      };
+
+      const getNextNonSpace = (idx) => {
+        for (let i = idx + 1; i < source.length; i += 1) {
+          const ch = source[i];
+          if (!/\s/.test(ch)) return ch;
+        }
+        return "";
+      };
+
+      for (let i = 0; i < source.length; i += 1) {
+        const ch = source[i];
+        const op = ch === "×" ? "*" : ch === "÷" ? "/" : ch;
+
+        if (op === "+" || op === "*" || op === "/" || op === "(" || op === ")") {
+          flush();
+          tokens.push({ kind: "op", value: op });
+          continue;
+        }
+
+        if (op === "-") {
+          const prev = getPrevNonSpace(i);
+          const next = getNextNonSpace(i);
+          const isOperatorDash =
+            !prev ||
+            !next ||
+            /\s/.test(source[i - 1] || "") ||
+            /\s/.test(source[i + 1] || "") ||
+            ["+", "-", "*", "/", "("].includes(prev) ||
+            next === "(";
+          if (isOperatorDash) {
+            flush();
+            tokens.push({ kind: "op", value: "-" });
+            continue;
+          }
+        }
+
+        buffer += ch;
+      }
+
+      flush();
+      return tokens;
+    };
+
     // Evaluate formula for a specific field (e.g., 'actualMonth')
     const calculateFormulaValue = (formulaStr, contextMap, field, currentBlock = null) => {
       if (!formulaStr) return 0;
 
-      const tokens = formulaStr.match(/(".*?"|'.*?'|[\w\s\-\.]+|[\+\-\*\/\(\)])/g) || [];
-      let evalExpr = "";
+      const cleanTokenText = (raw = "") =>
+        (raw || "").toString().replace(/['"]/g, "").trim();
 
-      for (let token of tokens) {
-        let t = token.trim();
-        if (!t) continue;
+      const typeRank = (blockType = "") => {
+        const t = (blockType || "").toString().toLowerCase();
+        if (t === "operation") return 70;
+        if (t === "final") return 65;
+        if (t === "net") return 60;
+        if (t === "result") return 55;
+        if (t === "group") return 50;
+        if (t === "principal") return 40;
+        if (t === "secundaria") return 30;
+        return 0;
+      };
 
-        if (/^[\+\-\*\/\(\)]$/.test(t)) {
-          evalExpr += t;
-          continue;
-        }
+      const resolveReferenceNumber = (tokenText) => {
+        const cleaned = cleanTokenText(tokenText);
+        if (!cleaned) return 0;
+        const refKey = normalizarLabel(cleaned);
+        const entry = contextMap.get(refKey);
 
-        if (/^[0-9]+(\.[0-9]+)?$/.test(t)) {
-          evalExpr += t;
-          continue;
-        }
-
-        // It's a reference
-        let refKey = normalizarLabel(t.replace(/['"]/g, ''));
-        let val = 0;
-
-        if (DEBUG_FORMULAS) {
-          console.log(`[FORMULA REF] Looking for "${t}" -> normalized "${refKey}"`);
-        }
-
-        // Lookup in contextMap
-        let entry = contextMap.get(refKey);
-        let block = null;
-
-        if (entry) {
-          if (DEBUG_FORMULAS) {
-            console.log(`[FORMULA REF] Found ${Array.isArray(entry) ? entry.length : 1} blocks for "${refKey}"`);
-          }
-          if (Array.isArray(entry)) {
-            // Priority:
-            // 1. Any block that HAS DATA (Pass 1 populated) and IS NOT ME
-            // 2. Any block that IS NOT ME
-
-            // First, filter out self
-            const others = entry.filter(b => b !== currentBlock);
-
-            // Find one with data in the requested field
-            const withData = others.find(c => c.totals && (Math.abs(toNumber(c.totals[field])) > 0.001));
-
-            if (withData) {
-              block = withData;
-              if (DEBUG_FORMULAS) {
-                console.log(`[FORMULA REF] Using block with data: "${withData.label}" (${field}: ${withData.totals[field]})`);
-              }
-            } else if (others.length > 0) {
-              // Secondary preference: 'secundaria' type
-              const sub = others.find(c => (c.type || "").toLowerCase().startsWith('secundaria') || (c.type || "").toLowerCase().startsWith('sub'));
-              block = sub || others[0];
-              if (DEBUG_FORMULAS) {
-                console.log(`[FORMULA REF] Using fallback block: "${block.label}" (${field}: ${block.totals?.[field] || 'no totals'})`);
-              }
-            } else {
-              // Only self in array?
-              block = entry[0];
-              if (DEBUG_FORMULAS) {
-                console.log(`[FORMULA REF] Only self available: "${block.label}"`);
-              }
-            }
-          } else {
-            block = entry;
-            if (DEBUG_FORMULAS) {
-              console.log(`[FORMULA REF] Single block: "${block.label}" (${field}: ${block.totals?.[field] || 'no totals'})`);
-            }
-          }
-        } else {
+        if (!entry) {
           if (DEBUG_FORMULAS) {
             console.log(`[FORMULA REF] NOT FOUND for "${refKey}"`);
           }
-          // Fallback: Try exact label or variants?
-          let entry2 = contextMap.get(t.toUpperCase());
-          if (entry2) {
-            block = Array.isArray(entry2) ? entry2[0] : entry2;
-            if (DEBUG_FORMULAS) {
-              console.log(`[FORMULA REF] Found via uppercase fallback: "${block.label}"`);
+          return 0;
+        }
+
+        const list = Array.isArray(entry) ? entry : [entry];
+        const candidates = list.filter(
+          (b) => b && typeof b === "object" && b !== currentBlock,
+        );
+        const tokenLower = cleaned.toLowerCase();
+
+        const scoreCandidate = (b) => {
+          let score = 0;
+          const label = (b?.label || "").toString().trim();
+          const nombre = (b?.nombre || "").toString().trim();
+          const id = (b?.id || "").toString().trim();
+          const clase = (b?.Clase || b?.clase || "").toString().trim();
+
+          if (label && label === cleaned) score += 60;
+          if (label && label.toLowerCase() === tokenLower) score += 55;
+          if (id && id === cleaned) score += 50;
+          if (id && id.toLowerCase() === tokenLower) score += 45;
+          if (clase && clase === cleaned) score += 40;
+          if (clase && clase.toLowerCase() === tokenLower) score += 35;
+          if (nombre && nombre === cleaned) score += 30;
+          if (nombre && nombre.toLowerCase() === tokenLower) score += 25;
+
+          score += typeRank(b?.type || b?.tipo);
+
+          const val = toNumber(b?.totals?.[field]);
+          if (Math.abs(val) > 0.001) score += 3;
+
+          if (b?.manualFormula || b?.__manualFormula) score += 1;
+
+          return score;
+        };
+
+        const pickFrom = (arr) => {
+          if (!arr.length) return null;
+          let best = arr[0];
+          let bestScore = scoreCandidate(best);
+          for (let i = 1; i < arr.length; i += 1) {
+            const score = scoreCandidate(arr[i]);
+            if (score > bestScore) {
+              best = arr[i];
+              bestScore = score;
             }
           }
+          return best;
+        };
+
+        const chosen =
+          pickFrom(candidates) ||
+          pickFrom(list.filter((b) => b && typeof b === "object")) ||
+          null;
+
+        const val = toNumber(chosen?.totals?.[field]);
+        if (DEBUG_FORMULAS) {
+          console.log(
+            `[FORMULA REF] Resolved "${cleaned}" -> "${chosen?.label || cleaned}" (type: ${chosen?.type || chosen?.tipo || "?"}, ${field}: ${val})`,
+          );
         }
+        return val;
+      };
 
-        if (block && block.totals) {
-          val = toNumber(block.totals[field]);
-          if (DEBUG_FORMULAS) {
-            console.log(`[FORMULA REF] Value for "${refKey}": ${val}`);
-          }
-        } else {
-          if (DEBUG_FORMULAS) {
-            console.log(`[FORMULA REF] No value found for "${refKey}"`);
-          }
-        }
-
-        evalExpr += val;
-      }
-
-      try {
-        const safeExpr = evalExpr.replace(/[^0-9\.\+\-\*\/\(\) ]/g, '');
-        if (!safeExpr) return 0;
-
-        const result = Function('"use strict";return (' + safeExpr + ')')() || 0;
-
-        // Debug specifically for INCOME
-        if (DEBUG_FORMULAS && field === 'actualYTD' && result === 0 && (formulaStr.includes('MEMBERSHIP') || formulaStr.includes('EVENTS'))) {
-          console.log(`[DEBUG FORMULA ZERO] Formula: "${formulaStr}" Field: ${field} Result: ${result}`);
-        }
-
-        return result;
-      } catch (e) {
-        console.warn("Error evaluating formula:", formulaStr, e);
+      const precedence = (op) => {
+        if (op === "*" || op === "/") return 2;
+        if (op === "+" || op === "-") return 1;
         return 0;
+      };
+
+      const rawTokens = tokenizarFormulaTexto(formulaStr);
+      const infix = [];
+      let prevKind = "start";
+
+      const pushNumber = (n) => {
+        infix.push({ kind: "num", value: toNumber(n) });
+        prevKind = "value";
+      };
+
+      const pushOp = (op) => {
+        infix.push({ kind: "op", value: op });
+        prevKind = op === "(" ? "open" : op === ")" ? "close" : "op";
+      };
+
+      const isNumericLiteral = (text) => /^[0-9]+(\.[0-9]+)?$/.test(text);
+
+      for (const token of rawTokens) {
+        const kind = token?.kind || "value";
+        const raw = kind === "op" ? token?.value : token?.value;
+        const t = (raw ?? token ?? "").toString().trim();
+        if (!t) continue;
+
+        if (kind === "op") {
+          if (!["+", "-", "*", "/", "(", ")"].includes(t)) continue;
+          const unary =
+            (t === "+" || t === "-") &&
+            (prevKind === "start" || prevKind === "op" || prevKind === "open");
+          if (unary) {
+            if (t === "-") {
+              pushNumber(0);
+              pushOp("-");
+            }
+            continue;
+          }
+          pushOp(t);
+          continue;
+        }
+
+        if (isNumericLiteral(t)) {
+          pushNumber(Number(t));
+          continue;
+        }
+
+        pushNumber(resolveReferenceNumber(t));
       }
+
+      // Infix -> RPN (Shunting-yard)
+      const output = [];
+      const stack = [];
+      infix.forEach((token) => {
+        if (token.kind === "num") {
+          output.push(token);
+          return;
+        }
+        const op = token.value;
+        if (op === "(") {
+          stack.push(op);
+          return;
+        }
+        if (op === ")") {
+          while (stack.length && stack[stack.length - 1] !== "(") {
+            output.push({ kind: "op", value: stack.pop() });
+          }
+          if (stack.length && stack[stack.length - 1] === "(") stack.pop();
+          return;
+        }
+
+        while (stack.length) {
+          const top = stack[stack.length - 1];
+          if (top === "(") break;
+          if (precedence(top) >= precedence(op)) {
+            output.push({ kind: "op", value: stack.pop() });
+          } else {
+            break;
+          }
+        }
+        stack.push(op);
+      });
+      while (stack.length) {
+        const top = stack.pop();
+        if (top === "(") continue;
+        output.push({ kind: "op", value: top });
+      }
+
+      const safeDiv = (a, b) => {
+        const den = Number(b);
+        if (!Number.isFinite(den) || Math.abs(den) < 1e-12) return 0;
+        return toNumber(a) / den;
+      };
+
+      // Evaluate RPN
+      const evalStack = [];
+      output.forEach((token) => {
+        if (token.kind === "num") {
+          evalStack.push(toNumber(token.value));
+          return;
+        }
+        const op = token.value;
+        const right = evalStack.pop();
+        const left = evalStack.pop();
+        const a = left == null ? 0 : toNumber(left);
+        const b = right == null ? 0 : toNumber(right);
+        switch (op) {
+          case "+":
+            evalStack.push(a + b);
+            break;
+          case "-":
+            evalStack.push(a - b);
+            break;
+          case "*":
+            evalStack.push(a * b);
+            break;
+          case "/":
+            evalStack.push(safeDiv(a, b));
+            break;
+          default:
+            break;
+        }
+      });
+
+      const result = evalStack.length
+        ? toNumber(evalStack[evalStack.length - 1])
+        : 0;
+
+      if (
+        DEBUG_FORMULAS &&
+        field === "actualYTD" &&
+        result === 0 &&
+        (formulaStr.includes("MEMBERSHIP") || formulaStr.includes("EVENTS"))
+      ) {
+        console.log(
+          `[DEBUG FORMULA ZERO] Formula: "${formulaStr}" Field: ${field} Result: ${result}`,
+        );
+      }
+
+      return result;
     };
 
     const recalcularPrincipales = (layoutArr = []) => {
@@ -4719,15 +4900,17 @@
             ...INCOME_LABELS.nw,
           ])
         );
-        asignar(
-          "CONSOLIDATED EXPENSES",
-          combinar([
-            ...EXPENSE_LABELS.mex,
-            ...EXPENSE_LABELS.gdl,
-            ...EXPENSE_LABELS.mty,
-            ...EXPENSE_LABELS.nw,
-          ])
-        );
+        // CONSOLIDATED EXPENSE(S) = CDMX EXPENSE + intercompany lines (GDL/MTY/NW).
+        // Importante: estas líneas ya vienen con su signo (p.ej. negativas cuando son
+        // subsidios/transferencias). Para respetar la "ley de signos", se deben sumar tal cual.
+        const consolidatedExpenses = combinar([
+          ...EXPENSE_LABELS.mex,
+          ...EXPENSE_LABELS.gdl,
+          ...EXPENSE_LABELS.mty,
+          ...EXPENSE_LABELS.nw,
+        ]);
+        asignar("CONSOLIDATED EXPENSES", consolidatedExpenses);
+        asignar("CONSOLIDATED EXPENSE", consolidatedExpenses);
         asignar(
           "CONSOLIDATED OPERATING RESULTS",
           combinar([

@@ -2233,9 +2233,13 @@
     return { labels: MONTH_LABELS, datasets };
   };
 
+  let _renderCustomChartsGen = 0;
+
   const renderCustomCharts = (snapshotMap, config, context = {}) => {
     clearCustomCharts();
     if (!customChartsRow) return;
+    const myGen = ++_renderCustomChartsGen;
+    const isStale = () => _renderCustomChartsGen !== myGen;
     const customChartsList = Array.isArray(config.customCharts)
       ? config.customCharts
       : [];
@@ -2298,13 +2302,12 @@
     };
 
     const renderChart = (canvasEl, emptyEl, data, chartType) => {
-      if (!canvasEl || !data) {
-        renderEmpty(emptyEl, canvasEl, "Sin datos.");
-        return;
-      }
+      if (!canvasEl || !data) return;
       if (emptyEl) emptyEl.style.display = "none";
       canvasEl.style.display = "block";
-      customCharts[canvasEl.id] = new Chart(canvasEl, {
+      const isBarChart = chartType === "bar";
+      const dataLabelsPlugin = isBarChart && window.ChartDataLabels ? window.ChartDataLabels : null;
+      const chartCfg = {
         type: chartType,
         data: {
           labels: data.labels,
@@ -2328,6 +2331,19 @@
                   },
                 },
               },
+              ...(dataLabelsPlugin ? {
+                datalabels: {
+                  display: function(ctx) {
+                    const val = ctx.dataset.data[ctx.dataIndex];
+                    return val !== null && val !== undefined && val !== 0;
+                  },
+                  anchor: "end",
+                  align: "end",
+                  formatter: function(value) { return formatNumber(value); },
+                  font: { size: 9 },
+                  color: "#444",
+                },
+              } : {}),
             },
             scales: {
               y: {
@@ -2347,7 +2363,11 @@
           config,
           chartType
         ),
-      });
+      };
+      if (dataLabelsPlugin) {
+        chartCfg.plugins = [dataLabelsPlugin];
+      }
+      customCharts[canvasEl.id] = new Chart(canvasEl, chartCfg);
     };
 
     customChartsList.forEach((chart, index) => {
@@ -2361,10 +2381,13 @@
         chart?.chartType && chart.chartType !== "inherit"
           ? chart.chartType
           : baseChartType;
-      const seriesMode = normalizeSeriesMode(chart?.seriesMode, "columns");
       const sourceType = (chart?.sourceType || "snapshot")
         .toString()
         .toLowerCase();
+      const seriesMode = normalizeSeriesMode(
+        chart?.seriesMode,
+        sourceType === "mensual" ? "rows" : "columns"
+      );
       const columnDefs = applyCustomSeriesOverrides(
         filterSeriesByKeys(baseColumnDefs, chart?.seriesKeys || []),
         chart
@@ -2373,39 +2396,36 @@
 
       const safeId = sanitizeChartId(chart.id) || `customChart-${index + 1}`;
       const canvasId = `customChart-${safeId}`;
-      const wrapper = document.createElement("div");
-      wrapper.className = "col-12";
-      wrapper.innerHTML = `
-        <div class="card chart-card p-3" data-custom-chart="${canvasId}">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <h5 class="mb-0">${chart.title || "Grafica personalizada"}</h5>
-            <small class="text-muted">${chart.subtitle || ""}</small>
-          </div>
-          <div class="chart-container">
-            <canvas id="${canvasId}"></canvas>
-            <div class="text-muted small text-center"
-              data-custom-empty="${canvasId}"
-              style="position:absolute; inset:0; display:none; align-items:center; justify-content:center;">
-              Sin datos.
+      const chartTitle = chart.title || "Grafica personalizada";
+      const chartSubtitle = chart.subtitle || "";
+
+      // Only add chart to DOM after data is confirmed — prevents blank loading cards
+      const appendAndRender = (data) => {
+        if (isStale() || !data) return;
+        const wrapper = document.createElement("div");
+        wrapper.className = "col-12";
+        wrapper.innerHTML = `
+          <div class="card chart-card p-3" data-custom-chart="${canvasId}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">${chartTitle}</h5>
+              <small class="text-muted">${chartSubtitle}</small>
+            </div>
+            <div class="chart-container">
+              <canvas id="${canvasId}"></canvas>
             </div>
           </div>
-        </div>
-      `;
-      customChartsRow.appendChild(wrapper);
-      const canvas = wrapper.querySelector("canvas");
-      const empty = wrapper.querySelector(`[data-custom-empty="${canvasId}"]`);
-      if (!canvas) return;
+        `;
+        customChartsRow.appendChild(wrapper);
+        const canvas = wrapper.querySelector("canvas");
+        if (!canvas) return;
+        renderChart(canvas, null, data, chartType);
+      };
 
       if (sourceType === "mensual") {
-        if (!empresaId || !anio) {
-          renderEmpty(empty, canvas, "Selecciona empresa y ano.");
-          return;
-        }
-        renderEmpty(empty, canvas, "Cargando datos...");
-        if (!mensualPromise) return;
+        if (!empresaId || !anio || !mensualPromise) return;
         mensualPromise
           .then((responses) => {
-            if (!wrapper.isConnected) return;
+            if (isStale()) return;
             const data = buildCustomMensualChartData(
               rows,
               responses,
@@ -2414,20 +2434,15 @@
               seriesMode,
               labelContext
             );
-            renderChart(canvas, empty, data, chartType);
+            appendAndRender(data);
           })
           .catch((error) => {
             console.warn("?? Graficas: Error cargando grafica mensual", error);
-            if (!wrapper.isConnected) return;
-            renderEmpty(empty, canvas, "Sin datos.");
           });
         return;
       }
 
-      if (!snapshotMap) {
-        renderEmpty(empty, canvas, "Sin snapshot de RESUMEN.");
-        return;
-      }
+      if (!snapshotMap) return;
       const data = buildCustomChartData(
         rows,
         snapshotMap,
@@ -2436,7 +2451,7 @@
         seriesMode,
         labelContext
       );
-      renderChart(canvas, empty, data, chartType);
+      appendAndRender(data);
     });
   };
 

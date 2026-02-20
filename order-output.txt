@@ -1,0 +1,32 @@
+=== CDMX layout after expense section (ord >= 180) ===
+  ord=180 tipo="sum-row" label="expense-T&IC" clase="EXPENSE_T_IC_2_2_2"
+  ord=181 tipo="sum-row" label="expense-Services to Members" clase="EXPENSE_SERVICES_TO_MEMBERS_2_2_2"
+  ord=182 tipo="sum-row" label="other-Guadalajara Other Income" clase="OTHER_GUADALAJARA_OTHER_INCOME_2_2_2"
+  ord=183 tipo="sum-row" label="other-Monterrey Other Income" clase="OTHER_MONTERREY_OTHER_INCOME_2_2_2"
+  ord=184 tipo="sum-row" label="other-Northwest Other Income" clase="OTHER_NORTHWEST_OTHER_INCOME_2_2_2"
+
+=== Current CONSOLIDATED EXPENSES entry in CDMX ===
+  ID=63324 ord=48 tipo="free-operation" label="CONSOLIDATED EXPENSES"
+    Formula: +section:EXPENSE, -section:Guadalajara Expense, -section:Monterrey Expense, -section:Northwest Expense
+  ID=63325 ord=48 tipo="rowStyle" label="highlight-primary"
+    Formula: +section:EXPENSE, -section:Guadalajara Expense, -section:Monterrey Expense, -section:Northwest Expense
+  ID=63326 ord=48 tipo="estilo_fila" label="highlight-primary"
+    Formula: +section:EXPENSE, -section:Guadalajara Expense, -section:Monterrey Expense, -section:Northwest Expense
+
+=== NORESTE consolidated structure (for reference) ===
+  ord=100 tipo="operacion_tipo" label="sum-row" clase="CONSOLIDATED INCOME"
+  ord=100 tipo="operacion_label" label="CONSOLIDATED INCOME" clase="CONSOLIDATED INCOME"
+  ord=100 tipo="orden_presentacion" label="100.0" clase="CONSOLIDATED INCOME"
+  ord=100 tipo="visible" label="1.0" clase="CONSOLIDATED INCOME"
+  ord=240 tipo="operacion_tipo" label="sum-row" clase="CONSOLIDATED EXPENSE"
+  ord=240 tipo="operacion_label" label="CONSOLIDATED EXPENSE" clase="CONSOLIDATED EXPENSE"
+  ord=240 tipo="orden_presentacion" label="240.0" clase="CONSOLIDATED EXPENSE"
+  ord=240 tipo="visible" label="1.0" clase="CONSOLIDATED EXPENSE"
+  ord=290 tipo="operacion_tipo" label="result-row" clase="CONSOLIDATED OPERATING RESULTS"
+  ord=290 tipo="operacion_label" label="CONSOLIDATED OPERATING RESULTS" clase="CONSOLIDATED OPERATING RESULTS"
+  ord=290 tipo="orden_presentacion" label="290.0" clase="CONSOLIDATED OPERATING RESULTS"
+  ord=290 tipo="visible" label="1.0" clase="CONSOLIDATED OPERATING RESULTS"
+  ord=390 tipo="operacion_tipo" label="net-row" clase="CONSOLIDATED NET RESULTS"
+  ord=390 tipo="operacion_label" label="CONSOLIDATED NET RESULTS" clase="CONSOLIDATED NET RESULTS"
+  ord=390 tipo="orden_presentacion" label="390.0" clase="CONSOLIDATED NET RESULTS"
+  ord=390 tipo="visible" label="1.0" clase="CONSOLIDATED NET RESULTS"

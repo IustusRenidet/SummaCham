@@ -1,0 +1,8 @@
+=== Moving CDMX CONSOLIDATED EXPENSES to ord_pres=240 ===
+
+Updated 3 rows to ord_pres=240
+
+Verification:
+  ID=63324 ord_pres=240 orden=24009 tipo="free-operation" label="CONSOLIDATED EXPENSES"
+  ID=63325 ord_pres=240 orden=24009 tipo="rowStyle" label="highlight-primary"
+  ID=63326 ord_pres=240 orden=24009 tipo="estilo_fila" label="highlight-primary"

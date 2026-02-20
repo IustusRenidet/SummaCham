@@ -1,0 +1,37 @@
+=== CLEANUP AND FIX DUPLICATE CONSOLIDATED EXPENSE ENTRIES ===
+
+1. Updated NORESTE old rows (59304-59307): 4 rows
+2. Deleted duplicate NORESTE new rows (59400-59403): 4 rows
+3. Updated NOROESTE old rows (59862-59865): 4 rows
+4. Deleted duplicate NOROESTE new rows (59958-59961): 4 rows
+5. Updated legacy NOROESTE rows (58642, 58643): 2 rows
+
+✓ All changes applied successfully
+
+
+=== FINAL VERIFICATION ===
+
+--- NORESTE CONSOLIDATED EXPENSE entries ---
+  ID=59304 clase="CONSOLIDATED EXPENSE" tipo="operacion_tipo" label="sum-row"
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59305 clase="CONSOLIDATED EXPENSE" tipo="operacion_label" label="CONSOLIDATED EXPENSE"
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59306 clase="CONSOLIDATED EXPENSE" tipo="orden_presentacion" label="240.0"
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59307 clase="CONSOLIDATED EXPENSE" tipo="visible" label="1.0"
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+
+--- NOROESTE CONSOLIDATED EXPENSE entries ---
+  ID=58642 clase="CONSOLIDATED EXPENSE" tipo="sum-row" label="CONSOLIDATED EXPENSE"
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=58643 clase="CONSOLIDATED EXPENSES" tipo="sum-row" label="CONSOLIDATED EXPENSES"
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59862 clase="CONSOLIDATED EXPENSE" tipo="operacion_tipo" label="sum-row"
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59863 clase="CONSOLIDATED EXPENSE" tipo="operacion_label" label="CONSOLIDATED EXPENSE"
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59864 clase="CONSOLIDATED EXPENSE" tipo="orden_presentacion" label="240.0"
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59865 clase="CONSOLIDATED EXPENSE" tipo="visible" label="1.0"
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+

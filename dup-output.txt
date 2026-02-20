@@ -1,0 +1,94 @@
+=== DEEP CHECK: NORESTE duplicate entries ===
+
+NORESTE rows:
+  ID=59344 clase="CONSOLIDATED INCOME" etiqueta="CONSOLIDATED INCOME" tipo="operacion_tipo" label="sum-row" ord=100
+    Formula: +operation:CDMX INCOME, +operation:Guadalajara Income, +operation:Monterrey Income, +operation:Northwest Income
+  ID=59345 clase="CONSOLIDATED INCOME" etiqueta="CONSOLIDATED INCOME" tipo="operacion_label" label="CONSOLIDATED INCOME" ord=100
+    Formula: +operation:CDMX INCOME, +operation:Guadalajara Income, +operation:Monterrey Income, +operation:Northwest Income
+  ID=59346 clase="CONSOLIDATED INCOME" etiqueta="CONSOLIDATED INCOME" tipo="orden_presentacion" label="100.0" ord=100
+    Formula: +operation:CDMX INCOME, +operation:Guadalajara Income, +operation:Monterrey Income, +operation:Northwest Income
+  ID=59347 clase="CONSOLIDATED INCOME" etiqueta="CONSOLIDATED INCOME" tipo="visible" label="1.0" ord=100
+    Formula: +operation:CDMX INCOME, +operation:Guadalajara Income, +operation:Monterrey Income, +operation:Northwest Income
+  ID=59304 clase="CONSOLIDATED EXPENSE" etiqueta="CONSOLIDATED EXPENSE" tipo="operacion_tipo" label="sum-row" ord=240
+    Formula: +operation:CDMX EXPENSE, +operation:Guadalajara Expense, +operation:Monterrey Expense, +operation:Northwest Expense
+  ID=59305 clase="CONSOLIDATED EXPENSE" etiqueta="CONSOLIDATED EXPENSE" tipo="operacion_label" label="CONSOLIDATED EXPENSE" ord=240
+    Formula: +operation:CDMX EXPENSE, +operation:Guadalajara Expense, +operation:Monterrey Expense, +operation:Northwest Expense
+  ID=59306 clase="CONSOLIDATED EXPENSE" etiqueta="CONSOLIDATED EXPENSE" tipo="orden_presentacion" label="240.0" ord=240
+    Formula: +operation:CDMX EXPENSE, +operation:Guadalajara Expense, +operation:Monterrey Expense, +operation:Northwest Expense
+  ID=59307 clase="CONSOLIDATED EXPENSE" etiqueta="CONSOLIDATED EXPENSE" tipo="visible" label="1.0" ord=240
+    Formula: +operation:CDMX EXPENSE, +operation:Guadalajara Expense, +operation:Monterrey Expense, +operation:Northwest Expense
+  ID=59400 clase="CONSOLIDATED EXPENSES" etiqueta="CONSOLIDATED EXPENSES" tipo="operacion_tipo" label="sum-row" ord=240
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59401 clase="CONSOLIDATED EXPENSES" etiqueta="CONSOLIDATED EXPENSES" tipo="operacion_label" label="CONSOLIDATED EXPENSES" ord=240
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59402 clase="CONSOLIDATED EXPENSES" etiqueta="CONSOLIDATED EXPENSES" tipo="orden_presentacion" label="240.0" ord=240
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59403 clase="CONSOLIDATED EXPENSES" etiqueta="CONSOLIDATED EXPENSES" tipo="visible" label="1.0" ord=240
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59420 clase="CONSOLIDATED OPERATING RESULTS" etiqueta="CONSOLIDATED OPERATING RESULTS" tipo="operacion_tipo" label="result-row" ord=290
+    Formula: +operation:OPERATING RESULTS MEXICO, +operation:OPERATING RESULTS GUADALAJARA, +operation:OPERATING RESULTS MONTERREY, +operation:OPERATING RESULTS NORTHWEST
+  ID=59421 clase="CONSOLIDATED OPERATING RESULTS" etiqueta="CONSOLIDATED OPERATING RESULTS" tipo="operacion_label" label="CONSOLIDATED OPERATING RESULTS" ord=290
+    Formula: +operation:OPERATING RESULTS MEXICO, +operation:OPERATING RESULTS GUADALAJARA, +operation:OPERATING RESULTS MONTERREY, +operation:OPERATING RESULTS NORTHWEST
+  ID=59422 clase="CONSOLIDATED OPERATING RESULTS" etiqueta="CONSOLIDATED OPERATING RESULTS" tipo="orden_presentacion" label="290.0" ord=290
+    Formula: +operation:OPERATING RESULTS MEXICO, +operation:OPERATING RESULTS GUADALAJARA, +operation:OPERATING RESULTS MONTERREY, +operation:OPERATING RESULTS NORTHWEST
+  ID=59423 clase="CONSOLIDATED OPERATING RESULTS" etiqueta="CONSOLIDATED OPERATING RESULTS" tipo="visible" label="1.0" ord=290
+    Formula: +operation:OPERATING RESULTS MEXICO, +operation:OPERATING RESULTS GUADALAJARA, +operation:OPERATING RESULTS MONTERREY, +operation:OPERATING RESULTS NORTHWEST
+  ID=59460 clase="CONSOLIDATED NET RESULTS" etiqueta="CONSOLIDATED NET RESULTS" tipo="operacion_tipo" label="net-row" ord=390
+    Formula: +operation:NET RESULTS MEXICO, +operation:NET RESULTS GUADALAJARA, +operation:NET RESULTS MONTERREY, +operation:NET RESULTS NORTHWEST
+  ID=59461 clase="CONSOLIDATED NET RESULTS" etiqueta="CONSOLIDATED NET RESULTS" tipo="operacion_label" label="CONSOLIDATED NET RESULTS" ord=390
+    Formula: +operation:NET RESULTS MEXICO, +operation:NET RESULTS GUADALAJARA, +operation:NET RESULTS MONTERREY, +operation:NET RESULTS NORTHWEST
+  ID=59462 clase="CONSOLIDATED NET RESULTS" etiqueta="CONSOLIDATED NET RESULTS" tipo="orden_presentacion" label="390.0" ord=390
+    Formula: +operation:NET RESULTS MEXICO, +operation:NET RESULTS GUADALAJARA, +operation:NET RESULTS MONTERREY, +operation:NET RESULTS NORTHWEST
+  ID=59463 clase="CONSOLIDATED NET RESULTS" etiqueta="CONSOLIDATED NET RESULTS" tipo="visible" label="1.0" ord=390
+    Formula: +operation:NET RESULTS MEXICO, +operation:NET RESULTS GUADALAJARA, +operation:NET RESULTS MONTERREY, +operation:NET RESULTS NORTHWEST
+
+
+=== DEEP CHECK: NOROESTE duplicate entries ===
+
+NOROESTE rows:
+  ID=58629 clase="CONSOLIDATED INCOME" etiqueta="CONSOLIDATED INCOME" tipo="sum-row" label="CONSOLIDATED INCOME" ord=100
+    Formula: NO FORMULA
+  ID=59902 clase="CONSOLIDATED INCOME" etiqueta="CONSOLIDATED INCOME" tipo="operacion_tipo" label="sum-row" ord=100
+    Formula: +operation:CDMX INCOME, +operation:Guadalajara Income, +operation:Monterrey Income, +operation:Northwest Income
+  ID=59903 clase="CONSOLIDATED INCOME" etiqueta="CONSOLIDATED INCOME" tipo="operacion_label" label="CONSOLIDATED INCOME" ord=100
+    Formula: +operation:CDMX INCOME, +operation:Guadalajara Income, +operation:Monterrey Income, +operation:Northwest Income
+  ID=59904 clase="CONSOLIDATED INCOME" etiqueta="CONSOLIDATED INCOME" tipo="orden_presentacion" label="100.0" ord=100
+    Formula: +operation:CDMX INCOME, +operation:Guadalajara Income, +operation:Monterrey Income, +operation:Northwest Income
+  ID=59905 clase="CONSOLIDATED INCOME" etiqueta="CONSOLIDATED INCOME" tipo="visible" label="1.0" ord=100
+    Formula: +operation:CDMX INCOME, +operation:Guadalajara Income, +operation:Monterrey Income, +operation:Northwest Income
+  ID=58642 clase="CONSOLIDATED EXPENSE" etiqueta="CONSOLIDATED EXPENSE" tipo="sum-row" label="CONSOLIDATED EXPENSE" ord=240
+    Formula: NO FORMULA
+  ID=58643 clase="CONSOLIDATED EXPENSES" etiqueta="CONSOLIDATED EXPENSES" tipo="sum-row" label="CONSOLIDATED EXPENSES" ord=240
+    Formula: NO FORMULA
+  ID=59862 clase="CONSOLIDATED EXPENSE" etiqueta="CONSOLIDATED EXPENSE" tipo="operacion_tipo" label="sum-row" ord=240
+    Formula: +operation:CDMX EXPENSE, +operation:Guadalajara Expense, +operation:Monterrey Expense, +operation:Northwest Expense
+  ID=59863 clase="CONSOLIDATED EXPENSE" etiqueta="CONSOLIDATED EXPENSE" tipo="operacion_label" label="CONSOLIDATED EXPENSE" ord=240
+    Formula: +operation:CDMX EXPENSE, +operation:Guadalajara Expense, +operation:Monterrey Expense, +operation:Northwest Expense
+  ID=59864 clase="CONSOLIDATED EXPENSE" etiqueta="CONSOLIDATED EXPENSE" tipo="orden_presentacion" label="240.0" ord=240
+    Formula: +operation:CDMX EXPENSE, +operation:Guadalajara Expense, +operation:Monterrey Expense, +operation:Northwest Expense
+  ID=59865 clase="CONSOLIDATED EXPENSE" etiqueta="CONSOLIDATED EXPENSE" tipo="visible" label="1.0" ord=240
+    Formula: +operation:CDMX EXPENSE, +operation:Guadalajara Expense, +operation:Monterrey Expense, +operation:Northwest Expense
+  ID=59958 clase="CONSOLIDATED EXPENSES" etiqueta="CONSOLIDATED EXPENSES" tipo="operacion_tipo" label="sum-row" ord=240
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59959 clase="CONSOLIDATED EXPENSES" etiqueta="CONSOLIDATED EXPENSES" tipo="operacion_label" label="CONSOLIDATED EXPENSES" ord=240
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59960 clase="CONSOLIDATED EXPENSES" etiqueta="CONSOLIDATED EXPENSES" tipo="orden_presentacion" label="240.0" ord=240
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59961 clase="CONSOLIDATED EXPENSES" etiqueta="CONSOLIDATED EXPENSES" tipo="visible" label="1.0" ord=240
+    Formula: +operation:CDMX EXPENSE, -operation:Guadalajara Expense, -operation:Monterrey Expense, -operation:Northwest Expense
+  ID=59978 clase="CONSOLIDATED OPERATING RESULTS" etiqueta="CONSOLIDATED OPERATING RESULTS" tipo="operacion_tipo" label="result-row" ord=290
+    Formula: +operation:OPERATING RESULTS MEXICO, +operation:OPERATING RESULTS GUADALAJARA, +operation:OPERATING RESULTS MONTERREY, +operation:OPERATING RESULTS NORTHWEST
+  ID=59979 clase="CONSOLIDATED OPERATING RESULTS" etiqueta="CONSOLIDATED OPERATING RESULTS" tipo="operacion_label" label="CONSOLIDATED OPERATING RESULTS" ord=290
+    Formula: +operation:OPERATING RESULTS MEXICO, +operation:OPERATING RESULTS GUADALAJARA, +operation:OPERATING RESULTS MONTERREY, +operation:OPERATING RESULTS NORTHWEST
+  ID=59980 clase="CONSOLIDATED OPERATING RESULTS" etiqueta="CONSOLIDATED OPERATING RESULTS" tipo="orden_presentacion" label="290.0" ord=290
+    Formula: +operation:OPERATING RESULTS MEXICO, +operation:OPERATING RESULTS GUADALAJARA, +operation:OPERATING RESULTS MONTERREY, +operation:OPERATING RESULTS NORTHWEST
+  ID=59981 clase="CONSOLIDATED OPERATING RESULTS" etiqueta="CONSOLIDATED OPERATING RESULTS" tipo="visible" label="1.0" ord=290
+    Formula: +operation:OPERATING RESULTS MEXICO, +operation:OPERATING RESULTS GUADALAJARA, +operation:OPERATING RESULTS MONTERREY, +operation:OPERATING RESULTS NORTHWEST
+  ID=60018 clase="CONSOLIDATED NET RESULTS" etiqueta="CONSOLIDATED NET RESULTS" tipo="operacion_tipo" label="net-row" ord=390
+    Formula: +operation:NET RESULTS MEXICO, +operation:NET RESULTS GUADALAJARA, +operation:NET RESULTS MONTERREY, +operation:NET RESULTS NORTHWEST
+  ID=60019 clase="CONSOLIDATED NET RESULTS" etiqueta="CONSOLIDATED NET RESULTS" tipo="operacion_label" label="CONSOLIDATED NET RESULTS" ord=390
+    Formula: +operation:NET RESULTS MEXICO, +operation:NET RESULTS GUADALAJARA, +operation:NET RESULTS MONTERREY, +operation:NET RESULTS NORTHWEST
+  ID=60020 clase="CONSOLIDATED NET RESULTS" etiqueta="CONSOLIDATED NET RESULTS" tipo="orden_presentacion" label="390.0" ord=390
+    Formula: +operation:NET RESULTS MEXICO, +operation:NET RESULTS GUADALAJARA, +operation:NET RESULTS MONTERREY, +operation:NET RESULTS NORTHWEST
+  ID=60021 clase="CONSOLIDATED NET RESULTS" etiqueta="CONSOLIDATED NET RESULTS" tipo="visible" label="1.0" ord=390
+    Formula: +operation:NET RESULTS MEXICO, +operation:NET RESULTS GUADALAJARA, +operation:NET RESULTS MONTERREY, +operation:NET RESULTS NORTHWEST

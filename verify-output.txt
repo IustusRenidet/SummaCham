@@ -1,0 +1,284 @@
+=== VERIFYING ALL CONSOLIDATED EXPENSES FIXES ===
+
+--- NORESTE CONSOLIDATED EXPENSES ---
+  ID=59344 tipo=operacion_tipo label=sum-row ord=100
+    + operation:"CDMX INCOME"
+    + operation:"Guadalajara Income"
+    + operation:"Monterrey Income"
+    + operation:"Northwest Income"
+  ID=59345 tipo=operacion_label label=CONSOLIDATED INCOME ord=100
+    + operation:"CDMX INCOME"
+    + operation:"Guadalajara Income"
+    + operation:"Monterrey Income"
+    + operation:"Northwest Income"
+  ID=59346 tipo=orden_presentacion label=100.0 ord=100
+    + operation:"CDMX INCOME"
+    + operation:"Guadalajara Income"
+    + operation:"Monterrey Income"
+    + operation:"Northwest Income"
+  ID=59347 tipo=visible label=1.0 ord=100
+    + operation:"CDMX INCOME"
+    + operation:"Guadalajara Income"
+    + operation:"Monterrey Income"
+    + operation:"Northwest Income"
+  ID=59304 tipo=operacion_tipo label=sum-row ord=240
+    + operation:"CDMX EXPENSE"
+    + operation:"Guadalajara Expense"
+    + operation:"Monterrey Expense"
+    + operation:"Northwest Expense"
+  ID=59305 tipo=operacion_label label=CONSOLIDATED EXPENSE ord=240
+    + operation:"CDMX EXPENSE"
+    + operation:"Guadalajara Expense"
+    + operation:"Monterrey Expense"
+    + operation:"Northwest Expense"
+  ID=59306 tipo=orden_presentacion label=240.0 ord=240
+    + operation:"CDMX EXPENSE"
+    + operation:"Guadalajara Expense"
+    + operation:"Monterrey Expense"
+    + operation:"Northwest Expense"
+  ID=59307 tipo=visible label=1.0 ord=240
+    + operation:"CDMX EXPENSE"
+    + operation:"Guadalajara Expense"
+    + operation:"Monterrey Expense"
+    + operation:"Northwest Expense"
+  ID=59400 tipo=operacion_tipo label=sum-row ord=240
+    + operation:"CDMX EXPENSE"
+    - operation:"Guadalajara Expense"
+    - operation:"Monterrey Expense"
+    - operation:"Northwest Expense"
+  ID=59401 tipo=operacion_label label=CONSOLIDATED EXPENSES ord=240
+    + operation:"CDMX EXPENSE"
+    - operation:"Guadalajara Expense"
+    - operation:"Monterrey Expense"
+    - operation:"Northwest Expense"
+  ID=59402 tipo=orden_presentacion label=240.0 ord=240
+    + operation:"CDMX EXPENSE"
+    - operation:"Guadalajara Expense"
+    - operation:"Monterrey Expense"
+    - operation:"Northwest Expense"
+  ID=59403 tipo=visible label=1.0 ord=240
+    + operation:"CDMX EXPENSE"
+    - operation:"Guadalajara Expense"
+    - operation:"Monterrey Expense"
+    - operation:"Northwest Expense"
+  ID=59420 tipo=operacion_tipo label=result-row ord=290
+    + operation:"OPERATING RESULTS MEXICO"
+    + operation:"OPERATING RESULTS GUADALAJARA"
+    + operation:"OPERATING RESULTS MONTERREY"
+    + operation:"OPERATING RESULTS NORTHWEST"
+  ID=59421 tipo=operacion_label label=CONSOLIDATED OPERATING RESULTS ord=290
+    + operation:"OPERATING RESULTS MEXICO"
+    + operation:"OPERATING RESULTS GUADALAJARA"
+    + operation:"OPERATING RESULTS MONTERREY"
+    + operation:"OPERATING RESULTS NORTHWEST"
+  ID=59422 tipo=orden_presentacion label=290.0 ord=290
+    + operation:"OPERATING RESULTS MEXICO"
+    + operation:"OPERATING RESULTS GUADALAJARA"
+    + operation:"OPERATING RESULTS MONTERREY"
+    + operation:"OPERATING RESULTS NORTHWEST"
+  ID=59423 tipo=visible label=1.0 ord=290
+    + operation:"OPERATING RESULTS MEXICO"
+    + operation:"OPERATING RESULTS GUADALAJARA"
+    + operation:"OPERATING RESULTS MONTERREY"
+    + operation:"OPERATING RESULTS NORTHWEST"
+  ID=59460 tipo=operacion_tipo label=net-row ord=390
+    + operation:"NET RESULTS MEXICO"
+    + operation:"NET RESULTS GUADALAJARA"
+    + operation:"NET RESULTS MONTERREY"
+    + operation:"NET RESULTS NORTHWEST"
+  ID=59461 tipo=operacion_label label=CONSOLIDATED NET RESULTS ord=390
+    + operation:"NET RESULTS MEXICO"
+    + operation:"NET RESULTS GUADALAJARA"
+    + operation:"NET RESULTS MONTERREY"
+    + operation:"NET RESULTS NORTHWEST"
+  ID=59462 tipo=orden_presentacion label=390.0 ord=390
+    + operation:"NET RESULTS MEXICO"
+    + operation:"NET RESULTS GUADALAJARA"
+    + operation:"NET RESULTS MONTERREY"
+    + operation:"NET RESULTS NORTHWEST"
+  ID=59463 tipo=visible label=1.0 ord=390
+    + operation:"NET RESULTS MEXICO"
+    + operation:"NET RESULTS GUADALAJARA"
+    + operation:"NET RESULTS MONTERREY"
+    + operation:"NET RESULTS NORTHWEST"
+
+--- NOROESTE CONSOLIDATED EXPENSES ---
+  ID=58629 tipo=sum-row label=CONSOLIDATED INCOME ord=100
+  ID=59902 tipo=operacion_tipo label=sum-row ord=100
+    + operation:"CDMX INCOME"
+    + operation:"Guadalajara Income"
+    + operation:"Monterrey Income"
+    + operation:"Northwest Income"
+  ID=59903 tipo=operacion_label label=CONSOLIDATED INCOME ord=100
+    + operation:"CDMX INCOME"
+    + operation:"Guadalajara Income"
+    + operation:"Monterrey Income"
+    + operation:"Northwest Income"
+  ID=59904 tipo=orden_presentacion label=100.0 ord=100
+    + operation:"CDMX INCOME"
+    + operation:"Guadalajara Income"
+    + operation:"Monterrey Income"
+    + operation:"Northwest Income"
+  ID=59905 tipo=visible label=1.0 ord=100
+    + operation:"CDMX INCOME"
+    + operation:"Guadalajara Income"
+    + operation:"Monterrey Income"
+    + operation:"Northwest Income"
+  ID=58642 tipo=sum-row label=CONSOLIDATED EXPENSE ord=240
+  ID=58643 tipo=sum-row label=CONSOLIDATED EXPENSES ord=240
+  ID=59862 tipo=operacion_tipo label=sum-row ord=240
+    + operation:"CDMX EXPENSE"
+    + operation:"Guadalajara Expense"
+    + operation:"Monterrey Expense"
+    + operation:"Northwest Expense"
+  ID=59863 tipo=operacion_label label=CONSOLIDATED EXPENSE ord=240
+    + operation:"CDMX EXPENSE"
+    + operation:"Guadalajara Expense"
+    + operation:"Monterrey Expense"
+    + operation:"Northwest Expense"
+  ID=59864 tipo=orden_presentacion label=240.0 ord=240
+    + operation:"CDMX EXPENSE"
+    + operation:"Guadalajara Expense"
+    + operation:"Monterrey Expense"
+    + operation:"Northwest Expense"
+  ID=59865 tipo=visible label=1.0 ord=240
+    + operation:"CDMX EXPENSE"
+    + operation:"Guadalajara Expense"
+    + operation:"Monterrey Expense"
+    + operation:"Northwest Expense"
+  ID=59958 tipo=operacion_tipo label=sum-row ord=240
+    + operation:"CDMX EXPENSE"
+    - operation:"Guadalajara Expense"
+    - operation:"Monterrey Expense"
+    - operation:"Northwest Expense"
+  ID=59959 tipo=operacion_label label=CONSOLIDATED EXPENSES ord=240
+    + operation:"CDMX EXPENSE"
+    - operation:"Guadalajara Expense"
+    - operation:"Monterrey Expense"
+    - operation:"Northwest Expense"
+  ID=59960 tipo=orden_presentacion label=240.0 ord=240
+    + operation:"CDMX EXPENSE"
+    - operation:"Guadalajara Expense"
+    - operation:"Monterrey Expense"
+    - operation:"Northwest Expense"
+  ID=59961 tipo=visible label=1.0 ord=240
+    + operation:"CDMX EXPENSE"
+    - operation:"Guadalajara Expense"
+    - operation:"Monterrey Expense"
+    - operation:"Northwest Expense"
+  ID=59978 tipo=operacion_tipo label=result-row ord=290
+    + operation:"OPERATING RESULTS MEXICO"
+    + operation:"OPERATING RESULTS GUADALAJARA"
+    + operation:"OPERATING RESULTS MONTERREY"
+    + operation:"OPERATING RESULTS NORTHWEST"
+  ID=59979 tipo=operacion_label label=CONSOLIDATED OPERATING RESULTS ord=290
+    + operation:"OPERATING RESULTS MEXICO"
+    + operation:"OPERATING RESULTS GUADALAJARA"
+    + operation:"OPERATING RESULTS MONTERREY"
+    + operation:"OPERATING RESULTS NORTHWEST"
+  ID=59980 tipo=orden_presentacion label=290.0 ord=290
+    + operation:"OPERATING RESULTS MEXICO"
+    + operation:"OPERATING RESULTS GUADALAJARA"
+    + operation:"OPERATING RESULTS MONTERREY"
+    + operation:"OPERATING RESULTS NORTHWEST"
+  ID=59981 tipo=visible label=1.0 ord=290
+    + operation:"OPERATING RESULTS MEXICO"
+    + operation:"OPERATING RESULTS GUADALAJARA"
+    + operation:"OPERATING RESULTS MONTERREY"
+    + operation:"OPERATING RESULTS NORTHWEST"
+  ID=60018 tipo=operacion_tipo label=net-row ord=390
+    + operation:"NET RESULTS MEXICO"
+    + operation:"NET RESULTS GUADALAJARA"
+    + operation:"NET RESULTS MONTERREY"
+    + operation:"NET RESULTS NORTHWEST"
+  ID=60019 tipo=operacion_label label=CONSOLIDATED NET RESULTS ord=390
+    + operation:"NET RESULTS MEXICO"
+    + operation:"NET RESULTS GUADALAJARA"
+    + operation:"NET RESULTS MONTERREY"
+    + operation:"NET RESULTS NORTHWEST"
+  ID=60020 tipo=orden_presentacion label=390.0 ord=390
+    + operation:"NET RESULTS MEXICO"
+    + operation:"NET RESULTS GUADALAJARA"
+    + operation:"NET RESULTS MONTERREY"
+    + operation:"NET RESULTS NORTHWEST"
+  ID=60021 tipo=visible label=1.0 ord=390
+    + operation:"NET RESULTS MEXICO"
+    + operation:"NET RESULTS GUADALAJARA"
+    + operation:"NET RESULTS MONTERREY"
+    + operation:"NET RESULTS NORTHWEST"
+
+--- CDMX CONSOLIDATED entries ---
+  ID=63244 anio=2026 tipo=free-operation label=CONSOLIDATED INCOME ord=33
+    + section:"INCOME"
+    + section:"Guadalajara Income"
+    + section:"Monterrey Income"
+    + section:"Northwest Income"
+  ID=63245 anio=2026 tipo=rowStyle label=highlight-primary ord=33
+    + section:"INCOME"
+    + section:"Guadalajara Income"
+    + section:"Monterrey Income"
+    + section:"Northwest Income"
+  ID=63246 anio=2026 tipo=estilo_fila label=highlight-primary ord=33
+    + section:"INCOME"
+    + section:"Guadalajara Income"
+    + section:"Monterrey Income"
+    + section:"Northwest Income"
+  ID=63324 anio=2026 tipo=free-operation label=CONSOLIDATED EXPENSES ord=48
+    + section:"EXPENSE"
+    - section:"Guadalajara Expense"
+    - section:"Monterrey Expense"
+    - section:"Northwest Expense"
+  ID=63325 anio=2026 tipo=rowStyle label=highlight-primary ord=48
+    + section:"EXPENSE"
+    - section:"Guadalajara Expense"
+    - section:"Monterrey Expense"
+    - section:"Northwest Expense"
+  ID=63326 anio=2026 tipo=estilo_fila label=highlight-primary ord=48
+    + section:"EXPENSE"
+    - section:"Guadalajara Expense"
+    - section:"Monterrey Expense"
+    - section:"Northwest Expense"
+
+--- GUADALAJARA CONSOLIDATED entries ---
+  ID=58590 anio=2026 tipo=sum-row label=CONSOLIDATED INCOME ord=100
+  ID=58603 anio=2026 tipo=sum-row label=CONSOLIDATED EXPENSE ord=240
+    + operation:"CDMX EXPENSE"
+    - operation:"Guadalajara Expense"
+    - operation:"Monterrey Expense"
+    - operation:"Northwest Expense"
+  ID=58604 anio=2026 tipo=sum-row label=CONSOLIDATED EXPENSES ord=240
+    + operation:"CDMX EXPENSE"
+    - operation:"Guadalajara Expense"
+    - operation:"Monterrey Expense"
+    - operation:"Northwest Expense"
+
+--- CDMX layout around ord_pres 40-60 ---
+  ord=30 tipo=sum-row label=income-Northwest Income clase=INCOME_NORTHWEST_INCOME_2_2_2
+  ord=33 tipo=free-operation label=CONSOLIDATED INCOME clase=CONSOLIDATED_INCOME
+  ord=33 tipo=rowStyle label=highlight-primary clase=CONSOLIDATED_INCOME
+  ord=33 tipo=estilo_fila label=highlight-primary clase=CONSOLIDATED_INCOME
+  ord=34 tipo=sum-row label=income-T&IC clase=INCOME_T_IC_2
+  ord=35 tipo=sum-row label=income-Services to Members clase=INCOME_SERVICES_TO_MEMBERS_2
+  ord=36 tipo=sum-row label=expense-Membership clase=EXPENSE_MEMBERSHIP
+  ord=37 tipo=sum-row label=expense-Events clase=EXPENSE_EVENTS
+  ord=38 tipo=sum-row label=expense-Committees clase=EXPENSE_COMMITTEES
+  ord=39 tipo=sum-row label=expense-T&IC clase=EXPENSE_T_IC
+  ord=40 tipo=sum-row label=expense-Services to Members clase=EXPENSE_SERVICES_TO_MEMBERS
+  ord=43 tipo=sum-row label=expense-Gastos Administrativos clase=EXPENSE_GASTOS_ADMINISTRATIVOS
+  ord=44 tipo=sum-row label=expense-Gastos Administrativos clase=EXPENSE_GASTOS_ADMINISTRATIVOS_2
+  ord=45 tipo=sum-row label=expense-Gastos Administrativos clase=EXPENSE_GASTOS_ADMINISTRATIVOS_2_2
+  ord=46 tipo=sum-row label=expense-Gastos Administrativos clase=EXPENSE_GASTOS_ADMINISTRATIVOS_2_2_2
+  ord=48 tipo=free-operation label=CONSOLIDATED EXPENSES clase=CONSOLIDATED_EXPENSES
+  ord=48 tipo=rowStyle label=highlight-primary clase=CONSOLIDATED_EXPENSES
+  ord=48 tipo=estilo_fila label=highlight-primary clase=CONSOLIDATED_EXPENSES
+  ord=61 tipo=sum-row label=expense-Gastos Generales clase=EXPENSE_GASTOS_GENERALES
+  ord=62 tipo=sum-row label=expense-Gastos Generales clase=EXPENSE_GASTOS_GENERALES_2
+  ord=63 tipo=sum-row label=expense-Gastos Generales clase=EXPENSE_GASTOS_GENERALES_2_2
+  ord=64 tipo=sum-row label=expense-Gastos Generales clase=EXPENSE_GASTOS_GENERALES_2_2_2
+
+--- Available years for RESUMEN/EMPRESA01/CDMX ---
+  CIUDAD DE MEXICO - 2026
+  CIUDAD DE MÉXICO - 2026
+  GUADALAJARA - 2026
+  NORESTE - 2026
+  NOROESTE - 2026
