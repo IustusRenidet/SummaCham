@@ -2576,9 +2576,17 @@
     if (!op || !label) return false;
     const target = normalizeOperationMatch(label);
     if (!target) return false;
-    return ROW_LABEL_FIELDS.some(
-      (field) => normalizeOperationMatch(op?.[field]) === target,
+    if (
+      ROW_LABEL_FIELDS.some((field) => normalizeOperationMatch(op?.[field]) === target)
+    ) {
+      return true;
+    }
+    const hasRowAnchor = ROW_LABEL_FIELDS.some((field) =>
+      Boolean((op?.[field] || "").toString().trim()),
     );
+    if (!hasRowAnchor) return false;
+    const seccionKey = normalizeOperationMatch(op?.SECCION || op?.seccion || "");
+    return Boolean(seccionKey && seccionKey === target);
   }
 
   function getOperationParentCandidates(op) {
@@ -2710,6 +2718,35 @@
         field: rowMatch.field,
         operations: rowMatchOps,
       };
+    }
+
+    // Fallback: buscar por SECCION (ancla de la operación) cuando el label de la fila
+    // NO coincide con el label persistido (p.ej. sum-row = "Suma {Sección}").
+    const bySeccion = filterByParent(
+      (state.operaciones || []).filter((op) => {
+        const seccion = (op?.SECCION || op?.seccion || "").toString().trim();
+        if (!seccion) return false;
+        if (normalizeOperationMatch(seccion) !== target) return false;
+        const hasRowAnchor = ROW_LABEL_FIELDS.some((field) =>
+          Boolean((op?.[field] || "").toString().trim()),
+        );
+        if (!hasRowAnchor) return false;
+        if (preferredField && ROW_LABEL_FIELDS.includes(preferredField)) {
+          return Boolean((op?.[preferredField] || "").toString().trim());
+        }
+        return true;
+      }),
+    );
+    if (bySeccion.length) {
+      if (preferredField && ROW_LABEL_FIELDS.includes(preferredField)) {
+        return { field: preferredField, operations: bySeccion };
+      }
+      const first = bySeccion[0];
+      const campoDetectado =
+        ROW_LABEL_FIELDS.find((field) =>
+          Boolean((first?.[field] || "").toString().trim()),
+        ) || "";
+      return { field: campoDetectado, operations: bySeccion };
     }
 
     // Fallback estricto: solo por ID/label de operaciones ligadas a header.
@@ -3968,6 +4005,21 @@
 
       if (row.type === "principal") {
         const sectionName = row.label || "";
+        const sumRowMatch = getRowOperationMatch(sectionName, "sum-row");
+        const hasSumRow = sumRowMatch.operations.length > 0;
+        const sumRowBtnClass = hasSumRow
+          ? "btn-outline-success"
+          : "btn-outline-secondary";
+        const sumRowBtnTitle = hasSumRow
+          ? "Editar fila de suma"
+          : "Crear fila de suma";
+        const sumRowLabel = hasSumRow
+          ? (sumRowMatch.operations[0]?.["sum-row"] || "").toString().trim()
+          : "";
+        const showSumRowLabel =
+          sumRowLabel &&
+          normalizeOperationMatch(sumRowLabel) !==
+            normalizeOperationMatch(sectionName);
         const sectionOpMatch = getRowOperationMatch(
           sectionName,
           "sum-row-sumavarios",
@@ -3986,8 +4038,14 @@
               <div class="d-flex align-items-center">
                 <i class="bi bi-folder2 me-2 text-primary"></i>
                 <strong>${escapeHtml(sectionName || "Sección")}</strong>
+                ${showSumRowLabel ? `<span class="ms-2 text-muted small">${escapeHtml(sumRowLabel)}</span>` : ""}
               </div>
               <div class="list-item-actions">
+                <button class="btn btn-sm ${sumRowBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
+          sectionName,
+        )}', 'sum-row', '')" title="${sumRowBtnTitle}" ${disabledAttr}>
+                  Σ
+                </button>
                 <button class="btn btn-sm ${sectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
           sectionName,
         )}', '${escapeAttr(sectionOpMatch.field || "sum-row-sumavarios")}', '')" title="${sectionOpBtnTitle}" ${disabledAttr}>
@@ -9555,6 +9613,18 @@
     const { name: principal, subsections } = section;
     const canEdit = state.editMode !== false;
     const disabledAttr = canEdit ? "" : "disabled";
+    const sumRowMatch = getRowOperationMatch(principal, "sum-row");
+    const hasSumRow = sumRowMatch.operations.length > 0;
+    const sumRowBtnClass = hasSumRow
+      ? "btn-outline-success"
+      : "btn-outline-secondary";
+    const sumRowBtnTitle = hasSumRow ? "Editar fila de suma" : "Crear fila de suma";
+    const sumRowLabel = hasSumRow
+      ? (sumRowMatch.operations[0]?.["sum-row"] || "").toString().trim()
+      : "";
+    const showSumRowLabel =
+      sumRowLabel &&
+      normalizeOperationMatch(sumRowLabel) !== normalizeOperationMatch(principal);
     const sectionOpMatch = getRowOperationMatch(
       principal,
       "sum-row-sumavarios",
@@ -9588,6 +9658,7 @@
             <i class="bi bi-chevron-down section-toggle"></i>
             <i class="bi bi-folder2 text-primary"></i>
             <span>${escapeHtml(principal)}</span>
+            ${showSumRowLabel ? `<span class="text-muted small ms-2">${escapeHtml(sumRowLabel)}</span>` : ""}
             <span class="badge bg-secondary">${accountCount} cuentas</span>
           </div>
           <div class="section-actions">
@@ -9600,6 +9671,11 @@
       principal,
     )}', 1)" title="Bajar" ${disabledAttr}>
               <i class="bi bi-arrow-down"></i>
+            </button>
+            <button class="btn btn-sm ${sumRowBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
+      principal,
+    )}', 'sum-row', '')" title="${sumRowBtnTitle}" ${disabledAttr}>
+              Σ
             </button>
             <button class="btn btn-sm ${sectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
       principal,

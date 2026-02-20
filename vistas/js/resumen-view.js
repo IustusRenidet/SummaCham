@@ -4292,15 +4292,23 @@
       // Fixes sign inversion: engine values from calcularTotales may carry wrong sign when
       // factor*actual is negative; subsection totals from Pass 1 are always correct (pure sum of accounts).
       // Pass 3 will overwrite any principal that has an explicit formula string in the DB.
+      // NOTE: Uses two sub-passes so that subsections appearing BEFORE their parent principal
+      // in the sorted layout (e.g. Membership order=5, INCOME order=10) are still accumulated.
       {
-        const principalAggMap = new Map(); // label -> { block, acc }
+        const principalAggMap = new Map(); // label -> { block, acc, hasSubs }
+        // Sub-pass A: register all principals first
         layoutArr.forEach(block => {
           const tipo = (block.type || block.tipo || "").toLowerCase();
           const isPrincipal = tipo === 'principal' || tipo === 'sum-row-sumavarios' || tipo.includes('principal') || tipo === 'section' || tipo === 'title-row';
-          const isSecundaria = tipo === 'secundaria' || tipo === 'sum-row' || tipo.includes('secundaria') || tipo === 'subsection';
           if (isPrincipal) {
             principalAggMap.set(block.label, { block, acc: totalesCero(), hasSubs: false });
-          } else if (isSecundaria && block.parentSection) {
+          }
+        });
+        // Sub-pass B: accumulate subsection totals into their parent principal
+        layoutArr.forEach(block => {
+          const tipo = (block.type || block.tipo || "").toLowerCase();
+          const isSecundaria = tipo === 'secundaria' || tipo === 'sum-row' || tipo.includes('secundaria') || tipo === 'subsection';
+          if (isSecundaria && block.parentSection) {
             const entry = principalAggMap.get(block.parentSection);
             if (entry) {
               entry.hasSubs = true;

@@ -100,6 +100,14 @@ router.get('/summary', async (req, res) => {
   }
 });
 
+// Mapa de empresas comparativas → empresa principal para verificar permisos
+const COMPARATIVA_A_PRINCIPAL = {
+  empresa9: 'empresa1',
+  empresa10: 'empresa2',
+  empresa11: 'empresa3',
+  empresa12: 'empresa4',
+};
+
 router.get('/resumen', async (req, res) => {
   const { value, error } = esquemaConsulta.validate(req.query, { abortEarly: false });
   if (error) {
@@ -109,12 +117,14 @@ router.get('/resumen', async (req, res) => {
   if (!empresa) {
     return res.status(404).json({ mensaje: 'Empresa no encontrada.' });
   }
-  if (!req.esAdmin && !tienePermisoEmpresa(req.mapaPermisos, value.empresaId)) {
+  // Para empresas comparativas (9-12), verificar permisos de la empresa principal (1-4)
+  const empresaIdPermisos = COMPARATIVA_A_PRINCIPAL[value.empresaId.toLowerCase()] || value.empresaId;
+  if (!req.esAdmin && !tienePermisoEmpresa(req.mapaPermisos, empresaIdPermisos)) {
     return res.status(403).json({ mensaje: 'No cuentas con permisos para esta empresa.' });
   }
   if (
     !req.esAdmin &&
-    !tienePermisoModulo(req.mapaPermisos, value.empresaId, 'RESUMEN', null, {
+    !tienePermisoModulo(req.mapaPermisos, empresaIdPermisos, 'RESUMEN', null, {
       ignorarUniversales: true
     })
   ) {

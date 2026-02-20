@@ -21,6 +21,14 @@ const NORMALIZAR_CLAVE = (valor = "") =>
     .replace(/[\u0300-\u036f]/g, "");
 const NORMALIZAR_CAPITULO = (valor = "") => NORMALIZAR_CLAVE(valor);
 
+// Empresas comparativas comparten el layout de su empresa principal.
+const COMPARATIVA_A_PRINCIPAL_LAYOUT = {
+  empresa9:  "empresa1",
+  empresa10: "empresa2",
+  empresa11: "empresa3",
+  empresa12: "empresa4",
+};
+
 /**
  * Cargar definiciones desde SQLite
  */
@@ -29,12 +37,33 @@ function cargarDefinicionesModulo(
   empresaId = "EMPRESA01",
   anio = new Date().getFullYear(),
 ) {
+  // Si es una empresa comparativa y no existen capítulos propios, usar el layout
+  // de la empresa principal (empresa11 → empresa3, etc.)
+  const empresaIdFallback =
+    COMPARATIVA_A_PRINCIPAL_LAYOUT[empresaId?.toLowerCase()] ?? null;
+
+  let capitulosIniciales;
   try {
-    const capitulos = layoutService.obtenerCapitulos({
+    capitulosIniciales = layoutService.obtenerCapitulos({
       empresaId,
       modulo,
       anio,
     });
+  } catch (error) {
+    console.error(
+      `[planeacionReportesEngine] No se pudo cargar layout ${modulo} / ${empresaId} / ${anio} desde SQLite:`,
+      error && error.message ? error.message : error,
+    );
+    capitulosIniciales = null;
+  }
+
+  // Sin capítulos propios y hay un fallback disponible → delegar al layout de la empresa principal
+  if ((!capitulosIniciales || !capitulosIniciales.length) && empresaIdFallback) {
+    return cargarDefinicionesModulo(modulo, empresaIdFallback, anio);
+  }
+
+  try {
+    const capitulos = capitulosIniciales;
 
     if (capitulos && capitulos.length > 0) {
       const definiciones = {};
@@ -2032,14 +2061,32 @@ const construirReporteResumen = (
     mapRefSecciones.clear();
     principalList.forEach((principal) => {
       if (!principal?.label) return;
-      const principalTotals = {
-        actualMonth: principal.actualMonth,
-        planMonth: principal.planMonth,
-        prevMonth: principal.prevMonth,
-        actualYTD: principal.actualYTD,
-        planYTD: principal.planYTD,
-        prevYTD: principal.prevYTD,
-      };
+      // En modoFormulaEstricto, los principales arrancan en 0 salvo que una operación
+      // los haya actualizado explícitamente (__manualFormula=true). Para la evaluación
+      // de fórmulas libres (ej. "OPERATING RESULTS = INCOME - EXPENSE"), necesitamos
+      // que mapSecciones tenga el auto-sum de hijos para los principales sin fórmula,
+      // de lo contrario la referencia a "INCOME" daría 0 y el resultado sería incorrecto.
+      const principalTotals = (modoFormulaEstricto && !principal.__manualFormula)
+        ? (principal.children || []).reduce(
+            (acc, child) => {
+              acc.actualMonth += Number(child.totalActualMonth ?? 0);
+              acc.planMonth   += Number(child.totalPlanMonth   ?? 0);
+              acc.prevMonth   += Number(child.totalPrevMonth   ?? 0);
+              acc.actualYTD   += Number(child.totalActualYTD   ?? 0);
+              acc.planYTD     += Number(child.totalPlanYTD     ?? 0);
+              acc.prevYTD     += Number(child.totalPrevYTD     ?? 0);
+              return acc;
+            },
+            crearAcumulador()
+          )
+        : {
+            actualMonth: principal.actualMonth,
+            planMonth:   principal.planMonth,
+            prevMonth:   principal.prevMonth,
+            actualYTD:   principal.actualYTD,
+            planYTD:     principal.planYTD,
+            prevYTD:     principal.prevYTD,
+          };
       mapSecciones.set(normalizarTexto(principal.label), principalTotals);
       const principalRefId = construirRefIdSeccion(principal.label);
       if (principalRefId) {
@@ -3225,14 +3272,35 @@ const construirReporteResumen = (
           : 0,
         orderIndex: principal.ordenIndex ?? 0,
         manualFormula: Boolean(principal.__manualFormula),
-        totals: {
-          actualMonth: principal.actualMonth,
-          planMonth: principal.planMonth,
-          prevMonth: principal.prevMonth,
-          actualYTD: principal.actualYTD,
-          planYTD: principal.planYTD,
-          prevYTD: principal.prevYTD,
-        },
+        totals: (() => {
+          // En modoFormulaEstricto los principales arrancan en crearAcumulador() (todo cero)
+          // a menos que una operación de Phase 1 los haya actualizado (__manualFormula=true).
+          // Para que el layout plano tenga los valores correctos sin depender del orden
+          // en que el frontend recorra el array (secundarias pueden aparecer antes del principal),
+          // calculamos aquí el auto-sum de hijos cuando no hay fórmula explícita.
+          if (modoFormulaEstricto && !principal.__manualFormula) {
+            return (principal.children || []).reduce(
+              (acc, child) => {
+                acc.actualMonth += Number(child.totalActualMonth ?? 0);
+                acc.planMonth   += Number(child.totalPlanMonth   ?? 0);
+                acc.prevMonth   += Number(child.totalPrevMonth   ?? 0);
+                acc.actualYTD   += Number(child.totalActualYTD   ?? 0);
+                acc.planYTD     += Number(child.totalPlanYTD     ?? 0);
+                acc.prevYTD     += Number(child.totalPrevYTD     ?? 0);
+                return acc;
+              },
+              crearAcumulador(),
+            );
+          }
+          return {
+            actualMonth: principal.actualMonth,
+            planMonth:   principal.planMonth,
+            prevMonth:   principal.prevMonth,
+            actualYTD:   principal.actualYTD,
+            planYTD:     principal.planYTD,
+            prevYTD:     principal.prevYTD,
+          };
+        })(),
         children: principal.children,
         consolidadoLabel: principal.consolidadoLabel,
         operativoLabel: principal.operativoLabel,
@@ -3493,7 +3561,11 @@ const construirReporteResumen = (
       label,
       order: obtenerOrden(op, idx),
       orderIndex: idx,
-      manualFormula: hasManualFormula(op),
+      // Siempre marcar como manualFormula=true: el backend ya calculó los totales
+      // correctamente (incluyendo prevMonth/prevYTD para comparación de años).
+      // Esto evita que el frontend (recalcularConsolidados) sobreescriba los valores
+      // correctos del backend con cálculos hardcodeados de labels fijos.
+      manualFormula: true,
       totals,
       rowStyle,
       estilo_fila: rowStyle || op?.estilo_fila,

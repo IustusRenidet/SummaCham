@@ -3291,7 +3291,7 @@
       .replace(/^,\s*/, "")
       .replace(/,\s*$/, "");
 
-  const limpiarEtiquetaNomina = (texto = "") => {
+  const limpiarEtiquetaNomina = (texto = "", fallback = "Nomina") => {
     const base = (texto || "").toString();
     const partes = base
       .split(",")
@@ -3306,7 +3306,7 @@
         ? filtradas.join(", ")
         : base.replace(/BONO\s+ANUAL\s+VPE/gi, "").replace(/CORPORATIVO/gi, "");
     const normalizado = limpiarSeparadoresNomina(reconstruido);
-    return normalizado || "Nomina";
+    return normalizado || fallback;
   };
 
   const normalizarRegistrosNomina = (registros = []) =>
@@ -3321,19 +3321,18 @@
       };
     });
 
-  const limpiarSumasNomina = (sumas, seccionLimpia) => {
+  const limpiarSumasNomina = (sumas) => {
     if (!sumas) return sumas;
-    const limpiarCampo = (valor, fallback = "") => {
+    const limpiarCampo = (valor) => {
       if (valor == null) return valor;
-      const limpio = limpiarEtiquetaNomina(valor);
-      return limpiarSeparadoresNomina(limpio || fallback);
+      const base = (valor || "").toString();
+      if (!base.trim()) return "";
+      const limpio = limpiarEtiquetaNomina(base, "");
+      return limpiarSeparadoresNomina(limpio);
     };
     const copia = { ...sumas };
     if ("sumRow" in copia) {
-      copia.sumRow = limpiarCampo(
-        copia.sumRow,
-        seccionLimpia ? `Suma ${seccionLimpia}` : ""
-      );
+      copia.sumRow = limpiarCampo(copia.sumRow);
     }
     if ("sumRowSumavarios" in copia) {
       copia.sumRowSumavarios = limpiarCampo(copia.sumRowSumavarios);
@@ -3695,7 +3694,7 @@
         }
       }
       if (esModuloNomina) {
-        sumas = limpiarSumasNomina(sumas, seccion);
+        sumas = limpiarSumasNomina(sumas);
       }
       const sumRowCustom = (sumas?.sumRow || "").trim();
       let etiquetaSumRow = permitirSumas ? sumRowCustom : "";
@@ -4777,7 +4776,7 @@
         "";
       return {
         titulo,
-        sumRowLabel: sumRowLabel || (titulo ? `Suma ${titulo}` : ""),
+        sumRowLabel: sumRowLabel || "",
         sumRowSumavarios: meta.sumRowSumavariosTexto || "",
         sumRowSumavarios2: meta.sumRowSumavarios2Texto || "",
         sumRowSumavariosLabel: meta.sumRowSumavariosLabel || "",
@@ -4950,8 +4949,7 @@
       }
 
       const sumRowLabel =
-        (seccion.sumRowLabel || seccion.sumRow || "").toString().trim() ||
-        (nombreSeccion ? `Suma ${nombreSeccion}` : "");
+        (seccion.sumRowLabel || seccion.sumRow || "").toString().trim();
       const sumRowSumavariosLabel =
         (seccion.sumRowSumavariosLabel || seccion.sumRowSumavarios || "")
           .toString()
@@ -5431,7 +5429,7 @@
     const textoSumRow =
       sumLabel && typeof sumLabel === "string" && sumLabel.trim()
         ? sumLabel.trim()
-        : `Suma ${titulo}`;
+        : "";
     const filaSumRow = agregarFilaResumen({
       texto: textoSumRow,
       clase: "sum-row",
