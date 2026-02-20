@@ -243,7 +243,10 @@
           `${API_BASE}/reportes/operativo-excel-native?${params.toString()}`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/octet-stream" },
+            headers: {
+              "Content-Type": "application/octet-stream",
+              ...(window.Sesion?.headersAutenticacion?.() || {}),
+            },
             credentials: "include",
             body: binaryBody,
           }
@@ -356,7 +359,10 @@
         this._showToast("Generando Excel con graficas...");
         const response = await fetch(`${API_BASE}/reportes/operativo-excel`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(window.Sesion?.headersAutenticacion?.() || {}),
+          },
           credentials: "include",
           body: JSON.stringify(payload),
         });

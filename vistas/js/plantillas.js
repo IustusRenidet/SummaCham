@@ -1992,11 +1992,6 @@
       // normalizePresentationOrders(); // No recalcular órdenes
       state.selectedElement = null;
 
-      // DEBUG TEMPORAL
-      console.error("[DEBUG-LOADLAYOUT] ANTES DE RENDER: modulo=", state.modulo, "cuentas=", state.cuentas.length, "operaciones=", state.operaciones.length, "isPiloto=", isModuloPiloto());
-      console.error("[DEBUG-LOADLAYOUT] state.layout keys:", state.layout ? Object.keys(state.layout) : null);
-      console.error("[DEBUG-LOADLAYOUT] state.layout.operaciones:", Array.isArray(state.layout?.operaciones) ? state.layout.operaciones.length : state.layout?.operaciones);
-
       renderLayout();
       updateStats();
       updateHeaderLabels();
@@ -8242,8 +8237,6 @@
   }
 
   function renderEditableLayout() {
-    // DEBUG TEMPORAL
-    console.error("[DEBUG-RENDER] renderEditableLayout: cuentas=", state.cuentas.length, "operaciones=", state.operaciones.length, "isPiloto=", isModuloPiloto());
     if (!state.cuentas.length && !state.operaciones.length) {
       return `
         <div class="empty-state">

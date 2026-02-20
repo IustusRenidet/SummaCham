@@ -110,6 +110,18 @@ function Convert-HexToOle {
   return [System.Drawing.ColorTranslator]::ToOle([System.Drawing.Color]::FromArgb($r, $g, $b))
 }
 
+function Get-ColumnLetter {
+  param([int]$ColumnNumber)
+  $dividend = $ColumnNumber
+  $columnName = ""
+  while ($dividend -gt 0) {
+    $modulo = ($dividend - 1) % 26
+    $columnName = [char](65 + $modulo) + $columnName
+    $dividend = [math]::Floor(($dividend - $modulo) / 26)
+  }
+  return $columnName
+}
+
 function Pick-SeriesColor {
   param(
     [string]$Name,
@@ -203,29 +215,44 @@ try {
         for ($c = 2; $c -le $lastCol; $c++) {
           $seriesNames += (Invoke-ComRetry { [string]$wsData.Cells.Item($headerRow, $c).Text }).Trim()
         }
-        $range = Invoke-ComRetry {
-          $wsData.Range(
-            $wsData.Cells.Item($headerRow, 1),
-            $wsData.Cells.Item($dataLast, $lastCol)
-          )
-        }
+
+        $rangeLabels = Invoke-ComRetry { $wsData.Range("A$($headerRow + 1):A$($dataLast)") }
+
         $chartObj = Invoke-ComRetry { $wsCharts.ChartObjects().Add(20, $chartTop, 720, 360) }
         Invoke-ComRetry { $chartObj.Chart.ChartType = 51 } # xlColumnClustered
-        Invoke-ComRetry { $chartObj.Chart.SetSourceData($range) }
+        try {
+          while ((Invoke-ComRetry { $chartObj.Chart.SeriesCollection().Count }) -gt 0) {
+            Invoke-ComRetry { $chartObj.Chart.SeriesCollection(1).Delete() }
+          }
+        } catch {}
+
         Invoke-ComRetry { $chartObj.Chart.HasTitle = $true }
         Invoke-ComRetry { $chartObj.Chart.ChartTitle.Text = $title }
-        $seriesCount = Invoke-ComRetry { $chartObj.Chart.SeriesCollection().Count }
-        for ($i = 1; $i -le $seriesCount; $i++) {
-          $series = Invoke-ComRetry { $chartObj.Chart.SeriesCollection($i) }
-          $name = if ($seriesNames.Count -ge $i) { $seriesNames[$i - 1] } else { Invoke-ComRetry { [string]$series.Name } }
-          $hex = Pick-SeriesColor $name ($i - 1)
+
+        for ($c = 2; $c -le $lastCol; $c++) {
+          $colLetter = Get-ColumnLetter $c
+          $rangeValues = Invoke-ComRetry { $wsData.Range("$colLetter$($headerRow + 1):$colLetter$($dataLast)") }
+
+          $series = Invoke-ComRetry { $chartObj.Chart.SeriesCollection().NewSeries() }
+          Invoke-ComRetry { $series.Values = $rangeValues }
+          Invoke-ComRetry { $series.XValues = $rangeLabels }
+
+          $name = if ($seriesNames.Count -ge ($c - 1)) { $seriesNames[$c - 2] } else { "" }
+          if (-not $name) {
+            $name = (Invoke-ComRetry { [string]$wsData.Cells.Item($headerRow, $c).Text }).Trim()
+          }
+          if ($name) {
+            Invoke-ComRetry { $series.Name = $name }
+          }
+
+          $hex = Pick-SeriesColor $name ($c - 2)
           $color = Convert-HexToOle $hex
           if ($color -ne $null) {
-            Invoke-ComRetry { $series.Format.Fill.Visible = $true }
-            Invoke-ComRetry { $series.Format.Fill.Solid() }
-            Invoke-ComRetry { $series.Format.Fill.ForeColor.RGB = $color }
-            Invoke-ComRetry { $series.Format.Line.Visible = $true }
-            Invoke-ComRetry { $series.Format.Line.ForeColor.RGB = $color }
+            try { Invoke-ComRetry { $series.Format.Fill.Visible = $true } } catch {}
+            try { Invoke-ComRetry { $series.Format.Fill.Solid() } } catch {}
+            try { Invoke-ComRetry { $series.Format.Fill.ForeColor.RGB = $color } } catch {}
+            try { Invoke-ComRetry { $series.Format.Line.Visible = $true } } catch {}
+            try { Invoke-ComRetry { $series.Format.Line.ForeColor.RGB = $color } } catch {}
             try { Invoke-ComRetry { $series.Interior.Color = $color } } catch {}
           }
         }
@@ -250,6 +277,16 @@ try {
       $wsTable = Invoke-ComRetry { $wb.Worksheets.Item(1) }
     } catch {
       $wsTable = $null
+    }
+  }
+
+  if ($wsTable) {
+    try {
+      $usedRange = Invoke-ComRetry { $wsTable.UsedRange }
+      if ($usedRange) {
+        Invoke-ComRetry { $usedRange.Columns.AutoFit() }
+      }
+    } catch {
     }
   }
 

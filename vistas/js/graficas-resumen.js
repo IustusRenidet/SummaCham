@@ -4112,7 +4112,10 @@
           `${base}/api/reportes/resumen-excel-native?${params.toString()}`,
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/octet-stream' },
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              ...(window.Sesion?.headersAutenticacion?.() || {}),
+            },
             credentials: 'include',
             body: binaryBody,
           }

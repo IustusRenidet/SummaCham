@@ -181,6 +181,7 @@ router.post('/operativo-excel', async (req, res) => {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Length", buffer.length);
     res.send(buffer);
   } catch (errorExcel) {
     console.error("Error generando Excel operativo:", errorExcel);
@@ -221,6 +222,7 @@ router.post('/operativo-excel-native', rawExcelParser, async (req, res) => {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
     res.send(buffer);
   } catch (errorExcel) {
     console.error('Error generando Excel operativo (native):', errorExcel);
@@ -259,6 +261,7 @@ router.post('/resumen-excel-native', rawExcelParser, async (req, res) => {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
     res.send(buffer);
   } catch (errorExcel) {
     console.error('Error generando Excel resumen (native):', errorExcel);

@@ -673,6 +673,211 @@
     "resumenChartCardIngresoNacional"
   );
 
+  const exportProgressUI = (() => {
+    const STYLE_ID = "resumen-export-progress-style";
+    const OVERLAY_ID = "resumen-export-progress-overlay";
+
+    let overlay = null;
+    let titleEl = null;
+    let labelEl = null;
+    let percentEl = null;
+    let barEl = null;
+    let startedAt = null;
+    let timer = null;
+
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+    const formatBytes = (bytes) => {
+      const size = Number(bytes);
+      if (!Number.isFinite(size) || size <= 0) return "0 B";
+      const units = ["B", "KB", "MB", "GB"];
+      let value = size;
+      let unitIndex = 0;
+      while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex += 1;
+      }
+      return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+    };
+
+    const formatElapsed = (ms) => {
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+      const seconds = String(totalSeconds % 60).padStart(2, "0");
+      return `${minutes}:${seconds}`;
+    };
+
+    const ensure = () => {
+      if (overlay && barEl && labelEl && percentEl && titleEl) return;
+
+      if (!document.getElementById(STYLE_ID)) {
+        const style = document.createElement("style");
+        style.id = STYLE_ID;
+        style.textContent = `
+          #${OVERLAY_ID} {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            z-index: 6000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+          }
+          #${OVERLAY_ID}[hidden] { display: none !important; }
+          #${OVERLAY_ID} .export-progress-card {
+            width: min(520px, 100%);
+            background: #ffffff;
+            border: 1px solid rgba(47, 84, 150, 0.18);
+            border-radius: 16px;
+            box-shadow: 0 18px 48px rgba(10, 24, 54, 0.28);
+            padding: 16px 18px;
+          }
+          #${OVERLAY_ID} .export-progress-title {
+            font-weight: 800;
+            color: #1f3b6b;
+            margin: 0;
+          }
+          #${OVERLAY_ID} .export-progress-meta {
+            margin-top: 4px;
+            font-size: 0.9rem;
+            color: rgba(47, 84, 150, 0.78);
+          }
+          #${OVERLAY_ID} .export-progress-footer {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 0.85rem;
+            color: rgba(47, 84, 150, 0.78);
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      overlay = document.getElementById(OVERLAY_ID);
+      if (!overlay) {
+        overlay = document.createElement("div");
+        overlay.id = OVERLAY_ID;
+        overlay.hidden = true;
+        overlay.innerHTML = `
+          <div class="export-progress-card">
+            <div class="d-flex align-items-center gap-2">
+              <div class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></div>
+              <p class="export-progress-title" id="${OVERLAY_ID}-title">Exportando…</p>
+            </div>
+            <div class="export-progress-meta" id="${OVERLAY_ID}-label">Preparando…</div>
+            <div class="progress mt-3" style="height: 10px;">
+              <div class="progress-bar progress-bar-striped progress-bar-animated" id="${OVERLAY_ID}-bar" role="progressbar" style="width: 100%"></div>
+            </div>
+            <div class="export-progress-footer">
+              <span id="${OVERLAY_ID}-elapsed">00:00</span>
+              <span id="${OVERLAY_ID}-percent"></span>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+      }
+
+      titleEl = overlay.querySelector(`#${OVERLAY_ID}-title`);
+      labelEl = overlay.querySelector(`#${OVERLAY_ID}-label`);
+      percentEl = overlay.querySelector(`#${OVERLAY_ID}-percent`);
+      barEl = overlay.querySelector(`#${OVERLAY_ID}-bar`);
+    };
+
+    const startTimer = () => {
+      const elapsedEl = overlay?.querySelector(`#${OVERLAY_ID}-elapsed`);
+      if (!elapsedEl || !startedAt) return;
+      if (timer) window.clearInterval(timer);
+      timer = window.setInterval(() => {
+        elapsedEl.textContent = formatElapsed(Date.now() - startedAt);
+      }, 500);
+    };
+
+    const stopTimer = () => {
+      if (timer) window.clearInterval(timer);
+      timer = null;
+    };
+
+    const show = (opts = {}) => {
+      ensure();
+      startedAt = Date.now();
+      overlay.hidden = false;
+      update(opts);
+      startTimer();
+    };
+
+    const update = (opts = {}) => {
+      ensure();
+      if (typeof opts.title === "string" && opts.title.trim()) {
+        titleEl.textContent = opts.title.trim();
+      }
+      if (typeof opts.label === "string") {
+        labelEl.textContent = opts.label;
+      }
+
+      const indeterminate = opts.indeterminate !== false;
+      if (indeterminate) {
+        barEl.classList.add("progress-bar-striped", "progress-bar-animated");
+        barEl.style.width = "100%";
+        percentEl.textContent = "";
+        return;
+      }
+
+      barEl.classList.remove("progress-bar-animated");
+      const percent = clamp(Number(opts.percent) || 0, 0, 100);
+      barEl.style.width = `${percent}%`;
+      percentEl.textContent =
+        typeof opts.percentLabel === "string"
+          ? opts.percentLabel
+          : `${Math.round(percent)}%`;
+    };
+
+    const hide = () => {
+      if (!overlay) return;
+      overlay.hidden = true;
+      startedAt = null;
+      stopTimer();
+    };
+
+    return {
+      show,
+      update,
+      hide,
+      formatBytes,
+    };
+  })();
+
+  const leerBlobConProgreso = async (response, onProgress) => {
+    const contentType =
+      response.headers.get("content-type") || "application/octet-stream";
+    const totalRaw = response.headers.get("content-length");
+    const total = totalRaw ? Number(totalRaw) : 0;
+
+    if (!response.body || typeof response.body.getReader !== "function") {
+      const blob = await response.blob();
+      if (typeof onProgress === "function") {
+        onProgress({ loaded: blob.size || 0, total: blob.size || total || 0 });
+      }
+      return blob;
+    }
+
+    const reader = response.body.getReader();
+    const chunks = [];
+    let loaded = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      loaded += value.byteLength || value.length || 0;
+      if (typeof onProgress === "function") {
+        onProgress({ loaded, total: Number.isFinite(total) ? total : 0 });
+      }
+    }
+    return new Blob(chunks, { type: contentType });
+  };
+
   const manejarSesionExpirada = (resp) => {
     if (resp?.status === 401) {
       // Usar Sesion.cerrar() que maneja correctamente la redirección desde iframes
@@ -3734,19 +3939,37 @@
     });
 
     // Helper to get formula string from block
+    // Nota: `manualFormula` suele ser boolean (flag), no string.
     const getFormulaString = (block) => {
-      if (block.formula || block.Formula || block.manualFormula) {
-        return block.formula || block.Formula || block.manualFormula;
+      const rawDirect =
+        block && typeof block === "object"
+          ? block.formula ?? block.Formula ?? null
+          : null;
+      if (typeof rawDirect === "string" && rawDirect.trim()) {
+        return rawDirect.trim();
+      }
+      const rawManual = block?.manualFormula;
+      if (typeof rawManual === "string" && rawManual.trim()) {
+        return rawManual.trim();
       }
       // If no direct formula, try to build from formula_terms
-      if (Array.isArray(block.formula_terms) && block.formula_terms.length) {
-        return block.formula_terms.map(term => {
-          const op = term.operator || '+';
-          const val = term.value || '';
-          return op === '+' ? val : `${op}${val}`;
-        }).join(' ').replace(/^\+/, '').trim();
+      if (Array.isArray(block?.formula_terms) && block.formula_terms.length) {
+        return block.formula_terms
+          .map((term) => {
+            if (!term || typeof term !== "object") return "";
+            const opRaw = term.operator ?? term.op ?? "+";
+            const op = (opRaw || "+").toString().trim() || "+";
+            const valRaw = term.value ?? term.ref ?? term.label ?? "";
+            const val = (valRaw || "").toString().trim();
+            if (!val) return "";
+            return op === "+" ? val : `${op}${val}`;
+          })
+          .filter(Boolean)
+          .join(" ")
+          .replace(/^\+/, "")
+          .trim();
       }
-      return '';
+      return "";
     };
 
     // --- Formula Evaluation Helper ---
@@ -3953,23 +4176,9 @@
       let principalActual = null;
       let acumulado = totalesCero();
       let principalManual = false;
-      const applySign = (valor, signo = 1) =>
-        Number.isFinite(signo) ? signo : 1;
-
-      // FIRST PASS: Aggregate Accounts into Subsections (Secundarias)
-      // This is the ONLY automatic aggregation allowed (Accounts -> Subsections) because that's fundamental.
-      // But Subsections -> Sections must be explicit via formula or manual logic.
-      let currentSecundariaForAgg = null;
-      let secundariaAccumulated = totalesCero();
-
-      // Helper to close current secundaria aggregation
-      const closeSecundariaAgg = () => {
-        if (currentSecundariaForAgg) {
-          // Only update totals if not already calculated/manual
-          if (!currentSecundariaForAgg.manualFormula && !currentSecundariaForAgg.Formula) {
-            currentSecundariaForAgg.totals = { ...secundariaAccumulated };
-          }
-        }
+      const applySign = (valor, fallback = 1) => {
+        const numero = Number(valor);
+        return Number.isFinite(numero) ? numero : fallback;
       };
 
 
@@ -3988,38 +4197,57 @@
         dest.prevYTD += toNumber(src.prevYTD);
       };
 
-      layoutArr.forEach(block => {
-        const tipoKey = block.type || block.tipo || "";
-        const tipo = tipoKey.toLowerCase();
-
-        // Map synonyms
-        const isPrincipal = tipo === 'principal' || tipo === 'sum-row-sumavarios' || tipo.includes('principal') || tipo === 'section' || tipo === 'title-row';
-        const isSecundaria = tipo === 'secundaria' || tipo === 'sum-row' || tipo.includes('secundaria') || tipo === 'subsection';
-        const isCuenta = tipo === 'cuenta' || tipo === 'account';
-
-        if (isPrincipal) {
-          closeSecundariaAgg();
-          currentSecundariaForAgg = null;
-        } else if (isSecundaria) {
-          closeSecundariaAgg();
-          currentSecundariaForAgg = block;
-          secundariaAccumulated = totalesCero();
-        } else if (isCuenta) {
-          if (currentSecundariaForAgg) {
-            const t = block.totals || {};
-            const sign = applySign(block.sign, 1);
-            sumMetricsLocal(secundariaAccumulated, {
-              actualMonth: toNumber(t.actualMonth) * sign,
-              planMonth: toNumber(t.planMonth) * sign,
-              prevMonth: toNumber(t.prevMonth) * sign,
-              actualYTD: toNumber(t.actualYTD) * sign,
-              planYTD: toNumber(t.planYTD) * sign,
-              prevYTD: toNumber(t.prevYTD) * sign
-            });
-          }
+      // FIRST PASS: Aggregate Accounts into Subsections (Secundarias)
+      // IMPORTANT: Resumen puede venir en "orden manual" (layout global), donde las cuentas
+      // no necesariamente están contiguas debajo de su header. Por eso agregamos por metadata
+      // (parentSection/parentSubsection) y no por el orden lineal del array.
+      const buildSecKey = (parentSection = "", subsectionLabel = "") => {
+        const parentKey = normalizarLabel(parentSection);
+        const subKey = normalizarLabel(subsectionLabel);
+        return parentKey && subKey ? `${parentKey}::${subKey}` : "";
+      };
+      const aggBySecKey = new Map(); // key -> { blocks: [secundariaBlocks], acc }
+      layoutArr.forEach((block) => {
+        const tipo = (block.type || block.tipo || "").toLowerCase();
+        const isSecundaria =
+          tipo === "secundaria" ||
+          tipo === "sum-row" ||
+          tipo.includes("secundaria") ||
+          tipo === "subsection";
+        if (!isSecundaria) return;
+        const key = buildSecKey(block.parentSection || "", block.label || "");
+        if (!key) return;
+        const existing = aggBySecKey.get(key);
+        if (existing) {
+          existing.blocks.push(block);
+          return;
         }
+        aggBySecKey.set(key, { blocks: [block], acc: totalesCero() });
       });
-      closeSecundariaAgg(); // Close last one
+      layoutArr.forEach((block) => {
+        const tipo = (block.type || block.tipo || "").toLowerCase();
+        const isCuenta = tipo === "cuenta" || tipo === "account";
+        if (!isCuenta) return;
+        const key = buildSecKey(block.parentSection || "", block.parentSubsection || "");
+        if (!key) return;
+        const entry = aggBySecKey.get(key);
+        if (!entry) return;
+        const t = block.totals || {};
+        const sign = applySign(block.sign, 1);
+        sumMetricsLocal(entry.acc, {
+          actualMonth: toNumber(t.actualMonth) * sign,
+          planMonth: toNumber(t.planMonth) * sign,
+          prevMonth: toNumber(t.prevMonth) * sign,
+          actualYTD: toNumber(t.actualYTD) * sign,
+          planYTD: toNumber(t.planYTD) * sign,
+          prevYTD: toNumber(t.prevYTD) * sign,
+        });
+      });
+      aggBySecKey.forEach(({ blocks, acc }) => {
+        blocks.forEach((secBlock) => {
+          secBlock.totals = { ...acc };
+        });
+      });
 
 
       // PASS 2: SUBSECTIONS -> PRINCIPALS (AUTO-SUM)
@@ -6046,19 +6274,32 @@
     const mes = leerMesSeleccionado();
     const nombreEmpresa = obtenerEtiquetaEmpresa(empresaActual?.id);
 
-    if (typeof ExcelJS !== "undefined") {
-      await exportarResumenConGraficas(nombreEmpresa, anio, mes);
-    } else {
+    if (exportXlsxBtn) exportXlsxBtn.disabled = true;
+    try {
+      if (typeof ExcelJS !== "undefined") {
+        await exportarResumenConGraficas(nombreEmpresa, anio, mes);
+        return;
+      }
+
+      exportProgressUI.show({
+        title: "Exportando Excel…",
+        label: "Generando archivo…",
+        indeterminate: true,
+      });
       ExportUtils.exportarExcel({
         tabla: selector,
         nombreArchivo: `RESUMEN_${nombreEmpresa}`,
         nombreHoja: "Resumen",
         onSuccess: () => {
+          exportProgressUI.hide();
           if (typeof showToast === "function") {
             showToast("Resumen exportado correctamente.");
           }
         },
+        onError: () => exportProgressUI.hide(),
       });
+    } finally {
+      if (exportXlsxBtn) exportXlsxBtn.disabled = false;
     }
   };
 
@@ -6067,6 +6308,12 @@
     let fallbackName = "";
     let workbook = null;
     try {
+      exportProgressUI.show({
+        title: "Exportando Excel…",
+        label: "Construyendo archivo base…",
+        indeterminate: true,
+      });
+
       workbook = new ExcelJS.Workbook();
       workbook.creator = "SummaCham";
       workbook.created = new Date();
@@ -6277,6 +6524,10 @@
       }
 
       // Obtener datos de gráficas para renderizado programático
+      exportProgressUI.update({
+        label: "Preparando datos de gráficas…",
+        indeterminate: true,
+      });
       const graficaData = await obtenerGraficasExportacion({
         empresaId: empresaActual?.id,
         anio,
@@ -6329,6 +6580,10 @@
         });
       }
 
+      exportProgressUI.update({
+        label: "Serializando Excel… (puede tardar)",
+        indeterminate: true,
+      });
       const buffer = await workbook.xlsx.writeBuffer();
       fallbackBuffer = buffer;
 
@@ -6337,6 +6592,7 @@
         if (typeof showToast === "function") {
           showToast("✅ Resumen exportado (sin gráficas).", "text-bg-warning");
         }
+        exportProgressUI.hide();
         return;
       }
 
@@ -6358,15 +6614,22 @@
         tableSheetName,
       });
 
-      if (typeof showToast === "function") {
-        showToast("Generando Excel con gráficas...");
-      }
+      exportProgressUI.update({
+        label: "Generando gráficas nativas en Excel…",
+        indeterminate: true,
+      });
+
+      const authHeaders =
+        window.Sesion?.headersAutenticacion?.() || {};
 
       const response = await fetch(
         `${base}/api/reportes/resumen-excel-native?${params.toString()}`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/octet-stream" },
+          headers: {
+            "Content-Type": "application/octet-stream",
+            ...authHeaders,
+          },
           credentials: "include",
           body: binaryBody,
         }
@@ -6377,7 +6640,25 @@
         throw new Error(text || "No fue posible generar el Excel con gráficas.");
       }
 
-      const blob = await response.blob();
+      exportProgressUI.update({
+        label: "Descargando XLSX…",
+        indeterminate: true,
+      });
+      const blob = await leerBlobConProgreso(response, ({ loaded, total }) => {
+        if (total > 0) {
+          exportProgressUI.update({
+            label: "Descargando XLSX…",
+            indeterminate: false,
+            percent: (loaded / total) * 100,
+            percentLabel: `${exportProgressUI.formatBytes(loaded)} / ${exportProgressUI.formatBytes(total)}`,
+          });
+          return;
+        }
+        exportProgressUI.update({
+          label: `Descargando XLSX… ${exportProgressUI.formatBytes(loaded)}`,
+          indeterminate: true,
+        });
+      });
       const header = response.headers.get("content-disposition") || "";
       const match = header.match(/filename=\"?([^\";]+)\"?/i);
       const filename = match ? match[1] : `${baseName}_Graficas.xlsx`;
@@ -6391,6 +6672,7 @@
       if (typeof showToast === "function") {
         showToast("✅ Resumen exportado con gráficas.");
       }
+      exportProgressUI.hide();
     } catch (error) {
       console.error("Error al exportar con gráficas:", error);
 
@@ -6398,8 +6680,17 @@
         descargarBufferExcel(fallbackBuffer, `${fallbackName || "Resumen"}.xlsx`);
       }
       if (typeof showToast === "function") {
-        showToast("Error al exportar. Verifica la consola.", "text-bg-danger");
+        const detail = (error?.message || "").toString().trim();
+        const safeDetail =
+          detail.length > 220 ? `${detail.slice(0, 220)}…` : detail;
+        showToast(
+          safeDetail
+            ? `Error al exportar: ${safeDetail}`
+            : "Error al exportar. Verifica la consola.",
+          "text-bg-danger"
+        );
       }
+      exportProgressUI.hide();
     }
   };
 

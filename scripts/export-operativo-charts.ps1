@@ -629,6 +629,16 @@ if (-not $OutputPath) {
 }
 
 if ($wsTable) {
+  try {
+    $usedRange = Invoke-ComRetry { $wsTable.UsedRange }
+    if ($usedRange) {
+      Invoke-ComRetry { $usedRange.Columns.AutoFit() }
+    }
+  } catch {
+  }
+}
+
+if ($wsTable) {
   $wsTable.Activate()
 } else {
   $wsCharts.Activate()
