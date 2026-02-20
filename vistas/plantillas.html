@@ -391,8 +391,42 @@
                       class="form-check-label small"
                       for="cdmxPresupuestoConsolidacionEnabled"
                     >
-                      Habilitar consolidación (aplicar manualmente desde RESUMEN)
+                      Habilitar consolidación (manual o automática)
                     </label>
+                  </div>
+
+                  <div class="d-flex flex-wrap align-items-end gap-3 mt-2">
+                    <div class="form-check form-switch">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="cdmxPresupuestoConsolidacionAutoEnabled"
+                      />
+                      <label
+                        class="form-check-label small"
+                        for="cdmxPresupuestoConsolidacionAutoEnabled"
+                      >
+                        Auto-aplicar consolidación
+                      </label>
+                    </div>
+
+                    <div
+                      class="input-group input-group-sm"
+                      style="max-width: 220px"
+                    >
+                      <span class="input-group-text">Cada</span>
+                      <input
+                        class="form-control"
+                        type="number"
+                        min="1"
+                        step="1"
+                        id="cdmxPresupuestoConsolidacionAutoMinutes"
+                      />
+                      <span class="input-group-text">min</span>
+                    </div>
+                  </div>
+                  <div class="small text-muted mt-1">
+                    Se ejecuta automáticamente mientras esta pantalla esté abierta.
                   </div>
 
                   <div class="table-responsive mt-3">

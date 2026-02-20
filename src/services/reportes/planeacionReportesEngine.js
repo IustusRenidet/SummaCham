@@ -21,12 +21,95 @@ const NORMALIZAR_CLAVE = (valor = "") =>
     .replace(/[\u0300-\u036f]/g, "");
 const NORMALIZAR_CAPITULO = (valor = "") => NORMALIZAR_CLAVE(valor);
 
+// Algunos clientes (o versiones viejas) mandan el capítulo como "NORESTE:1" para
+// desambiguar en UI. En SQLite los capítulos se guardan sin ese sufijo.
+const normalizarCapituloParam = (valor = "") => {
+  const limpio = LIMPIAR_CLAVE(valor);
+  if (!limpio) return "";
+  const match = limpio.match(/^(.+?):\s*\d+\s*$/);
+  return match ? match[1].trim() : limpio;
+};
+
 // Empresas comparativas comparten el layout de su empresa principal.
 const COMPARATIVA_A_PRINCIPAL_LAYOUT = {
   empresa9:  "empresa1",
   empresa10: "empresa2",
   empresa11: "empresa3",
   empresa12: "empresa4",
+};
+
+const MAX_GAP_ANIO_AUTOCLONE = 1;
+const puedeAutoclonarLayout = (modulo = "") => {
+  const mod = (modulo || "").toString().trim().toUpperCase();
+  return mod === "RESUMEN" || mod === "SUMMARY";
+};
+
+const resolverAnioReferenciaAutoclone = (anioDestino, aniosDisponibles = []) => {
+  const destino = Number(anioDestino);
+  if (!Number.isInteger(destino)) return null;
+  const anios = (Array.isArray(aniosDisponibles) ? aniosDisponibles : [])
+    .map((a) => Number(a))
+    .filter((a) => Number.isInteger(a) && a !== destino)
+    .sort((a, b) => a - b);
+  if (!anios.length) return null;
+
+  // Preferir adyacentes; si hay ambos (prev y next), tomar el más cercano.
+  const prev = anios.filter((a) => a < destino).slice(-1)[0] ?? null;
+  const next = anios.find((a) => a > destino) ?? null;
+  if (prev == null && next == null) return null;
+  if (prev == null) return next;
+  if (next == null) return prev;
+  return Math.abs(destino - prev) <= Math.abs(next - destino) ? prev : next;
+};
+
+const intentarAutoclonarLayoutSiFalta = (modulo, empresaId, anio) => {
+  if (!puedeAutoclonarLayout(modulo)) return false;
+  const anioNumero = Number(anio);
+  if (!Number.isInteger(anioNumero)) return false;
+
+  try {
+    if (layoutService.existeLayout({ empresaId, modulo, anio: anioNumero })) {
+      return false;
+    }
+  } catch (_) {
+    // Si no se puede verificar existencia, no autoclonar.
+    return false;
+  }
+
+  let aniosDisponibles = [];
+  try {
+    aniosDisponibles = layoutService.obtenerAniosDisponibles({ empresaId, modulo });
+  } catch (_) {
+    return false;
+  }
+
+  const anioReferencia = resolverAnioReferenciaAutoclone(
+    anioNumero,
+    aniosDisponibles,
+  );
+  if (anioReferencia == null) return false;
+  if (Math.abs(anioNumero - anioReferencia) > MAX_GAP_ANIO_AUTOCLONE) {
+    return false;
+  }
+
+  try {
+    layoutService.copiarLayout({
+      empresaId,
+      modulo,
+      anioOrigen: anioReferencia,
+      anioDestino: anioNumero,
+    });
+    console.warn(
+      `[planeacionReportesEngine] Layout ${modulo}/${anioNumero} no existía; copiado desde ${anioReferencia} (${empresaId}).`,
+    );
+    return true;
+  } catch (error) {
+    console.warn(
+      `[planeacionReportesEngine] No se pudo autoclonar layout ${modulo}/${anioNumero} para ${empresaId} desde ${anioReferencia}:`,
+      error?.message || error,
+    );
+    return false;
+  }
 };
 
 /**
@@ -57,6 +140,21 @@ function cargarDefinicionesModulo(
     capitulosIniciales = null;
   }
 
+  if (!capitulosIniciales || !capitulosIniciales.length) {
+    const clonado = intentarAutoclonarLayoutSiFalta(modulo, empresaId, anio);
+    if (clonado) {
+      try {
+        capitulosIniciales = layoutService.obtenerCapitulos({
+          empresaId,
+          modulo,
+          anio,
+        });
+      } catch (_) {
+        capitulosIniciales = null;
+      }
+    }
+  }
+
   // Sin capítulos propios y hay un fallback disponible → delegar al layout de la empresa principal
   if ((!capitulosIniciales || !capitulosIniciales.length) && empresaIdFallback) {
     return cargarDefinicionesModulo(modulo, empresaIdFallback, anio);
@@ -65,20 +163,22 @@ function cargarDefinicionesModulo(
   try {
     const capitulos = capitulosIniciales;
 
-    if (capitulos && capitulos.length > 0) {
-      const definiciones = {};
-      const operacionesGlobales = [];
+      if (capitulos && capitulos.length > 0) {
+        const definiciones = {};
+        const operacionesGlobales = [];
+        const capitulosEtiquetas = [];
 
-      for (const cap of capitulos) {
-        const capituloEtiqueta =
-          cap && typeof cap === "object" ? cap.capitulo : cap;
-        if (!capituloEtiqueta) continue;
+        for (const cap of capitulos) {
+          const capituloEtiqueta =
+            cap && typeof cap === "object" ? cap.capitulo : cap;
+          if (!capituloEtiqueta) continue;
+          capitulosEtiquetas.push(capituloEtiqueta);
 
-        const layout = layoutService.obtenerLayout({
-          empresaId,
-          modulo,
-          anio,
-          capitulo: capituloEtiqueta,
+          const layout = layoutService.obtenerLayout({
+            empresaId,
+            modulo,
+            anio,
+            capitulo: capituloEtiqueta,
         });
 
         const cuentasLayout =
@@ -109,18 +209,66 @@ function cargarDefinicionesModulo(
             ? layout["SUMA DE VARIAS SECCIONES"]
             : [];
 
-        if (operacionesLayout.length) {
-          operacionesLayout.forEach((operacion) =>
-            operacionesGlobales.push(operacion),
-          );
+          if (operacionesLayout.length) {
+            operacionesLayout.forEach((operacion) =>
+              operacionesGlobales.push(operacion),
+            );
+          }
         }
-      }
 
-      if (operacionesGlobales.length) {
-        definiciones["SUMA DE VARIAS SECCIONES"] = operacionesGlobales;
-      }
+        // Si el año solicitado tiene cuentas/secciones pero no operaciones, intentar
+        // reutilizar operaciones de un año adyacente (típico cuando el seed solo
+        // carga cuentas sin "SUMA DE VARIAS SECCIONES").
+        if (!operacionesGlobales.length && puedeAutoclonarLayout(modulo)) {
+          const anioNumero = Number(anio);
+          const candidatos = [
+            Number.isInteger(anioNumero) ? anioNumero + 1 : null,
+            Number.isInteger(anioNumero) ? anioNumero - 1 : null,
+          ].filter((v) => Number.isInteger(v));
 
-      return definiciones;
+          const cargarOperacionesDeAnio = (anioOps) => {
+            const ops = [];
+            for (const capituloEtiqueta of capitulosEtiquetas) {
+              let layoutOps = null;
+              try {
+                layoutOps = layoutService.obtenerLayout({
+                  empresaId,
+                  modulo,
+                  anio: anioOps,
+                  capitulo: capituloEtiqueta,
+                });
+              } catch (_) {
+                layoutOps = null;
+              }
+              const operacionesLayout = Array.isArray(layoutOps && layoutOps.operaciones)
+                ? layoutOps.operaciones
+                : Array.isArray(layoutOps && layoutOps["SUMA DE VARIAS SECCIONES"])
+                  ? layoutOps["SUMA DE VARIAS SECCIONES"]
+                  : [];
+              if (operacionesLayout.length) {
+                operacionesLayout.forEach((operacion) => ops.push(operacion));
+              }
+            }
+            return ops;
+          };
+
+          for (const anioOps of candidatos) {
+            const ops = cargarOperacionesDeAnio(anioOps);
+            if (ops.length) {
+              ops.forEach((op) => operacionesGlobales.push(op));
+              console.warn(
+                `[planeacionReportesEngine] Operaciones faltantes para ${modulo}/${empresaId}/${anio}; usando operaciones de ${anioOps}.`,
+              );
+              break;
+            }
+          }
+        }
+
+        if (operacionesGlobales.length) {
+          definiciones["SUMA DE VARIAS SECCIONES"] = operacionesGlobales;
+        }
+
+        return definiciones;
     }
   } catch (error) {
     console.error(
@@ -3705,19 +3853,24 @@ async function generarReporte(
     .filter((cfg) => !esOperacionLayoutConfig(cfg));
 
   const capitulosDisponibles = extraerCapitulos(lista);
-  const capituloClave = NORMALIZAR_CAPITULO(
-    capituloSeleccionado || capitulosDisponibles[0]?.etiqueta || "",
+  const capituloParamLimpio = normalizarCapituloParam(capituloSeleccionado || "");
+  let capituloClave = NORMALIZAR_CAPITULO(
+    capituloParamLimpio || capitulosDisponibles[0]?.etiqueta || "",
   );
-  const capituloEncontrado = capitulosDisponibles.find(
+  let capituloEncontrado = capitulosDisponibles.find(
     ({ clave }) => clave === capituloClave,
   );
+  if (!capituloEncontrado && capitulosDisponibles.length) {
+    // Evitar caer en "todos los capítulos" por un parámetro inválido (p.ej. "NORESTE:1").
+    capituloEncontrado = capitulosDisponibles[0];
+    capituloClave = capituloEncontrado.clave;
+  }
 
   // Filtrar definiciones por capítulo
-  const listaFiltrada = capituloEncontrado
-    ? lista.filter(
-      (item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave,
-    )
-    : lista;
+  const listaFiltrada =
+    capituloEncontrado && capituloClave
+      ? lista.filter((item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave)
+      : lista;
 
   const cuentas = Array.from(
     new Set(
@@ -3744,7 +3897,7 @@ async function generarReporte(
   const { principals, layout } = construirReporteResumen(
     listaFiltrada,
     configAgrupacion,
-    capituloEncontrado?.etiqueta || capituloSeleccionado,
+    capituloEncontrado?.etiqueta || capituloParamLimpio || capituloSeleccionado,
     planeacionData,
     {
       permitirFormulaSecciones:

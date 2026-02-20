@@ -344,6 +344,12 @@
     dom.cdmxPresupuestoConsolidacionApply = document.getElementById(
       "cdmxPresupuestoConsolidacionApply",
     );
+    dom.cdmxPresupuestoConsolidacionAutoEnabled = document.getElementById(
+      "cdmxPresupuestoConsolidacionAutoEnabled",
+    );
+    dom.cdmxPresupuestoConsolidacionAutoMinutes = document.getElementById(
+      "cdmxPresupuestoConsolidacionAutoMinutes",
+    );
   }
 
   // Prevenir event listeners duplicados
@@ -386,6 +392,14 @@
     dom.cdmxPresupuestoConsolidacionEnabled?.addEventListener(
       "change",
       handleCdmxPresupuestoConsolidacionEnabledChange,
+    );
+    dom.cdmxPresupuestoConsolidacionAutoEnabled?.addEventListener(
+      "change",
+      handleCdmxPresupuestoConsolidacionAutoEnabledChange,
+    );
+    dom.cdmxPresupuestoConsolidacionAutoMinutes?.addEventListener(
+      "change",
+      handleCdmxPresupuestoConsolidacionAutoMinutesChange,
     );
     dom.cdmxPresupuestoConsolidacionTbody?.addEventListener(
       "change",
@@ -746,6 +760,10 @@
   ];
   const CDMX_PRESUPUESTO_CONSOLIDACION_DEFAULT = Object.freeze({
     enabled: true,
+    autoApply: {
+      enabled: false,
+      intervalMinutes: 10,
+    },
     cuentas: {
       "450-001-000-00": { capitulo: "GUADALAJARA", fila: "INCOME" },
       "950-001-000-00": { capitulo: "GUADALAJARA", fila: "EXPENSE" },
@@ -779,6 +797,12 @@
     "dic",
   ];
   let cdmxConsolidacionAplicando = false;
+  let cdmxConsolidacionAutoApplyTimer = null;
+  let cdmxConsolidacionAutoApplySignature = "";
+  let cdmxConsolidacionAutoLastErrorToastAt = 0;
+  const CDMX_CONSOLIDACION_AUTO_MINUTES_MIN = 1;
+  const CDMX_CONSOLIDACION_AUTO_MINUTES_MAX = 720;
+  const CDMX_CONSOLIDACION_AUTO_ERROR_TOAST_COOLDOWN_MS = 15 * 60 * 1000;
 
   function esContextoCdmxResumen() {
     const modulo = normalizarTextoCapitulo(state.modulo);
@@ -789,6 +813,18 @@
   function puedeEditarCdmxPresupuestoConsolidacion() {
     const hasLayout = state.layout !== null;
     return (FORCE_EDIT_MODE || state.editMode) && hasLayout;
+  }
+
+  function normalizarCdmxAutoApplyMinutes(value) {
+    const fallback = Number(
+      CDMX_PRESUPUESTO_CONSOLIDACION_DEFAULT?.autoApply?.intervalMinutes || 10,
+    );
+    const parsed = Number(value);
+    const minutes = Number.isFinite(parsed) ? Math.round(parsed) : fallback;
+    return Math.min(
+      CDMX_CONSOLIDACION_AUTO_MINUTES_MAX,
+      Math.max(CDMX_CONSOLIDACION_AUTO_MINUTES_MIN, minutes),
+    );
   }
 
   function resolverFilaCdmxConsolidacion(regla, cuenta = "") {
@@ -809,6 +845,7 @@
   function buildDefaultCdmxPresupuestoConsolidacion() {
     return {
       enabled: true,
+      autoApply: { ...CDMX_PRESUPUESTO_CONSOLIDACION_DEFAULT.autoApply },
       cuentas: CDMX_PRESUPUESTO_CONSOLIDACION_CUENTAS_ORDEN.reduce(
         (acc, cuenta) => {
           const cfg = CDMX_PRESUPUESTO_CONSOLIDACION_DEFAULT.cuentas[cuenta];
@@ -828,9 +865,18 @@
     if (raw && typeof raw === "object") {
       const enabled = raw.enabled !== false;
       const cuentas = raw.cuentas && typeof raw.cuentas === "object" ? raw.cuentas : {};
+      const autoApplyRaw =
+        raw.autoApply && typeof raw.autoApply === "object" ? raw.autoApply : null;
+      const autoApply = {
+        enabled: autoApplyRaw?.enabled === true,
+        intervalMinutes: normalizarCdmxAutoApplyMinutes(
+          autoApplyRaw?.intervalMinutes,
+        ),
+      };
       return {
         config: {
           enabled,
+          autoApply,
           cuentas,
         },
         fromDefault: false,
@@ -859,6 +905,62 @@
     dom.cdmxPresupuestoConsolidacionStatus.textContent = message || "";
   }
 
+  function stopCdmxPresupuestoConsolidacionAutoApplyTimer() {
+    if (cdmxConsolidacionAutoApplyTimer) {
+      clearInterval(cdmxConsolidacionAutoApplyTimer);
+    }
+    cdmxConsolidacionAutoApplyTimer = null;
+    cdmxConsolidacionAutoApplySignature = "";
+  }
+
+  function tickCdmxPresupuestoConsolidacionAutoApply() {
+    if (!esContextoCdmxResumen()) return;
+    const anio = Number(state.anio);
+    if (!Number.isInteger(anio)) return;
+
+    const { config } = obtenerCdmxPresupuestoConsolidacionConfig();
+    if (config.enabled === false) return;
+    if (config.autoApply?.enabled !== true) return;
+
+    handleCdmxPresupuestoConsolidacionApply({ source: "auto" }).catch(() => {
+      // Los errores UI se manejan dentro del handler; evitar warnings por promesas
+    });
+  }
+
+  function syncCdmxPresupuestoConsolidacionAutoApplyTimer() {
+    const { config } = obtenerCdmxPresupuestoConsolidacionConfig();
+    const anio = Number(state.anio);
+    const intervaloMinutos = normalizarCdmxAutoApplyMinutes(
+      config.autoApply?.intervalMinutes,
+    );
+    const shouldRun = Boolean(
+      esContextoCdmxResumen() &&
+        Number.isInteger(anio) &&
+        config.enabled !== false &&
+        config.autoApply?.enabled === true,
+    );
+
+    const signature = `${shouldRun ? "1" : "0"}:${intervaloMinutos}:${String(state.anio || "")}`;
+    if (signature === cdmxConsolidacionAutoApplySignature) return;
+    cdmxConsolidacionAutoApplySignature = signature;
+
+    if (cdmxConsolidacionAutoApplyTimer) {
+      clearInterval(cdmxConsolidacionAutoApplyTimer);
+      cdmxConsolidacionAutoApplyTimer = null;
+    }
+    if (!shouldRun) return;
+
+    const intervaloMs = intervaloMinutos * 60 * 1000;
+    cdmxConsolidacionAutoApplyTimer = setInterval(() => {
+      tickCdmxPresupuestoConsolidacionAutoApply();
+    }, intervaloMs);
+
+    // Primera ejecución ligera (si aplica), para no esperar al primer intervalo completo
+    setTimeout(() => {
+      tickCdmxPresupuestoConsolidacionAutoApply();
+    }, 1500);
+  }
+
   function renderCdmxPresupuestoConsolidacionPanel() {
     const container = dom.cdmxPresupuestoConsolidacionRow;
     if (!container) return;
@@ -866,6 +968,7 @@
     const shouldShow = esContextoCdmxResumen() && state.anio;
     if (!shouldShow) {
       container.classList.add("d-none");
+      syncCdmxPresupuestoConsolidacionAutoApplyTimer();
       return;
     }
     container.classList.remove("d-none");
@@ -873,10 +976,24 @@
     const { config, fromDefault } = obtenerCdmxPresupuestoConsolidacionConfig();
     const canEdit = puedeEditarCdmxPresupuestoConsolidacion();
     const isEnabled = config.enabled !== false;
+    const autoApplyEnabled = config.autoApply?.enabled === true;
+    const autoApplyMinutes = normalizarCdmxAutoApplyMinutes(
+      config.autoApply?.intervalMinutes,
+    );
 
     if (dom.cdmxPresupuestoConsolidacionEnabled) {
       dom.cdmxPresupuestoConsolidacionEnabled.checked = config.enabled !== false;
       dom.cdmxPresupuestoConsolidacionEnabled.disabled = !canEdit;
+    }
+    if (dom.cdmxPresupuestoConsolidacionAutoEnabled) {
+      dom.cdmxPresupuestoConsolidacionAutoEnabled.checked = autoApplyEnabled;
+      dom.cdmxPresupuestoConsolidacionAutoEnabled.disabled = !canEdit;
+    }
+    if (dom.cdmxPresupuestoConsolidacionAutoMinutes) {
+      if (document.activeElement !== dom.cdmxPresupuestoConsolidacionAutoMinutes) {
+        dom.cdmxPresupuestoConsolidacionAutoMinutes.value = String(autoApplyMinutes);
+      }
+      dom.cdmxPresupuestoConsolidacionAutoMinutes.disabled = !canEdit;
     }
     if (dom.cdmxPresupuestoConsolidacionReset) {
       dom.cdmxPresupuestoConsolidacionReset.disabled = !canEdit;
@@ -1018,6 +1135,7 @@
       setCdmxPresupuestoConsolidacionStatus(
         "Modo solo lectura: activa permisos de edición para cambiar la consolidación.",
       );
+      syncCdmxPresupuestoConsolidacionAutoApplyTimer();
       return;
     }
 
@@ -1025,11 +1143,13 @@
       setCdmxPresupuestoConsolidacionStatus(
         "Consolidación deshabilitada. Activa el switch para poder aplicar.",
       );
+      syncCdmxPresupuestoConsolidacionAutoApplyTimer();
       return;
     }
 
     if (cdmxConsolidacionAplicando) {
       setCdmxPresupuestoConsolidacionStatus("Aplicando consolidación...");
+      syncCdmxPresupuestoConsolidacionAutoApplyTimer();
       return;
     }
 
@@ -1037,6 +1157,7 @@
       setCdmxPresupuestoConsolidacionStatus(
         "Usando defaults. Guarda la plantilla para persistir cambios.",
       );
+      syncCdmxPresupuestoConsolidacionAutoApplyTimer();
       return;
     }
 
@@ -1044,10 +1165,12 @@
       setCdmxPresupuestoConsolidacionStatus(
         "Cambios pendientes: presiona Guardar para persistir la configuración.",
       );
+      syncCdmxPresupuestoConsolidacionAutoApplyTimer();
       return;
     }
 
     setCdmxPresupuestoConsolidacionStatus("Listo.");
+    syncCdmxPresupuestoConsolidacionAutoApplyTimer();
   }
 
   function handleCdmxPresupuestoConsolidacionEnabledChange(event) {
@@ -1062,6 +1185,54 @@
 
     const cfg = asegurarCdmxPresupuestoConsolidacionConfigEditable();
     cfg.enabled = Boolean(checkbox.checked);
+    state.layoutConfigChanged = true;
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderCdmxPresupuestoConsolidacionPanel();
+  }
+
+  function handleCdmxPresupuestoConsolidacionAutoEnabledChange(event) {
+    if (!esContextoCdmxResumen()) return;
+    const checkbox = event?.target;
+    if (!checkbox) return;
+
+    if (!puedeEditarCdmxPresupuestoConsolidacion() || !requireEditMode()) {
+      renderCdmxPresupuestoConsolidacionPanel();
+      return;
+    }
+
+    const cfg = asegurarCdmxPresupuestoConsolidacionConfigEditable();
+    if (!cfg.autoApply || typeof cfg.autoApply !== "object") {
+      cfg.autoApply = { ...CDMX_PRESUPUESTO_CONSOLIDACION_DEFAULT.autoApply };
+    }
+    cfg.autoApply.enabled = Boolean(checkbox.checked);
+    cfg.autoApply.intervalMinutes = normalizarCdmxAutoApplyMinutes(
+      cfg.autoApply.intervalMinutes,
+    );
+
+    state.layoutConfigChanged = true;
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderCdmxPresupuestoConsolidacionPanel();
+  }
+
+  function handleCdmxPresupuestoConsolidacionAutoMinutesChange(event) {
+    if (!esContextoCdmxResumen()) return;
+    const input = event?.target;
+    if (!input) return;
+
+    if (!puedeEditarCdmxPresupuestoConsolidacion() || !requireEditMode()) {
+      renderCdmxPresupuestoConsolidacionPanel();
+      return;
+    }
+
+    const minutes = normalizarCdmxAutoApplyMinutes(input.value);
+    const cfg = asegurarCdmxPresupuestoConsolidacionConfigEditable();
+    if (!cfg.autoApply || typeof cfg.autoApply !== "object") {
+      cfg.autoApply = { ...CDMX_PRESUPUESTO_CONSOLIDACION_DEFAULT.autoApply };
+    }
+    cfg.autoApply.intervalMinutes = minutes;
+
     state.layoutConfigChanged = true;
     state.unsavedChanges = true;
     updateButtonStates();
@@ -1113,6 +1284,7 @@
     const cfg = asegurarCdmxPresupuestoConsolidacionConfigEditable();
     const defaults = buildDefaultCdmxPresupuestoConsolidacion();
     cfg.enabled = defaults.enabled;
+    cfg.autoApply = defaults.autoApply;
     cfg.cuentas = defaults.cuentas;
 
     state.layoutConfigChanged = true;
@@ -1573,18 +1745,35 @@
     return promise;
   }
 
-  async function handleCdmxPresupuestoConsolidacionApply() {
+  async function handleCdmxPresupuestoConsolidacionApply(eventOrOptions) {
+    const options =
+      eventOrOptions &&
+      typeof eventOrOptions === "object" &&
+      !("target" in eventOrOptions)
+        ? eventOrOptions
+        : {};
+    const isAuto = options.source === "auto";
+    const shouldToastDefault = !isAuto;
+
     if (!esContextoCdmxResumen()) return;
     const anio = Number(state.anio);
     if (!Number.isInteger(anio)) {
-      showToast("Selecciona un año válido", "warning");
+      if (shouldToastDefault) {
+        showToast("Selecciona un año válido", "warning");
+      } else {
+        setCdmxPresupuestoConsolidacionStatus("Auto: selecciona un año válido.");
+      }
       return;
     }
     if (cdmxConsolidacionAplicando) return;
 
     const { config } = obtenerCdmxPresupuestoConsolidacionConfig();
     if (config.enabled === false) {
-      showToast("Consolidación deshabilitada", "warning");
+      if (shouldToastDefault) {
+        showToast("Consolidación deshabilitada", "warning");
+      } else {
+        setCdmxPresupuestoConsolidacionStatus("Auto: consolidación deshabilitada.");
+      }
       return;
     }
     const reglas = config.cuentas || {};
@@ -1611,7 +1800,13 @@
       ]),
     );
     if (!capitulos.length) {
-      showToast("No hay capítulos configurados para consolidar", "warning");
+      if (shouldToastDefault) {
+        showToast("No hay capítulos configurados para consolidar", "warning");
+      } else {
+        setCdmxPresupuestoConsolidacionStatus(
+          "Auto: no hay capítulos configurados para consolidar.",
+        );
+      }
       return;
     }
 
@@ -1687,7 +1882,13 @@
       });
 
       if (!cuentas.length) {
-        showToast("No se generaron cuentas para actualizar", "warning");
+        if (shouldToastDefault) {
+          showToast("No se generaron cuentas para actualizar", "warning");
+        } else {
+          setCdmxPresupuestoConsolidacionStatus(
+            "Auto: no se generaron cuentas para actualizar.",
+          );
+        }
         return;
       }
 
@@ -1695,10 +1896,16 @@
         MESES_CORTOS.every((mes) => Number(cuenta?.valores?.[mes] || 0) === 0),
       );
       if (todasEnCero) {
-        showToast(
-          "⚠️ Todos los valores calculados son 0. Revisa la fila RESUMEN seleccionada (columna Ppto).",
-          "warning",
-        );
+        if (shouldToastDefault) {
+          showToast(
+            "⚠️ Todos los valores calculados son 0. Revisa la fila RESUMEN seleccionada (columna Ppto).",
+            "warning",
+          );
+        } else {
+          setCdmxPresupuestoConsolidacionStatus(
+            "Auto: todos los valores calculados son 0.",
+          );
+        }
       }
 
       const empresaIdDestino = obtenerEmpresaIdDestinoConsolidacion();
@@ -1722,20 +1929,34 @@
       const errores = Array.isArray(payload?.errores) ? payload.errores : [];
       if (errores.length > 0) {
         console.warn("[CDMX Consolidación] Errores backend:", errores);
-        showToast(
-          `⚠️ Consolidación aplicada con errores (${errores.length}). Revisa consola/estatus.`,
-          "warning",
-        );
+        if (shouldToastDefault) {
+          showToast(
+            `⚠️ Consolidación aplicada con errores (${errores.length}). Revisa consola/estatus.`,
+            "warning",
+          );
+        }
         setCdmxPresupuestoConsolidacionStatus(
           `Consolidación aplicada con errores (${errores.length}).`,
         );
       } else {
-        showToast(
-          `✅ ${payload?.mensaje || "Consolidación aplicada"} · cuentas: ${payload?.cuentasActualizadas ?? cuentas.length
-          }`,
-          "success",
-        );
-        setCdmxPresupuestoConsolidacionStatus("Consolidación aplicada.");
+        if (shouldToastDefault) {
+          showToast(
+            `✅ ${payload?.mensaje || "Consolidación aplicada"} · cuentas: ${payload?.cuentasActualizadas ?? cuentas.length
+            }`,
+            "success",
+          );
+        }
+        if (isAuto) {
+          const hora = new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          setCdmxPresupuestoConsolidacionStatus(
+            `Consolidación aplicada (auto ${hora}).`,
+          );
+        } else {
+          setCdmxPresupuestoConsolidacionStatus("Consolidación aplicada.");
+        }
       }
 
       if (Array.isArray(payload?.verificacion) && payload.verificacion.length > 0) {
@@ -1767,7 +1988,17 @@
       }
     } catch (error) {
       console.error("[CDMX Consolidación] Error:", error);
-      showToast(error.message || "Error al aplicar consolidación", "error");
+      const now = Date.now();
+      const canToast =
+        shouldToastDefault ||
+        now - cdmxConsolidacionAutoLastErrorToastAt >
+          CDMX_CONSOLIDACION_AUTO_ERROR_TOAST_COOLDOWN_MS;
+      if (canToast) {
+        showToast(error.message || "Error al aplicar consolidación", "error");
+        if (!shouldToastDefault) {
+          cdmxConsolidacionAutoLastErrorToastAt = now;
+        }
+      }
       setCdmxPresupuestoConsolidacionStatus(
         `Error: ${(error?.message || "").toString()}`.trim(),
       );
