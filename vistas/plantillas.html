@@ -4255,14 +4255,16 @@
           },
         ];
 
-        const buildRowEntry = (label, variants) => {
+        const buildRowEntry = (label, variants, color) => {
           const alias = normalizeRowLabel(label);
           if (!alias) return null;
           const cleanedVariants = Array.isArray(variants)
             ? variants.map((v) => normalizeRowLabel(v)).filter(Boolean)
             : [];
           if (!cleanedVariants.length) cleanedVariants.push(alias);
-          return { alias, variants: cleanedVariants };
+          const entry = { alias, variants: cleanedVariants };
+          if (color && typeof color === "string") entry.color = color;
+          return entry;
         };
 
         const toRowEntry = (row) => {
@@ -4277,7 +4279,7 @@
               : alias
                 ? [alias]
                 : [];
-          return buildRowEntry(alias, variants);
+          return buildRowEntry(alias, variants, row.color);
         };
 
         // Obtener series disponibles desde GraficasConfig
@@ -4815,9 +4817,20 @@
         };
 
         // Renderizar filas seleccionadas
+        const isRowsSeriesMode = () => seriesModeSelect?.value === "rows";
+
+        const syncSeriesConfigVisibility = () => {
+          const rowsMode = isRowsSeriesMode();
+          const colSection = seriesConfigContainer?.closest(".mb-3");
+          const checksSection = document.getElementById("chartEditorSeriesChecks")?.closest(".mb-3");
+          if (colSection) colSection.style.display = rowsMode ? "none" : "";
+          if (checksSection) checksSection.style.display = rowsMode ? "none" : "";
+        };
+
         const renderSelectedRows = () => {
           if (!selectedRowsContainer) return;
           selectedRowsContainer.innerHTML = "";
+          syncSeriesConfigVisibility();
 
           if (selectedRows.length === 0) {
             const empty = document.createElement("div");
@@ -4828,12 +4841,15 @@
             return;
           }
 
+          const rowsMode = isRowsSeriesMode();
+
           selectedRows.forEach((row, index) => {
             const item = document.createElement("div");
             item.className =
-              "list-group-item d-flex justify-content-between align-items-center";
+              "list-group-item d-flex justify-content-between align-items-center gap-2";
 
             const textWrapper = document.createElement("div");
+            textWrapper.className = "flex-grow-1 min-width-0";
             const text = document.createElement("div");
             text.textContent = row.alias || "";
             textWrapper.appendChild(text);
@@ -4845,8 +4861,24 @@
               textWrapper.appendChild(meta);
             }
 
+            if (rowsMode) {
+              const colorInput = document.createElement("input");
+              colorInput.type = "color";
+              colorInput.title = "Color de esta serie";
+              colorInput.style.cssText = "width:32px;height:28px;padding:2px;border:1px solid #dee2e6;border-radius:4px;cursor:pointer;flex-shrink:0";
+              colorInput.value = row.color || "#0d47a1";
+              colorInput.addEventListener("input", () => {
+                selectedRows[index].color = colorInput.value;
+                updatePreview();
+              });
+              item.appendChild(textWrapper);
+              item.appendChild(colorInput);
+            } else {
+              item.appendChild(textWrapper);
+            }
+
             const actions = document.createElement("div");
-            actions.className = "btn-group btn-group-sm";
+            actions.className = "btn-group btn-group-sm flex-shrink-0";
 
             const upBtn = document.createElement("button");
             upBtn.type = "button";
@@ -4890,7 +4922,6 @@
             actions.appendChild(downBtn);
             actions.appendChild(removeBtn);
 
-            item.appendChild(textWrapper);
             item.appendChild(actions);
             selectedRowsContainer.appendChild(item);
           });
@@ -5144,6 +5175,13 @@
           typeSelect.addEventListener("change", updatePreview);
         }
 
+        if (seriesModeSelect) {
+          seriesModeSelect.addEventListener("change", () => {
+            renderSelectedRows();
+            updatePreview();
+          });
+        }
+
         if (moduleSelectInput) {
           moduleSelectInput.addEventListener("change", () => {
             const selectedKeys = Array.from(
@@ -5254,13 +5292,17 @@
               seriesMode: seriesModeSelect?.value || currentChart?.seriesMode || "columns",
               seriesKeys: selectedSeries,
               series,
-              rows: selectedRows.map((row) => ({
-                alias: row.alias,
-                variants:
-                  Array.isArray(row.variants) && row.variants.length
-                    ? row.variants
-                    : [row.alias],
-              })),
+              rows: selectedRows.map((row) => {
+                const r = {
+                  alias: row.alias,
+                  variants:
+                    Array.isArray(row.variants) && row.variants.length
+                      ? row.variants
+                      : [row.alias],
+                };
+                if (row.color) r.color = row.color;
+                return r;
+              }),
             };
 
             // Guardar en GraficasConfig
