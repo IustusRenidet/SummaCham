@@ -2081,8 +2081,10 @@ const construirReporteResumen = (
           crearAcumulador(),
         );
 
-      const clase = (principal.clase || "").toLowerCase();
-      const sign = clase.includes("expense") ? -1 : 1;
+      // No inferir signo por texto del nombre (p.ej. "expense"), porque
+      // rompe comparativos cuando los datos ya vienen normalizados por cuenta.
+      // El signo debe venir de configuración explícita (fórmula/factor), no de heurística.
+      const sign = 1;
 
       return {
         label: principal.label ? principal.label.trim() : "",

@@ -5009,6 +5009,71 @@
     return operaciones;
   };
 
+  const sincronizarEtiquetasOperacionesLibresDesdeTabla = (
+    operacionesPrevias = []
+  ) => {
+    const base = Array.isArray(operacionesPrevias)
+      ? operacionesPrevias.map((op) => ({ ...(op || {}) }))
+      : [];
+    if (!estadoModulo.tabla || !base.length) return base;
+
+    const normalizar = (valor) => normalizarTexto(valor || "");
+    const filasLibres = Array.from(
+      estadoModulo.tabla.querySelectorAll("tbody tr.free-operation-row")
+    );
+    if (!filasLibres.length) return base;
+
+    const porId = new Map();
+    const porLabel = new Map();
+    base.forEach((op) => {
+      const opId = (
+        op?.OperacionId ||
+        op?.operacion_id ||
+        op?.id ||
+        op?.Clase ||
+        op?.clase
+      )
+        .toString()
+        .trim();
+      const opLabel = obtenerEtiquetaOperacionLibre(op);
+      const keyId = normalizar(opId);
+      const keyLabel = normalizar(opLabel);
+      if (keyId) porId.set(keyId, op);
+      if (keyLabel && !porLabel.has(keyLabel)) porLabel.set(keyLabel, op);
+    });
+
+    filasLibres.forEach((fila) => {
+      const nuevoLabel = obtenerTextoCeldaDescripcion(fila);
+      if (!nuevoLabel) return;
+
+      const rowOpId = normalizar(fila?.dataset?.operationId || "");
+      const rowOldLabel = normalizar(
+        fila?.dataset?.operationLabel || fila?.cells?.[1]?.textContent || ""
+      );
+      const op = porId.get(rowOpId) || porLabel.get(rowOldLabel) || null;
+      if (!op) return;
+
+      op.Clase = nuevoLabel;
+      op.operacion_etiqueta = nuevoLabel;
+      op.Etiqueta = nuevoLabel;
+      op.etiqueta = nuevoLabel;
+
+      let actualizoCampoFila = false;
+      CAMPOS_FILA_OPERACION.forEach((campo) => {
+        if (typeof op[campo] === "string" && op[campo].trim()) {
+          op[campo] = nuevoLabel;
+          actualizoCampoFila = true;
+        }
+      });
+
+      if (!actualizoCampoFila) {
+        op.operacion_label = nuevoLabel;
+      }
+    });
+
+    return base;
+  };
+
   const persistirLayoutActual = async () => {
     const empresa = Sesion.obtenerEmpresaActiva();
     const anioSeleccion = obtenerAnioSeleccionado();
@@ -5035,11 +5100,14 @@
     }
     const capitulo = estadoModulo.capitulo || layout.capitulo || "DEFAULT";
     const cuentas = construirCuentasDesdeLayout({ layout, capitulo });
+    const operacionesPrevias = sincronizarEtiquetasOperacionesLibresDesdeTabla(
+      estadoModulo.layoutOperaciones
+    );
     const operaciones = construirOperacionesDesdeLayout({
       layout,
       capitulo,
       moduloNombre,
-      operacionesPrevias: estadoModulo.layoutOperaciones,
+      operacionesPrevias,
     });
     const guardado = await guardarLayoutServidor({
       modulo: moduloNombre,

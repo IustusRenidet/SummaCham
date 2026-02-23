@@ -78,7 +78,15 @@
         if (!cuentaId) return null;
         const descripcion =
           (cuenta.NOMBRE ?? cuenta.nombre ?? "").toString().trim() || cuentaId;
-        return { cuenta: cuentaId, descripcion, indice: idx };
+        const nombre = (cuenta.nombre ?? cuenta.NOMBRE ?? "")
+          .toString()
+          .trim();
+        return {
+          cuenta: cuentaId,
+          descripcion,
+          nombre: nombre || descripcion,
+          indice: idx,
+        };
       })
       .filter(Boolean);
     return filas.length ? { filas } : null;
@@ -108,10 +116,12 @@
         if (!cuenta) return null;
         const descripcion =
           (fila.descripcion || "").toString().trim() || cuenta;
+        const nombre =
+          (fila.nombre || "").toString().trim() || descripcion || cuenta;
         const orden = obtenerOrdenDesdeFila(fila, idx);
         return {
           CUENTA: cuenta,
-          NOMBRE: descripcion,
+          NOMBRE: nombre,
           SECCION: "",
           orden,
           orden_presentacion: orden,
@@ -1240,6 +1250,11 @@
       )
         .toString()
         .trim();
+      const nombre = (
+        fila.querySelector('[data-role="nombre"]')?.textContent || descripcion
+      )
+        .toString()
+        .trim();
       const role =
         fila.dataset.rowRole ||
         fila.dataset.rowRole?.trim() ||
@@ -1249,6 +1264,7 @@
         id: fila.id || `r${idx}`,
         cuenta,
         descripcion,
+        nombre,
         role,
       };
     });
@@ -1342,8 +1358,11 @@
     }
     const filas = Array.from(tabla.tBodies[0]?.rows || []);
     layoutNormalizado.filas.forEach((filaLayout) => {
-      const { cuenta: cuentaLayout, descripcion: descripcionLayout } =
-        filaLayout || {};
+      const {
+        cuenta: cuentaLayout,
+        descripcion: descripcionLayout,
+        nombre: nombreLayout,
+      } = filaLayout || {};
       if (!cuentaLayout) return;
       // Buscar fila por dataset.cuenta o por primera celda coincidente
       const filaMatch = filas.find(
@@ -1360,6 +1379,10 @@
           filaMatch.cells[1];
         if (celdaDescripcion && descripcionLayout != null) {
           celdaDescripcion.textContent = descripcionLayout;
+        }
+        const celdaNombre = filaMatch.querySelector('[data-role="nombre"]');
+        if (celdaNombre && nombreLayout != null) {
+          celdaNombre.textContent = nombreLayout;
         }
         // Si el layout contiene un valor de cuenta diferente, actualizar el dataset
         try {

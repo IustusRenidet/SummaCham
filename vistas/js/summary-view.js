@@ -268,7 +268,7 @@
           fila.dataset.cuentaVisible = nuevoTexto || '';
         }
         // Si es columna de layout (cuenta/descripcion) persistir layout local
-        if ((columna === 'cuenta' || columna === 'descripcion') && window.ModoEdicionPresupuesto?.guardarLayout) {
+        if ((columna === 'cuenta' || columna === 'descripcion' || columna === 'nombre') && window.ModoEdicionPresupuesto?.guardarLayout) {
           try { window.ModoEdicionPresupuesto.guardarLayout(); } catch (err) { /* ignore */ }
         }
       } else {

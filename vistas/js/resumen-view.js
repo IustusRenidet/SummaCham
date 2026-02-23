@@ -2805,11 +2805,14 @@
       if (!block || !block.totals) return;
       const tipoRaw = (block.type || "").toLowerCase();
       const tipo = tipoRaw === "cuenta" ? "account" : tipoRaw;
+      // En comparativa para RESUMEN, evitar pisar secciones/principales con
+      // totales del layout comparativo porque pueden traer signo/fórmula
+      // distinta al layout base. Solo inyectar Prev a nivel cuenta y dejar
+      // que el recálculo del layout base derive los totales superiores.
+      if (tipo !== "account") return;
       let comparativo = null;
-      if (tipo === "account") {
-        const claveCuenta = (block.cuenta || "").toString().trim();
-        comparativo = claveCuenta ? cuentas.get(claveCuenta) : null;
-      }
+      const claveCuenta = (block.cuenta || "").toString().trim();
+      comparativo = claveCuenta ? cuentas.get(claveCuenta) : null;
       if (!comparativo) {
         const etiqueta = normalizarEtiquetaComparativa(block.label || "");
         if (etiqueta) {
@@ -3600,7 +3603,9 @@
         }
         // Si es columna de layout persistir layout local
         if (
-          (columna === "cuenta" || columna === "descripcion") &&
+          (columna === "cuenta" ||
+            columna === "descripcion" ||
+            columna === "nombre") &&
           window.ModoEdicionPresupuesto?.guardarLayout
         ) {
           try {
