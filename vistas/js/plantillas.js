@@ -4791,6 +4791,9 @@
     const formulaPreview = formatFormula(op || {});
     const parentSection = (op?.parentSection || "").toString().trim();
     const parentSubsection = (op?.parentSubsection || "").toString().trim();
+    const signoNum = Number(op?.signo);
+    const signoInputValue =
+      Number.isFinite(signoNum) && signoNum !== 1 ? String(signoNum) : "";
 
     const normalizeKey = (value) =>
       (value || "")
@@ -4916,6 +4919,15 @@
                  placeholder="Ej: CDMX_INCOME" />
           <div class="form-text">
             Define un ID único manualmente.
+          </div>
+        </div>
+        <div class="mt-3">
+          <label class="form-label">Signo (multiplicador)</label>
+          <input type="number" class="form-control" id="editOperacionSigno" step="0.01"
+                 value="${escapeAttr(signoInputValue)}"
+                 placeholder="-1 o 1" />
+          <div class="form-text">
+            Multiplica el resultado final de la operación. Ej: <code>-1</code> invierte el signo. Vacío = <code>1</code>.
           </div>
         </div>
       </details>
@@ -16692,6 +16704,41 @@
     if (estiloFilaInput?.value) {
       op.rowStyle = estiloFilaInput.value;
       op.estilo_fila = estiloFilaInput.value;
+    }
+
+    // Signo (multiplicador global de la operación)
+    const signoInput = document.getElementById("editOperacionSigno");
+    if (signoInput) {
+      signoInput.classList.remove("is-invalid");
+      const raw = (signoInput.value || "").toString().trim();
+      const parseNumber = (value) =>
+        Number((value || "").toString().trim().replace(",", "."));
+
+      if (!raw) {
+        if (op.signo !== undefined) delete op.signo;
+        if (op.signos && op.signos["sum-row"] !== undefined) {
+          delete op.signos["sum-row"];
+          if (!Object.keys(op.signos).length) delete op.signos;
+        }
+      } else {
+        const signo = parseNumber(raw);
+        if (!Number.isFinite(signo)) {
+          signoInput.classList.add("is-invalid");
+          showToast("Signo inválido. Usa un número como 1 o -1.", "error");
+          return;
+        }
+        if (signo === 1) {
+          if (op.signo !== undefined) delete op.signo;
+          if (op.signos && op.signos["sum-row"] === 1) {
+            delete op.signos["sum-row"];
+            if (!Object.keys(op.signos).length) delete op.signos;
+          }
+        } else {
+          op.signo = signo;
+          op.signos = op.signos || {};
+          op.signos["sum-row"] = signo;
+        }
+      }
     }
 
     // Marcar cambios y actualizar

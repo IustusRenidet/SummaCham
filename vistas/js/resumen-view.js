@@ -3893,11 +3893,12 @@
    * @param {Array} resumen - Array de empresas con estructura jerárquica
    * @param {number} mesSeleccionado - Mes seleccionado (1-12)
    */
-  const renderResumen = (resumen = [], mesSeleccionado) => {
+  const renderResumen = (resumen = [], mesSeleccionado, opts = {}) => {
     if (DEBUG_RESUMEN) {
       console.log("[DEBUG] renderResumen called with", resumen.length, "capitulos");
     }
     if (!tablaBody) return;
+    const comparativaActiva = Boolean(opts?.comparativaActiva);
     limpiarCambios();
     editMode = false;
     disposeTooltips();
@@ -4572,8 +4573,13 @@
       dest.prevYTD += src.prevYTD || 0;
     };
 
-    const recalcularConsolidados = (layoutArr = [], capituloName = "") => {
+    const recalcularConsolidados = (
+      layoutArr = [],
+      capituloName = "",
+      recalcOpts = {}
+    ) => {
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
+      const comparativaRecalc = Boolean(recalcOpts?.comparativaActiva);
       const capituloNormalizado = normalizarLabel(capituloName);
       const esCapituloMexico = capituloNormalizado === "CIUDAD DE MEXICO";
       const esCapituloGuadalajara = capituloNormalizado === "GUADALAJARA";
@@ -4582,22 +4588,154 @@
       const esCapituloNoroeste = ["NOROESTE", "NO", "NORTHWEST"].includes(
         capituloNormalizado
       );
-      const labelMap = new Map(
-        layoutArr.map((b) => [normalizarLabel(b.label || ""), b])
-      );
+      // Puede haber labels duplicados (principal/secundaria vs operation). Mantener buckets por label
+      // para leer el mejor candidato y evitar sobreescrituras sobre fórmulas del backend.
+      const labelBuckets = new Map();
+      layoutArr.forEach((b) => {
+        const key = normalizarLabel(b?.label || "");
+        if (!key) return;
+        const existing = labelBuckets.get(key);
+        if (existing) existing.push(b);
+        else labelBuckets.set(key, [b]);
+      });
+
+      const normalizarTipo = (block) =>
+        (block?.type || block?.tipo || "")
+          .toString()
+          .trim()
+          .toLowerCase();
+
+      const isOperacion = (block) => {
+        const t = normalizarTipo(block);
+        return t === "operation" || t === "operacion";
+      };
+
+      const OVERWRITEABLE_OPERATION_LABELS = new Set([
+        "CONSOLIDATED INCOME",
+        "CONSOLIDATED EXPENSE",
+        "CONSOLIDATED EXPENSES",
+      ]);
+
+      const esOperacionOverwriteable = (block) => {
+        if (!comparativaRecalc) return false;
+        const key = normalizarLabel(block?.label || "");
+        return OVERWRITEABLE_OPERATION_LABELS.has(key);
+      };
+
+      const esOperacionSinCalculoBackend = (block) => {
+        if (!block) return false;
+        if (!isOperacion(block)) return false;
+        if (!(block.manualFormula || block.__manualFormula)) return false;
+        const totals = block.totals || {};
+        const keys = [
+          "actualMonth",
+          "planMonth",
+          "prevMonth",
+          "actualYTD",
+          "planYTD",
+          "prevYTD",
+        ];
+        return keys.every((k) => Math.abs(toNumber(totals[k])) < 0.000001);
+      };
+
+      const esBloqueProtegido = (block) => {
+        if (esOperacionOverwriteable(block)) return false;
+        // Si el backend entregó una operación en ceros (sin fórmula aplicada),
+        // permitir fallback de cálculo en frontend.
+        if (esOperacionSinCalculoBackend(block)) return false;
+        return Boolean(
+          block?.manualFormula || block?.__manualFormula || isOperacion(block)
+        );
+      };
+
+      const typeRank = (block) => {
+        const t = normalizarTipo(block);
+        if (t === "operation" || t === "operacion") return 70;
+        if (t === "final") return 65;
+        if (t === "net") return 60;
+        if (t === "result") return 55;
+        if (t === "group") return 50;
+        if (t === "principal" || t === "section") return 40;
+        if (t === "secundaria" || t === "subsection") return 30;
+        return 0;
+      };
+
+      const scoreReadBlock = (block) => {
+        if (!block || typeof block !== "object") return -Infinity;
+        let score = 0;
+        score += typeRank(block);
+        if (block.manualFormula || block.__manualFormula) score += 5;
+        const totals = block.totals || null;
+        const magnitude =
+          Math.abs(toNumber(totals?.actualYTD)) +
+          Math.abs(toNumber(totals?.actualMonth)) +
+          Math.abs(toNumber(totals?.planMonth)) +
+          Math.abs(toNumber(totals?.prevMonth)) +
+          Math.abs(toNumber(totals?.planYTD)) +
+          Math.abs(toNumber(totals?.prevYTD));
+        if (magnitude > 0.001) score += 2;
+        if (block?.mostrarEnResumen === false || block?.visible === false) score -= 1;
+        return score;
+      };
+
+      const pickBestBlock = (blocks = []) => {
+        const list = Array.isArray(blocks)
+          ? blocks.filter((b) => b && typeof b === "object")
+          : [];
+        if (!list.length) return null;
+        let best = list[0];
+        let bestScore = scoreReadBlock(best);
+        for (let i = 1; i < list.length; i += 1) {
+          const cand = list[i];
+          const sc = scoreReadBlock(cand);
+          if (sc > bestScore) {
+            best = cand;
+            bestScore = sc;
+          }
+        }
+        return best;
+      };
+
+      const pickWritableBlock = (blocks = []) => {
+        const list = Array.isArray(blocks)
+          ? blocks.filter((b) => b && typeof b === "object")
+          : [];
+        let best = null;
+        let bestRank = -Infinity;
+        list.forEach((b) => {
+          if (esBloqueProtegido(b)) return;
+          const rank = typeRank(b);
+          if (rank > bestRank) {
+            best = b;
+            bestRank = rank;
+          }
+        });
+        return best;
+      };
+
+      const getBlocksByLabel = (label = "") =>
+        labelBuckets.get(normalizarLabel(label)) || [];
+
       const obtenerPorLabels = (candidatos = []) => {
         for (const lbl of candidatos) {
-          const block = labelMap.get(normalizarLabel(lbl));
-          if (block) return block.totals || totalesCero();
+          const blocks = getBlocksByLabel(lbl);
+          if (!blocks.length) continue;
+          const chosen = pickBestBlock(blocks);
+          if (chosen) return chosen.totals || totalesCero();
         }
         return totalesCero();
       };
+
       const asignarPrimero = (labels = [], totals) => {
+        if (!totals) return null;
         for (const lbl of labels) {
-          const block = labelMap.get(normalizarLabel(lbl));
-          if (block && totals) {
-            // Respetar fórmulas manuales: no sobreescribir totales si el backend marcó manualFormula
-            if (block.manualFormula || block.__manualFormula) continue;
+          const blocks = getBlocksByLabel(lbl);
+          if (!blocks.length) continue;
+          // Si existe cualquier bloque de operación o con fórmula manual para este label,
+          // asumir que el backend lo maneja y no sobreescribir.
+          if (blocks.some(esBloqueProtegido)) continue;
+          const block = pickWritableBlock(blocks);
+          if (block) {
             block.totals = totals;
             return block;
           }
@@ -4636,21 +4774,24 @@
       // Removed duplicate totalesCero definition
       const combinar = (sumarLabels = [], restarLabels = []) => {
         const res = totalesCero();
-        sumarLabels.forEach((lbl) =>
-          sumaTotales(res, labelMap.get(normalizarLabel(lbl))?.totals, 1)
-        );
-        restarLabels.forEach((lbl) =>
-          sumaTotales(res, labelMap.get(normalizarLabel(lbl))?.totals, -1)
-        );
+        sumarLabels.forEach((lbl) => {
+          const chosen = pickBestBlock(getBlocksByLabel(lbl));
+          sumaTotales(res, chosen?.totals, 1);
+        });
+        restarLabels.forEach((lbl) => {
+          const chosen = pickBestBlock(getBlocksByLabel(lbl));
+          sumaTotales(res, chosen?.totals, -1);
+        });
         return res;
       };
       const asignar = (label, totals) => {
-        const block = labelMap.get(normalizarLabel(label));
-        if (block && totals) {
-          // Respetar fórmulas manuales
-          if (block.manualFormula || block.__manualFormula) return;
-          block.totals = totals;
-        }
+        if (!totals) return;
+        const blocks = getBlocksByLabel(label);
+        if (!blocks.length) return;
+        // No sobreescribir operaciones / fórmulas del backend.
+        if (blocks.some(esBloqueProtegido)) return;
+        const block = pickWritableBlock(blocks);
+        if (block) block.totals = totals;
       };
 
       // Operating Results por plaza antes de los consolidados globales
@@ -4661,6 +4802,10 @@
         nw: combinar(INCOME_LABELS.nw, EXPENSE_LABELS.nw),
         ne: combinar(INCOME_LABELS.ne, EXPENSE_LABELS.ne),
       };
+      // Algunos capítulos usan labels genéricos "INCOME"/"EXPENSE" y exponen solo
+      // una fila "OPERATING RESULTS". Usar la variante MEX (incluye INCOME/EXPENSE)
+      // como fallback para esa fila.
+      asignarPrimero(["OPERATING RESULTS"], opResults.mex);
       asignarPrimero(["OPERATING RESULTS MEXICO"], opResults.mex);
       asignarPrimero(
         ["OPERATING RESULTS GUADALAJARA", "GDL OPERATING RESULTS"],
@@ -4807,6 +4952,7 @@
       } else if (esCapituloNoreste) {
         netResultsDefs.push({
           op: [
+            "OPERATING RESULTS",
             "OPERATING RESULTS NE",
             "NE OPERATING RESULTS",
             "OPERATING RESULTS NORESTE",
@@ -4818,6 +4964,7 @@
       } else if (esCapituloNoroeste) {
         netResultsDefs.push({
           op: [
+            "OPERATING RESULTS",
             "OPERATING RESULTS NORTHWEST",
             "OPERATING RESULTS NO",
             "OPERATING RESULTS NOROESTE",
@@ -4891,26 +5038,35 @@
       });
 
       if (esCapituloMexico) {
-        asignar(
-          "CONSOLIDATED INCOME",
-          combinar([
-            ...INCOME_LABELS.mex,
-            ...INCOME_LABELS.gdl,
-            ...INCOME_LABELS.mty,
-            ...INCOME_LABELS.nw,
-          ])
-        );
-        // CONSOLIDATED EXPENSE(S) = CDMX EXPENSE + intercompany lines (GDL/MTY/NW).
-        // Importante: estas líneas ya vienen con su signo (p.ej. negativas cuando son
-        // subsidios/transferencias). Para respetar la "ley de signos", se deben sumar tal cual.
-        const consolidatedExpenses = combinar([
-          ...EXPENSE_LABELS.mex,
-          ...EXPENSE_LABELS.gdl,
-          ...EXPENSE_LABELS.mty,
-          ...EXPENSE_LABELS.nw,
-        ]);
-        asignar("CONSOLIDATED EXPENSES", consolidatedExpenses);
-        asignar("CONSOLIDATED EXPENSE", consolidatedExpenses);
+        // En modo comparativa, el "Prev" se sobrepone desde otra empresa/layout y el backend
+        // no puede recalcular operaciones dependientes de esos valores. Recalcular aquí las
+        // filas consolidadas para mantener consistencia con lo mostrado (y como fallback si
+        // el backend no trae fórmula aplicada).
+        const consolidatedIncome = totalesCero();
+        [
+          INCOME_LABELS.mex,
+          INCOME_LABELS.gdl,
+          INCOME_LABELS.mty,
+          INCOME_LABELS.nw,
+          INCOME_LABELS.ne,
+        ].forEach((labels) => {
+          sumaTotales(consolidatedIncome, obtenerPorLabels(labels), 1);
+        });
+        asignar("CONSOLIDATED INCOME", consolidatedIncome);
+
+        const consolidatedExpense = totalesCero();
+        [
+          EXPENSE_LABELS.mex,
+          EXPENSE_LABELS.gdl,
+          EXPENSE_LABELS.mty,
+          EXPENSE_LABELS.nw,
+          EXPENSE_LABELS.ne,
+        ].forEach((labels) => {
+          sumaTotales(consolidatedExpense, obtenerPorLabels(labels), 1);
+        });
+        asignar("CONSOLIDATED EXPENSES", consolidatedExpense);
+        asignar("CONSOLIDATED EXPENSE", consolidatedExpense);
+
         asignar(
           "CONSOLIDATED OPERATING RESULTS",
           combinar([
@@ -5102,7 +5258,7 @@
         // ALWAYS recalculate principals to ensure manual formulas and aggregations are applied.
         // The recalcularPrincipales function internally handles manual overrides vs auto-sum.
         recalcularPrincipales(layout);
-        recalcularConsolidados(layout, capituloName);
+        recalcularConsolidados(layout, capituloName, { comparativaActiva });
 
         /* ORIGINAL CHECK:
         const autoCalcEnabled = Array.isArray(layout)
@@ -5642,6 +5798,7 @@
       const anioNumero = Number(anio);
       aplicarLayoutPersistente(empresaId, anioNumero, datos?.resumen || []);
       let resumenFinal = datos.resumen || [];
+      let comparativaActiva = false;
 
       if (empresaComparativaId) {
         try {
@@ -5661,6 +5818,7 @@
               resumenFinal,
               datosComparativo.resumen
             );
+            comparativaActiva = true;
           }
           limpiarErrorComparativa(empresaId);
         } catch (errorComparativo) {
@@ -5688,7 +5846,7 @@
         }
       }
 
-      renderResumen(resumenFinal, mesEntero);
+       renderResumen(resumenFinal, mesEntero, { comparativaActiva });
 
       // Esperar a que el DOM se actualice completamente antes de capturar el snapshot
       requestAnimationFrame(() => {
