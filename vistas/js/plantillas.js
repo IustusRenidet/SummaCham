@@ -935,9 +935,9 @@
     );
     const shouldRun = Boolean(
       esContextoCdmxResumen() &&
-        Number.isInteger(anio) &&
-        config.enabled !== false &&
-        config.autoApply?.enabled === true,
+      Number.isInteger(anio) &&
+      config.enabled !== false &&
+      config.autoApply?.enabled === true,
     );
 
     const signature = `${shouldRun ? "1" : "0"}:${intervaloMinutos}:${String(state.anio || "")}`;
@@ -1748,8 +1748,8 @@
   async function handleCdmxPresupuestoConsolidacionApply(eventOrOptions) {
     const options =
       eventOrOptions &&
-      typeof eventOrOptions === "object" &&
-      !("target" in eventOrOptions)
+        typeof eventOrOptions === "object" &&
+        !("target" in eventOrOptions)
         ? eventOrOptions
         : {};
     const isAuto = options.source === "auto";
@@ -1992,7 +1992,7 @@
       const canToast =
         shouldToastDefault ||
         now - cdmxConsolidacionAutoLastErrorToastAt >
-          CDMX_CONSOLIDACION_AUTO_ERROR_TOAST_COOLDOWN_MS;
+        CDMX_CONSOLIDACION_AUTO_ERROR_TOAST_COOLDOWN_MS;
       if (canToast) {
         showToast(error.message || "Error al aplicar consolidación", "error");
         if (!shouldToastDefault) {
@@ -4236,7 +4236,7 @@
         const showSumRowLabel =
           sumRowLabel &&
           normalizeOperationMatch(sumRowLabel) !==
-            normalizeOperationMatch(sectionName);
+          normalizeOperationMatch(sectionName);
         const sectionOpMatch = getRowOperationMatch(
           sectionName,
           "sum-row-sumavarios",
@@ -13827,8 +13827,13 @@
   // ==========================================
   function formatVersionTimestamp(value) {
     if (!value) return "";
-    const raw = value.toString();
-    const date = new Date(raw);
+    const raw = value.toString().trim();
+    // SQLite CURRENT_TIMESTAMP guarda en UTC con formato "YYYY-MM-DD HH:MM:SS" sin indicador
+    // de zona horaria. Al parsear sin 'Z' el navegador lo trata como hora local (incorrecto).
+    // Detectar este formato y agregar 'Z' para interpretarlo como UTC correctamente.
+    const esSqliteUtc = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(raw);
+    const iso = esSqliteUtc ? raw.replace(" ", "T") + "Z" : raw;
+    const date = new Date(iso);
     if (Number.isFinite(date.getTime())) {
       return date.toLocaleString();
     }
@@ -16468,9 +16473,15 @@
       return;
     }
 
-    // Leer valores del panel (modo estricto manual)
-    const claseInput = document.getElementById("editClaseOp");
-    const idInput = document.getElementById("editOperacionId");
+    // Leer valores del panel (modo estricto manual).
+    // CRÍTICO: usar el contexto del panel lateral para evitar leer el input homónimo
+    // del modal #formEditar que aparece ANTES en el DOM y tiene el valor viejo.
+    const panelCtx = dom.operationEditorPanel || document;
+    const getPanelInput = (id) =>
+      panelCtx.querySelector(`#${id}`) || document.getElementById(id);
+
+    const claseInput = getPanelInput("editClaseOp");
+    const idInput = getPanelInput("editOperacionId");
     const newClase = claseInput?.value?.trim() || "";
     const newIdInput = idInput?.value?.trim() || "";
     const markInvalid = (input) => {
@@ -16746,6 +16757,10 @@
     updateButtonStates();
     renderLayout();
     updateStats();
+    // Guardar inmediatamente (sin esperar el timer) para que el cambio persista
+    // aunque el usuario navegue a otro módulo antes de que el timer se dispare.
+    // El iframe se destruye al navegar, matando cualquier timer pendiente.
+    runAutoSave("edit-op");
     scheduleAutoSave("edit");
 
     bootstrap?.Offcanvas?.getInstance(dom.operationEditorPanel)?.hide();

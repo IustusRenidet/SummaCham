@@ -75,12 +75,11 @@
         }
 
         const metadata = this._obtenerMetadata();
-        const baseName = `${nombreArchivo}_${
-          metadata.empresaTexto || "Reporte"
-        }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(
-          /\s+/g,
-          "_"
-        );
+        const baseName = `${nombreArchivo}_${metadata.empresaTexto || "Reporte"
+          }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(
+            /\s+/g,
+            "_"
+          );
 
         // Usar método mejorado para construir la hoja con estilos
         const hoja = this._tableToSheetWithStyles(tablaElement);
@@ -146,12 +145,11 @@
         }
 
         const metadata = this._obtenerMetadata();
-        baseName = `${nombreArchivo}_${
-          metadata.empresaTexto || "Reporte"
-        }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(
-          /\s+/g,
-          "_"
-        );
+        baseName = `${nombreArchivo}_${metadata.empresaTexto || "Reporte"
+          }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(
+            /\s+/g,
+            "_"
+          );
 
         const chartBlocks = this._resolverBloquesGraficas(charts);
         const chartMeta = this._resolverMetaGraficaOperativa(charts, chartBlocks);
@@ -199,9 +197,9 @@
           baseBuffer instanceof ArrayBuffer
             ? baseBuffer
             : baseBuffer.buffer.slice(
-                baseBuffer.byteOffset,
-                baseBuffer.byteOffset + baseBuffer.byteLength
-              );
+              baseBuffer.byteOffset,
+              baseBuffer.byteOffset + baseBuffer.byteLength
+            );
 
         const params = new URLSearchParams({
           nombreArchivo,
@@ -330,12 +328,11 @@
         }
 
         const metadata = this._obtenerMetadata();
-        const baseName = `${nombreArchivo}_${
-          metadata.empresaTexto || "Reporte"
-        }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(
-          /\s+/g,
-          "_"
-        );
+        const baseName = `${nombreArchivo}_${metadata.empresaTexto || "Reporte"
+          }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(
+            /\s+/g,
+            "_"
+          );
 
         const datosOperativo = this._obtenerDatosOperativo(tablaElement);
         if (!datosOperativo.length) {
@@ -421,9 +418,8 @@
       if (!tablaElement) return false;
 
       const metadata = this._obtenerMetadata();
-      const baseName = `${nombreArchivo}_${
-        metadata.empresaTexto || "Reporte"
-      }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(/\s+/g, "_");
+      const baseName = `${nombreArchivo}_${metadata.empresaTexto || "Reporte"
+        }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(/\s+/g, "_");
 
       const datos = this._obtenerDatosOperativo(tablaElement);
       const labels = datos.map((item) => item.etiqueta);
@@ -727,12 +723,11 @@
         }
 
         const metadata = this._obtenerMetadata();
-        const baseName = `${nombreArchivo}_${
-          metadata.empresaTexto || "Reporte"
-        }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(
-          /\s+/g,
-          "_"
-        );
+        const baseName = `${nombreArchivo}_${metadata.empresaTexto || "Reporte"
+          }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(
+            /\s+/g,
+            "_"
+          );
 
         const libro = XLSX.utils.book_new();
         if (incluirTabla) {
@@ -773,11 +768,16 @@
     _tableToSheetWithStyles(tabla) {
       // PASO 1: Clonar la tabla y normalizar spans para conservar todas las columnas
       const tablaClone = tabla.cloneNode(true);
+
+      // PASO 1.5: Eliminar filas/celdas del clon que estén ocultas en la tabla real
+      // (aplica cuando hay modo sin-cuentas, columnas ocultas por JS, etc.)
+      this._eliminarElementosOcultos(tabla, tablaClone);
+
       const { matriz, aoa, merges } = this._extraerTablaComoMatriz(tablaClone);
 
       // PASO 2: Construir la hoja desde la matriz (sin perder encabezados)
       const sheet = XLSX.utils.aoa_to_sheet(aoa);
-      
+
       // PASO 2.5: Aplicar merges (rowspan/colspan)
       if (merges && merges.length > 0) {
         sheet["!merges"] = merges;
@@ -865,8 +865,8 @@
         },
       };
 
-      // PASO 3: Obtener las filas DOM para mapear estilos
-      const rows = Array.from(tabla.querySelectorAll("tr"));
+      // PASO 3: Obtener las filas DOM para mapear estilos (del clon limpio sin ocultos)
+      const rows = Array.from(tablaClone.querySelectorAll("tr"));
 
       // Crear mapa de fila DOM -> índice Excel (considerando thead/tbody)
       const rowStyleInfo = rows.map((tr, idx) => {
@@ -918,8 +918,8 @@
           const horizontal = esTextoIzquierda
             ? "left"
             : cell.t === "n"
-            ? "right"
-            : "center";
+              ? "right"
+              : "center";
           finalStyle.alignment = {
             ...(finalStyle.alignment || {}),
             horizontal,
@@ -1116,12 +1116,12 @@
       const chartLabels = Array.isArray(chartMeta?.labels) ? chartMeta.labels : [];
       const validChartBlocks = Array.isArray(chartBlocks)
         ? chartBlocks.filter(
-            (block) =>
-              Array.isArray(block?.labels) &&
-              block.labels.length > 0 &&
-              Array.isArray(block?.series) &&
-              block.series.length > 0
-          )
+          (block) =>
+            Array.isArray(block?.labels) &&
+            block.labels.length > 0 &&
+            Array.isArray(block?.series) &&
+            block.series.length > 0
+        )
         : [];
       let header = [label || "Elemento", "Ppto Acumulado", "Real Acumulado"];
       let filas = datos.map((item) => [item.etiqueta, item.presupuesto, item.real]);
@@ -1276,11 +1276,11 @@
         if (!chart?.data) return;
         const labels = Array.isArray(chart.data.labels)
           ? chart.data.labels.map((label, idx) => {
-              const clean = this._limpiarEtiquetaOperativo(
-                (label || "").toString().trim()
-              );
-              return clean || `Item ${idx + 1}`;
-            })
+            const clean = this._limpiarEtiquetaOperativo(
+              (label || "").toString().trim()
+            );
+            return clean || `Item ${idx + 1}`;
+          })
           : [];
         if (!labels.length) return;
 
@@ -1724,6 +1724,50 @@
       return parenNegative ? -Math.abs(numero) : numero;
     },
 
+    /**
+     * Elimina del clon las filas y celdas que estén computadas como display:none
+     * en la tabla original. Así el export Excel sólo exporta lo visible.
+     */
+    _eliminarElementosOcultos(originalTable, cloneTable) {
+      if (typeof window === "undefined") return;
+
+      const origRows = Array.from(originalTable.querySelectorAll("tr"));
+      const cloneRows = Array.from(cloneTable.querySelectorAll("tr"));
+
+      // Recorrer en orden inverso para que los remove() no desplacen índices
+      for (let i = origRows.length - 1; i >= 0; i--) {
+        const origRow = origRows[i];
+        const cloneRow = cloneRows[i];
+        if (!cloneRow) continue;
+
+        let rowHidden = false;
+        try {
+          rowHidden = window.getComputedStyle(origRow).display === "none";
+        } catch (e) { /* no aplica fuera del DOM */ }
+
+        if (rowHidden) {
+          cloneRow.parentElement?.removeChild(cloneRow);
+          continue;
+        }
+
+        // Revisar cada celda de la fila
+        const origCells = Array.from(origRow.querySelectorAll("td, th"));
+        const cloneCells = Array.from(cloneRow.querySelectorAll("td, th"));
+
+        for (let j = origCells.length - 1; j >= 0; j--) {
+          const cloneCell = cloneCells[j];
+          if (!cloneCell) continue;
+          let cellHidden = false;
+          try {
+            cellHidden = window.getComputedStyle(origCells[j]).display === "none";
+          } catch (e) { /* no aplica fuera del DOM */ }
+          if (cellHidden) {
+            cloneRow.removeChild(cloneCell);
+          }
+        }
+      }
+    },
+
     _extraerTablaComoMatriz(tabla) {
       const filas = Array.from(tabla.querySelectorAll("tr"));
       const matriz = [];
@@ -1989,8 +2033,8 @@
 
       return Boolean(
         window.jspdf?.jsPDF &&
-          (window.jspdf.jsPDF.API?.autoTable ||
-            window.jspdf.jsPDF.prototype?.autoTable)
+        (window.jspdf.jsPDF.API?.autoTable ||
+          window.jspdf.jsPDF.prototype?.autoTable)
       );
     },
 
@@ -2039,32 +2083,32 @@
         startY = Math.max(startY, metaY + 5);
       }
 
-        const { head, body, columnStyles, columnWidths } =
-          this._construirTablaPdf(tablaElement);
-        const resolvedColumnStyles = { ...(columnStyles || {}) };
-        if (Array.isArray(columnWidths) && columnWidths.length) {
-          const totalWidth = columnWidths.reduce(
-            (acc, width) => acc + (Number(width) || 0),
-            0
-          );
-          if (totalWidth > 0) {
-            const printableWidth =
-              pageWidth - tableMargins.left - tableMargins.right;
-            columnWidths.forEach((width, idx) => {
-              const value = Number(width) || 0;
-              if (!value) return;
-              const cellWidth = (value / totalWidth) * printableWidth;
-              resolvedColumnStyles[idx] = {
-                ...(resolvedColumnStyles[idx] || {}),
-                cellWidth,
-              };
-            });
-          }
+      const { head, body, columnStyles, columnWidths } =
+        this._construirTablaPdf(tablaElement);
+      const resolvedColumnStyles = { ...(columnStyles || {}) };
+      if (Array.isArray(columnWidths) && columnWidths.length) {
+        const totalWidth = columnWidths.reduce(
+          (acc, width) => acc + (Number(width) || 0),
+          0
+        );
+        if (totalWidth > 0) {
+          const printableWidth =
+            pageWidth - tableMargins.left - tableMargins.right;
+          columnWidths.forEach((width, idx) => {
+            const value = Number(width) || 0;
+            if (!value) return;
+            const cellWidth = (value / totalWidth) * printableWidth;
+            resolvedColumnStyles[idx] = {
+              ...(resolvedColumnStyles[idx] || {}),
+              cellWidth,
+            };
+          });
         }
-        if (typeof doc.autoTable === "function") {
-          doc.autoTable({
-            head: head.length ? head : undefined,
-            body: body.length ? body : undefined,
+      }
+      if (typeof doc.autoTable === "function") {
+        doc.autoTable({
+          head: head.length ? head : undefined,
+          body: body.length ? body : undefined,
           startY,
           styles: {
             fontSize: 7,
@@ -2087,7 +2131,7 @@
             minCellHeight: 10,
             overflow: "linebreak",
           },
-            columnStyles: resolvedColumnStyles,
+          columnStyles: resolvedColumnStyles,
           theme: "grid",
           margin: tableMargins,
           tableWidth: "auto",
@@ -2157,281 +2201,281 @@
       doc.save(fileName);
     },
 
-      _construirTablaPdf(tablaElement) {
-        const thead = tablaElement.querySelector("thead");
-        const tbody = tablaElement.querySelector("tbody");
-        const head = [];
-        const body = [];
+    _construirTablaPdf(tablaElement) {
+      const thead = tablaElement.querySelector("thead");
+      const tbody = tablaElement.querySelector("tbody");
+      const head = [];
+      const body = [];
 
-        const isHidden = (element) => {
-          if (!element) return true;
-          if (element.hidden) return true;
-          if (typeof window === "undefined" || !window.getComputedStyle) {
-            return false;
-          }
-          const style = window.getComputedStyle(element);
-          return style.display === "none" || style.visibility === "hidden";
+      const isHidden = (element) => {
+        if (!element) return true;
+        if (element.hidden) return true;
+        if (typeof window === "undefined" || !window.getComputedStyle) {
+          return false;
+        }
+        const style = window.getComputedStyle(element);
+        return style.display === "none" || style.visibility === "hidden";
+      };
+
+      const parseSpan = (cell, attr) => {
+        const raw = parseInt(cell.getAttribute(attr), 10);
+        if (Number.isInteger(raw) && raw > 0) return raw;
+        const direct = attr === "colspan" ? cell.colSpan : cell.rowSpan;
+        return Number.isInteger(direct) && direct > 0 ? direct : 1;
+      };
+
+      const parseRgb = (value) => {
+        if (!value) return null;
+        const rgbMatch = value.match(/rgba?\(([^)]+)\)/i);
+        if (rgbMatch) {
+          const parts = rgbMatch[1].split(",").map((part) => part.trim());
+          const r = Number(parts[0]);
+          const g = Number(parts[1]);
+          const b = Number(parts[2]);
+          const a = parts.length > 3 ? Number(parts[3]) : 1;
+          if ([r, g, b].some((num) => Number.isNaN(num))) return null;
+          return { r, g, b, a: Number.isNaN(a) ? 1 : a };
+        }
+        if (value[0] === "#") {
+          const hex = value.slice(1);
+          const expanded =
+            hex.length === 3
+              ? hex
+                .split("")
+                .map((c) => c + c)
+                .join("")
+              : hex;
+          if (expanded.length !== 6) return null;
+          const r = parseInt(expanded.slice(0, 2), 16);
+          const g = parseInt(expanded.slice(2, 4), 16);
+          const b = parseInt(expanded.slice(4, 6), 16);
+          if ([r, g, b].some((num) => Number.isNaN(num))) return null;
+          return { r, g, b, a: 1 };
+        }
+        return null;
+      };
+
+      const aplicarEstilosCalculados = (cell, styles) => {
+        if (!cell || !window.getComputedStyle) return;
+        const computed = window.getComputedStyle(cell);
+        const bg = parseRgb(computed.backgroundColor);
+        if (bg && bg.a > 0) {
+          styles.fillColor = [bg.r, bg.g, bg.b];
+        }
+        const fg = parseRgb(computed.color);
+        if (fg) {
+          styles.textColor = [fg.r, fg.g, fg.b];
+        }
+        const weight = computed.fontWeight || "";
+        const isBold = Number(weight) >= 600 || /bold/i.test(weight);
+        const isItalic = /italic/i.test(computed.fontStyle || "");
+        if (isBold && isItalic) {
+          styles.fontStyle = "bolditalic";
+        } else if (isBold) {
+          styles.fontStyle = "bold";
+        } else if (isItalic) {
+          styles.fontStyle = "italic";
+        }
+        const align = (computed.textAlign || "").toLowerCase();
+        const alignMap = {
+          left: "left",
+          right: "right",
+          center: "center",
+          start: "left",
+          end: "right",
         };
+        if (alignMap[align]) {
+          styles.halign = alignMap[align];
+        }
+      };
 
-        const parseSpan = (cell, attr) => {
-          const raw = parseInt(cell.getAttribute(attr), 10);
-          if (Number.isInteger(raw) && raw > 0) return raw;
-          const direct = attr === "colspan" ? cell.colSpan : cell.rowSpan;
-          return Number.isInteger(direct) && direct > 0 ? direct : 1;
-        };
-
-        const parseRgb = (value) => {
-          if (!value) return null;
-          const rgbMatch = value.match(/rgba?\(([^)]+)\)/i);
-          if (rgbMatch) {
-            const parts = rgbMatch[1].split(",").map((part) => part.trim());
-            const r = Number(parts[0]);
-            const g = Number(parts[1]);
-            const b = Number(parts[2]);
-            const a = parts.length > 3 ? Number(parts[3]) : 1;
-            if ([r, g, b].some((num) => Number.isNaN(num))) return null;
-            return { r, g, b, a: Number.isNaN(a) ? 1 : a };
-          }
-          if (value[0] === "#") {
-            const hex = value.slice(1);
-            const expanded =
-              hex.length === 3
-                ? hex
-                    .split("")
-                    .map((c) => c + c)
-                    .join("")
-                : hex;
-            if (expanded.length !== 6) return null;
-            const r = parseInt(expanded.slice(0, 2), 16);
-            const g = parseInt(expanded.slice(2, 4), 16);
-            const b = parseInt(expanded.slice(4, 6), 16);
-            if ([r, g, b].some((num) => Number.isNaN(num))) return null;
-            return { r, g, b, a: 1 };
-          }
-          return null;
-        };
-
-        const aplicarEstilosCalculados = (cell, styles) => {
-          if (!cell || !window.getComputedStyle) return;
-          const computed = window.getComputedStyle(cell);
-          const bg = parseRgb(computed.backgroundColor);
-          if (bg && bg.a > 0) {
-            styles.fillColor = [bg.r, bg.g, bg.b];
-          }
-          const fg = parseRgb(computed.color);
-          if (fg) {
-            styles.textColor = [fg.r, fg.g, fg.b];
-          }
-          const weight = computed.fontWeight || "";
-          const isBold = Number(weight) >= 600 || /bold/i.test(weight);
-          const isItalic = /italic/i.test(computed.fontStyle || "");
-          if (isBold && isItalic) {
-            styles.fontStyle = "bolditalic";
-          } else if (isBold) {
-            styles.fontStyle = "bold";
-          } else if (isItalic) {
-            styles.fontStyle = "italic";
-          }
-          const align = (computed.textAlign || "").toLowerCase();
-          const alignMap = {
-            left: "left",
-            right: "right",
-            center: "center",
-            start: "left",
-            end: "right",
-          };
-          if (alignMap[align]) {
-            styles.halign = alignMap[align];
-          }
-        };
-
-        const headerRows = thead ? Array.from(thead.querySelectorAll("tr")) : [];
-        const headerInfo = (() => {
-          let best = null;
-          headerRows.forEach((row) => {
-            let colIndex = 0;
-            const cols = [];
-            Array.from(row.children).forEach((cell) => {
-              const colSpan = parseSpan(cell, "colspan");
-              const hidden = isHidden(cell);
-              for (let i = 0; i < colSpan; i += 1) {
-                cols[colIndex + i] = !hidden;
-              }
-              colIndex += colSpan;
-            });
-            if (!best || colIndex > best.count) {
-              best = { cols, count: colIndex, row };
-            }
-          });
-          return best;
-        })();
-
-        const visibleColumns =
-          headerInfo?.cols && headerInfo.cols.length ? headerInfo.cols : null;
-        const countVisibleSpan = (start, span) => {
-          if (!visibleColumns) return span;
-          let count = 0;
-          for (let i = 0; i < span; i += 1) {
-            if (visibleColumns[start + i] !== false) count += 1;
-          }
-          return count;
-        };
-
-        const columnWidths = [];
-        if (headerInfo?.row) {
+      const headerRows = thead ? Array.from(thead.querySelectorAll("tr")) : [];
+      const headerInfo = (() => {
+        let best = null;
+        headerRows.forEach((row) => {
           let colIndex = 0;
-          Array.from(headerInfo.row.children).forEach((cell) => {
+          const cols = [];
+          Array.from(row.children).forEach((cell) => {
             const colSpan = parseSpan(cell, "colspan");
             const hidden = isHidden(cell);
-            const rect = cell.getBoundingClientRect();
-            const baseWidth = rect?.width || cell.offsetWidth || 0;
-            const perCol = colSpan ? baseWidth / colSpan : baseWidth;
             for (let i = 0; i < colSpan; i += 1) {
-              if (!hidden) {
-                columnWidths[colIndex + i] = perCol;
-              }
+              cols[colIndex + i] = !hidden;
             }
             colIndex += colSpan;
           });
+          if (!best || colIndex > best.count) {
+            best = { cols, count: colIndex, row };
+          }
+        });
+        return best;
+      })();
+
+      const visibleColumns =
+        headerInfo?.cols && headerInfo.cols.length ? headerInfo.cols : null;
+      const countVisibleSpan = (start, span) => {
+        if (!visibleColumns) return span;
+        let count = 0;
+        for (let i = 0; i < span; i += 1) {
+          if (visibleColumns[start + i] !== false) count += 1;
         }
-        const visibleColumnWidths = [];
-        if (columnWidths.length) {
-          columnWidths.forEach((width, idx) => {
-            if (!visibleColumns || visibleColumns[idx] !== false) {
-              visibleColumnWidths.push(width);
+        return count;
+      };
+
+      const columnWidths = [];
+      if (headerInfo?.row) {
+        let colIndex = 0;
+        Array.from(headerInfo.row.children).forEach((cell) => {
+          const colSpan = parseSpan(cell, "colspan");
+          const hidden = isHidden(cell);
+          const rect = cell.getBoundingClientRect();
+          const baseWidth = rect?.width || cell.offsetWidth || 0;
+          const perCol = colSpan ? baseWidth / colSpan : baseWidth;
+          for (let i = 0; i < colSpan; i += 1) {
+            if (!hidden) {
+              columnWidths[colIndex + i] = perCol;
             }
-          });
-        }
+          }
+          colIndex += colSpan;
+        });
+      }
+      const visibleColumnWidths = [];
+      if (columnWidths.length) {
+        columnWidths.forEach((width, idx) => {
+          if (!visibleColumns || visibleColumns[idx] !== false) {
+            visibleColumnWidths.push(width);
+          }
+        });
+      }
 
-        if (thead) {
-          headerRows.forEach((row, rowIndex) => {
-            if (isHidden(row)) return;
-            const headerRow = [];
-            const cells = Array.from(row.querySelectorAll("th"));
-            let colIndex = 0;
-            cells.forEach((cell) => {
-              const colSpan = parseSpan(cell, "colspan");
-              const rowSpan = parseSpan(cell, "rowspan");
-              const visibleSpan = countVisibleSpan(colIndex, colSpan);
-              colIndex += colSpan;
-              if (isHidden(cell) || visibleSpan <= 0) {
-                return;
-              }
-              const maxRowSpan = Math.max(
-                1,
-                Math.min(rowSpan, headerRows.length - rowIndex)
-              );
-              const texto = cell.textContent.replace(/\s+/g, " ").trim();
-              const styles = {
-                halign: "center",
-                valign: "middle",
-                fontStyle: "bold",
-                fontSize: 7,
-                cellPadding: 2,
-              };
-              aplicarEstilosCalculados(cell, styles);
-              headerRow.push({
-                content: texto,
-                colSpan: visibleSpan,
-                rowSpan: maxRowSpan,
-                styles,
-              });
-            });
-            if (headerRow.length) head.push(headerRow);
-          });
-        }
-
-        if (tbody) {
-          const rows = Array.from(tbody.querySelectorAll("tr"));
-          rows.forEach((row) => {
-            if (isHidden(row)) return;
-            const rowData = [];
-            const cells = Array.from(row.querySelectorAll("td"));
-            let colIndex = 0;
-            cells.forEach((cell, idx) => {
-              const colSpan = parseSpan(cell, "colspan");
-              const rowSpan = parseSpan(cell, "rowspan");
-              const visibleSpan = countVisibleSpan(colIndex, colSpan);
-              colIndex += colSpan;
-              if (isHidden(cell) || visibleSpan <= 0) {
-                return;
-              }
-              const texto = cell.textContent.replace(/\s+/g, " ").trim();
-              const styles = { fontSize: 6, cellPadding: 1.5 };
-
-              if (row.classList.contains("section-header-row")) {
-                styles.fillColor = [30, 58, 138];
-                styles.textColor = 255;
-                styles.fontStyle = "bold";
-                styles.fontSize = 7;
-              } else if (row.classList.contains("subsection-row")) {
-                styles.fillColor = [219, 234, 254];
-                styles.textColor = [30, 58, 138];
-                styles.fontStyle = "bold";
-              } else if (row.classList.contains("sum-row")) {
-                styles.fillColor = [254, 243, 199];
-                styles.textColor = [120, 53, 15];
-                styles.fontStyle = "bold";
-              } else if (row.classList.contains("highlight-bright")) {
-                styles.fillColor = [254, 202, 202];
-                styles.textColor = [153, 27, 27];
-                styles.fontStyle = "bold";
-                styles.fontSize = 7;
-              } else if (row.classList.contains("highlight-primary")) {
-                styles.fillColor = [167, 243, 208];
-                styles.textColor = [6, 95, 70];
-                styles.fontStyle = "bold";
-              } else if (row.classList.contains("highlight-secondary")) {
-                styles.fillColor = [165, 243, 252];
-                styles.textColor = [14, 116, 144];
-                styles.fontStyle = "bold";
-              }
-
-              const leftAligned =
-                idx <= 1 ||
-                cell.classList.contains("text-start") ||
-                cell.classList.contains("account-column") ||
-                cell.classList.contains("account-column-header") ||
-                cell.classList.contains("label-cell");
-              styles.halign = leftAligned ? "left" : "right";
-              styles.valign = "middle";
-              aplicarEstilosCalculados(cell, styles);
-
-              const cellConfig = { content: texto, styles };
-              if (visibleSpan > 1) {
-                cellConfig.colSpan = visibleSpan;
-              }
-              if (rowSpan > 1) {
-                cellConfig.rowSpan = rowSpan;
-              }
-              rowData.push(cellConfig);
-            });
-            if (rowData.length) body.push(rowData);
-          });
-        }
-
-        const columnStyles = {};
-        if (visibleColumns && visibleColumns.length) {
-          let visibleIdx = 0;
-          visibleColumns.forEach((isVisible, originalIdx) => {
-            if (isVisible === false) return;
-            if (originalIdx <= 1) {
-              columnStyles[visibleIdx] = { halign: "left" };
+      if (thead) {
+        headerRows.forEach((row, rowIndex) => {
+          if (isHidden(row)) return;
+          const headerRow = [];
+          const cells = Array.from(row.querySelectorAll("th"));
+          let colIndex = 0;
+          cells.forEach((cell) => {
+            const colSpan = parseSpan(cell, "colspan");
+            const rowSpan = parseSpan(cell, "rowspan");
+            const visibleSpan = countVisibleSpan(colIndex, colSpan);
+            colIndex += colSpan;
+            if (isHidden(cell) || visibleSpan <= 0) {
+              return;
             }
-            visibleIdx += 1;
+            const maxRowSpan = Math.max(
+              1,
+              Math.min(rowSpan, headerRows.length - rowIndex)
+            );
+            const texto = cell.textContent.replace(/\s+/g, " ").trim();
+            const styles = {
+              halign: "center",
+              valign: "middle",
+              fontStyle: "bold",
+              fontSize: 7,
+              cellPadding: 2,
+            };
+            aplicarEstilosCalculados(cell, styles);
+            headerRow.push({
+              content: texto,
+              colSpan: visibleSpan,
+              rowSpan: maxRowSpan,
+              styles,
+            });
           });
-        } else {
-          columnStyles[0] = { halign: "left" };
-          columnStyles[1] = { halign: "left" };
-        }
+          if (headerRow.length) head.push(headerRow);
+        });
+      }
 
-        return {
-          head,
-          body,
-          columnStyles,
-          columnWidths: visibleColumnWidths,
-        };
-      },
+      if (tbody) {
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        rows.forEach((row) => {
+          if (isHidden(row)) return;
+          const rowData = [];
+          const cells = Array.from(row.querySelectorAll("td"));
+          let colIndex = 0;
+          cells.forEach((cell, idx) => {
+            const colSpan = parseSpan(cell, "colspan");
+            const rowSpan = parseSpan(cell, "rowspan");
+            const visibleSpan = countVisibleSpan(colIndex, colSpan);
+            colIndex += colSpan;
+            if (isHidden(cell) || visibleSpan <= 0) {
+              return;
+            }
+            const texto = cell.textContent.replace(/\s+/g, " ").trim();
+            const styles = { fontSize: 6, cellPadding: 1.5 };
+
+            if (row.classList.contains("section-header-row")) {
+              styles.fillColor = [30, 58, 138];
+              styles.textColor = 255;
+              styles.fontStyle = "bold";
+              styles.fontSize = 7;
+            } else if (row.classList.contains("subsection-row")) {
+              styles.fillColor = [219, 234, 254];
+              styles.textColor = [30, 58, 138];
+              styles.fontStyle = "bold";
+            } else if (row.classList.contains("sum-row")) {
+              styles.fillColor = [254, 243, 199];
+              styles.textColor = [120, 53, 15];
+              styles.fontStyle = "bold";
+            } else if (row.classList.contains("highlight-bright")) {
+              styles.fillColor = [254, 202, 202];
+              styles.textColor = [153, 27, 27];
+              styles.fontStyle = "bold";
+              styles.fontSize = 7;
+            } else if (row.classList.contains("highlight-primary")) {
+              styles.fillColor = [167, 243, 208];
+              styles.textColor = [6, 95, 70];
+              styles.fontStyle = "bold";
+            } else if (row.classList.contains("highlight-secondary")) {
+              styles.fillColor = [165, 243, 252];
+              styles.textColor = [14, 116, 144];
+              styles.fontStyle = "bold";
+            }
+
+            const leftAligned =
+              idx <= 1 ||
+              cell.classList.contains("text-start") ||
+              cell.classList.contains("account-column") ||
+              cell.classList.contains("account-column-header") ||
+              cell.classList.contains("label-cell");
+            styles.halign = leftAligned ? "left" : "right";
+            styles.valign = "middle";
+            aplicarEstilosCalculados(cell, styles);
+
+            const cellConfig = { content: texto, styles };
+            if (visibleSpan > 1) {
+              cellConfig.colSpan = visibleSpan;
+            }
+            if (rowSpan > 1) {
+              cellConfig.rowSpan = rowSpan;
+            }
+            rowData.push(cellConfig);
+          });
+          if (rowData.length) body.push(rowData);
+        });
+      }
+
+      const columnStyles = {};
+      if (visibleColumns && visibleColumns.length) {
+        let visibleIdx = 0;
+        visibleColumns.forEach((isVisible, originalIdx) => {
+          if (isVisible === false) return;
+          if (originalIdx <= 1) {
+            columnStyles[visibleIdx] = { halign: "left" };
+          }
+          visibleIdx += 1;
+        });
+      } else {
+        columnStyles[0] = { halign: "left" };
+        columnStyles[1] = { halign: "left" };
+      }
+
+      return {
+        head,
+        body,
+        columnStyles,
+        columnWidths: visibleColumnWidths,
+      };
+    },
 
     _resolverModoGraficasExcel() {
       const combined = document.querySelector(
@@ -3135,7 +3179,7 @@
 
     _prepararCanvasCaptura(canvas) {
       if (!canvas || !canvas.isConnected || !window.getComputedStyle) {
-        return () => {};
+        return () => { };
       }
       const mutados = [];
       const revelar = (node) => {
@@ -3151,7 +3195,7 @@
         // Detectar panel operativo oculto (usado en módulos departamentales)
         const esPanelOperativoOculto =
           (node.classList?.contains("operativo-panel") ||
-           node.classList?.contains("operativo-sidebar")) &&
+            node.classList?.contains("operativo-sidebar")) &&
           !node.classList?.contains("open") &&
           !node.classList?.contains("show");
         // Detectar contenedor de chart-block oculto
@@ -3349,8 +3393,8 @@
         type === "error"
           ? "text-bg-danger"
           : type === "warning"
-          ? "text-bg-warning"
-          : "text-bg-success";
+            ? "text-bg-warning"
+            : "text-bg-success";
       if (window.ToastManager?.show) {
         window.ToastManager.show(message, bgClass);
         return;
