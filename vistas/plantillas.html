@@ -3485,6 +3485,28 @@
               </select>
             </div>
             <div class="mb-3">
+              <label for="chartEditorSourceType" class="form-label">Fuente de datos</label>
+              <select class="form-select" id="chartEditorSourceType">
+                <option value="snapshot">Snapshot (mes actual)</option>
+                <option value="mensual">Mensual (12 meses)</option>
+              </select>
+              <div class="form-text">
+                <em>Mensual</em> muestra la progresión acumulada mes a mes.
+                <em>Snapshot</em> compara valores del mes seleccionado.
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="chartEditorSeriesMode" class="form-label">Modo de series</label>
+              <select class="form-select" id="chartEditorSeriesMode">
+                <option value="columns">Columnas como series (Real, Plan, AA)</option>
+                <option value="rows">Filas como series (una barra por fila)</option>
+              </select>
+              <div class="form-text">
+                <em>Columnas</em>: cada tipo de dato (Real, Plan, Año Ant.) es una serie; las filas se suman.
+                <em>Filas</em>: cada fila seleccionada es una serie independiente.
+              </div>
+            </div>
+            <div class="mb-3">
               <div class="form-check">
                 <input
                   class="form-check-input"
@@ -3638,6 +3660,8 @@
           "chartEditorModuleSelect",
         );
         const typeSelect = document.getElementById("chartEditorTypeSelect");
+        const sourceTypeSelect = document.getElementById("chartEditorSourceType");
+        const seriesModeSelect = document.getElementById("chartEditorSeriesMode");
         const enabledCheck = document.getElementById("chartEditorEnabledCheck");
         const editorSubtitleEl = document.getElementById("chartEditorSubtitle");
         const snapshotSourceSection = document.getElementById(
@@ -5036,6 +5060,10 @@
           if (subtitleInput) subtitleInput.value = currentChart.subtitle || "";
           if (typeSelect)
             typeSelect.value = currentChart.chartType || "inherit";
+          if (sourceTypeSelect)
+            sourceTypeSelect.value = currentChart.sourceType || "snapshot";
+          if (seriesModeSelect)
+            seriesModeSelect.value = currentChart.seriesMode || "columns";
           if (enabledCheck)
             enabledCheck.checked = currentChart.enabled !== false;
           clearValidationState();
@@ -5222,7 +5250,8 @@
               subtitle: subtitleInput?.value?.trim() || "",
               chartType: typeSelect?.value || "inherit",
               enabled: enabledCheck?.checked !== false,
-              sourceType: currentChart?.sourceType || "snapshot",
+              sourceType: sourceTypeSelect?.value || currentChart?.sourceType || "snapshot",
+              seriesMode: seriesModeSelect?.value || currentChart?.seriesMode || "columns",
               seriesKeys: selectedSeries,
               series,
               rows: selectedRows.map((row) => ({
