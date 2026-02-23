@@ -16592,10 +16592,8 @@
 
     // Ubicación (manual): sección/subsección donde aparece la operación.
     // Nota: La fórmula se guarda en `formula_json`; `SECCION` se usa como compat/placement.
-    const placementSectionEl = document.getElementById("editOpParentSection");
-    const placementSubsectionEl = document.getElementById(
-      "editOpParentSubsection",
-    );
+    const placementSectionEl = getPanelInput("editOpParentSection");
+    const placementSubsectionEl = getPanelInput("editOpParentSubsection");
     if (placementSectionEl) {
       const placementSection = (placementSectionEl.value || "")
         .toString()
@@ -16621,7 +16619,7 @@
     }
 
     // Actualizar etiquetas de filas según lo capturado en Aparición
-    const tipoSelect = document.getElementById("editOperacionTipo");
+    const tipoSelect = getPanelInput("editOperacionTipo");
     const tipoSeleccionado = (tipoSelect?.value || "").trim();
     const tipoInicial = (tipoSelect?.dataset.initialTipo || "").trim();
     const tipoNorm = normalizeAparicionValue(tipoSeleccionado);
@@ -16659,7 +16657,7 @@
 
     if (tipoSelect && (tipoChanged || tipoNorm === "libre")) {
       OP_ROW_FIELDS.forEach(({ field }) => {
-        const input = document.getElementById(rowLabelInputId(field));
+        const input = getPanelInput(rowLabelInputId(field));
         const value = normalizeRowLabelInput(input?.value);
         if (selectedField && field === selectedField) {
           op[field] = value || etiquetaFallback;
@@ -16671,7 +16669,7 @@
       });
     } else {
       OP_ROW_FIELDS.forEach(({ field }) => {
-        const input = document.getElementById(rowLabelInputId(field));
+        const input = getPanelInput(rowLabelInputId(field));
         if (!input) return;
         const rawTrimmed = (input.value || "").trim();
         const rawKey = normalizeOperationMatch(rawTrimmed);
@@ -16706,19 +16704,19 @@
     applyStrictFormulaTermsToOperation(op, selectedTerms, selectedTokens);
 
     // Visibilidad y estilo
-    const visibleInput = document.getElementById("editOperacionVisible");
+    const visibleInput = getPanelInput("editOperacionVisible");
     if (visibleInput) {
       op.visible = Boolean(visibleInput.checked);
     }
 
-    const estiloFilaInput = document.getElementById("editOperacionEstilo");
+    const estiloFilaInput = getPanelInput("editOperacionEstilo");
     if (estiloFilaInput?.value) {
       op.rowStyle = estiloFilaInput.value;
       op.estilo_fila = estiloFilaInput.value;
     }
 
     // Signo (multiplicador global de la operación)
-    const signoInput = document.getElementById("editOperacionSigno");
+    const signoInput = getPanelInput("editOperacionSigno");
     if (signoInput) {
       signoInput.classList.remove("is-invalid");
       const raw = (signoInput.value || "").toString().trim();
