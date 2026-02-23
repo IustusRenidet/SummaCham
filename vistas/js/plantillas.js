@@ -3641,8 +3641,6 @@
     );
     const resumenSectionOpsEmbedded =
       normalizeOperationMatch(state.modulo || "") === "resumen";
-    // DEBUG TEMPORAL
-    console.error("[DEBUG] buildPreviewRowsForEditor → modulo:", state.modulo, "resumenSectionOpsEmbedded:", resumenSectionOpsEmbedded, "operacionesRaw.length:", operacionesRaw.length, "state.operaciones.length:", (state.operaciones || []).length);
 
     const placeholderDefs = [];
     const cuentas = [];
@@ -3844,18 +3842,6 @@
       const hasSumTypeField = ROW_LABEL_FIELDS.some((f) => Boolean(op?.[f]));
       const hasStyleField = Boolean(op?.["rowStyle"] || op?.["estilo_fila"]);
       const isResultNetOperation = hasStyleField || !hasSumTypeField;
-      // DEBUG TEMPORAL
-      if (resumenSectionOpsEmbedded) {
-        console.error("[DEBUG-FILTER] op:", JSON.stringify({
-          Clase: op?.Clase,
-          OperacionId: op?.OperacionId,
-          hasSumTypeField,
-          hasStyleField,
-          isResultNetOperation,
-          isHeaderLinked: isHeaderLinkedOperation(op),
-          placementLooksLikeHeader,
-        }));
-      }
       if (
         resumenSectionOpsEmbedded &&
         !isResultNetOperation &&
@@ -16532,6 +16518,20 @@
     op.OperacionId = desiredId;
     op.operacion_etiqueta = effectiveClase;
     op.Etiqueta = effectiveClase;
+
+    // Actualizar también los campos tipo-fila (sum-row, sum-row-operativo, etc.)
+    // que getOperationDisplayName() lee ANTES que op.Etiqueta/Clase.
+    // Sin esto, el nombre visible no cambia en la lista aunque op.Clase sí se actualice.
+    const CAMPOS_TIPO_FILA_OP = [
+      "sum-row", "sum-row-sumavarios", "sum-row-sumavarios2",
+      "sum-row-sumavarios-consolidado", "sum-row-operativo",
+      "sum-row-operativo-consolidado", "result-row", "net-row", "result-net-row",
+    ];
+    CAMPOS_TIPO_FILA_OP.forEach((campo) => {
+      if (typeof op[campo] === "string" && op[campo].trim()) {
+        op[campo] = effectiveClase;
+      }
+    });
 
     if (
       oldId &&

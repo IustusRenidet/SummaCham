@@ -90,9 +90,9 @@ const construirRefIdOperacion = (operationId = "") => {
 const esFormulaV2 = (value) =>
   Boolean(
     value &&
-      typeof value === "object" &&
-      Number(value.version) === FORMULA_V2_VERSION &&
-      Array.isArray(value.tokens),
+    typeof value === "object" &&
+    Number(value.version) === FORMULA_V2_VERSION &&
+    Array.isArray(value.tokens),
   );
 
 const parseJsonSeguro = (raw) => {
@@ -401,10 +401,10 @@ const convertirTerminosLegacyATokensV2 = (terms = [], context = {}) => {
     const operator = FORMULA_OPERADORES_VALIDOS.has(rawOperator)
       ? rawOperator
       : rawOperator === "×"
-      ? "*"
-      : rawOperator === "÷"
-      ? "/"
-      : "+";
+        ? "*"
+        : rawOperator === "÷"
+          ? "/"
+          : "+";
 
     const resolved = resolverRefIdTerminoLegacy(term, context);
     if (!resolved?.token) return;
@@ -439,10 +439,10 @@ const normalizarTokenV2 = (token = {}, context = {}) => {
       valueRaw === "×"
         ? "*"
         : valueRaw === "÷"
-        ? "/"
-        : FORMULA_OPERADORES_VALIDOS.has(valueRaw)
-        ? valueRaw
-        : "";
+          ? "/"
+          : FORMULA_OPERADORES_VALIDOS.has(valueRaw)
+            ? valueRaw
+            : "";
     if (!value) return null;
     return { token: { kind: FORMULA_KIND_OP, value }, unresolved: false };
   }
@@ -488,12 +488,12 @@ const normalizarTokenV2 = (token = {}, context = {}) => {
       refType === "cuenta"
         ? "account"
         : refType === "operacion"
-        ? "operation"
-        : refType === "subseccion"
-        ? "subsection"
-        : refType === "seccion"
-        ? "section"
-        : refType || "section";
+          ? "operation"
+          : refType === "subseccion"
+            ? "subsection"
+            : refType === "seccion"
+              ? "section"
+              : refType || "section";
 
     if (!refId) {
       return {
@@ -554,10 +554,10 @@ const convertirTokensV2ATerminosLegacy = (tokens = []) => {
         refType === "subsection"
           ? "section"
           : refType === "operation"
-          ? "operation"
-          : refType === "account"
-          ? "account"
-          : "section";
+            ? "operation"
+            : refType === "account"
+              ? "account"
+              : "section";
       terms.push({
         operator: pendingOperator,
         type: legacyType,
@@ -1832,8 +1832,8 @@ const obtenerLayout = ({
     const ordenBase = Number.isFinite(ordenPresentacion)
       ? ordenPresentacion
       : Number.isFinite(Number(op.orden))
-      ? Math.floor(Number(op.orden) / 100)
-      : idx;
+        ? Math.floor(Number(op.orden) / 100)
+        : idx;
     const operacionId = op.OperacionId || op.Clase || op.clase;
     const operacionEtiqueta =
       op.operacion_etiqueta || op.Clase || operacionId || "Operacion";
@@ -1862,12 +1862,12 @@ const obtenerLayout = ({
         formula_json: tipoIgnorado ? undefined : parsedFormula.formulaRaw || undefined,
         formula_v2:
           !tipoIgnorado &&
-          parsedFormula.formulaTokens &&
-          parsedFormula.formulaTokens.length
+            parsedFormula.formulaTokens &&
+            parsedFormula.formulaTokens.length
             ? {
-                version: FORMULA_V2_VERSION,
-                tokens: parsedFormula.formulaTokens,
-              }
+              version: FORMULA_V2_VERSION,
+              tokens: parsedFormula.formulaTokens,
+            }
             : undefined,
         orden: ordenBase,
         orden_presentacion:
@@ -1919,9 +1919,9 @@ const obtenerLayout = ({
       operacionesMap[mapKey].formula_v2 =
         parsedFormula.formulaTokens && parsedFormula.formulaTokens.length
           ? {
-              version: FORMULA_V2_VERSION,
-              tokens: parsedFormula.formulaTokens,
-            }
+            version: FORMULA_V2_VERSION,
+            tokens: parsedFormula.formulaTokens,
+          }
           : undefined;
       operacionesMap[mapKey].__hasManualFormula = true;
       formulaTerms.forEach((term, termIdx) => {
@@ -1967,14 +1967,14 @@ const obtenerLayout = ({
       (cuentas || []).forEach((cuenta) => {
         const principal = normalizarClave(
           cuenta["SECCION Principal"] ||
-            cuenta.SECCION ||
-            cuenta.seccion_principal ||
-            ""
+          cuenta.SECCION ||
+          cuenta.seccion_principal ||
+          ""
         );
         const secundaria = normalizarClave(
           cuenta["SECCION Secundaria"] ||
-            cuenta.seccion_secundaria ||
-            ""
+          cuenta.seccion_secundaria ||
+          ""
         );
         if (principal) principalSet.add(principal);
         if (principal && secundaria)
@@ -1993,8 +1993,8 @@ const obtenerLayout = ({
         const orden = Number.isFinite(ordenPresentacion)
           ? Number(ordenPresentacion)
           : Number.isFinite(Number(row.orden))
-          ? Number(row.orden)
-          : idx;
+            ? Number(row.orden)
+            : idx;
         if (!principalInfo.has(principalKey)) {
           principalInfo.set(principalKey, {
             name: principalRaw,
@@ -2504,7 +2504,48 @@ const guardarCuentas = ({
   });
 
   transaction(cuentas);
+
+  // Invalidar años adyacentes autocloados para módulos RESUMEN/SUMMARY.
+  // Cuando el usuario guarda cuentas en el año X, cualquier clon de X±1 queda
+  // desactualizado. Al borrarlo, el siguiente acceso lo recrea fresco desde X.
+  invalidarAniosClonadosAdyacentes(empresaCanonica, modulo, anioNumero);
+
   return { success: true, insertadas: cuentas.length, capitulo: capituloCanonico };
+};
+
+/**
+ * Elimina los layouts de años adyacentes autocloados (anio-1 y anio+1) para
+ * módulos que soportan autoclonar (RESUMEN / SUMMARY). Así, cualquier cambio
+ * guardado en el año base siempre se propaga a la columna comparativa en la
+ * siguiente consulta, que re-crea el clon desde los datos actualizados.
+ *
+ * @param {string} empresaCanonica  – empresa_id ya resuelta (ej. 'EMPRESA02')
+ * @param {string} modulo           – nombre del módulo
+ * @param {number} anio             – año editado
+ */
+const invalidarAniosClonadosAdyacentes = (empresaCanonica, modulo, anio) => {
+  const MOD = (modulo || "").toString().trim().toUpperCase();
+  if (MOD !== "RESUMEN" && MOD !== "SUMMARY") return;
+
+  const anioNum = Number(anio);
+  if (!Number.isInteger(anioNum)) return;
+
+  const delOps = db.prepare(
+    `DELETE FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ?`
+  );
+  const delCuentas = db.prepare(
+    `DELETE FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ?`
+  );
+  const delSecciones = db.prepare(
+    `DELETE FROM layout_secciones WHERE empresa_id = ? AND modulo = ? AND anio = ?`
+  );
+
+  // Borrar año anterior (columna comparativa) y año siguiente, si existen.
+  for (const anioAdyacente of [anioNum - 1, anioNum + 1]) {
+    delOps.run(empresaCanonica, modulo, anioAdyacente);
+    delCuentas.run(empresaCanonica, modulo, anioAdyacente);
+    delSecciones.run(empresaCanonica, modulo, anioAdyacente);
+  }
 };
 
 /**
@@ -2605,8 +2646,8 @@ const guardarOperaciones = ({
       )
         ? Number(op.orden_presentacion)
         : Number.isFinite(Number(op.orden))
-        ? Number(op.orden)
-        : index;
+          ? Number(op.orden)
+          : index;
       const baseOrden = ordenPresentacion;
       const visible = op.visible === false ? 0 : 1;
       let insertados = 0;
@@ -2711,6 +2752,11 @@ const guardarOperaciones = ({
   });
 
   transaction(operaciones);
+
+  // Invalidar años adyacentes autocloados para módulos RESUMEN/SUMMARY.
+  // Garantiza que la columna comparativa siempre use las fórmulas actualizadas.
+  invalidarAniosClonadosAdyacentes(empresaCanonica, modulo, Number(anio));
+
   return { success: true, insertadas: operaciones.length };
 };
 
@@ -3580,6 +3626,22 @@ const renombrarSeccion = ({
           `
         ).run(nuevoNombreClean, ...scope, nombreOriginalClean);
 
+        // Update row-label operations (sum-row-sumavarios, result-row, etc.)
+        db.prepare(
+          `
+            UPDATE layout_operaciones
+            SET operacion_label = ?
+            WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+              AND operacion_tipo IN (
+                'sum-row', 'sum-row-sumavarios', 'sum-row-sumavarios2',
+                'sum-row-sumavarios-consolidado', 'sum-row-operativo',
+                'sum-row-operativo-consolidado', 'result-row', 'net-row',
+                'net-row-adicional', 'result-net-row'
+              )
+              AND operacion_label = ?
+          `
+        ).run(nuevoNombreClean, ...scope, nombreOriginalClean);
+
         actualizarFormulaJson(scope);
       } else {
         // Update layout_cuentas for secundaria
@@ -3629,6 +3691,22 @@ const renombrarSeccion = ({
             SET operacion_label = ?
             WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
               AND operacion_tipo IN ('parentSubsection', 'parent_subsection')
+              AND operacion_label = ?
+          `
+        ).run(nuevoNombreClean, ...scope, nombreOriginalClean);
+
+        // Update row-label operations tied to this subsection
+        db.prepare(
+          `
+            UPDATE layout_operaciones
+            SET operacion_label = ?
+            WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+              AND operacion_tipo IN (
+                'sum-row', 'sum-row-sumavarios', 'sum-row-sumavarios2',
+                'sum-row-sumavarios-consolidado', 'sum-row-operativo',
+                'sum-row-operativo-consolidado', 'result-row', 'net-row',
+                'net-row-adicional', 'result-net-row'
+              )
               AND operacion_label = ?
           `
         ).run(nuevoNombreClean, ...scope, nombreOriginalClean);

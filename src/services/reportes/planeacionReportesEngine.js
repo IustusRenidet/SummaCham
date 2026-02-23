@@ -32,7 +32,7 @@ const normalizarCapituloParam = (valor = "") => {
 
 // Empresas comparativas comparten el layout de su empresa principal.
 const COMPARATIVA_A_PRINCIPAL_LAYOUT = {
-  empresa9:  "empresa1",
+  empresa9: "empresa1",
   empresa10: "empresa2",
   empresa11: "empresa3",
   empresa12: "empresa4",
@@ -163,22 +163,22 @@ function cargarDefinicionesModulo(
   try {
     const capitulos = capitulosIniciales;
 
-      if (capitulos && capitulos.length > 0) {
-        const definiciones = {};
-        const operacionesGlobales = [];
-        const capitulosEtiquetas = [];
+    if (capitulos && capitulos.length > 0) {
+      const definiciones = {};
+      const operacionesGlobales = [];
+      const capitulosEtiquetas = [];
 
-        for (const cap of capitulos) {
-          const capituloEtiqueta =
-            cap && typeof cap === "object" ? cap.capitulo : cap;
-          if (!capituloEtiqueta) continue;
-          capitulosEtiquetas.push(capituloEtiqueta);
+      for (const cap of capitulos) {
+        const capituloEtiqueta =
+          cap && typeof cap === "object" ? cap.capitulo : cap;
+        if (!capituloEtiqueta) continue;
+        capitulosEtiquetas.push(capituloEtiqueta);
 
-          const layout = layoutService.obtenerLayout({
-            empresaId,
-            modulo,
-            anio,
-            capitulo: capituloEtiqueta,
+        const layout = layoutService.obtenerLayout({
+          empresaId,
+          modulo,
+          anio,
+          capitulo: capituloEtiqueta,
         });
 
         const cuentasLayout =
@@ -209,66 +209,66 @@ function cargarDefinicionesModulo(
             ? layout["SUMA DE VARIAS SECCIONES"]
             : [];
 
-          if (operacionesLayout.length) {
-            operacionesLayout.forEach((operacion) =>
-              operacionesGlobales.push(operacion),
+        if (operacionesLayout.length) {
+          operacionesLayout.forEach((operacion) =>
+            operacionesGlobales.push(operacion),
+          );
+        }
+      }
+
+      // Si el año solicitado tiene cuentas/secciones pero no operaciones, intentar
+      // reutilizar operaciones de un año adyacente (típico cuando el seed solo
+      // carga cuentas sin "SUMA DE VARIAS SECCIONES").
+      if (!operacionesGlobales.length && puedeAutoclonarLayout(modulo)) {
+        const anioNumero = Number(anio);
+        const candidatos = [
+          Number.isInteger(anioNumero) ? anioNumero + 1 : null,
+          Number.isInteger(anioNumero) ? anioNumero - 1 : null,
+        ].filter((v) => Number.isInteger(v));
+
+        const cargarOperacionesDeAnio = (anioOps) => {
+          const ops = [];
+          for (const capituloEtiqueta of capitulosEtiquetas) {
+            let layoutOps = null;
+            try {
+              layoutOps = layoutService.obtenerLayout({
+                empresaId,
+                modulo,
+                anio: anioOps,
+                capitulo: capituloEtiqueta,
+              });
+            } catch (_) {
+              layoutOps = null;
+            }
+            const operacionesLayout = Array.isArray(layoutOps && layoutOps.operaciones)
+              ? layoutOps.operaciones
+              : Array.isArray(layoutOps && layoutOps["SUMA DE VARIAS SECCIONES"])
+                ? layoutOps["SUMA DE VARIAS SECCIONES"]
+                : [];
+            if (operacionesLayout.length) {
+              operacionesLayout.forEach((operacion) => ops.push(operacion));
+            }
+          }
+          return ops;
+        };
+
+        for (const anioOps of candidatos) {
+          const ops = cargarOperacionesDeAnio(anioOps);
+          if (ops.length) {
+            ops.forEach((op) => operacionesGlobales.push(op));
+            console.warn(
+              `[planeacionReportesEngine] Operaciones faltantes para ${modulo}/${empresaId}/${anio}; usando operaciones de ${anioOps}.`,
             );
+            break;
           }
         }
+      }
 
-        // Si el año solicitado tiene cuentas/secciones pero no operaciones, intentar
-        // reutilizar operaciones de un año adyacente (típico cuando el seed solo
-        // carga cuentas sin "SUMA DE VARIAS SECCIONES").
-        if (!operacionesGlobales.length && puedeAutoclonarLayout(modulo)) {
-          const anioNumero = Number(anio);
-          const candidatos = [
-            Number.isInteger(anioNumero) ? anioNumero + 1 : null,
-            Number.isInteger(anioNumero) ? anioNumero - 1 : null,
-          ].filter((v) => Number.isInteger(v));
+      if (operacionesGlobales.length) {
+        definiciones["SUMA DE VARIAS SECCIONES"] = operacionesGlobales;
+      }
 
-          const cargarOperacionesDeAnio = (anioOps) => {
-            const ops = [];
-            for (const capituloEtiqueta of capitulosEtiquetas) {
-              let layoutOps = null;
-              try {
-                layoutOps = layoutService.obtenerLayout({
-                  empresaId,
-                  modulo,
-                  anio: anioOps,
-                  capitulo: capituloEtiqueta,
-                });
-              } catch (_) {
-                layoutOps = null;
-              }
-              const operacionesLayout = Array.isArray(layoutOps && layoutOps.operaciones)
-                ? layoutOps.operaciones
-                : Array.isArray(layoutOps && layoutOps["SUMA DE VARIAS SECCIONES"])
-                  ? layoutOps["SUMA DE VARIAS SECCIONES"]
-                  : [];
-              if (operacionesLayout.length) {
-                operacionesLayout.forEach((operacion) => ops.push(operacion));
-              }
-            }
-            return ops;
-          };
-
-          for (const anioOps of candidatos) {
-            const ops = cargarOperacionesDeAnio(anioOps);
-            if (ops.length) {
-              ops.forEach((op) => operacionesGlobales.push(op));
-              console.warn(
-                `[planeacionReportesEngine] Operaciones faltantes para ${modulo}/${empresaId}/${anio}; usando operaciones de ${anioOps}.`,
-              );
-              break;
-            }
-          }
-        }
-
-        if (operacionesGlobales.length) {
-          definiciones["SUMA DE VARIAS SECCIONES"] = operacionesGlobales;
-        }
-
-        return definiciones;
+      return definiciones;
     }
   } catch (error) {
     console.error(
@@ -2204,37 +2204,35 @@ const construirReporteResumen = (
     }
     return Array.from(variants);
   };
+
   const rebuildMapSecciones = () => {
     mapSecciones.clear();
     mapRefSecciones.clear();
     principalList.forEach((principal) => {
       if (!principal?.label) return;
-      // En modoFormulaEstricto, los principales arrancan en 0 salvo que una operación
-      // los haya actualizado explícitamente (__manualFormula=true). Para la evaluación
-      // de fórmulas libres (ej. "OPERATING RESULTS = INCOME - EXPENSE"), necesitamos
-      // que mapSecciones tenga el auto-sum de hijos para los principales sin fórmula,
-      // de lo contrario la referencia a "INCOME" daría 0 y el resultado sería incorrecto.
       const principalTotals = (modoFormulaEstricto && !principal.__manualFormula)
-        ? (principal.children || []).reduce(
+        ? (() => {
+          return (principal.children || []).reduce(
             (acc, child) => {
               acc.actualMonth += Number(child.totalActualMonth ?? 0);
-              acc.planMonth   += Number(child.totalPlanMonth   ?? 0);
-              acc.prevMonth   += Number(child.totalPrevMonth   ?? 0);
-              acc.actualYTD   += Number(child.totalActualYTD   ?? 0);
-              acc.planYTD     += Number(child.totalPlanYTD     ?? 0);
-              acc.prevYTD     += Number(child.totalPrevYTD     ?? 0);
+              acc.planMonth += Number(child.totalPlanMonth ?? 0);
+              acc.prevMonth += Number(child.totalPrevMonth ?? 0);
+              acc.actualYTD += Number(child.totalActualYTD ?? 0);
+              acc.planYTD += Number(child.totalPlanYTD ?? 0);
+              acc.prevYTD += Number(child.totalPrevYTD ?? 0);
               return acc;
             },
             crearAcumulador()
-          )
+          );
+        })()
         : {
-            actualMonth: principal.actualMonth,
-            planMonth:   principal.planMonth,
-            prevMonth:   principal.prevMonth,
-            actualYTD:   principal.actualYTD,
-            planYTD:     principal.planYTD,
-            prevYTD:     principal.prevYTD,
-          };
+          actualMonth: principal.actualMonth,
+          planMonth: principal.planMonth,
+          prevMonth: principal.prevMonth,
+          actualYTD: principal.actualYTD,
+          planYTD: principal.planYTD,
+          prevYTD: principal.prevYTD,
+        };
       mapSecciones.set(normalizarTexto(principal.label), principalTotals);
       const principalRefId = construirRefIdSeccion(principal.label);
       if (principalRefId) {
@@ -2585,8 +2583,6 @@ const construirReporteResumen = (
               parentHint,
             });
             if (byOperation) return byOperation;
-            // En modo estricto las principales empiezan en 0 pero sus children sí
-            // tienen datos (cuenta-acumulados). Sumar los children directamente.
             if (tipoNorm === "section" || tipoNorm === "seccion") {
               const principalNode = obtenerPrincipalPorEtiqueta(valor);
               if (principalNode?.children?.length) {
@@ -3430,11 +3426,11 @@ const construirReporteResumen = (
             return (principal.children || []).reduce(
               (acc, child) => {
                 acc.actualMonth += Number(child.totalActualMonth ?? 0);
-                acc.planMonth   += Number(child.totalPlanMonth   ?? 0);
-                acc.prevMonth   += Number(child.totalPrevMonth   ?? 0);
-                acc.actualYTD   += Number(child.totalActualYTD   ?? 0);
-                acc.planYTD     += Number(child.totalPlanYTD     ?? 0);
-                acc.prevYTD     += Number(child.totalPrevYTD     ?? 0);
+                acc.planMonth += Number(child.totalPlanMonth ?? 0);
+                acc.prevMonth += Number(child.totalPrevMonth ?? 0);
+                acc.actualYTD += Number(child.totalActualYTD ?? 0);
+                acc.planYTD += Number(child.totalPlanYTD ?? 0);
+                acc.prevYTD += Number(child.totalPrevYTD ?? 0);
                 return acc;
               },
               crearAcumulador(),
@@ -3442,11 +3438,11 @@ const construirReporteResumen = (
           }
           return {
             actualMonth: principal.actualMonth,
-            planMonth:   principal.planMonth,
-            prevMonth:   principal.prevMonth,
-            actualYTD:   principal.actualYTD,
-            planYTD:     principal.planYTD,
-            prevYTD:     principal.prevYTD,
+            planMonth: principal.planMonth,
+            prevMonth: principal.prevMonth,
+            actualYTD: principal.actualYTD,
+            planYTD: principal.planYTD,
+            prevYTD: principal.prevYTD,
           };
         })(),
         children: principal.children,

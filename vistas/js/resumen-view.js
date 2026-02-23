@@ -2972,7 +2972,10 @@
       const key = normalizarEtiquetaComparativa(
         capitulo.label || capitulo.capitulo || ""
       );
-      const comparativo = mapaComparativo.get(key) || resumenComp[0];
+      // Solo aplicar comparativo cuando hay match exacto por etiqueta.
+      // El fallback resumenComp[0] causaba datos incorrectos en vistas con
+      // múltiples capítulos donde algunos no tienen equivalente en el comparativo.
+      const comparativo = mapaComparativo.get(key) || null;
       if (comparativo) {
         // Comparativo solo llena columnas "Prev" (AA), no reemplaza Actual
         aplicarComparativoCapitulo(capitulo, comparativo);
