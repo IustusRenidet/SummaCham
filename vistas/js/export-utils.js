@@ -150,7 +150,7 @@
   const EXPORT_JOBS_STORAGE_KEY = "export_utils_pending_jobs_v1";
   const EXPORT_JOBS_ENDPOINT_STATE_KEY = "export_utils_jobs_endpoint_state_v1";
   const EXPORT_JOBS_ENDPOINT_UNAVAILABLE_TTL_MS = 45 * 1000;
-  const LOCAL_EXPORT_TIMEOUT_MS = 120000;
+  const LOCAL_EXPORT_TIMEOUT_MS = 300000;
   const EXPORT_PAGE_SESSION_ID = `page-${Date.now()}-${Math.random()
     .toString(36)
     .slice(2, 8)}`;
@@ -349,6 +349,18 @@
     _debugLog(...args) {
       if (!this._debugEnabled()) return;
       console.log(...args);
+    },
+
+    _usarExportJobsSegundoPlano() {
+      try {
+        const forced = localStorage.getItem("export_utils_force_background_jobs");
+        if (forced === "1") return true;
+        if (forced === "0") return false;
+      } catch (_) {
+        // ignore storage errors
+      }
+      const host = String(window.location.hostname || "").toLowerCase();
+      return host === "localhost" || host === "127.0.0.1";
     },
 
     /**
@@ -1367,6 +1379,14 @@
     },
 
     async _crearTrabajoExportNativo({ tipo = "operativo", params, binaryBody }) {
+      if (!this._usarExportJobsSegundoPlano()) {
+        this._setExportJobsEndpointState("unavailable");
+        const err = new Error(
+          "Exportación en segundo plano deshabilitada en este entorno."
+        );
+        err.code = "EXPORT_JOBS_UNAVAILABLE";
+        throw err;
+      }
       if (this._getExportJobsEndpointState() === "unavailable") {
         const err = new Error(
           "Export jobs endpoint no disponible en este servidor."
@@ -1456,13 +1476,37 @@
       this._pendingJobsInProgress.add(id);
       try {
         const status = await this._consultarTrabajoExport(id);
-        if (!status) return;
+        if (!status) {
+          const pollFailures = (Number(job?.pollFailures) || 0) + 1;
+          if (pollFailures >= 5) {
+            this._actualizarTrabajoPendiente(id, {
+              status: "failed",
+              progress: 100,
+              pollFailures,
+              message: "Sin respuesta del servidor de exportación",
+              error:
+                "No fue posible consultar el estado del trabajo. Reintenta exportar.",
+            });
+            this._showToast(
+              "No se pudo consultar la exportación en segundo plano. Reintenta.",
+              "warning"
+            );
+          } else {
+            this._actualizarTrabajoPendiente(id, {
+              pollFailures,
+              message:
+                job?.message || "Esperando respuesta del servidor de exportación...",
+            });
+          }
+          return;
+        }
         this._jobsStatusCache.set(id, status);
         this._actualizarTrabajoPendiente(id, {
           status: status.status || "queued",
           progress: Number.isFinite(Number(status.progress))
             ? Number(status.progress)
             : 0,
+          pollFailures: 0,
           message: status.message || "",
           error: status.error || "",
           filename: status.filename || "",
@@ -1485,8 +1529,28 @@
               downloadedAt: Date.now(),
               status: "completed",
               message: "Completado",
+              downloadAttempts: 0,
             });
             this._showToast("Exportación completada y descargada.");
+          } else {
+            const downloadAttempts = (Number(job?.downloadAttempts) || 0) + 1;
+            if (downloadAttempts >= 5) {
+              this._actualizarTrabajoPendiente(id, {
+                status: "completed",
+                downloadAttempts,
+                message: "Listo para descargar manualmente",
+              });
+              this._showToast(
+                "El archivo está listo. Descárgalo desde el panel de Descargas.",
+                "warning"
+              );
+            } else {
+              this._actualizarTrabajoPendiente(id, {
+                status: "running",
+                downloadAttempts,
+                message: "Reintentando descarga...",
+              });
+            }
           }
         }
       } finally {
@@ -1500,7 +1564,12 @@
       const run = async () => {
         const list = this._leerTrabajosPendientes();
         if (!list.length) return;
-        for (const job of list.filter((item) => item?.status !== "completed")) {
+        for (const job of list.filter((item) => {
+          if (!item) return false;
+          if (item.status === "failed") return false;
+          if (item.status === "completed" && item.downloadedAt) return false;
+          return true;
+        })) {
           await this._procesarTrabajoPendiente(job);
           await sleep(120);
         }

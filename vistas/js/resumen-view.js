@@ -7431,19 +7431,22 @@
         percent: 75,
       });
       const fetchNativeWithTimeout = async (url, options = {}) => {
+        const timeoutMs = 300000;
         if (
           window.ExportUtils &&
           typeof window.ExportUtils._fetchWithTimeout === "function"
         ) {
-          return window.ExportUtils._fetchWithTimeout(url, options, 120000);
+          return window.ExportUtils._fetchWithTimeout(url, options, timeoutMs);
         }
         const controller = new AbortController();
-        const timer = window.setTimeout(() => controller.abort(), 120000);
+        const timer = window.setTimeout(() => controller.abort(), timeoutMs);
         try {
           return await fetch(url, { ...options, signal: controller.signal });
         } catch (error) {
           if (error?.name === "AbortError") {
-            throw new Error("Tiempo de espera agotado (120s).");
+            throw new Error(
+              `Tiempo de espera agotado (${Math.round(timeoutMs / 1000)}s).`
+            );
           }
           throw error;
         } finally {
