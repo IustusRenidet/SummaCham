@@ -359,8 +359,8 @@
       } catch (_) {
         // ignore storage errors
       }
-      const host = String(window.location.hostname || "").toLowerCase();
-      return host === "localhost" || host === "127.0.0.1";
+      // Default: habilitado. Si el endpoint no existe/no responde, ya cae a modo directo.
+      return true;
     },
 
     /**
