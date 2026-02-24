@@ -98,8 +98,8 @@ const resolverPowerShell = () => {
 };
 
 const EXCEL_NATIVE_TIMEOUT_MS = Math.max(
-  30000,
-  Number(process.env.EXCEL_NATIVE_TIMEOUT_MS || 180000)
+  10000,
+  Number(process.env.EXCEL_NATIVE_TIMEOUT_MS || 20000)
 );
 
 const killProcessTree = (proc) =>
