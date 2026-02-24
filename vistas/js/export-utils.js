@@ -150,7 +150,7 @@
   const EXPORT_JOBS_STORAGE_KEY = "export_utils_pending_jobs_v1";
   const EXPORT_JOBS_ENDPOINT_STATE_KEY = "export_utils_jobs_endpoint_state_v1";
   const EXPORT_JOBS_ENDPOINT_UNAVAILABLE_TTL_MS = 45 * 1000;
-  const LOCAL_EXPORT_TIMEOUT_MS = 60000;
+  const LOCAL_EXPORT_TIMEOUT_MS = 300000;
   const EXPORT_PAGE_SESSION_ID = `page-${Date.now()}-${Math.random()
     .toString(36)
     .slice(2, 8)}`;

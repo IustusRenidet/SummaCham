@@ -7427,7 +7427,7 @@
         percent: 75,
       });
       const fetchNativeWithTimeout = async (url, options = {}) => {
-        const timeoutMs = 60000;
+        const timeoutMs = 300000;
         if (
           window.ExportUtils &&
           typeof window.ExportUtils._fetchWithTimeout === "function"

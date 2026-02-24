@@ -99,7 +99,7 @@ const resolverPowerShell = () => {
 
 const EXCEL_NATIVE_TIMEOUT_MS = Math.max(
   10000,
-  Number(process.env.EXCEL_NATIVE_TIMEOUT_MS || 60000)
+  Number(process.env.EXCEL_NATIVE_TIMEOUT_MS || 300000)
 );
 
 const normalizarTimeoutMs = (value, fallbackMs = EXCEL_NATIVE_TIMEOUT_MS) => {

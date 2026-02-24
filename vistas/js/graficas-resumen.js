@@ -47,13 +47,13 @@
   };
   const API_ENDPOINT = `${base}/api/reportes/resumen`;
   const API_ANIOS = `${base}/api/saldos/anios`;
-  const DEFAULT_NATIVE_EXCEL_TIMEOUT_MS = 60000;
+  const DEFAULT_NATIVE_EXCEL_TIMEOUT_MS = 300000;
   const NATIVE_EXCEL_TIMEOUT_MS = (() => {
     try {
       const raw = localStorage.getItem("graficas_resumen_native_timeout_ms");
       const value = Number(raw);
       if (Number.isFinite(value) && value > 0) {
-        return Math.max(5000, Math.min(120000, Math.round(value)));
+        return Math.max(5000, Math.min(300000, Math.round(value)));
       }
     } catch (_) {
       // ignore storage errors
