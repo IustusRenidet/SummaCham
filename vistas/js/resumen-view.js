@@ -4132,6 +4132,23 @@
 
       const cleanTokenText = (raw = "") =>
         (raw || "").toString().replace(/['"]/g, "").trim();
+      const normalizeType = (block = {}) =>
+        (block?.type || block?.tipo || "")
+          .toString()
+          .trim()
+          .toLowerCase();
+      const isSecundariaBlock = (block = {}) => {
+        const t = normalizeType(block);
+        return t === "secundaria" || t === "subsection" || t === "sum-row";
+      };
+      const isOperationBlock = (block = {}) => {
+        const t = normalizeType(block);
+        return t === "operation" || t === "operacion";
+      };
+      const isCuentaBlock = (block = {}) => {
+        const t = normalizeType(block);
+        return t === "cuenta" || t === "account";
+      };
 
       const typeRank = (blockType = "") => {
         const t = (blockType || "").toString().toLowerCase();
@@ -4144,6 +4161,21 @@
         if (t === "secundaria") return 30;
         return 0;
       };
+
+      const currentParentHints = new Set();
+      const addCurrentParentHint = (value) => {
+        const key = normalizarLabel(value || "");
+        if (key) currentParentHints.add(key);
+      };
+      addCurrentParentHint(currentBlock?.parentSection);
+      addCurrentParentHint(currentBlock?.SECCION);
+      addCurrentParentHint(currentBlock?.seccion);
+      if (normalizeType(currentBlock) === "principal") {
+        addCurrentParentHint(currentBlock?.label);
+      }
+      if (normalizeType(currentBlock) === "section") {
+        addCurrentParentHint(currentBlock?.label);
+      }
 
       const resolveReferenceNumber = (tokenText) => {
         const cleaned = cleanTokenText(tokenText);
@@ -4183,6 +4215,9 @@
           const nombre = (b?.nombre || "").toString().trim();
           const id = (b?.id || "").toString().trim();
           const clase = (b?.Clase || b?.clase || "").toString().trim();
+          const candidateParentKey = normalizarLabel(
+            b?.parentSection || b?.SECCION || b?.seccion || ""
+          );
 
           if (label && label === cleaned) score += 60;
           if (label && label.toLowerCase() === tokenLower) score += 55;
@@ -4199,6 +4234,20 @@
           if (Math.abs(val) > 0.001) score += 3;
 
           if (b?.manualFormula || b?.__manualFormula) score += 1;
+
+          // Cuando hay etiquetas repetidas (ej. "Membership" en INCOME y EXPENSE),
+          // priorizar el bloque del mismo parentSection del bloque actual.
+          if (currentParentHints.size && candidateParentKey) {
+            if (currentParentHints.has(candidateParentKey)) score += 120;
+            else score -= 25;
+          }
+
+          // Para fórmulas en principales, preferir subsecciones sobre operaciones/cuentas.
+          if (normalizeType(currentBlock) === "principal") {
+            if (isSecundariaBlock(b)) score += 20;
+            if (isOperationBlock(b)) score -= 20;
+            if (isCuentaBlock(b)) score -= 10;
+          }
 
           return score;
         };
@@ -4680,9 +4729,13 @@
         };
         const cols = ["actualMonth", "planMonth", "actualYTD", "planYTD"];
         const n = subsecciones.length;
-        const totalComb = 1 << n;
-        let bestMask = 0;
+        // Permitir también coeficiente 0 (omitir subsección) para cubrir fórmulas
+        // manuales donde un término fue eliminado y no puede representarse con solo +/-.
+        // codificación ternaria por subsección: 0 -> -1, 1 -> 0, 2 -> +1
+        const totalComb = Math.pow(3, n);
+        let bestSigns = new Array(n).fill(0);
         let bestError = Number.POSITIVE_INFINITY;
+        let bestActiveTerms = Number.POSITIVE_INFINITY;
 
         for (let mask = 0; mask < totalComb; mask += 1) {
           const pred = {
@@ -4691,8 +4744,15 @@
             actualYTD: 0,
             planYTD: 0,
           };
+          const signs = new Array(n).fill(0);
+          let encoded = mask;
+          let activeTerms = 0;
           for (let i = 0; i < n; i += 1) {
-            const sign = (mask >> i) & 1 ? -1 : 1;
+            const digit = encoded % 3;
+            encoded = Math.floor(encoded / 3);
+            const sign = digit === 0 ? -1 : digit === 2 ? 1 : 0;
+            signs[i] = sign;
+            if (sign !== 0) activeTerms += 1;
             const t = subsecciones[i]?.totals || {};
             pred.actualMonth += toNumber(t.actualMonth) * sign;
             pred.planMonth += toNumber(t.planMonth) * sign;
@@ -4705,9 +4765,13 @@
             const diff = (pred[col] - target[col]) / scale;
             err += diff * diff;
           });
-          if (err < bestError) {
+          const improvedError = err < bestError - 1e-12;
+          const tieByError = Math.abs(err - bestError) <= 1e-12;
+          const improvedComplexity = activeTerms < bestActiveTerms;
+          if (improvedError || (tieByError && improvedComplexity)) {
             bestError = err;
-            bestMask = mask;
+            bestSigns = signs;
+            bestActiveTerms = activeTerms;
           }
         }
 
@@ -4718,7 +4782,7 @@
           const block = subsecciones[i];
           const key = buildSecKeyLocal(block?.parentSection || "", block?.label || "");
           if (!key) continue;
-          const sign = (bestMask >> i) & 1 ? -1 : 1;
+          const sign = Number(bestSigns[i]) || 0;
           signs.set(key, sign);
         }
         return signs;

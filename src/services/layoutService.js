@@ -1130,6 +1130,10 @@ const resolverEmpresaLayoutSource = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
   return LAYOUT_EMPRESA_ALIAS[canonica] || canonica;
 };
 
+const obtenerEmpresaLayoutSource = (
+  empresaId = CANONICAL_EMPRESA_DEFAULT,
+) => resolverEmpresaLayoutSource(empresaId);
+
 const existeLayoutAnio = ({ empresaId, modulo, anio }) => {
   const row = db
     .prepare(
@@ -4211,6 +4215,7 @@ module.exports = {
   existeLayout,
   obtenerEstadisticasLayout,
   obtenerEmpresaCanonica,
+  obtenerEmpresaLayoutSource,
   crearLayoutDemo,
   actualizarCuenta,
   eliminarCuenta,

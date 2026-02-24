@@ -80,7 +80,7 @@ const construirLayout = ({
 });
 
 const consultarFilasPorCapitulo = ({
-  empresaCanonica,
+  empresaLayoutSource,
   modulo,
   anio,
   capitulo,
@@ -99,7 +99,7 @@ const consultarFilasPorCapitulo = ({
     ORDER BY orden ASC, cuenta ASC
   `,
   );
-  return stmt.all(empresaCanonica, modulo, anio, capitulo);
+  return stmt.all(empresaLayoutSource, modulo, anio, capitulo);
 };
 
 const listarCapitulos = ({ empresaId, modulo, anio }) => {
@@ -119,9 +119,9 @@ const obtenerLayout = ({ empresaId, modulo, anio }) => {
     return null;
   }
 
-  const empresaCanonica = layoutService.obtenerEmpresaCanonica(empresaId);
+  const empresaLayoutSource = layoutService.obtenerEmpresaLayoutSource(empresaId);
   const capitulos = listarCapitulos({
-    empresaId: empresaCanonica,
+    empresaId: empresaLayoutSource,
     modulo,
     anio: anioNumero,
   });
@@ -131,7 +131,7 @@ const obtenerLayout = ({ empresaId, modulo, anio }) => {
 
   capitulos.forEach((capitulo) => {
     const cuentas = consultarFilasPorCapitulo({
-      empresaCanonica,
+      empresaLayoutSource,
       modulo,
       anio: anioNumero,
       capitulo,
@@ -146,7 +146,7 @@ const obtenerLayout = ({ empresaId, modulo, anio }) => {
   });
 
   const layout = construirLayout({
-    empresaId: empresaCanonica,
+    empresaId: empresaLayoutSource,
     modulo,
     anio: anioNumero,
     filas,
@@ -167,7 +167,7 @@ const guardarLayout = ({ empresaId, modulo, anio, layout }) => {
     return false;
   }
 
-  const empresaCanonica = layoutService.obtenerEmpresaCanonica(empresaId);
+  const empresaLayoutSource = layoutService.obtenerEmpresaLayoutSource(empresaId);
   const updatePorCapitulo = db.prepare(
     `
     UPDATE layout_cuentas
@@ -212,7 +212,7 @@ const guardarLayout = ({ empresaId, modulo, anio, layout }) => {
       ).run(
         descripcion || cuenta,
         orden,
-        empresaCanonica,
+        empresaLayoutSource,
         modulo,
         anioNumero,
         cuenta,
@@ -230,7 +230,7 @@ const guardarLayout = ({ empresaId, modulo, anio, layout }) => {
 
   if (omitidas) {
     console.warn(
-      `[layoutsService] ${omitidas} cuentas no existen en layout_cuentas (${empresaCanonica}/${modulo}/${anioNumero}).`,
+      `[layoutsService] ${omitidas} cuentas no existen en layout_cuentas (${empresaLayoutSource}/${modulo}/${anioNumero}).`,
     );
   }
 

@@ -1614,7 +1614,8 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
     const fs = require("fs");
     const path = require("path");
 
-    const empresaCanonica = layoutService.obtenerEmpresaCanonica(empresaId);
+    const empresaLayoutSource =
+      layoutService.obtenerEmpresaLayoutSource(empresaId);
     const anioNumero = parseInt(anio);
 
     // Obtener cuentas del layout
@@ -1629,7 +1630,7 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
       ORDER BY COALESCE(orden_presentacion, orden), capitulo, seccion_principal, seccion_secundaria
     `,
       )
-      .all(empresaCanonica, modulo, anioNumero);
+      .all(empresaLayoutSource, modulo, anioNumero);
 
     // Obtener operaciones del layout
     const operaciones = db
@@ -1642,7 +1643,7 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
       ORDER BY COALESCE(orden_presentacion, orden), orden
     `,
       )
-      .all(empresaCanonica, modulo, anioNumero);
+      .all(empresaLayoutSource, modulo, anioNumero);
 
     // Desglosar operaciones con toda la metadata (sin agrupar)
     const operacionesDetalladas = operaciones.map((op) => ({
@@ -1693,7 +1694,7 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
     });
 
     const resultado = {
-      empresaId: empresaCanonica,
+      empresaId: empresaLayoutSource,
       modulo,
       anio: anioNumero,
       cuentasPorCapitulo: cuentas.reduce((acc, cuenta) => {
@@ -1712,7 +1713,7 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
       process.cwd(),
       "info IMPORTANTE",
       "layouts",
-      empresaCanonica,
+      empresaLayoutSource,
       String(anioNumero),
     );
     if (!fs.existsSync(baseDir)) {

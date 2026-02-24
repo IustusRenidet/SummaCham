@@ -30,14 +30,6 @@ const normalizarCapituloParam = (valor = "") => {
   return match ? match[1].trim() : limpio;
 };
 
-// Empresas comparativas comparten el layout de su empresa principal.
-const COMPARATIVA_A_PRINCIPAL_LAYOUT = {
-  empresa9: "empresa1",
-  empresa10: "empresa2",
-  empresa11: "empresa3",
-  empresa12: "empresa4",
-};
-
 const MAX_GAP_ANIO_AUTOCLONE = 1;
 const puedeAutoclonarLayout = (modulo = "") => {
   const mod = (modulo || "").toString().trim().toUpperCase();
@@ -126,32 +118,33 @@ function cargarDefinicionesModulo(
   empresaId = "EMPRESA01",
   anio = new Date().getFullYear(),
 ) {
-  // Si es una empresa comparativa y no existen capítulos propios, usar el layout
-  // de la empresa principal (empresa11 → empresa3, etc.)
-  const empresaIdFallback =
-    COMPARATIVA_A_PRINCIPAL_LAYOUT[empresaId?.toLowerCase()] ?? null;
+  const empresaLayoutSource = layoutService.obtenerEmpresaLayoutSource(empresaId);
 
   let capitulosIniciales;
   try {
     capitulosIniciales = layoutService.obtenerCapitulos({
-      empresaId,
+      empresaId: empresaLayoutSource,
       modulo,
       anio,
     });
   } catch (error) {
     console.error(
-      `[planeacionReportesEngine] No se pudo cargar layout ${modulo} / ${empresaId} / ${anio} desde SQLite:`,
+      `[planeacionReportesEngine] No se pudo cargar layout ${modulo} / ${empresaLayoutSource} (solicitada: ${empresaId}) / ${anio} desde SQLite:`,
       error && error.message ? error.message : error,
     );
     capitulosIniciales = null;
   }
 
   if (!capitulosIniciales || !capitulosIniciales.length) {
-    const clonado = intentarAutoclonarLayoutSiFalta(modulo, empresaId, anio);
+    const clonado = intentarAutoclonarLayoutSiFalta(
+      modulo,
+      empresaLayoutSource,
+      anio,
+    );
     if (clonado) {
       try {
         capitulosIniciales = layoutService.obtenerCapitulos({
-          empresaId,
+          empresaId: empresaLayoutSource,
           modulo,
           anio,
         });
@@ -159,14 +152,6 @@ function cargarDefinicionesModulo(
         capitulosIniciales = null;
       }
     }
-  }
-
-  // Sin capítulos propios y hay un fallback disponible → delegar al layout de la empresa principal
-  if (
-    (!capitulosIniciales || !capitulosIniciales.length) &&
-    empresaIdFallback
-  ) {
-    return cargarDefinicionesModulo(modulo, empresaIdFallback, anio);
   }
 
   try {
@@ -184,7 +169,7 @@ function cargarDefinicionesModulo(
         capitulosEtiquetas.push(capituloEtiqueta);
 
         const layout = layoutService.obtenerLayout({
-          empresaId,
+          empresaId: empresaLayoutSource,
           modulo,
           anio,
           capitulo: capituloEtiqueta,
@@ -241,7 +226,7 @@ function cargarDefinicionesModulo(
             let layoutOps = null;
             try {
               layoutOps = layoutService.obtenerLayout({
-                empresaId,
+                empresaId: empresaLayoutSource,
                 modulo,
                 anio: anioOps,
                 capitulo: capituloEtiqueta,
@@ -270,7 +255,7 @@ function cargarDefinicionesModulo(
           if (ops.length) {
             ops.forEach((op) => operacionesGlobales.push(op));
             console.warn(
-              `[planeacionReportesEngine] Operaciones faltantes para ${modulo}/${empresaId}/${anio}; usando operaciones de ${anioOps}.`,
+              `[planeacionReportesEngine] Operaciones faltantes para ${modulo}/${empresaLayoutSource} (solicitada: ${empresaId})/${anio}; usando operaciones de ${anioOps}.`,
             );
             break;
           }
@@ -285,13 +270,13 @@ function cargarDefinicionesModulo(
     }
   } catch (error) {
     console.error(
-      `[planeacionReportesEngine] No se pudo cargar layout ${modulo} / ${empresaId} / ${anio} desde SQLite:`,
+      `[planeacionReportesEngine] No se pudo cargar layout ${modulo} / ${empresaLayoutSource} (solicitada: ${empresaId}) / ${anio} desde SQLite:`,
       error && error.message ? error.message : error,
     );
   }
 
   throw new Error(
-    `No existen capitulos definidos en SQLite para ${modulo} / ${empresaId} / ${anio}`,
+    `No existen capitulos definidos en SQLite para ${modulo} / ${empresaLayoutSource} (solicitada: ${empresaId}) / ${anio}`,
   );
 }
 
