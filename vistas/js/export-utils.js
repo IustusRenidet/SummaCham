@@ -1890,6 +1890,51 @@
           font: { bold: true },
           border: borderStyle,
         },
+        "month-budget": {
+          fill: { patternType: "solid", fgColor: { rgb: "4472C4" } },
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          border: borderStyle,
+        },
+        "month-real": {
+          fill: { patternType: "solid", fgColor: { rgb: "FFC000" } },
+          font: { bold: true, color: { rgb: "000000" } },
+          border: borderStyle,
+        },
+        "budget-annual-column": {
+          fill: { patternType: "solid", fgColor: { rgb: "2F5496" } },
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          border: borderStyle,
+        },
+        "total-budget-column": {
+          fill: { patternType: "solid", fgColor: { rgb: "2F5496" } },
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          border: borderStyle,
+        },
+        "total-real-column": {
+          fill: { patternType: "solid", fgColor: { rgb: "B8860B" } },
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          border: borderStyle,
+        },
+        "sum-row-operativo": {
+          fill: { patternType: "solid", fgColor: { rgb: "D9E1F2" } },
+          font: { bold: true, color: { rgb: "1F3864" } },
+          border: {
+            top: { style: "medium", color: { rgb: "4472C4" } },
+            bottom: { style: "medium", color: { rgb: "4472C4" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } },
+          },
+        },
+        "sum-row-operativo-consolidado": {
+          fill: { patternType: "solid", fgColor: { rgb: "BDD7EE" } },
+          font: { bold: true, color: { rgb: "1F3864" } },
+          border: {
+            top: { style: "medium", color: { rgb: "2F5496" } },
+            bottom: { style: "medium", color: { rgb: "2F5496" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } },
+          },
+        },
       };
 
       const defaultHeaderStyle = {
@@ -1908,7 +1953,7 @@
       const rows = Array.from(tablaClone.querySelectorAll("tr"));
 
       // Crear mapa de fila DOM -> índice Excel (considerando thead/tbody)
-      const rowStyleInfo = rows.map((tr, idx) => {
+      const rowStyleInfo = rows.map((tr) => {
         const classes = Array.from(tr.classList);
         const isHeader = tr.parentElement?.tagName === "THEAD";
         return { classes, isHeader, domRow: tr };
@@ -1970,6 +2015,9 @@
           if (cell.t === "n" && rawText.includes("%")) {
             finalStyle.numFmt = "0.00%";
             cell.z = "0.00%";
+          } else if (cell.t === "n" && clasesCelda.includes("budget-value")) {
+            finalStyle.numFmt = '#,##0.00';
+            cell.z = '#,##0.00';
           }
 
           // Intentar respetar color de fondo y color de texto reales (computed style)
@@ -2016,6 +2064,10 @@
       }
 
       // PASO 5: Ajustar anchos de columna
+      const MES_HEADER_CLASSES = new Set([
+        "month-budget", "month-real",
+        "budget-annual-column", "total-budget-column", "total-real-column",
+      ]);
       const colWidths = [];
       for (let c = range.s.c; c <= range.e.c; c++) {
         let maxWidth = 0;
@@ -2028,15 +2080,63 @@
           if (anchoEstimado > maxWidth) maxWidth = anchoEstimado;
         }
 
-        const esCuenta = matriz[0]?.[c]?.classes?.includes("account-column-header");
-        const esDescripcion = matriz[0]?.[c]?.classes?.includes("col-descripcion");
-        const minWidth = esDescripcion ? 20 : esCuenta ? 14 : 10;
-        const maxPermitido = esDescripcion ? 42 : 32;
+        // Collect header classes across all header rows for this column
+        const colHeaderClasses = [];
+        for (let r = range.s.r; r <= range.e.r; r++) {
+          if (!rowStyleInfo[r]?.isHeader) break;
+          const meta = matriz[r]?.[c];
+          if (meta?.classes) colHeaderClasses.push(...meta.classes);
+        }
+        const esCuenta = colHeaderClasses.includes("account-column-header");
+        const esDescripcion = colHeaderClasses.includes("col-descripcion");
+        const esColMes = colHeaderClasses.some(cls => MES_HEADER_CLASSES.has(cls));
+        const minWidth = esDescripcion ? 22 : esCuenta ? 12 : esColMes ? 12 : 10;
+        const maxPermitido = esDescripcion ? 40 : esCuenta ? 18 : esColMes ? 16 : 30;
         const ajuste = Math.min(maxPermitido, Math.max(minWidth, maxWidth + 2));
 
         colWidths.push({ wch: ajuste });
       }
       sheet["!cols"] = colWidths;
+
+      // PASO 6: Altura de filas — encabezados más altos para acomodar texto envuelto
+      const rowHeights = [];
+      for (let r = range.s.r; r <= range.e.r; r++) {
+        if (rowStyleInfo[r]?.isHeader) {
+          rowHeights[r] = { hpt: 32 };
+        }
+      }
+      if (rowHeights.some(Boolean)) {
+        sheet["!rows"] = rowHeights;
+      }
+
+      // PASO 7: Fijar paneles (freeze panes) para fácil navegación
+      let numHeaderRows = 0;
+      for (let r = range.s.r; r <= range.e.r; r++) {
+        if (rowStyleInfo[r]?.isHeader) numHeaderRows++;
+        else break;
+      }
+      // Detect sticky label columns (account + description)
+      const STICKY_COL_CLASSES = new Set(["account-column-header", "col-descripcion"]);
+      let xSplitCols = 0;
+      for (let c = range.s.c; c <= Math.min(range.s.c + 4, range.e.c); c++) {
+        let isSticky = false;
+        for (let r = range.s.r; r < range.s.r + numHeaderRows; r++) {
+          if ((matriz[r]?.[c]?.classes || []).some(cls => STICKY_COL_CLASSES.has(cls))) {
+            isSticky = true;
+            break;
+          }
+        }
+        if (isSticky) xSplitCols = c + 1;
+        else if (xSplitCols > 0) break;
+      }
+      if (numHeaderRows > 0 || xSplitCols > 0) {
+        const topLeftCell = XLSX.utils.encode_cell({ r: numHeaderRows, c: xSplitCols });
+        const view = { state: "frozen", topLeftCell };
+        if (numHeaderRows > 0) view.ySplit = numHeaderRows;
+        if (xSplitCols > 0) view.xSplit = xSplitCols;
+        sheet["!sheetViews"] = [view];
+      }
+
       cleanupStyleHost();
 
       return sheet;
@@ -2075,12 +2175,14 @@
       );
       if (rgbMatch) {
         const alpha = rgbMatch[4] == null ? 1 : Number(rgbMatch[4]);
-        if (!Number.isFinite(alpha) || alpha <= 0) return "";
+        if (!Number.isFinite(alpha) || alpha <= 0.01) return "";
         const toHex = (num) => {
           const n = Math.max(0, Math.min(255, Number(num) || 0));
           return n.toString(16).padStart(2, "0").toUpperCase();
         };
-        return `${toHex(rgbMatch[1])}${toHex(rgbMatch[2])}${toHex(rgbMatch[3])}`;
+        // Blend semi-transparent colors with white so Excel shows the correct visual weight
+        const blend = (c) => Math.round(alpha * Math.max(0, Math.min(255, Number(c) || 0)) + (1 - alpha) * 255);
+        return `${toHex(blend(rgbMatch[1]))}${toHex(blend(rgbMatch[2]))}${toHex(blend(rgbMatch[3]))}`;
       }
       const hexMatch = text.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
       if (hexMatch) {

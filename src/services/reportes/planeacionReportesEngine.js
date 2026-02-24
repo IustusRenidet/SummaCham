@@ -44,7 +44,10 @@ const puedeAutoclonarLayout = (modulo = "") => {
   return mod === "RESUMEN" || mod === "SUMMARY";
 };
 
-const resolverAnioReferenciaAutoclone = (anioDestino, aniosDisponibles = []) => {
+const resolverAnioReferenciaAutoclone = (
+  anioDestino,
+  aniosDisponibles = [],
+) => {
   const destino = Number(anioDestino);
   if (!Number.isInteger(destino)) return null;
   const anios = (Array.isArray(aniosDisponibles) ? aniosDisponibles : [])
@@ -78,7 +81,10 @@ const intentarAutoclonarLayoutSiFalta = (modulo, empresaId, anio) => {
 
   let aniosDisponibles = [];
   try {
-    aniosDisponibles = layoutService.obtenerAniosDisponibles({ empresaId, modulo });
+    aniosDisponibles = layoutService.obtenerAniosDisponibles({
+      empresaId,
+      modulo,
+    });
   } catch (_) {
     return false;
   }
@@ -156,7 +162,10 @@ function cargarDefinicionesModulo(
   }
 
   // Sin capítulos propios y hay un fallback disponible → delegar al layout de la empresa principal
-  if ((!capitulosIniciales || !capitulosIniciales.length) && empresaIdFallback) {
+  if (
+    (!capitulosIniciales || !capitulosIniciales.length) &&
+    empresaIdFallback
+  ) {
     return cargarDefinicionesModulo(modulo, empresaIdFallback, anio);
   }
 
@@ -240,9 +249,13 @@ function cargarDefinicionesModulo(
             } catch (_) {
               layoutOps = null;
             }
-            const operacionesLayout = Array.isArray(layoutOps && layoutOps.operaciones)
+            const operacionesLayout = Array.isArray(
+              layoutOps && layoutOps.operaciones,
+            )
               ? layoutOps.operaciones
-              : Array.isArray(layoutOps && layoutOps["SUMA DE VARIAS SECCIONES"])
+              : Array.isArray(
+                    layoutOps && layoutOps["SUMA DE VARIAS SECCIONES"],
+                  )
                 ? layoutOps["SUMA DE VARIAS SECCIONES"]
                 : [];
             if (operacionesLayout.length) {
@@ -464,7 +477,9 @@ const extraerLayoutConfig = (ops = []) => {
     try {
       const parsed = JSON.parse(op.formula_json);
       if (parsed && typeof parsed === "object") return parsed;
-    } catch (_) { /* noop */ }
+    } catch (_) {
+      /* noop */
+    }
   }
   return {};
 };
@@ -982,6 +997,12 @@ const extraerTokensFormulaOperacion = (op = {}) => {
     return convertirTerminosLegacyATokensV2(op.formula_terms);
   }
 
+  // Fallback para layout JSON: campo 'expresion'
+  const fromExpresionField = parseFormulaTextCandidate(op?.expresion || "");
+  if (fromExpresionField.length) {
+    return fromExpresionField;
+  }
+
   const terms = [];
   if (op.signos && typeof op.signos === "object") {
     Object.entries(op.signos).forEach(([clave, signo]) => {
@@ -1393,6 +1414,9 @@ const construirReporteResumen = (
   const principalMap = new Map();
 
   const capituloClave = NORMALIZAR_CAPITULO(capituloSeleccionado || "");
+  const manualPrincipalKeys = new Set();
+  const appliedOps = new Set();
+  const manualSeccionKeys = new Set();
   const manualOrderRequested = Boolean(opciones?.ordenManualTotal);
   // Modo estricto: headers (principal/secundaria) y operaciones sin fórmula no se calculan automáticamente.
   const modoFormulaEstricto = Boolean(opciones?.modoFormulaEstricto);
@@ -1572,14 +1596,14 @@ const construirReporteResumen = (
 
   const definicionesOrdenadas = Array.isArray(definiciones)
     ? definiciones
-      .map((item, idx) => ({ item, idx }))
-      .sort((a, b) => {
-        const ordenA = obtenerOrden(a.item, a.idx);
-        const ordenB = obtenerOrden(b.item, b.idx);
-        if (ordenA !== ordenB) return ordenA - ordenB;
-        return a.idx - b.idx;
-      })
-      .map(({ item }) => item)
+        .map((item, idx) => ({ item, idx }))
+        .sort((a, b) => {
+          const ordenA = obtenerOrden(a.item, a.idx);
+          const ordenB = obtenerOrden(b.item, b.idx);
+          if (ordenA !== ordenB) return ordenA - ordenB;
+          return a.idx - b.idx;
+        })
+        .map(({ item }) => item)
     : [];
 
   // Procesar definiciones RESPETANDO el orden de presentación
@@ -1964,8 +1988,8 @@ const construirReporteResumen = (
           );
           const hasSecInPrincipal = principalNode
             ? Array.from(principalNode.secciones.values()).some(
-              (sec) => normalizarTexto(sec?.label || "") === placementKey,
-            )
+                (sec) => normalizarTexto(sec?.label || "") === placementKey,
+              )
             : false;
           const candidates = principalPorSubseccion.get(placementKey);
           if (
@@ -2052,9 +2076,9 @@ const construirReporteResumen = (
           .sort(
             (a, b) =>
               (definicionCuentas.get(a)?.orden ?? 0) -
-              (definicionCuentas.get(b)?.orden ?? 0) ||
+                (definicionCuentas.get(b)?.orden ?? 0) ||
               (definicionCuentas.get(a)?.ordenIndex ?? 0) -
-              (definicionCuentas.get(b)?.ordenIndex ?? 0),
+                (definicionCuentas.get(b)?.ordenIndex ?? 0),
           );
         return construirNodoSeccion({
           seccion: sec.label,
@@ -2070,16 +2094,16 @@ const construirReporteResumen = (
       const totalesPrincipal = modoFormulaEstricto
         ? crearAcumulador()
         : children.reduce(
-          (acc, nodo) => ({
-            actualMonth: acc.actualMonth + nodo.totalActualMonth,
-            planMonth: acc.planMonth + nodo.totalPlanMonth,
-            prevMonth: acc.prevMonth + nodo.totalPrevMonth,
-            actualYTD: acc.actualYTD + nodo.totalActualYTD,
-            planYTD: acc.planYTD + nodo.totalPlanYTD,
-            prevYTD: acc.prevYTD + nodo.totalPrevYTD,
-          }),
-          crearAcumulador(),
-        );
+            (acc, nodo) => ({
+              actualMonth: acc.actualMonth + nodo.totalActualMonth,
+              planMonth: acc.planMonth + nodo.totalPlanMonth,
+              prevMonth: acc.prevMonth + nodo.totalPrevMonth,
+              actualYTD: acc.actualYTD + nodo.totalActualYTD,
+              planYTD: acc.planYTD + nodo.totalPlanYTD,
+              prevYTD: acc.prevYTD + nodo.totalPrevYTD,
+            }),
+            crearAcumulador(),
+          );
 
       // No inferir signo por texto del nombre (p.ej. "expense"), porque
       // rompe comparativos cuando los datos ya vienen normalizados por cuenta.
@@ -2212,29 +2236,44 @@ const construirReporteResumen = (
     mapRefSecciones.clear();
     principalList.forEach((principal) => {
       if (!principal?.label) return;
-      const principalTotals = (modoFormulaEstricto && !principal.__manualFormula)
-        ? (() => {
-          return (principal.children || []).reduce(
-            (acc, child) => {
-              acc.actualMonth += Number(child.totalActualMonth ?? 0);
-              acc.planMonth += Number(child.totalPlanMonth ?? 0);
-              acc.prevMonth += Number(child.totalPrevMonth ?? 0);
-              acc.actualYTD += Number(child.totalActualYTD ?? 0);
-              acc.planYTD += Number(child.totalPlanYTD ?? 0);
-              acc.prevYTD += Number(child.totalPrevYTD ?? 0);
-              return acc;
-            },
-            crearAcumulador()
-          );
-        })()
-        : {
-          actualMonth: principal.actualMonth,
-          planMonth: principal.planMonth,
-          prevMonth: principal.prevMonth,
-          actualYTD: principal.actualYTD,
-          planYTD: principal.planYTD,
-          prevYTD: principal.prevYTD,
-        };
+      // En modo RESUMEN, los principales son auto-sumas de sus hijos por defecto.
+      // Sincronizamos las propiedades del objeto principal si no tiene una fórmula manual explícita.
+      const labelLimpia = (principal.label || "").trim();
+      const principalKey = normalizarEtiqueta(labelLimpia);
+      const isManual =
+        manualPrincipalKeys.has(principalKey) || principal.__manualFormula;
+
+      const sumado = (principal.children || []).reduce((acc, child) => {
+        acc.actualMonth += Number(child.totalActualMonth ?? 0);
+        acc.planMonth += Number(child.totalPlanMonth ?? 0);
+        acc.prevMonth += Number(child.totalPrevMonth ?? 0);
+        acc.actualYTD += Number(child.totalActualYTD ?? 0);
+        acc.planYTD += Number(child.totalPlanYTD ?? 0);
+        acc.prevYTD += Number(child.totalPrevYTD ?? 0);
+        return acc;
+      }, crearAcumulador());
+
+      if (modoFormulaEstricto && !isManual) {
+        principal.actualMonth = sumado.actualMonth;
+        principal.planMonth = sumado.planMonth;
+        principal.prevMonth = sumado.prevMonth;
+        principal.actualYTD = sumado.actualYTD;
+        principal.planYTD = sumado.planYTD;
+        principal.prevYTD = sumado.prevYTD;
+        principal.total = sumado.actualYTD;
+      }
+
+      const principalTotals =
+        modoFormulaEstricto && !isManual
+          ? sumado
+          : {
+              actualMonth: principal.actualMonth,
+              planMonth: principal.planMonth,
+              prevMonth: principal.prevMonth,
+              actualYTD: principal.actualYTD,
+              planYTD: principal.planYTD,
+              prevYTD: principal.prevYTD,
+            };
       mapSecciones.set(normalizarTexto(principal.label), principalTotals);
       const principalRefId = construirRefIdSeccion(principal.label);
       if (principalRefId) {
@@ -2242,22 +2281,23 @@ const construirReporteResumen = (
       }
       (principal.children || []).forEach((sec) => {
         if (!sec?.label) return;
-        const totals = {
-          actualMonth: Number(sec.totalActualMonth ?? 0),
-          planMonth: Number(sec.totalPlanMonth ?? 0),
-          prevMonth: Number(sec.totalPrevMonth ?? 0),
-          actualYTD: Number(sec.totalActualYTD ?? 0),
-          planYTD: Number(sec.totalPlanYTD ?? 0),
-          prevYTD: Number(sec.totalPrevYTD ?? 0),
-        };
-        mapSecciones.set(normalizarTexto(sec.label), totals);
+        // CRITICAL: Store the reference to the actual section node, not a copy of totals.
+        // This ensures that applyTotalsToSection(resolvedNode, values) updates
+        // the node that is already in use by principal.children.
         const keyConPadre = buildSeccionKey(principal.label, sec.label);
         if (keyConPadre) {
-          mapSecciones.set(keyConPadre, totals);
+          mapSecciones.set(keyConPadre, sec);
         }
+
+        // Mantener el fallback por etiqueta simple (solo si no existe o preferir la primera encontrada)
+        const keySimple = normalizarTexto(sec.label);
+        if (!mapSecciones.has(keySimple)) {
+          mapSecciones.set(keySimple, sec);
+        }
+
         const secRefId = construirRefIdSubseccion(principal.label, sec.label);
         if (secRefId) {
-          mapRefSecciones.set(secRefId, totals);
+          mapRefSecciones.set(secRefId, sec);
         }
       });
     });
@@ -2400,12 +2440,19 @@ const construirReporteResumen = (
   operacionesContexto.forEach((item) => {
     getOperacionAliasKeys(item).forEach((key) => {
       if (!key) return;
-      aliasOperacionCount.set(key, Number(aliasOperacionCount.get(key) || 0) + 1);
+      aliasOperacionCount.set(
+        key,
+        Number(aliasOperacionCount.get(key) || 0) + 1,
+      );
     });
   });
   const isOperacionAliasAmbiguo = (key = "") =>
     Number(aliasOperacionCount.get(key) || 0) > 1;
-  const scoreOperacionCandidata = (op = {}, parentHintKey = "", labelKey = "") => {
+  const scoreOperacionCandidata = (
+    op = {},
+    parentHintKey = "",
+    labelKey = "",
+  ) => {
     let score = 0;
     const parentSectionKey = normalizarTexto(op?.parentSection || "");
     const parentAnchorKey = normalizarTexto(
@@ -2473,10 +2520,7 @@ const construirReporteResumen = (
       const cachedByRef = mapRefOperaciones.get(refIdClean);
       if (cachedByRef) return cachedByRef;
     }
-    if (
-      labelKey &&
-      (!parentHintKey || !isOperacionAliasAmbiguo(labelKey))
-    ) {
+    if (labelKey && (!parentHintKey || !isOperacionAliasAmbiguo(labelKey))) {
       const cachedByLabel = mapOperaciones.get(labelKey);
       if (cachedByLabel) return cachedByLabel;
     }
@@ -2510,14 +2554,20 @@ const construirReporteResumen = (
         if (scoreA !== scoreB) return scoreB - scoreA;
         const orderA = Number(a?.orden_presentacion ?? a?.orden);
         const orderB = Number(b?.orden_presentacion ?? b?.orden);
-        const safeA = Number.isFinite(orderA) ? orderA : Number.MAX_SAFE_INTEGER;
-        const safeB = Number.isFinite(orderB) ? orderB : Number.MAX_SAFE_INTEGER;
+        const safeA = Number.isFinite(orderA)
+          ? orderA
+          : Number.MAX_SAFE_INTEGER;
+        const safeB = Number.isFinite(orderB)
+          ? orderB
+          : Number.MAX_SAFE_INTEGER;
         return safeA - safeB;
       });
       targetOp = candidates[0] || null;
     }
-    if (!targetOp && refIdClean) targetOp = operacionesPorRefId.get(refIdClean) || null;
-    if (!targetOp && labelKey) targetOp = operacionesPorKey.get(labelKey) || null;
+    if (!targetOp && refIdClean)
+      targetOp = operacionesPorRefId.get(refIdClean) || null;
+    if (!targetOp && labelKey)
+      targetOp = operacionesPorKey.get(labelKey) || null;
 
     if (targetOp) {
       const targetKey = getOperacionKey(targetOp);
@@ -2553,16 +2603,28 @@ const construirReporteResumen = (
       const tokens = extraerTokensFormulaOperacion(op);
       if (!tokens.length) return crearAcumulador();
 
-      const buildFromPlaneacion = (record) => {
+      const buildFromPlaneacion = (record, cuentaOverride = null) => {
         if (!record) return null;
-        return {
-          actualMonth: Number(record.actualMonth ?? 0),
-          planMonth: Number(record.planMonth ?? 0),
-          prevMonth: Number(record.prevMonth ?? 0),
-          actualYTD: Number(record.actualYTD ?? 0),
-          planYTD: Number(record.planYTD ?? 0),
-          prevYTD: Number(record.prevYTD ?? 0),
+        const cuentaId = cuentaOverride || record.cuenta;
+        const meta =
+          definicionCuentas.get(
+            normalizarCuentaCanonica(cuentaId) || cuentaId,
+          ) || {};
+        const factorRaw =
+          meta.operacion_factor ?? meta.operacionFactor ?? meta.factor;
+        const factor = Number.isFinite(Number(factorRaw))
+          ? Number(factorRaw)
+          : 1;
+
+        const res = {
+          actualMonth: factor * Number(record.actualMonth ?? 0),
+          planMonth: factor * Number(record.planMonth ?? 0),
+          prevMonth: factor * Number(record.prevMonth ?? 0),
+          actualYTD: factor * Number(record.actualYTD ?? 0),
+          planYTD: factor * Number(record.planYTD ?? 0),
+          prevYTD: factor * Number(record.prevYTD ?? 0),
         };
+        return res;
       };
 
       const resolveByLabel = (tipo, label, parentHint = "") => {
@@ -2590,10 +2652,14 @@ const construirReporteResumen = (
               if (principalNode?.children?.length) {
                 const sumado = principalNode.children.reduce(
                   (acc, sec) => ({
-                    actualMonth: acc.actualMonth + (Number(sec.totalActualMonth) || 0),
-                    planMonth: acc.planMonth + (Number(sec.totalPlanMonth) || 0),
-                    prevMonth: acc.prevMonth + (Number(sec.totalPrevMonth) || 0),
-                    actualYTD: acc.actualYTD + (Number(sec.totalActualYTD) || 0),
+                    actualMonth:
+                      acc.actualMonth + (Number(sec.totalActualMonth) || 0),
+                    planMonth:
+                      acc.planMonth + (Number(sec.totalPlanMonth) || 0),
+                    prevMonth:
+                      acc.prevMonth + (Number(sec.totalPrevMonth) || 0),
+                    actualYTD:
+                      acc.actualYTD + (Number(sec.totalActualYTD) || 0),
                     planYTD: acc.planYTD + (Number(sec.totalPlanYTD) || 0),
                     prevYTD: acc.prevYTD + (Number(sec.totalPrevYTD) || 0),
                   }),
@@ -2617,7 +2683,12 @@ const construirReporteResumen = (
             mapPlaneacion.get(valor) ||
             (visible ? mapPlaneacion.get(visible) : null) ||
             (canon ? mapPlaneacion.get(canon) : null);
-          origen = buildFromPlaneacion(record);
+
+          if (!record) {
+            // Debug: console.log(`DEBUG: No record for account ${valor} in mapPlaneacion`);
+          }
+
+          origen = buildFromPlaneacion(record, valor);
           if (origen) return origen;
           const bySection = resolveSectionTotals(valor, parentHint) || null;
           if (
@@ -2656,7 +2727,8 @@ const construirReporteResumen = (
           if (principalNode?.children?.length) {
             const sumado = principalNode.children.reduce(
               (acc, sec) => ({
-                actualMonth: acc.actualMonth + (Number(sec.totalActualMonth) || 0),
+                actualMonth:
+                  acc.actualMonth + (Number(sec.totalActualMonth) || 0),
                 planMonth: acc.planMonth + (Number(sec.totalPlanMonth) || 0),
                 prevMonth: acc.prevMonth + (Number(sec.totalPrevMonth) || 0),
                 actualYTD: acc.actualYTD + (Number(sec.totalActualYTD) || 0),
@@ -2676,6 +2748,25 @@ const construirReporteResumen = (
           resolveOperacionReferenceTotals({ label: valor, parentHint }) ||
           null
         );
+      };
+
+      const normalizeResolvedTotals = (resolved) => {
+        if (!resolved) return null;
+        // Si es un nodo de sección (tiene totalActualMonth), mapear propiedades al formato de fórmula
+        if (
+          resolved.totalActualMonth !== undefined &&
+          resolved.actualMonth === undefined
+        ) {
+          return {
+            actualMonth: Number(resolved.totalActualMonth ?? 0),
+            planMonth: Number(resolved.totalPlanMonth ?? 0),
+            prevMonth: Number(resolved.totalPrevMonth ?? 0),
+            actualYTD: Number(resolved.totalActualYTD ?? 0),
+            planYTD: Number(resolved.totalPlanYTD ?? 0),
+            prevYTD: Number(resolved.totalPrevYTD ?? 0),
+          };
+        }
+        return resolved;
       };
 
       const resolverToken = (token) => {
@@ -2712,8 +2803,10 @@ const construirReporteResumen = (
             // En modo estricto/operacion los principales empiezan en cero hasta
             // que se evalúa su operación. Si el valor cacheado sigue siendo cero,
             // dejamos caer al resolveByLabel para que intente mapOperaciones.
-            if (byRef && !(modoFormulaEstricto || seccionesComoOperaciones)) return byRef;
-            if (byRef && !totalsAreZero(byRef)) return byRef;
+            if (byRef && !(modoFormulaEstricto || seccionesComoOperaciones))
+              return normalizeResolvedTotals(byRef);
+            if (byRef && !totalsAreZero(normalizeResolvedTotals(byRef)))
+              return normalizeResolvedTotals(byRef);
             // continuar hacia resolveByLabel que revisa operaciones evaluadas
           } else if (refType === "account" || refType === "cuenta") {
             const byRef = mapRefCuentas.get(refId);
@@ -2721,7 +2814,8 @@ const construirReporteResumen = (
           } else if (refType === "operation" || refType === "operacion") {
             if (modoFormulaEstricto || seccionesComoOperaciones) {
               const bySection = resolveSectionTotals(label, parentHint) || null;
-              if (!totalsAreZero(bySection)) return bySection;
+              if (!totalsAreZero(normalizeResolvedTotals(bySection)))
+                return normalizeResolvedTotals(bySection);
             }
             const byRef = resolveOperacionReferenceTotals({
               refId,
@@ -2732,7 +2826,10 @@ const construirReporteResumen = (
           }
         }
 
-        return resolveByLabel(refType, label, parentHint) || crearAcumulador();
+        return (
+          normalizeResolvedTotals(resolveByLabel(refType, label, parentHint)) ||
+          crearAcumulador()
+        );
       };
 
       let totals = evaluarTokensFormula(tokens, resolverToken);
@@ -2785,8 +2882,16 @@ const construirReporteResumen = (
     // operaciones con SECCION=principal actúan como override del header sin
     // necesitar parentSection explícito.
     if (modoFormulaEstricto || seccionesComoOperaciones) {
-      if (obtenerPrincipalPorEtiqueta(placement)) {
-        return labelsAreEqual(opNombre, placement);
+      const principal = obtenerPrincipalPorEtiqueta(placement);
+      if (principal) {
+        if (labelsAreEqual(opNombre, principal.label)) return true;
+        // Si el nombre coincide con alguna sección del principal, también se considera ligado.
+        if (
+          Array.isArray(principal.children) &&
+          principal.children.some((sec) => labelsAreEqual(opNombre, sec.label))
+        ) {
+          return true;
+        }
       }
       if (obtenerSeccionPorEtiqueta(placement)) {
         return labelsAreEqual(opNombre, placement);
@@ -2875,8 +2980,6 @@ const construirReporteResumen = (
       ? opsConFormulaBase.filter(({ op }) => operacionLigadaAHeader(op))
       : opsConFormulaBase;
 
-    const manualPrincipalKeys = new Set();
-    const appliedOps = headerOverrideOps;
     const manualSeccionOps = opsConFormula;
     const cleanLabel = (value = "") => (value || "").toString().trim();
     const labelsAreEqual = (left = "", right = "") => {
@@ -2904,6 +3007,13 @@ const construirReporteResumen = (
 
       addCandidate(sumRowLabel, parentSection);
       addCandidate(parentSubsection, parentSection);
+
+      // Si tiene parentSection, el nombre de la operación misma es un candidato a sección.
+      // Esto resuelve casos donde op.nombre === "Membership" y op.parentSection === "EXPENSE".
+      const opNombre = (obtenerNombreOperacion(op) || "").toString().trim();
+      if (parentSection) {
+        addCandidate(opNombre, parentSection);
+      }
 
       if (
         placement &&
@@ -2952,7 +3062,8 @@ const construirReporteResumen = (
         return Boolean(obtenerPrincipalPorEtiqueta(principalAnchor));
       }
       if (subsectionAnchor) return false;
-      if (parentSection && obtenerPrincipalPorEtiqueta(parentSection)) return true;
+      if (parentSection && obtenerPrincipalPorEtiqueta(parentSection))
+        return true;
       return Boolean(placement && obtenerPrincipalPorEtiqueta(placement));
     });
 
@@ -3026,6 +3137,9 @@ const construirReporteResumen = (
       const totals = calcularTotalesOperacion(op);
       if (!totals) return;
       applyTotalsToPrincipal(principal, totals);
+      // Guardar los términos de fórmula en el principal para que el cliente
+      // pueda re-evaluarla en modo comparativo (empresa9/10/11/12).
+      principal.__formulaTerms = tokensV2ATerminosLegacy(obtenerTerminosOperacion(op));
       rebuildMapSecciones();
       manualPrincipalKeys.add(principalKey);
       storeOperacionTotals(op, totals);
@@ -3098,6 +3212,9 @@ const construirReporteResumen = (
       const totals = calcularTotalesOperacion(op);
       if (!totals) return;
       applyTotalsToPrincipal(principal, totals);
+      // Guardar los términos de fórmula en el principal para que el cliente
+      // pueda re-evaluarla en modo comparativo (empresa9/10/11/12).
+      principal.__formulaTerms = tokensV2ATerminosLegacy(obtenerTerminosOperacion(op));
       rebuildMapSecciones();
       manualPrincipalKeys.add(key);
       storeOperacionTotals(op, totals);
@@ -3208,7 +3325,53 @@ const construirReporteResumen = (
         if (opKey) manualAggOverrideOps.add(opKey);
       }
     });
+
+    // Reconstruir mapas para que las fórmulas de agregados manuales (Phase 4)
+    // vean los valores actualizados de otras operaciones.
+    rebuildMapSecciones();
   }
+
+  // --- SINCRONIZACIÓN FINAL DE TOTALES ---
+  // Los principales pueden estar en cero (modoFormulaEstricto) o con valores base
+  // que no reflejan las secciones actualizadas por fórmulas manuales.
+  // Recalculamos el total de cada principal sumando sus hijos actuales.
+  principalList.forEach((principal) => {
+    const labelLimpia = (principal.label || "").trim();
+    const principalKey = normalizarEtiqueta(labelLimpia);
+    const principalKeyAgg = normalizarTexto(labelLimpia);
+
+    const principalManual = manualPrincipalKeys.has(principalKey);
+    const aggOverride = manualAggOverrides.has(principalKeyAgg);
+
+    // Si NO hay una fórmula manual explícita para el principal (Phase 2)
+    // o un override para fila agregada (Phase 3/4), sincronizamos de hijos.
+    if (!principalManual && !aggOverride) {
+      const sumado = (principal.children || []).reduce((acc, child) => {
+        acc.actualMonth += Number(child.totalActualMonth ?? 0);
+        acc.planMonth += Number(child.totalPlanMonth ?? 0);
+        acc.prevMonth += Number(child.totalPrevMonth ?? 0);
+        acc.actualYTD += Number(child.totalActualYTD ?? 0);
+        acc.planYTD += Number(child.totalPlanYTD ?? 0);
+        acc.prevYTD += Number(child.totalPrevYTD ?? 0);
+        return acc;
+      }, crearAcumulador());
+
+      principal.actualMonth = sumado.actualMonth;
+      principal.planMonth = sumado.planMonth;
+      principal.prevMonth = sumado.prevMonth;
+      principal.actualYTD = sumado.actualYTD;
+      principal.planYTD = sumado.planYTD;
+      principal.prevYTD = sumado.prevYTD;
+      principal.total = sumado.actualYTD;
+
+      // Asegurar que NO esté marcado como manual si solo es auto-suma
+      if (!principalManual) principal.__manualFormula = false;
+    }
+  });
+
+  // Reconstruir mapas una última vez para que las filas de consolidación (Phase 5)
+  // vean los totales de principales ya sincronizados.
+  rebuildMapSecciones();
 
   const consolidatedMap = new Map();
   const operativoRowMap = new Map();
@@ -3265,10 +3428,10 @@ const construirReporteResumen = (
 
     const operativo = participaEnOperativo(principal)
       ? ensureAggregator(
-        operativoRowMap,
-        principal.operativoLabel || "",
-        operativoOrden,
-      )
+          operativoRowMap,
+          principal.operativoLabel || "",
+          operativoOrden,
+        )
       : null;
     if (operativo) {
       operativo.principals.push(principal.label);
@@ -3278,10 +3441,10 @@ const construirReporteResumen = (
 
     const operativoConsolidado = participaEnOperativo(principal)
       ? ensureAggregator(
-        operativoRowMap,
-        principal.operativoConsolidado || "",
-        operativoOrden,
-      )
+          operativoRowMap,
+          principal.operativoConsolidado || "",
+          operativoOrden,
+        )
       : null;
     if (operativoConsolidado) {
       operativoConsolidado.principals.push(principal.label);
@@ -3418,35 +3581,18 @@ const construirReporteResumen = (
           : 0,
         orderIndex: principal.ordenIndex ?? 0,
         manualFormula: Boolean(principal.__manualFormula),
-        totals: (() => {
-          // En modoFormulaEstricto los principales arrancan en crearAcumulador() (todo cero)
-          // a menos que una operación de Phase 1 los haya actualizado (__manualFormula=true).
-          // Para que el layout plano tenga los valores correctos sin depender del orden
-          // en que el frontend recorra el array (secundarias pueden aparecer antes del principal),
-          // calculamos aquí el auto-sum de hijos cuando no hay fórmula explícita.
-          if (modoFormulaEstricto && !principal.__manualFormula) {
-            return (principal.children || []).reduce(
-              (acc, child) => {
-                acc.actualMonth += Number(child.totalActualMonth ?? 0);
-                acc.planMonth += Number(child.totalPlanMonth ?? 0);
-                acc.prevMonth += Number(child.totalPrevMonth ?? 0);
-                acc.actualYTD += Number(child.totalActualYTD ?? 0);
-                acc.planYTD += Number(child.totalPlanYTD ?? 0);
-                acc.prevYTD += Number(child.totalPrevYTD ?? 0);
-                return acc;
-              },
-              crearAcumulador(),
-            );
-          }
-          return {
-            actualMonth: principal.actualMonth,
-            planMonth: principal.planMonth,
-            prevMonth: principal.prevMonth,
-            actualYTD: principal.actualYTD,
-            planYTD: principal.planYTD,
-            prevYTD: principal.prevYTD,
-          };
-        })(),
+        // Términos de fórmula para re-evaluación client-side en modo comparativo.
+        formula_terms: Array.isArray(principal.__formulaTerms)
+          ? principal.__formulaTerms
+          : [],
+        totals: {
+          actualMonth: principal.actualMonth,
+          planMonth: principal.planMonth,
+          prevMonth: principal.prevMonth,
+          actualYTD: principal.actualYTD,
+          planYTD: principal.planYTD,
+          prevYTD: principal.prevYTD,
+        },
         children: principal.children,
         consolidadoLabel: principal.consolidadoLabel,
         operativoLabel: principal.operativoLabel,
@@ -3692,13 +3838,13 @@ const construirReporteResumen = (
     const label = obtenerNombreOperacion(op);
     const opKey = normalizarTexto(
       op?.OperacionId ||
-      op?.operacion_id ||
-      op?.Clase ||
-      op?.clase ||
-      op?.operacion_etiqueta ||
-      label ||
-      op?.id ||
-      "",
+        op?.operacion_id ||
+        op?.Clase ||
+        op?.clase ||
+        op?.operacion_etiqueta ||
+        label ||
+        op?.id ||
+        "",
     );
     if (opKey) mapOperaciones.set(opKey, totals);
     const rowStyle = op?.rowStyle || op?.estilo_fila || "operation-row";
@@ -3712,6 +3858,12 @@ const construirReporteResumen = (
       // Esto evita que el frontend (recalcularConsolidados) sobreescriba los valores
       // correctos del backend con cálculos hardcodeados de labels fijos.
       manualFormula: true,
+      // Incluir la fórmula para que el frontend pueda re-evaluar prevMonth/prevYTD
+      // usando los valores de secciones actualizados por el comparativo (empresa9).
+      // obtenerTerminosOperacion extrae la fórmula desde cualquier formato (formula_json v2,
+      // formula_terms legacy, o texto) para garantizar que siempre haya términos disponibles.
+      formula: op?.formula || op?.formulaRaw || "",
+      formula_terms: obtenerTerminosOperacion(op),
       totals,
       rowStyle,
       estilo_fila: rowStyle || op?.estilo_fila,
@@ -3843,7 +3995,7 @@ async function generarReporte(
   const configCompleta = definiciones["SUMA DE VARIAS SECCIONES"] || [];
   // Extraer configuración de layout antes de filtrar
   const layoutConfig = extraerLayoutConfig(
-    configCompleta.filter((cfg) => cfg.HOJA === hojaConfig)
+    configCompleta.filter((cfg) => cfg.HOJA === hojaConfig),
   );
   const configAgrupacion = configCompleta
     .filter((cfg) => cfg.HOJA === hojaConfig)
@@ -3851,7 +4003,9 @@ async function generarReporte(
     .filter((cfg) => !esOperacionLayoutConfig(cfg));
 
   const capitulosDisponibles = extraerCapitulos(lista);
-  const capituloParamLimpio = normalizarCapituloParam(capituloSeleccionado || "");
+  const capituloParamLimpio = normalizarCapituloParam(
+    capituloSeleccionado || "",
+  );
   let capituloClave = NORMALIZAR_CAPITULO(
     capituloParamLimpio || capitulosDisponibles[0]?.etiqueta || "",
   );
@@ -3867,7 +4021,9 @@ async function generarReporte(
   // Filtrar definiciones por capítulo
   const listaFiltrada =
     capituloEncontrado && capituloClave
-      ? lista.filter((item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave)
+      ? lista.filter(
+          (item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave,
+        )
       : lista;
 
   const cuentas = Array.from(
@@ -3915,9 +4071,9 @@ async function generarReporte(
     layout.forEach((block) => {
       if (block.type === "secundaria") {
         const blockKey =
-          ((block.parentSection || "").trim().toLowerCase()) +
+          (block.parentSection || "").trim().toLowerCase() +
           "|" +
-          ((block.label || "").trim().toLowerCase());
+          (block.label || "").trim().toLowerCase();
         const hidden = ocultas.some(
           (k) => (k || "").trim().toLowerCase() === blockKey,
         );

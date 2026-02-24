@@ -1,0 +1,7 @@
+
+=== FACTOR AWARE FORMULA TEST ===
+Account: 400... (Membership)
+Account Raw Value: 1000
+Account Factor in Def: -1
+Formula Result: -1000
+Ô£à SUCCESS: Formula applied factor correctly.

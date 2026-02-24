@@ -2805,6 +2805,29 @@
       if (!block || !block.totals) return;
       const tipoRaw = (block.type || "").toLowerCase();
       const tipo = tipoRaw === "cuenta" ? "account" : tipoRaw;
+
+      // Operaciones libres (fórmulas manuales): inyectar Prev desde el comparativo
+      // usando el resultado que el backend ya calculó con la fórmula del año anterior.
+      if (tipo === "operation") {
+        const etiqueta = normalizarEtiquetaComparativa(block.label || "");
+        if (!etiqueta) return;
+        const comparativo = etiquetas.get(`operation|${etiqueta}`) || null;
+        if (!comparativo?.totals) return;
+        const compMonth = resolverComparativoNumero(
+          comparativo.totals,
+          "actualMonth",
+          "prevMonth"
+        );
+        const compYTD = resolverComparativoNumero(
+          comparativo.totals,
+          "actualYTD",
+          "prevYTD"
+        );
+        asignarSiNumero(block.totals, "prevMonth", compMonth);
+        asignarSiNumero(block.totals, "prevYTD", compYTD);
+        return;
+      }
+
       // En comparativa para RESUMEN, evitar pisar secciones/principales con
       // totales del layout comparativo porque pueden traer signo/fórmula
       // distinta al layout base. Solo inyectar Prev a nivel cuenta y dejar
@@ -3938,6 +3961,27 @@
         .toUpperCase()
         .replace(/\s+/g, " ");
 
+    const normalizarAliasFormula = (texto = "") =>
+      normalizarLabel(texto)
+        .replace(/\(([^)]*)\)/g, " ")
+        .replace(/[._]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const addContextReference = (mapa, rawKey, block) => {
+      if (!mapa || !rawKey || !block) return;
+      const keys = new Set();
+      const base = normalizarLabel(rawKey);
+      if (base) keys.add(base);
+      const alias = normalizarAliasFormula(rawKey);
+      if (alias) keys.add(alias);
+      keys.forEach((key) => {
+        const bucket = mapa.get(key);
+        if (bucket) bucket.push(block);
+        else mapa.set(key, [block]);
+      });
+    };
+
     const totalesCero = () => ({
       actualMonth: 0,
       planMonth: 0,
@@ -3971,11 +4015,14 @@
             const valRaw = term.value ?? term.ref ?? term.label ?? "";
             const val = (valRaw || "").toString().trim();
             if (!val) return "";
-            return op === "+" ? val : `${op}${val}`;
+            // Siempre incluir el operador para que tokenizarFormulaTexto pueda
+            // separar correctamente los términos positivos con "+".
+            // Sin esto, "A + B + C" se uniría como "A B C" (un solo token gigante).
+            return `${op} ${val}`;
           })
           .filter(Boolean)
           .join(" ")
-          .replace(/^\+/, "")
+          .replace(/^\+\s+/, "")
           .trim();
       }
       return "";
@@ -4101,12 +4148,25 @@
       const resolveReferenceNumber = (tokenText) => {
         const cleaned = cleanTokenText(tokenText);
         if (!cleaned) return 0;
+        const keys = [];
         const refKey = normalizarLabel(cleaned);
-        const entry = contextMap.get(refKey);
+        if (refKey) keys.push(refKey);
+        const aliasKey = normalizarAliasFormula(cleaned);
+        if (aliasKey && aliasKey !== refKey) keys.push(aliasKey);
+
+        let entry = null;
+        for (const key of keys) {
+          if (contextMap.has(key)) {
+            entry = contextMap.get(key);
+            break;
+          }
+        }
 
         if (!entry) {
           if (DEBUG_FORMULAS) {
-            console.log(`[FORMULA REF] NOT FOUND for "${refKey}"`);
+            console.log(
+              `[FORMULA REF] NOT FOUND for "${cleaned}" (keys: ${keys.join(", ")})`,
+            );
           }
           return 0;
         }
@@ -4333,21 +4393,14 @@
       // 1. Build a map of all available blocks for reference
       // Support duplicates (Section vs Subsection) by using arrays
       const contextMap = new Map();
-      const addToMap = (k, v) => {
-        if (!k) return;
-        const key = normalizarLabel(k);
-        if (!contextMap.has(key)) {
-          contextMap.set(key, [v]);
-        } else {
-          contextMap.get(key).push(v);
-        }
-      };
+      const addToMap = (k, v) => addContextReference(contextMap, k, v);
 
       layoutArr.forEach(b => {
         if (b.label) addToMap(b.label, b);
         if (b.nombre) addToMap(b.nombre, b);
         if (b.id) addToMap(b.id, b); // ID fallback
         if (b.Clase) addToMap(b.Clase, b); // Operation Class fallback
+        if (b.clase) addToMap(b.clase, b);
 
         // Add explicit subsection property if available
         if (b.subseccion) addToMap(b.subseccion, b);
@@ -4579,6 +4632,261 @@
       dest.actualYTD += src.actualYTD || 0;
       dest.planYTD += src.planYTD || 0;
       dest.prevYTD += src.prevYTD || 0;
+    };
+
+    // Propaga SOLO prevMonth/prevYTD hacia arriba (cuentas→subsecciones→principales) cuando
+    // hay comparativa activa, sin tocar actualMonth/planMonth ni el resultado de fórmulas.
+    // Esto corrige que los principales con manualFormula:true (sin fórmula string) conservaban
+    // el prevMonth del año anterior en lugar del valor de la empresa comparativa.
+    const recalcularPrevDesdeHijos = (layoutArr = []) => {
+      if (!Array.isArray(layoutArr) || !layoutArr.length) return;
+
+      const buildSecKeyLocal = (parentSection = "", subsectionLabel = "") => {
+        const parentKey = normalizarLabel(parentSection);
+        const subKey = normalizarLabel(subsectionLabel);
+        return parentKey && subKey ? `${parentKey}::${subKey}` : "";
+      };
+      const isSecundariaTipo = (tipo = "") =>
+        tipo === "secundaria" ||
+        tipo === "subsection" ||
+        tipo === "sum-row" ||
+        tipo.includes("secundaria");
+      const isCuentaTipo = (tipo = "") => tipo === "cuenta" || tipo === "account";
+      const isPrincipalTipo = (tipo = "") =>
+        tipo === "principal" ||
+        tipo === "sum-row-sumavarios" ||
+        tipo.includes("principal") ||
+        tipo === "section" ||
+        tipo === "title-row";
+      const inferirSignosSubsecciones = (principalBlock, subsecciones = []) => {
+        if (!principalBlock || !Array.isArray(subsecciones) || !subsecciones.length) {
+          return null;
+        }
+        const manual =
+          principalBlock?.manualFormula === true ||
+          principalBlock?.__manualFormula === true;
+        const fStr = getFormulaString(principalBlock);
+        const hasFormulaStr = typeof fStr === "string" && fStr.trim().length > 3;
+        // Solo inferir cuando el principal viene como manual del backend SIN fórmula
+        // explícita en el layout del cliente.
+        if (!manual || hasFormulaStr) return null;
+        if (subsecciones.length > 12) return null;
+
+        const target = {
+          actualMonth: toNumber(principalBlock?.totals?.actualMonth),
+          planMonth: toNumber(principalBlock?.totals?.planMonth),
+          actualYTD: toNumber(principalBlock?.totals?.actualYTD),
+          planYTD: toNumber(principalBlock?.totals?.planYTD),
+        };
+        const cols = ["actualMonth", "planMonth", "actualYTD", "planYTD"];
+        const n = subsecciones.length;
+        const totalComb = 1 << n;
+        let bestMask = 0;
+        let bestError = Number.POSITIVE_INFINITY;
+
+        for (let mask = 0; mask < totalComb; mask += 1) {
+          const pred = {
+            actualMonth: 0,
+            planMonth: 0,
+            actualYTD: 0,
+            planYTD: 0,
+          };
+          for (let i = 0; i < n; i += 1) {
+            const sign = (mask >> i) & 1 ? -1 : 1;
+            const t = subsecciones[i]?.totals || {};
+            pred.actualMonth += toNumber(t.actualMonth) * sign;
+            pred.planMonth += toNumber(t.planMonth) * sign;
+            pred.actualYTD += toNumber(t.actualYTD) * sign;
+            pred.planYTD += toNumber(t.planYTD) * sign;
+          }
+          let err = 0;
+          cols.forEach((col) => {
+            const scale = Math.max(1, Math.abs(target[col]));
+            const diff = (pred[col] - target[col]) / scale;
+            err += diff * diff;
+          });
+          if (err < bestError) {
+            bestError = err;
+            bestMask = mask;
+          }
+        }
+
+        // Si no encontramos ajuste razonable, usar el flujo normal por sign explícito.
+        if (bestError > 1e-8) return null;
+        const signs = new Map();
+        for (let i = 0; i < n; i += 1) {
+          const block = subsecciones[i];
+          const key = buildSecKeyLocal(block?.parentSection || "", block?.label || "");
+          if (!key) continue;
+          const sign = (bestMask >> i) & 1 ? -1 : 1;
+          signs.set(key, sign);
+        }
+        return signs;
+      };
+
+      // PASO A: accounts → subsections (sólo prevMonth/prevYTD)
+      const secAcc = new Map();
+      layoutArr.forEach((block) => {
+        const tipo = (block.type || block.tipo || "").toLowerCase();
+        if (!isSecundariaTipo(tipo)) return;
+        const key = buildSecKeyLocal(block.parentSection || "", block.label || "");
+        if (!key) return;
+        if (!secAcc.has(key)) secAcc.set(key, { prevMonth: 0, prevYTD: 0, blocks: [] });
+        secAcc.get(key).blocks.push(block);
+      });
+      layoutArr.forEach((block) => {
+        const tipo = (block.type || block.tipo || "").toLowerCase();
+        if (!isCuentaTipo(tipo)) return;
+        const key = buildSecKeyLocal(block.parentSection || "", block.parentSubsection || "");
+        if (!key) return;
+        const entry = secAcc.get(key);
+        if (!entry) return;
+        const sign = Number.isFinite(Number(block.sign)) ? Number(block.sign) : 1;
+        entry.prevMonth += toNumber(block.totals?.prevMonth) * sign;
+        entry.prevYTD += toNumber(block.totals?.prevYTD) * sign;
+      });
+      secAcc.forEach(({ prevMonth, prevYTD, blocks }) => {
+        blocks.forEach((secBlock) => {
+          if (!secBlock.totals) secBlock.totals = {};
+          secBlock.totals.prevMonth = prevMonth;
+          secBlock.totals.prevYTD = prevYTD;
+        });
+      });
+
+      // Construir contextMap actualizado (con prevMonth de comparativa ya en subsecciones)
+      // para re-evaluar fórmulas de principales que las tengan.
+      const ctxMapPrev = new Map();
+      const addToCtxPrev = (k, v) => addContextReference(ctxMapPrev, k, v);
+      layoutArr.forEach((b) => {
+        if (!b) return;
+        if (b.label) addToCtxPrev(b.label, b);
+        if (b.nombre) addToCtxPrev(b.nombre, b);
+        if (b.id) addToCtxPrev(b.id, b);
+        if (b.Clase) addToCtxPrev(b.Clase, b);
+        if (b.clase) addToCtxPrev(b.clase, b);
+        if (b.subseccion) addToCtxPrev(b.subseccion, b);
+        if (b.parentSection) addToCtxPrev(b.parentSection, b);
+        if (b.parentSubsection) addToCtxPrev(b.parentSubsection, b);
+      });
+
+      // PASO B: subsections → principals (sólo prevMonth/prevYTD)
+      // Para principales con fórmula string: re-evaluar la fórmula con los prevMonth ya
+      // actualizados de las subsecciones (PASO A). Esto es necesario porque PASS 3 de
+      // recalcularPrincipales corrió ANTES de que PASO A actualizara las subsecciones.
+      // Para principales SIN fórmula string: sumar subsecciones aplicando su sign, igual
+      // que hacen las cuentas al subir a subsecciones, para respetar las restas del layout
+      // (ej: Cargos Administrativos con sign:-1 en la fórmula de EXPENSE).
+      const principalPrevAcc = new Map();
+      const principalBlockByKey = new Map();
+      const subseccionesPorPrincipal = new Map();
+      layoutArr.forEach((block) => {
+        const tipo = (block.type || block.tipo || "").toLowerCase();
+        if (!isPrincipalTipo(tipo)) return;
+        principalBlockByKey.set(normalizarLabel(block.label || ""), block);
+        const fStr = getFormulaString(block);
+        const hasFormulaStr = typeof fStr === "string" && fStr.trim().length > 3;
+        if (hasFormulaStr) {
+          // Re-evaluar la fórmula para prevMonth/prevYTD con el contexto actualizado.
+          if (!block.totals) block.totals = {};
+          block.totals.prevMonth = calculateFormulaValue(fStr, ctxMapPrev, "prevMonth", block);
+          block.totals.prevYTD = calculateFormulaValue(fStr, ctxMapPrev, "prevYTD", block);
+          return;
+        }
+        principalPrevAcc.set(block.label, { prevMonth: 0, prevYTD: 0, block });
+      });
+      layoutArr.forEach((block) => {
+        const tipo = (block.type || block.tipo || "").toLowerCase();
+        if (!isSecundariaTipo(tipo)) return;
+        const parent = normalizarLabel(block.parentSection || "");
+        if (!parent) return;
+        const bucket = subseccionesPorPrincipal.get(parent);
+        if (bucket) bucket.push(block);
+        else subseccionesPorPrincipal.set(parent, [block]);
+      });
+      const inferredSignsBySecKey = new Map();
+      principalBlockByKey.forEach((principalBlock, principalKey) => {
+        const subs = subseccionesPorPrincipal.get(principalKey) || [];
+        const inferred = inferirSignosSubsecciones(principalBlock, subs);
+        if (!inferred) return;
+        inferred.forEach((sign, secKey) => inferredSignsBySecKey.set(secKey, sign));
+      });
+      layoutArr.forEach((block) => {
+        const tipo = (block.type || block.tipo || "").toLowerCase();
+        if (!isSecundariaTipo(tipo)) return;
+        const parent = block.parentSection || "";
+        const entry = principalPrevAcc.get(parent);
+        if (!entry) return;
+        const secKey = buildSecKeyLocal(parent || "", block.label || "");
+        // Aplicar sign del bloque de subsección para respetar restas en la fórmula del principal
+        // (ej: Cargos Administrativos con sign negativo en EXPENSE).
+        const inferred = secKey ? inferredSignsBySecKey.get(secKey) : null;
+        const sign =
+          inferred != null
+            ? inferred
+            : Number.isFinite(Number(block.sign))
+            ? Number(block.sign)
+            : 1;
+        entry.prevMonth += toNumber(block.totals?.prevMonth) * sign;
+        entry.prevYTD += toNumber(block.totals?.prevYTD) * sign;
+      });
+      principalPrevAcc.forEach(({ prevMonth, prevYTD, block }) => {
+        if (!block.totals) block.totals = {};
+        block.totals.prevMonth = prevMonth;
+        block.totals.prevYTD = prevYTD;
+      });
+    };
+
+    // Re-evalúa prevMonth/prevYTD de operaciones con fórmula usando los valores de
+    // secciones ya actualizados por recalcularPrincipales (que incorpora datos del
+    // comparativo vía aplicarComparativoLayout). Esto corrige que calcularTotalesOperacion
+    // del backend usa totalPrevMonth de SQL que puede diferir del comparativo.
+    const recalcularOperacionesPrevComparativo = (layoutArr = []) => {
+      if (!Array.isArray(layoutArr) || !layoutArr.length) return;
+      // Construir contextMap con los valores actuales (post-recalcularPrincipales)
+      const ctxMap = new Map();
+      const addToCtx = (k, v) => addContextReference(ctxMap, k, v);
+      layoutArr.forEach((b) => {
+        if (!b) return;
+        if (b.label) addToCtx(b.label, b);
+        if (b.nombre) addToCtx(b.nombre, b);
+        if (b.id) addToCtx(b.id, b);
+        if (b.Clase) addToCtx(b.Clase, b);
+        if (b.clase) addToCtx(b.clase, b);
+        if (b.subseccion) addToCtx(b.subseccion, b);
+        if (b.parentSection) addToCtx(b.parentSection, b);
+        if (b.parentSubsection) addToCtx(b.parentSubsection, b);
+      });
+      layoutArr.forEach((block) => {
+        const tipo = (block?.type || block?.tipo || "").toLowerCase();
+        if (tipo !== "operation" && tipo !== "operacion") return;
+        if (!block.totals) return;
+        const f = getFormulaString(block);
+        if (DEBUG_FORMULAS) {
+          console.log(
+            "[DIAG] op:",
+            block.label,
+            "| formula:",
+            block.formula || "(vacía)",
+            "| formula_terms:",
+            JSON.stringify(block.formula_terms),
+            "| getFormulaString:",
+            f || "(vacía)",
+            "| prevMonth antes:",
+            block.totals.prevMonth,
+          );
+        }
+        if (!f || f.trim().length <= 3) return;
+        block.totals.prevMonth = calculateFormulaValue(f, ctxMap, "prevMonth", block);
+        block.totals.prevYTD = calculateFormulaValue(f, ctxMap, "prevYTD", block);
+        if (DEBUG_FORMULAS) {
+          console.log(
+            "[DIAG] op:",
+            block.label,
+            "| prevMonth después:",
+            block.totals.prevMonth,
+          );
+        }
+      });
     };
 
     const recalcularConsolidados = (
@@ -5266,6 +5574,15 @@
         // ALWAYS recalculate principals to ensure manual formulas and aggregations are applied.
         // The recalcularPrincipales function internally handles manual overrides vs auto-sum.
         recalcularPrincipales(layout);
+        // Cuando hay comparativo activo:
+        // 1. Propagar prevMonth/prevYTD de abajo hacia arriba (cuentas→subsecciones→principales)
+        //    para que principales con backend-formula (manualFormula:true sin cadena) usen el
+        //    valor de la empresa comparativa en vez del año anterior.
+        // 2. Re-evaluar operaciones con fórmula string usando esos valores actualizados.
+        if (comparativaActiva) {
+          recalcularPrevDesdeHijos(layout);
+          recalcularOperacionesPrevComparativo(layout);
+        }
         recalcularConsolidados(layout, capituloName, { comparativaActiva });
 
         /* ORIGINAL CHECK:
@@ -5854,7 +6171,7 @@
         }
       }
 
-       renderResumen(resumenFinal, mesEntero, { comparativaActiva });
+      renderResumen(resumenFinal, mesEntero, { comparativaActiva });
 
       // Esperar a que el DOM se actualice completamente antes de capturar el snapshot
       requestAnimationFrame(() => {
