@@ -4923,8 +4923,8 @@
           inferred != null
             ? inferred
             : Number.isFinite(Number(block.sign))
-            ? Number(block.sign)
-            : 1;
+              ? Number(block.sign)
+              : 1;
         entry.prevMonth += toNumber(block.totals?.prevMonth) * sign;
         entry.prevYTD += toNumber(block.totals?.prevYTD) * sign;
       });
@@ -7427,7 +7427,7 @@
         percent: 75,
       });
       const fetchNativeWithTimeout = async (url, options = {}) => {
-        const timeoutMs = 20000;
+        const timeoutMs = 60000;
         if (
           window.ExportUtils &&
           typeof window.ExportUtils._fetchWithTimeout === "function"

@@ -150,7 +150,7 @@
   const EXPORT_JOBS_STORAGE_KEY = "export_utils_pending_jobs_v1";
   const EXPORT_JOBS_ENDPOINT_STATE_KEY = "export_utils_jobs_endpoint_state_v1";
   const EXPORT_JOBS_ENDPOINT_UNAVAILABLE_TTL_MS = 45 * 1000;
-  const LOCAL_EXPORT_TIMEOUT_MS = 20000;
+  const LOCAL_EXPORT_TIMEOUT_MS = 60000;
   const EXPORT_PAGE_SESSION_ID = `page-${Date.now()}-${Math.random()
     .toString(36)
     .slice(2, 8)}`;
@@ -531,6 +531,7 @@
           });
           return;
         }
+
         excelProgressUI.update({
           label: "Leyendo tabla y gráficas...",
           progress: 15,
@@ -737,31 +738,9 @@
         console.error("Error al exportar Excel con graficas:", error);
         if (onError) onError(error);
         this._showToast(
-          "No se pudo generar el Excel con graficas. Exportando solo tabla.",
-          "warning"
+          "No se pudo generar el Excel con graficas nativas.",
+          "error"
         );
-        try {
-          if (baseBuffer) {
-            const blob = new Blob([baseBuffer], {
-              type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            });
-            this._descargarBlob(blob, `${baseName}.xlsx`);
-            this._showToast("Excel exportado sin graficas.");
-            return;
-          }
-          this.exportarExcel({
-            tabla,
-            nombreArchivo,
-            nombreHoja: nombreHojaTabla,
-            _skipAutoGraficas: true,
-          });
-        } catch (fallbackError) {
-          console.error("Error al exportar Excel (fallback):", fallbackError);
-          this._showToast(
-            "Error al exportar: " + fallbackError.message,
-            "error"
-          );
-        }
       }
       finally {
         setTimeout(() => excelProgressUI.hide(), 220);
@@ -858,15 +837,8 @@
           detalle.length > 140 ? `${detalle.slice(0, 140)}...` : detalle;
         this._showToast(
           `No se pudo generar grafica nativa${textoDetalle ? ": " + textoDetalle : ""}.`,
-          "warning"
+          "error"
         );
-        this._exportarExcelOperativoLocal({
-          tabla,
-          nombreArchivo,
-          nombreHojaTabla,
-          nombreHojaOperativo,
-          incluirTabla,
-        });
       }
     },
 
@@ -1575,9 +1547,9 @@
         }
         this._renderDescargasPanel();
       };
-      run().catch(() => {});
+      run().catch(() => { });
       this._pendingJobsTimer = window.setInterval(() => {
-        run().catch(() => {});
+        run().catch(() => { });
       }, 4000);
     },
 
@@ -1676,7 +1648,7 @@
             );
             return;
           }
-          this._procesarTrabajoPendiente(job).catch(() => {});
+          this._procesarTrabajoPendiente(job).catch(() => { });
           return;
         }
         if (action === "download" && job) {

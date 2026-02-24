@@ -71,7 +71,8 @@ function Invoke-ComRetry {
   for ($attempt = 0; $attempt -lt $Retries; $attempt++) {
     try {
       return & $Action
-    } catch [System.Runtime.InteropServices.COMException] {
+    }
+    catch [System.Runtime.InteropServices.COMException] {
       $hr = $_.Exception.HResult
       # 0x80010001 RPC_E_CALL_REJECTED, 0x800AC472 (Excel busy)
       if ($hr -eq -2147418111 -or $hr -eq -2146777998) {
@@ -93,7 +94,8 @@ function Get-WorkbookSheetNames {
     try {
       $ws = Invoke-ComRetry { $Workbook.Worksheets.Item($i) }
       $names += (Invoke-ComRetry { [string]$ws.Name })
-    } catch {
+    }
+    catch {
     }
   }
   return $names
@@ -170,7 +172,8 @@ function Find-SeriesMetaEntry {
     $entryLabel = ""
     if ($entry.PSObject.Properties.Name -contains "label") {
       $entryLabel = [string]$entry.label
-    } elseif ($entry.PSObject.Properties.Name -contains "name") {
+    }
+    elseif ($entry.PSObject.Properties.Name -contains "name") {
       $entryLabel = [string]$entry.name
     }
     if (-not $entryLabel) { continue }
@@ -223,7 +226,8 @@ function Resolve-SeriesType {
     $rawType = ""
     if ($entry.PSObject.Properties.Name -contains "type") {
       $rawType = [string]$entry.type
-    } elseif ($entry.PSObject.Properties.Name -contains "chartType") {
+    }
+    elseif ($entry.PSObject.Properties.Name -contains "chartType") {
       $rawType = [string]$entry.chartType
     }
     $normalized = $rawType.ToString().Trim().ToLowerInvariant()
@@ -244,7 +248,8 @@ function Apply-SeriesStyle {
     try { $Series.ChartType = $xlChartTypeLine } catch {}
     try { $Series.MarkerStyle = -4142 } catch {}
     try { $Series.Format.Line.Weight = 2 } catch {}
-  } else {
+  }
+  else {
     try { $Series.ChartType = $xlChartTypeBarClustered } catch {}
   }
 
@@ -255,11 +260,13 @@ function Apply-SeriesStyle {
     $Series.Format.Fill.Visible = $true
     $Series.Format.Fill.Solid()
     $Series.Format.Fill.ForeColor.RGB = $oleColor
-  } catch {}
+  }
+  catch {}
   try {
     $Series.Format.Line.Visible = $true
     $Series.Format.Line.ForeColor.RGB = $oleColor
-  } catch {}
+  }
+  catch {}
   try { $Series.Interior.Color = $oleColor } catch {}
 }
 
@@ -271,7 +278,8 @@ function Set-ChartBarLayout {
     if (-not $group) { return }
     $group.Overlap = 0
     $group.GapWidth = 150
-  } catch {}
+  }
+  catch {}
 }
 
 if (-not (Test-Path $InputPath)) {
@@ -287,31 +295,36 @@ if ($SeriesMeta) {
     $parsedMeta = $SeriesMeta | ConvertFrom-Json -ErrorAction Stop
     if ($parsedMeta -is [System.Array]) {
       $seriesMetaList = @($parsedMeta)
-    } elseif ($parsedMeta) {
+    }
+    elseif ($parsedMeta) {
       $seriesMetaList = @($parsedMeta)
     }
-  } catch {
+  }
+  catch {
     Write-Host "SeriesMeta no valido. Se usaran colores por defecto."
   }
 }
 
-$excel = New-Object -ComObject Excel.Application
-$excel.Visible = $false
-$excel.DisplayAlerts = $false
-try { $excel.AskToUpdateLinks = $false } catch {}
-try { $excel.EnableEvents = $false } catch {}
-try { $excel.ScreenUpdating = $false } catch {}
+try {
+  $excel = New-Object -ComObject Excel.Application
+  $excel.Visible = $false
+  $excel.DisplayAlerts = $false
+  try { $excel.AskToUpdateLinks = $false } catch {}
+  try { $excel.EnableEvents = $false } catch {}
+  try { $excel.ScreenUpdating = $false } catch {}
 
-$wb = Invoke-ComRetry { $excel.Workbooks.Open($inputFull) }
+  $wb = Invoke-ComRetry { $excel.Workbooks.Open($inputFull) }
 
 try {
   $wsData = Invoke-ComRetry { $wb.Worksheets.Item($DataSheetName) }
-} catch {
+}
+catch {
   $sheets = @()
   try { $sheets = Get-WorkbookSheetNames -Workbook $wb } catch {}
   if ($sheets.Count) {
     Write-Error ("Data sheet not found: {0}. Disponibles: {1}" -f $DataSheetName, ($sheets -join ", "))
-  } else {
+  }
+  else {
     Write-Error "Data sheet not found: $DataSheetName"
   }
   try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
@@ -321,52 +334,61 @@ try {
 
 function Get-SeriesColumnsForHeaderRow {
   param(
-    $Sheet,
-    [int]$RowNumber
+    $Values,
+    [int]$RowNumber,
+    [int]$MaxCol
   )
-  if (-not $Sheet -or $RowNumber -lt 1) { return @() }
-  $lastCol = $Sheet.Cells.Item($RowNumber, $Sheet.Columns.Count).End(-4159).Column # xlToLeft
+  if (-not $Values -or $RowNumber -lt 1) { return @() }
+  $lastCol = 1
+  for ($c = $MaxCol; $c -ge 2; $c--) {
+    if (([string]$Values[$RowNumber, $c]).Trim()) {
+      $lastCol = $c
+      break
+    }
+  }
   if ($lastCol -lt 2) { return @() }
   $result = @()
   for ($col = 2; $col -le $lastCol; $col++) {
-    $seriesName = ([string]$Sheet.Cells.Item($RowNumber, $col).Text).Trim()
+    $seriesName = ([string]$Values[$RowNumber, $col]).Trim()
     if (-not $seriesName) { continue }
     $result += [PSCustomObject]@{
       Column = $col
-      Name = $seriesName
+      Name   = $seriesName
     }
   }
   return @($result)
 }
 
 function Get-ChartBlocks {
-  param($Sheet)
-  if (-not $Sheet) { return @() }
-  $sheetLastRow = $Sheet.Cells.Item($Sheet.Rows.Count, 1).End(-4162).Row # xlUp
-  if ($sheetLastRow -lt 1) { return @() }
+  param(
+    $Values,
+    [int]$SheetLastRow,
+    [int]$MaxCol
+  )
+  if (-not $Values -or $SheetLastRow -lt 1) { return @() }
   $blocks = @()
   $row = 1
-  while ($row -le $sheetLastRow) {
-    $marker = ([string]$Sheet.Cells.Item($row, 1).Text).Trim().ToUpperInvariant()
+  while ($row -le $SheetLastRow) {
+    $marker = ([string]$Values[$row, 1]).Trim().ToUpperInvariant()
     if ($marker -ne "CHART") {
       $row++
       continue
     }
 
-    $title = ([string]$Sheet.Cells.Item($row, 2).Text).Trim()
+    $title = ([string]$Values[$row, 2]).Trim()
     if (-not $title) { $title = "Grafica" }
     $headerRow = $row + 1
-    if ($headerRow -gt $sheetLastRow) { break }
+    if ($headerRow -gt $SheetLastRow) { break }
 
-    $seriesColumns = Get-SeriesColumnsForHeaderRow -Sheet $Sheet -RowNumber $headerRow
+    $seriesColumns = Get-SeriesColumnsForHeaderRow -Values $Values -RowNumber $headerRow -MaxCol $MaxCol
     if ($seriesColumns.Count -eq 0) {
       $row = $headerRow + 1
       continue
     }
 
     $dataStart = $headerRow + 1
-    while ($dataStart -le $sheetLastRow) {
-      $candidateLabel = ([string]$Sheet.Cells.Item($dataStart, 1).Text).Trim()
+    while ($dataStart -le $SheetLastRow) {
+      $candidateLabel = ([string]$Values[$dataStart, 1]).Trim()
       if (-not $candidateLabel) {
         $dataStart++
         continue
@@ -376,11 +398,11 @@ function Get-ChartBlocks {
       }
       break
     }
-    if ($dataStart -gt $sheetLastRow) { break }
+    if ($dataStart -gt $SheetLastRow) { break }
 
     $dataEnd = $dataStart
-    while ($dataEnd -le $sheetLastRow) {
-      $currentLabel = ([string]$Sheet.Cells.Item($dataEnd, 1).Text).Trim()
+    while ($dataEnd -le $SheetLastRow) {
+      $currentLabel = ([string]$Values[$dataEnd, 1]).Trim()
       if (-not $currentLabel) { break }
       if ((Normalize-Text $currentLabel) -eq "CHART") { break }
       $dataEnd++
@@ -389,10 +411,10 @@ function Get-ChartBlocks {
 
     if ($dataEnd -ge $dataStart) {
       $blocks += [PSCustomObject]@{
-        Title = $title
-        HeaderRow = $headerRow
-        DataStart = $dataStart
-        DataEnd = $dataEnd
+        Title         = $title
+        HeaderRow     = $headerRow
+        DataStart     = $dataStart
+        DataEnd       = $dataEnd
         SeriesColumns = $seriesColumns
       }
       $row = $dataEnd + 1
@@ -403,12 +425,32 @@ function Get-ChartBlocks {
   return @($blocks)
 }
 
+$values = $null
+for ($attempt = 0; $attempt -lt 30; $attempt++) {
+  try {
+    $usedRange = $wsData.UsedRange
+    $values = $usedRange.Value2
+    break
+  } catch [System.Runtime.InteropServices.COMException] {
+    Start-Sleep -Milliseconds 150
+  }
+}
+
+if ($null -eq $values -or $values -isnot [System.Array] -or $values.Rank -lt 2) {
+  Write-Error "No data found in $DataSheetName."
+  try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+  try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
+  exit 1
+}
+$lastRow = $values.GetUpperBound(0)
+$maxCol = $values.GetUpperBound(1)
+
 $headerRow = 1
-$maxHeaderScan = [Math]::Min(120, $wsData.Rows.Count)
+$maxHeaderScan = [Math]::Min(120, $lastRow)
 for ($i = 1; $i -le $maxHeaderScan; $i++) {
   $parts = @()
-  for ($c = 1; $c -le 12; $c++) {
-    $txt = [string]$wsData.Cells.Item($i, $c).Text
+  for ($c = 1; $c -le [Math]::Min(12, $maxCol); $c++) {
+    $txt = [string]$values[$i, $c]
     if ($txt) { $parts += $txt.ToLowerInvariant() }
   }
   $rowText = ($parts -join " ")
@@ -418,24 +460,24 @@ for ($i = 1; $i -le $maxHeaderScan; $i++) {
   }
 }
 
-$seriesColumns = Get-SeriesColumnsForHeaderRow -Sheet $wsData -RowNumber $headerRow
+$seriesColumns = Get-SeriesColumnsForHeaderRow -Values $values -RowNumber $headerRow -MaxCol $maxCol
 if ($seriesColumns.Count -eq 0) {
   $metadataRows = @("RESULTADOS OPERATIVOS", "CATEGORIA", "EMPRESA", "PERIODO", "FECHA EXPORTACION")
   for ($candidate = 1; $candidate -le $maxHeaderScan; $candidate++) {
-    $candidateSeries = Get-SeriesColumnsForHeaderRow -Sheet $wsData -RowNumber $candidate
+    $candidateSeries = Get-SeriesColumnsForHeaderRow -Values $values -RowNumber $candidate -MaxCol $maxCol
     if ($candidateSeries.Count -eq 0) { continue }
-    $firstCellNorm = Normalize-Text ([string]$wsData.Cells.Item($candidate, 1).Text)
+    $firstCellNorm = Normalize-Text ([string]$values[$candidate, 1])
     if (-not $firstCellNorm) { continue }
     if ($metadataRows -contains $firstCellNorm) { continue }
 
     $parts = @()
-    for ($c = 1; $c -le 12; $c++) {
-      $txt = [string]$wsData.Cells.Item($candidate, $c).Text
+    for ($c = 1; $c -le [Math]::Min(12, $maxCol); $c++) {
+      $txt = [string]$values[$candidate, $c]
       if ($txt) { $parts += $txt }
     }
     $candidateText = Normalize-Text ($parts -join " ")
     $looksLikeHeader = $candidateText -match "PPTO|PRESUPUESTO|REAL|ACUM|BUDGET|ACTUAL|YTD|20[0-9]{2}"
-    $nextLabel = ([string]$wsData.Cells.Item($candidate + 1, 1).Text).Trim()
+    $nextLabel = ([string]$values[$candidate + 1, 1]).Trim()
     if (-not $looksLikeHeader -and -not $nextLabel) { continue }
 
     $headerRow = $candidate
@@ -445,8 +487,7 @@ if ($seriesColumns.Count -eq 0) {
 }
 
 $dataStart = $headerRow + 1
-$lastRow = $wsData.Cells.Item($wsData.Rows.Count, 1).End(-4162).Row # xlUp
-while ($dataStart -le $lastRow -and -not ([string]$wsData.Cells.Item($dataStart, 1).Text).Trim()) {
+while ($dataStart -le $lastRow -and -not ([string]$values[$dataStart, 1]).Trim()) {
   $dataStart++
 }
 
@@ -457,7 +498,7 @@ if ($lastRow -lt $dataStart) {
   exit 1
 }
 
-$chartBlocks = Get-ChartBlocks -Sheet $wsData
+$chartBlocks = Get-ChartBlocks -Values $values -SheetLastRow $lastRow -MaxCol $maxCol
 if ($seriesColumns.Count -eq 0 -and $chartBlocks.Count -eq 0) {
   Write-Error "No series columns found in $DataSheetName."
   try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
@@ -469,18 +510,21 @@ $wsCharts = $null
 if ($ChartsSheetName -and $ChartsSheetName -ne $DataSheetName) {
   try {
     $wsCharts = $wb.Worksheets.Item($ChartsSheetName)
-  } catch {
+  }
+  catch {
     $wsCharts = $null
   }
 
   if ($wsCharts) {
     try { Invoke-ComRetry { $wsCharts.Cells.Clear() } } catch {}
     try { Invoke-ComRetry { $wsCharts.ChartObjects().Delete() } } catch {}
-  } else {
+  }
+  else {
     $wsCharts = Invoke-ComRetry { $wb.Worksheets.Add($null, $wb.Worksheets.Item($wb.Worksheets.Count)) }
     Invoke-ComRetry { $wsCharts.Name = $ChartsSheetName }
   }
-} else {
+}
+else {
   $wsCharts = $wsData
 }
 
@@ -501,9 +545,10 @@ if ($chartModeNormalized -eq "combined") {
   $chart.Chart.ChartType = $xlChartTypeBarClustered
   try {
     while ($chart.Chart.SeriesCollection().Count -gt 0) {
-      $chart.Chart.SeriesCollection(1).Delete()
+      [void]$chart.Chart.SeriesCollection(1).Delete()
     }
-  } catch {}
+  }
+  catch {}
   $chart.Chart.HasLegend = $true
   try { $chart.Chart.Legend.Position = $xlLegendPositionBottom } catch {}
   $chart.Chart.HasTitle = $true
@@ -529,8 +574,10 @@ if ($chartModeNormalized -eq "combined") {
   try {
     $valueAxis = $chart.Chart.Axes($xlAxisTypeValue)
     $valueAxis.TickLabels.NumberFormat = "#,##0.00"
-  } catch {}
-} elseif ($chartBlocks.Count -gt 0) {
+  }
+  catch {}
+}
+elseif ($chartBlocks.Count -gt 0) {
   $chartTop = $baseTop
   for ($blockIdx = 0; $blockIdx -lt $chartBlocks.Count; $blockIdx++) {
     $block = $chartBlocks[$blockIdx]
@@ -541,9 +588,10 @@ if ($chartModeNormalized -eq "combined") {
     $chart.Chart.ChartType = $xlChartTypeBarClustered
     try {
       while ($chart.Chart.SeriesCollection().Count -gt 0) {
-        $chart.Chart.SeriesCollection(1).Delete()
+        [void]$chart.Chart.SeriesCollection(1).Delete()
       }
-    } catch {}
+    }
+    catch {}
     $chart.Chart.HasLegend = $block.SeriesColumns.Count -gt 1
     try { $chart.Chart.Legend.Position = $xlLegendPositionBottom } catch {}
     $chart.Chart.HasTitle = $true
@@ -569,11 +617,13 @@ if ($chartModeNormalized -eq "combined") {
     try {
       $valueAxis = $chart.Chart.Axes($xlAxisTypeValue)
       $valueAxis.TickLabels.NumberFormat = "#,##0.00"
-    } catch {}
+    }
+    catch {}
 
     $chartTop += $chartHeight + 35
   }
-} else {
+}
+else {
   $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
   $splitSeries = @($seriesColumns)
   for ($idx = 0; $idx -lt $splitSeries.Count; $idx++) {
@@ -586,9 +636,10 @@ if ($chartModeNormalized -eq "combined") {
     $chart.Chart.ChartType = $xlChartTypeBarClustered
     try {
       while ($chart.Chart.SeriesCollection().Count -gt 0) {
-        $chart.Chart.SeriesCollection(1).Delete()
+        [void]$chart.Chart.SeriesCollection(1).Delete()
       }
-    } catch {}
+    }
+    catch {}
     $series = $chart.Chart.SeriesCollection().NewSeries()
     $series.Values = $rangeValues
     $series.XValues = $rangeLabels
@@ -602,7 +653,8 @@ if ($chartModeNormalized -eq "combined") {
     try {
       $valueAxis = $chart.Chart.Axes($xlAxisTypeValue)
       $valueAxis.TickLabels.NumberFormat = "#,##0.00"
-    } catch {}
+    }
+    catch {}
   }
 }
 
@@ -610,14 +662,16 @@ $wsTable = $null
 if ($TableSheetName) {
   try {
     $wsTable = $wb.Worksheets.Item($TableSheetName)
-  } catch {
+  }
+  catch {
     $wsTable = $null
   }
 }
 if (-not $wsTable) {
   try {
     $wsTable = $wb.Worksheets.Item(1)
-  } catch {
+  }
+  catch {
     $wsTable = $null
   }
 }
@@ -632,20 +686,38 @@ if ($wsTable) {
   try {
     $usedRange = Invoke-ComRetry { $wsTable.UsedRange }
     if ($usedRange) {
-      Invoke-ComRetry { $usedRange.Columns.AutoFit() }
+      [void](Invoke-ComRetry { $usedRange.Columns.AutoFit() })
     }
-  } catch {
+  }
+  catch {
   }
 }
 
 if ($wsTable) {
-  $wsTable.Activate()
-} else {
-  $wsCharts.Activate()
+    try { Invoke-ComRetry { $wsTable.Activate() } } catch {}
+  }
+  else {
+    try { Invoke-ComRetry { $wsCharts.Activate() } } catch {}
+  }
+  try { Invoke-ComRetry { $wb.SaveAs($OutputPath) } } catch {}
+  Write-Host "Charts created: $OutputPath"
 }
-$wb.SaveAs($OutputPath)
-try { Invoke-ComRetry { $wb.Close($false) } } catch {}
-try { Invoke-ComRetry { $excel.Quit() } } catch {}
-try { [ExcelMessageFilter]::Revoke() } catch {}
-
-Write-Host "Charts created: $OutputPath"
+catch {
+  $msg = $_.Exception.Message
+  if (-not $msg) { $msg = $_.ToString() }
+  Write-Error -ErrorAction Continue $msg
+  try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+  try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
+  exit 1
+}
+finally {
+  if ($wb) {
+    try { Invoke-ComRetry { $wb.Close($false) } } catch {}
+  }
+  if ($excel) {
+    try { Invoke-ComRetry { $excel.Quit() } } catch {}
+  }
+  try { [ExcelMessageFilter]::Revoke() } catch {}
+  [System.GC]::Collect()
+  [System.GC]::WaitForPendingFinalizers()
+}

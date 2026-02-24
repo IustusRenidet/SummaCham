@@ -7,7 +7,7 @@ const JOB_STALE_PENDING_MS = 1000 * 60 * 60 * 6; // 6 horas
 const jobs = new Map();
 
 const now = () => Date.now();
-const DEFAULT_JOB_NATIVE_TIMEOUT_MS = 40000;
+const DEFAULT_JOB_NATIVE_TIMEOUT_MS = 60000;
 const DEFAULT_JOB_NATIVE_RETRY_TIMEOUT_MS = 120000;
 const normalizarTimeoutMs = (value, fallbackMs, minMs = 10000) => {
   const parsed = Number(value);

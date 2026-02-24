@@ -71,7 +71,8 @@ function Invoke-ComRetry {
   for ($attempt = 0; $attempt -lt $Retries; $attempt++) {
     try {
       return & $Action
-    } catch [System.Runtime.InteropServices.COMException] {
+    }
+    catch [System.Runtime.InteropServices.COMException] {
       $hr = $_.Exception.HResult
       # 0x80010001 RPC_E_CALL_REJECTED, 0x800AC472 (Excel busy)
       if ($hr -eq -2147418111 -or $hr -eq -2146777998) {
@@ -93,7 +94,8 @@ function Get-WorkbookSheetNames {
     try {
       $ws = Invoke-ComRetry { $Workbook.Worksheets.Item($i) }
       $names += (Invoke-ComRetry { [string]$ws.Name })
-    } catch {
+    }
+    catch {
     }
   }
   return $names
@@ -162,50 +164,82 @@ try {
 
   try {
     $wsData = Invoke-ComRetry { $wb.Worksheets.Item($DataSheetName) }
-  } catch {
+  }
+  catch {
     $sheets = @()
     try { $sheets = Get-WorkbookSheetNames -Workbook $wb } catch {}
     $available = if ($sheets.Count) { " Disponibles: " + ($sheets -join ", ") } else { "" }
-    throw ("Data sheet not found: {0}.{1}" -f $DataSheetName, $available)
+    Write-Error ("Data sheet not found: {0}.{1}" -f $DataSheetName, $available)
+    try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+    try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
+    exit 1
   }
 
   if ($ChartsSheetName) {
     try {
       $wsCharts = Invoke-ComRetry { $wb.Worksheets.Item($ChartsSheetName) }
-    } catch {
+    }
+    catch {
       $wsCharts = $null
     }
 
     if ($wsCharts) {
       try { Invoke-ComRetry { $wsCharts.Cells.Clear() } } catch {}
       try { Invoke-ComRetry { $wsCharts.ChartObjects().Delete() } } catch {}
-    } else {
+    }
+    else {
       $wsCharts = Invoke-ComRetry { $wb.Worksheets.Add($null, $wb.Worksheets.Item($wb.Worksheets.Count)) }
       Invoke-ComRetry { $wsCharts.Name = $ChartsSheetName }
     }
-  } else {
+  }
+  else {
     $wsCharts = $wsData
   }
 
-  $lastRow = Invoke-ComRetry { $wsData.Cells.Item($wsData.Rows.Count, 1).End(-4162).Row } # xlUp
+  $values = $null
+  for ($attempt = 0; $attempt -lt 30; $attempt++) {
+    try {
+      $usedRange = $wsData.UsedRange
+      $values = $usedRange.Value2
+      break
+    } catch [System.Runtime.InteropServices.COMException] {
+      Start-Sleep -Milliseconds 150
+    }
+  }
+  
+  if ($null -eq $values -or $values -isnot [System.Array] -or $values.Rank -lt 2) {
+    Write-Error "No chart blocks found in $DataSheetName."
+    try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+    try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
+    exit 1
+  }
+
+  $lastRow = $values.GetUpperBound(0)
+  $maxCol = $values.GetUpperBound(1)
+
   if ($lastRow -lt 1) {
-    throw "No chart blocks found in $DataSheetName."
+    Write-Error "No chart blocks found in $DataSheetName."
+    try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+    try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
+    exit 1
   }
 
   $row = 1
   $chartTop = 20
   while ($row -le $lastRow) {
-    $marker = (Invoke-ComRetry { [string]$wsData.Cells.Item($row, 1).Text }).Trim()
+    $marker = [string]$values[$row, 1]
+    $marker = $marker.Trim()
     if ($marker -eq "CHART") {
-      $title = (Invoke-ComRetry { [string]$wsData.Cells.Item($row, 2).Text }).Trim()
+      $title = [string]$values[$row, 2]
+      $title = $title.Trim()
       $headerRow = $row + 1
       $col = 2
-      while ((Invoke-ComRetry { [string]$wsData.Cells.Item($headerRow, $col).Text }).Trim()) {
+      while ($col -le $maxCol -and ([string]$values[$headerRow, $col]).Trim()) {
         $col += 1
       }
       $lastCol = $col - 1
       $dataRow = $headerRow + 1
-      while ((Invoke-ComRetry { [string]$wsData.Cells.Item($dataRow, 1).Text }).Trim()) {
+      while ($dataRow -le $lastRow -and ([string]$values[$dataRow, 1]).Trim()) {
         $dataRow += 1
       }
       $dataLast = $dataRow - 1
@@ -213,7 +247,7 @@ try {
       if ($lastCol -ge 2 -and $dataLast -ge $headerRow + 1) {
         $seriesNames = @()
         for ($c = 2; $c -le $lastCol; $c++) {
-          $seriesNames += (Invoke-ComRetry { [string]$wsData.Cells.Item($headerRow, $c).Text }).Trim()
+          $seriesNames += ([string]$values[$headerRow, $c]).Trim()
         }
 
         $rangeLabels = Invoke-ComRetry { $wsData.Range("A$($headerRow + 1):A$($dataLast)") }
@@ -222,9 +256,10 @@ try {
         Invoke-ComRetry { $chartObj.Chart.ChartType = 51 } # xlColumnClustered
         try {
           while ((Invoke-ComRetry { $chartObj.Chart.SeriesCollection().Count }) -gt 0) {
-            Invoke-ComRetry { $chartObj.Chart.SeriesCollection(1).Delete() }
+            [void](Invoke-ComRetry { $chartObj.Chart.SeriesCollection(1).Delete() })
           }
-        } catch {}
+        }
+        catch {}
 
         Invoke-ComRetry { $chartObj.Chart.HasTitle = $true }
         Invoke-ComRetry { $chartObj.Chart.ChartTitle.Text = $title }
@@ -239,7 +274,7 @@ try {
 
           $name = if ($seriesNames.Count -ge ($c - 1)) { $seriesNames[$c - 2] } else { "" }
           if (-not $name) {
-            $name = (Invoke-ComRetry { [string]$wsData.Cells.Item($headerRow, $c).Text }).Trim()
+            $name = ([string]$values[$headerRow, $c]).Trim()
           }
           if ($name) {
             Invoke-ComRetry { $series.Name = $name }
@@ -260,7 +295,8 @@ try {
       }
 
       $row = $dataLast + 2
-    } else {
+    }
+    else {
       $row += 1
     }
   }
@@ -268,14 +304,16 @@ try {
   if ($TableSheetName) {
     try {
       $wsTable = Invoke-ComRetry { $wb.Worksheets.Item($TableSheetName) }
-    } catch {
+    }
+    catch {
       $wsTable = $null
     }
   }
   if (-not $wsTable) {
     try {
       $wsTable = Invoke-ComRetry { $wb.Worksheets.Item(1) }
-    } catch {
+    }
+    catch {
       $wsTable = $null
     }
   }
@@ -284,9 +322,10 @@ try {
     try {
       $usedRange = Invoke-ComRetry { $wsTable.UsedRange }
       if ($usedRange) {
-        Invoke-ComRetry { $usedRange.Columns.AutoFit() }
+        [void](Invoke-ComRetry { $usedRange.Columns.AutoFit() })
       }
-    } catch {
+    }
+    catch {
     }
   }
 
@@ -300,22 +339,28 @@ try {
     if (Test-Path $OutputPath) {
       Remove-Item -LiteralPath $OutputPath -Force -ErrorAction SilentlyContinue
     }
-  } catch {}
+  }
+  catch {}
 
   if ($wsTable) {
     try { Invoke-ComRetry { $wsTable.Activate() } } catch {}
-  } else {
+  }
+  else {
     try { Invoke-ComRetry { $wsCharts.Activate() } } catch {}
   }
 
   Invoke-ComRetry { $wb.SaveAs($OutputPath) }
   Write-Host "Charts created: $OutputPath"
-} catch {
+}
+catch {
   $msg = $_.Exception.Message
   if (-not $msg) { $msg = $_.ToString() }
   Write-Error -ErrorAction Continue $msg
+  try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+  try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
   exit 1
-} finally {
+}
+finally {
   if ($wb) {
     try { Invoke-ComRetry { $wb.Close($false) } } catch {}
   }

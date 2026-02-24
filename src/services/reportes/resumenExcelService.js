@@ -46,7 +46,7 @@ const resolverPowerShell = () => {
 
 const EXCEL_NATIVE_TIMEOUT_MS = Math.max(
   10000,
-  Number(process.env.EXCEL_NATIVE_TIMEOUT_MS || 20000)
+  Number(process.env.EXCEL_NATIVE_TIMEOUT_MS || 60000)
 );
 
 const normalizarTimeoutMs = (value, fallbackMs = EXCEL_NATIVE_TIMEOUT_MS) => {
@@ -136,7 +136,7 @@ const ejecutarPowerShell = (args, timeoutMs = EXCEL_NATIVE_TIMEOUT_MS) =>
         finalize(
           reject,
           new Error(
-            `PowerShell timeout (${Math.round(timeout / 1000)}s).`
+            `PowerShell timeout (${Math.round(timeout / 1000)}s). Stderr: ${stderr}`
           )
         );
       });

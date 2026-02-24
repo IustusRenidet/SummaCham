@@ -47,6 +47,19 @@
   };
   const API_ENDPOINT = `${base}/api/reportes/resumen`;
   const API_ANIOS = `${base}/api/saldos/anios`;
+  const DEFAULT_NATIVE_EXCEL_TIMEOUT_MS = 60000;
+  const NATIVE_EXCEL_TIMEOUT_MS = (() => {
+    try {
+      const raw = localStorage.getItem("graficas_resumen_native_timeout_ms");
+      const value = Number(raw);
+      if (Number.isFinite(value) && value > 0) {
+        return Math.max(5000, Math.min(120000, Math.round(value)));
+      }
+    } catch (_) {
+      // ignore storage errors
+    }
+    return DEFAULT_NATIVE_EXCEL_TIMEOUT_MS;
+  })();
 
   const yearSelect = document.getElementById("grafYearSelect");
   const monthSelect = document.getElementById("grafMonthSelect");
@@ -65,6 +78,34 @@
   const customChartsRow = document.getElementById("customChartsRow");
   const charts = {};
   const customCharts = {};
+
+  const fetchWithTimeout = async (
+    url,
+    options = {},
+    timeoutMs = NATIVE_EXCEL_TIMEOUT_MS
+  ) => {
+    const timeout = Number(timeoutMs);
+    if (!Number.isFinite(timeout) || timeout <= 0) {
+      return fetch(url, options);
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), timeout);
+    try {
+      return await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        throw new Error(
+          `Tiempo de espera agotado (${Math.round(timeout / 1000)}s).`
+        );
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timer);
+    }
+  };
 
   // === UTILIDADES ===
   const toNumber = (val) => {
@@ -2333,13 +2374,13 @@
               },
               ...(dataLabelsPlugin ? {
                 datalabels: {
-                  display: function(ctx) {
+                  display: function (ctx) {
                     const val = ctx.dataset.data[ctx.dataIndex];
                     return val !== null && val !== undefined && val !== 0;
                   },
                   anchor: "end",
                   align: "end",
-                  formatter: function(value) { return formatNumber(value); },
+                  formatter: function (value) { return formatNumber(value); },
                   font: { size: 9 },
                   color: "#444",
                 },
@@ -4040,14 +4081,9 @@
     const flags = datos.flags || {};
     const customChartItems = getCustomChartsForExport();
 
-    // Verificar que ExcelJS esté disponible
+    // Solo exportación nativa (sin imágenes)
     if (typeof ExcelJS === 'undefined') {
-      // Fallback a SheetJS si ExcelJS no está disponible
-      if (typeof XLSX === 'undefined') {
-        alert('La librería de exportación no está disponible.');
-        return;
-      }
-      await exportarGraficasExcelLegacy(datos);
+      alert('ExcelJS no está disponible. La exportación nativa requiere esta librería.');
       return;
     }
 
@@ -4103,8 +4139,7 @@
         });
 
         if (rowCursor === 1) {
-          wsData.getCell('A1').value =
-            'Sin datos de gráficas disponibles para exportar.';
+          return false;
         }
 
         const buffer = await workbook.xlsx.writeBuffer();
@@ -4123,7 +4158,7 @@
           tableSheetName: '',
         });
 
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           `${base}/api/reportes/resumen-excel-native?${params.toString()}`,
           {
             method: 'POST',
@@ -4133,7 +4168,8 @@
             },
             credentials: 'include',
             body: binaryBody,
-          }
+          },
+          NATIVE_EXCEL_TIMEOUT_MS
         );
 
         if (!response.ok) {
@@ -4165,6 +4201,46 @@
           return null;
         }
       };
+
+      const toNativeChartData = (source) => {
+        if (!source || typeof source !== 'object') return null;
+        const labelsRaw = Array.isArray(source.labels) ? source.labels : [];
+        const datasetsRaw = Array.isArray(source.datasets) ? source.datasets : [];
+        if (!labelsRaw.length || !datasetsRaw.length) return null;
+
+        const labels = labelsRaw.map((label) => String(label ?? '').trim());
+        const datasets = datasetsRaw.map((dataset, datasetIdx) => {
+          const values = Array.isArray(dataset?.data) ? dataset.data : [];
+          return {
+            label: dataset?.label || `Serie ${datasetIdx + 1}`,
+            data: labels.map((_, labelIdx) => {
+              const numeric = toExportNumber(values[labelIdx]);
+              return Number.isFinite(numeric) ? numeric : 0;
+            }),
+          };
+        });
+
+        const normalized = { labels, datasets };
+        return hasExportableSeriesData(normalized) ? normalized : null;
+      };
+
+      const chartsForNative = [];
+      const addNativeChart = ({ title, canvas, fallbackData }) => {
+        const chart = getChartByCanvas(canvas);
+        let sourceData = null;
+        if (chartHasExportableData(chart)) {
+          sourceData = chart.data;
+        } else if (hasExportableSeriesData(fallbackData)) {
+          sourceData = fallbackData;
+        }
+        const normalizedData = toNativeChartData(sourceData);
+        if (!normalizedData) return;
+        chartsForNative.push({
+          title: title || resolveCanvasTitle(canvas, 'Grafica'),
+          data: normalizedData,
+        });
+      };
+
       const customChartDefs = await safeResolve(
         () =>
           buildCustomChartsForExport({
@@ -4190,305 +4266,78 @@
           )
           : null;
 
-      try {
-        const exported = await tryExportNative(customChartDefs || []);
-        if (exported) {
-          console.log('✅ Excel nativo con gráficas exportado correctamente');
-          return;
-        }
-      } catch (nativeError) {
-        console.warn('No se pudo exportar Excel nativo, usando fallback:', nativeError);
-      }
-
-      const workbook = new ExcelJS.Workbook();
-      workbook.creator = 'SummaCham';
-      workbook.created = new Date();
-      let sheetCount = 0;
-
-      // === HOJA 1: Resultados Operativos con Gráfica ===
       if (flags.operating !== false) {
-        const wsOperativos = workbook.addWorksheet('Resultados Operativos');
-        sheetCount += 1;
-
-        // Información general
-        wsOperativos.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
-        wsOperativos.addRow(['Empresa:', datos.empresa]);
-        wsOperativos.addRow(['Capítulo:', datos.capitulo]);
-        wsOperativos.addRow(['Año:', datos.anio]);
-        wsOperativos.addRow(['Mes:', datos.mes]);
-        wsOperativos.addRow(['Fecha de exportación:', datos.fecha]);
-        wsOperativos.addRow([]);
-
-        // Tabla de datos
-        wsOperativos.addRow(['RESULTADOS OPERATIVOS POR CAPÍTULO']);
-        const headerRowOp = wsOperativos.addRow(['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']);
-        headerRowOp.font = { bold: true };
-        headerRowOp.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D47A1' } };
-        headerRowOp.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-
-        datos.operativos.forEach(row => {
-          wsOperativos.addRow([row.concepto, row.realAcumulado, row.pptoAcumulado, row.realAcumAA]);
-        });
-
-        // Ajustar anchos
-        wsOperativos.columns = [
-          { width: 40 },
-          { width: 18 },
-          { width: 18 },
-          { width: 25 }
-        ];
-
-        // Agregar gráfica como imagen
-        const chartOp = document.getElementById('chartOperatingSummaryByChapter');
-        await agregarCanvasComoImagenExcel({
-          workbook,
-          worksheet: wsOperativos,
-          canvas: chartOp,
-          row: datos.operativos.length + 11,
-          col: 0,
-          width: 800,
-          height: 400,
-          titulo: 'Resultado Operativo por Capitulo',
-          resolveFallbackDataUrl: () =>
-            renderFallbackChartDataUrl(buildFallbackSeriesFromRows(datos.operativos)),
+        addNativeChart({
+          title: 'Resultado Operativo por Capitulo',
+          canvas: document.getElementById('chartOperatingSummaryByChapter'),
+          fallbackData: buildFallbackSeriesFromRows(datos.operativos),
         });
       }
-
-      // === HOJA 2: Resultados Netos con Gráfica ===
       if (flags.net !== false) {
-        const wsNetos = workbook.addWorksheet('Resultados Netos');
-        sheetCount += 1;
-
-        wsNetos.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
-        wsNetos.addRow(['Empresa:', datos.empresa]);
-        wsNetos.addRow(['Capítulo:', datos.capitulo]);
-        wsNetos.addRow(['Año:', datos.anio]);
-        wsNetos.addRow(['Mes:', datos.mes]);
-        wsNetos.addRow(['Fecha de exportación:', datos.fecha]);
-        wsNetos.addRow([]);
-
-        wsNetos.addRow(['RESULTADOS NETOS POR CAPÍTULO']);
-        const headerRowNet = wsNetos.addRow(['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']);
-        headerRowNet.font = { bold: true };
-        headerRowNet.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D47A1' } };
-        headerRowNet.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-
-        datos.netos.forEach(row => {
-          wsNetos.addRow([row.concepto, row.realAcumulado, row.pptoAcumulado, row.realAcumAA]);
-        });
-
-        wsNetos.columns = [
-          { width: 40 },
-          { width: 18 },
-          { width: 18 },
-          { width: 25 }
-        ];
-
-        // Agregar gráfica
-        const chartNet = document.getElementById('chartNetSummaryByChapter');
-        await agregarCanvasComoImagenExcel({
-          workbook,
-          worksheet: wsNetos,
-          canvas: chartNet,
-          row: datos.netos.length + 11,
-          col: 0,
-          width: 800,
-          height: 400,
-          titulo: 'Resumen Neto por Capitulo',
-          resolveFallbackDataUrl: () =>
-            renderFallbackChartDataUrl(buildFallbackSeriesFromRows(datos.netos)),
+        addNativeChart({
+          title: 'Resumen Neto por Capitulo',
+          canvas: document.getElementById('chartNetSummaryByChapter'),
+          fallbackData: buildFallbackSeriesFromRows(datos.netos),
         });
       }
-
-      // === HOJA 3: Consolidados (solo CDMX) ===
       if (flags.consolidated && datos.consolidados) {
-        const wsConsolidados = workbook.addWorksheet('Consolidados');
-        sheetCount += 1;
-
-        wsConsolidados.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
-        wsConsolidados.addRow(['Empresa:', datos.empresa]);
-        wsConsolidados.addRow(['Capítulo:', datos.capitulo]);
-        wsConsolidados.addRow(['Año:', datos.anio]);
-        wsConsolidados.addRow(['Mes:', datos.mes]);
-        wsConsolidados.addRow(['Fecha de exportación:', datos.fecha]);
-        wsConsolidados.addRow([]);
-
-        wsConsolidados.addRow(['RESULTADOS CONSOLIDADOS']);
-        const headerRowCons = wsConsolidados.addRow(['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']);
-        headerRowCons.font = { bold: true };
-        headerRowCons.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D47A1' } };
-        headerRowCons.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-
-        datos.consolidados.forEach(row => {
-          wsConsolidados.addRow([row.concepto, row.realAcumulado, row.pptoAcumulado, row.realAcumAA]);
-        });
-
-        wsConsolidados.columns = [
-          { width: 40 },
-          { width: 18 },
-          { width: 18 },
-          { width: 25 }
-        ];
-
-        // Agregar gráfica consolidada
-        const chartCons = document.getElementById('chartConsolidatedResults');
-        await agregarCanvasComoImagenExcel({
-          workbook,
-          worksheet: wsConsolidados,
-          canvas: chartCons,
-          row: datos.consolidados.length + 11,
-          col: 0,
-          width: 800,
-          height: 400,
-          titulo: 'Consolidados Operativos vs Netos',
-          resolveFallbackDataUrl: () =>
-            renderFallbackChartDataUrl(buildFallbackSeriesFromRows(datos.consolidados)),
+        addNativeChart({
+          title: 'Consolidados Operativos vs Netos',
+          canvas: document.getElementById('chartConsolidatedResults'),
+          fallbackData: buildFallbackSeriesFromRows(datos.consolidados),
         });
       }
-
       if (flags.ingreso !== false) {
-        const wsIngreso = workbook.addWorksheet('Ingreso Capitulo');
-        sheetCount += 1;
-        wsIngreso.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
-        wsIngreso.addRow(['Empresa:', datos.empresa]);
-        wsIngreso.addRow(['Capítulo:', datos.capitulo]);
-        wsIngreso.addRow(['Año:', datos.anio]);
-        wsIngreso.addRow(['Mes:', datos.mes]);
-        wsIngreso.addRow(['Fecha de exportación:', datos.fecha]);
-        wsIngreso.addRow([]);
-        wsIngreso.addRow(['INGRESO POR CAPÍTULO']);
-        const chartIngreso = document.getElementById('chartIngresoPorCapitulo');
-        await agregarCanvasComoImagenExcel({
-          workbook,
-          worksheet: wsIngreso,
-          canvas: chartIngreso,
-          row: wsIngreso.rowCount + 1,
-          col: 0,
-          width: 800,
-          height: 400,
-          titulo: 'Ingreso por Capitulo',
-          resolveFallbackDataUrl: () =>
-            renderFallbackChartDataUrl(ingresoFallbackSeries, datos.graficasConfig?.ingreso?.chartType),
+        addNativeChart({
+          title: 'Ingreso por Capitulo',
+          canvas: document.getElementById('chartIngresoPorCapitulo'),
+          fallbackData: ingresoFallbackSeries,
         });
       }
-
       if (flags.ingresoNacional !== false) {
-        const wsIngresoNacional = workbook.addWorksheet('Ingreso Nacional');
-        sheetCount += 1;
-        wsIngresoNacional.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
-        wsIngresoNacional.addRow(['Empresa:', datos.empresa]);
-        wsIngresoNacional.addRow(['Capítulo:', datos.capitulo]);
-        wsIngresoNacional.addRow(['Año:', datos.anio]);
-        wsIngresoNacional.addRow(['Mes:', datos.mes]);
-        wsIngresoNacional.addRow(['Fecha de exportación:', datos.fecha]);
-        wsIngresoNacional.addRow([]);
-        wsIngresoNacional.addRow(['INGRESO NACIONAL']);
-        const chartIngresoNacional = document.getElementById('chartIngresoNacional');
-        await agregarCanvasComoImagenExcel({
-          workbook,
-          worksheet: wsIngresoNacional,
-          canvas: chartIngresoNacional,
-          row: wsIngresoNacional.rowCount + 1,
-          col: 0,
-          width: 800,
-          height: 400,
-          titulo: 'Ingreso nacional',
-          resolveFallbackDataUrl: () =>
-            renderFallbackChartDataUrl(
-              ingresoNacionalFallbackSeries,
-              datos.graficasConfig?.ingresoNacional?.chartType
-            ),
+        addNativeChart({
+          title: 'Ingreso nacional',
+          canvas: document.getElementById('chartIngresoNacional'),
+          fallbackData: ingresoNacionalFallbackSeries,
         });
       }
 
-      if (customChartItems.length || (customChartDefs || []).length) {
-        const wsCustom = workbook.addWorksheet('Graficas personalizadas');
-        sheetCount += 1;
-        wsCustom.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
-        wsCustom.addRow(['Empresa:', datos.empresa]);
-        wsCustom.addRow(['Capítulo:', datos.capitulo]);
-        wsCustom.addRow(['Año:', datos.anio]);
-        wsCustom.addRow(['Mes:', datos.mes]);
-        wsCustom.addRow(['Fecha de exportación:', datos.fecha]);
-        wsCustom.addRow([]);
-
-        const queue = [];
-        const seenCanvasIds = new Set();
-        (customChartDefs || []).forEach((def, index) => {
-          if (def?.canvas?.id) {
-            seenCanvasIds.add(def.canvas.id);
-          }
-          queue.push({
-            title: def?.title || `Grafica personalizada ${index + 1}`,
-            canvas: def?.canvas || null,
-            chartType: def?.chartType || 'bar',
-            data: def?.data || null,
-          });
+      const customCanvasIds = new Set();
+      (customChartDefs || []).forEach((def, index) => {
+        const canvasId = def?.canvas?.id || '';
+        if (canvasId) customCanvasIds.add(canvasId);
+        addNativeChart({
+          title: def?.title || `Grafica personalizada ${index + 1}`,
+          canvas: def?.canvas || null,
+          fallbackData: def?.data || null,
         });
-        customChartItems.forEach((item, index) => {
-          const canvasId = item?.canvas?.id || '';
-          if (canvasId && seenCanvasIds.has(canvasId)) return;
-          queue.push({
-            title: item?.title || `Grafica personalizada ${index + 1}`,
-            canvas: item?.canvas || null,
-            chartType: 'bar',
-            data: null,
-          });
+      });
+      customChartItems.forEach((item, index) => {
+        const canvasId = item?.canvas?.id || '';
+        if (canvasId && customCanvasIds.has(canvasId)) return;
+        addNativeChart({
+          title: item?.title || `Grafica personalizada ${index + 1}`,
+          canvas: item?.canvas || null,
+          fallbackData: null,
         });
+      });
 
-        for (let index = 0; index < queue.length; index += 1) {
-          const item = queue[index];
-          const title = item.title || `Grafica personalizada ${index + 1}`;
-          wsCustom.addRow([title]);
-          const startRow = wsCustom.rowCount + 1;
-          const inserted = await agregarCanvasComoImagenExcel({
-            workbook,
-            worksheet: wsCustom,
-            canvas: item.canvas,
-            row: startRow,
-            col: 0,
-            width: 800,
-            height: 400,
-            titulo: title,
-            resolveFallbackDataUrl: item.data
-              ? () => renderFallbackChartDataUrl(item.data, item.chartType)
-              : null,
-          });
-          if (!inserted) {
-            wsCustom.addRow([`No fue posible capturar la grafica: ${title}`]);
-          }
-          for (let i = 0; i < 22; i += 1) {
-            wsCustom.addRow([]);
-          }
-        }
+      if (!chartsForNative.length) {
+        alert('No hay gráficas con datos exportables.');
+        return;
       }
 
-      if (!sheetCount) {
-        const wsEmpty = workbook.addWorksheet('Graficas');
-        wsEmpty.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
-        wsEmpty.addRow(['Empresa:', datos.empresa]);
-        wsEmpty.addRow(['Capítulo:', datos.capitulo]);
-        wsEmpty.addRow(['Año:', datos.anio]);
-        wsEmpty.addRow(['Mes:', datos.mes]);
-        wsEmpty.addRow(['Fecha de exportación:', datos.fecha]);
-        wsEmpty.addRow([]);
-        wsEmpty.addRow(['Sin gráficas disponibles para exportar.']);
+      const exported = await tryExportNative(chartsForNative);
+      if (!exported) {
+        throw new Error('No se pudo preparar la estructura nativa de gráficas.');
       }
 
-      // Descargar archivo
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Graficas_Resumen_${datos.anio}_${datos.mes}_${Date.now()}.xlsx`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-
-      console.log('✅ Excel con gráficas exportado correctamente');
+      console.log('✅ Excel nativo con gráficas exportado correctamente');
     } catch (error) {
-      console.error('Error al exportar con ExcelJS:', error);
-      alert('Error al generar el archivo Excel. Verifica la consola para más detalles.');
+      console.error('Error en exportación nativa de Excel:', error);
+      alert(
+        `Error al generar Excel con gráficas nativas: ${error?.message || 'desconocido'}.`
+      );
     }
   };
 
