@@ -6665,6 +6665,7 @@
     let fallbackName = "";
     let workbook = null;
     let trabajoSegundoPlano = false;
+    let localFallbackJobId = "";
     try {
       exportProgressUI.show({
         title: "Exportando Excel…",
@@ -6990,6 +6991,26 @@
         indeterminate: false,
         percent: 75,
       });
+      const fetchNativeWithTimeout = async (url, options = {}) => {
+        if (
+          window.ExportUtils &&
+          typeof window.ExportUtils._fetchWithTimeout === "function"
+        ) {
+          return window.ExportUtils._fetchWithTimeout(url, options, 120000);
+        }
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => controller.abort(), 120000);
+        try {
+          return await fetch(url, { ...options, signal: controller.signal });
+        } catch (error) {
+          if (error?.name === "AbortError") {
+            throw new Error("Tiempo de espera agotado (120s).");
+          }
+          throw error;
+        } finally {
+          window.clearTimeout(timer);
+        }
+      };
       if (
         window.ExportUtils &&
         typeof window.ExportUtils._crearTrabajoExportNativo === "function"
@@ -7011,9 +7032,19 @@
           if (jobError?.code !== "EXPORT_JOBS_UNAVAILABLE") {
             throw jobError;
           }
+          if (
+            window.ExportUtils &&
+            typeof window.ExportUtils._crearTrabajoLocalDescarga === "function"
+          ) {
+            localFallbackJobId = window.ExportUtils._crearTrabajoLocalDescarga({
+              nombre: `${baseName}_Graficas.xlsx`,
+              tipo: "resumen",
+              message: "Generando (modo local)",
+            });
+          }
           const authHeaders =
             window.Sesion?.headersAutenticacion?.() || {};
-          const response = await fetch(
+          const response = await fetchNativeWithTimeout(
             `${base}/api/reportes/resumen-excel-native?${params.toString()}`,
             {
               method: "POST",
@@ -7037,6 +7068,21 @@
             percent: 85,
           });
           const blob = await leerBlobConProgreso(response, ({ loaded, total }) => {
+            if (
+              localFallbackJobId &&
+              window.ExportUtils &&
+              typeof window.ExportUtils._actualizarTrabajoLocalDescarga === "function"
+            ) {
+              const pct = total > 0 ? 85 + (loaded / total) * 15 : 92;
+              window.ExportUtils._actualizarTrabajoLocalDescarga(localFallbackJobId, {
+                status: "running",
+                progress: Math.max(10, Math.min(99, Number(pct) || 10)),
+                message:
+                  total > 0
+                    ? `Descargando archivo... ${exportProgressUI.formatBytes(loaded)} / ${exportProgressUI.formatBytes(total)}`
+                    : `Descargando archivo... ${exportProgressUI.formatBytes(loaded)}`,
+              });
+            }
             if (total > 0) {
               exportProgressUI.update({
                 label: "Descargando XLSX…",
@@ -7061,11 +7107,31 @@
           a.download = filename;
           a.click();
           window.URL.revokeObjectURL(url);
+          if (
+            localFallbackJobId &&
+            window.ExportUtils &&
+            typeof window.ExportUtils._finalizarTrabajoLocalDescarga === "function"
+          ) {
+            window.ExportUtils._finalizarTrabajoLocalDescarga(localFallbackJobId, {
+              ok: true,
+              message: "Completado (modo local)",
+            });
+          }
         }
       } else {
+        if (
+          window.ExportUtils &&
+          typeof window.ExportUtils._crearTrabajoLocalDescarga === "function"
+        ) {
+          localFallbackJobId = window.ExportUtils._crearTrabajoLocalDescarga({
+            nombre: `${baseName}_Graficas.xlsx`,
+            tipo: "resumen",
+            message: "Generando (modo local)",
+          });
+        }
         const authHeaders =
           window.Sesion?.headersAutenticacion?.() || {};
-        const response = await fetch(
+        const response = await fetchNativeWithTimeout(
           `${base}/api/reportes/resumen-excel-native?${params.toString()}`,
           {
             method: "POST",
@@ -7089,6 +7155,21 @@
           percent: 85,
         });
         const blob = await leerBlobConProgreso(response, ({ loaded, total }) => {
+          if (
+            localFallbackJobId &&
+            window.ExportUtils &&
+            typeof window.ExportUtils._actualizarTrabajoLocalDescarga === "function"
+          ) {
+            const pct = total > 0 ? 85 + (loaded / total) * 15 : 92;
+            window.ExportUtils._actualizarTrabajoLocalDescarga(localFallbackJobId, {
+              status: "running",
+              progress: Math.max(10, Math.min(99, Number(pct) || 10)),
+              message:
+                total > 0
+                  ? `Descargando archivo... ${exportProgressUI.formatBytes(loaded)} / ${exportProgressUI.formatBytes(total)}`
+                  : `Descargando archivo... ${exportProgressUI.formatBytes(loaded)}`,
+            });
+          }
           if (total > 0) {
             exportProgressUI.update({
               label: "Descargando XLSX…",
@@ -7113,6 +7194,16 @@
         a.download = filename;
         a.click();
         window.URL.revokeObjectURL(url);
+        if (
+          localFallbackJobId &&
+          window.ExportUtils &&
+          typeof window.ExportUtils._finalizarTrabajoLocalDescarga === "function"
+        ) {
+          window.ExportUtils._finalizarTrabajoLocalDescarga(localFallbackJobId, {
+            ok: true,
+            message: "Completado (modo local)",
+          });
+        }
       }
 
       if (typeof showToast === "function") {
@@ -7129,6 +7220,17 @@
       });
       exportProgressUI.hide();
     } catch (error) {
+      if (
+        localFallbackJobId &&
+        window.ExportUtils &&
+        typeof window.ExportUtils._finalizarTrabajoLocalDescarga === "function"
+      ) {
+        window.ExportUtils._finalizarTrabajoLocalDescarga(localFallbackJobId, {
+          ok: false,
+          message: "Interrumpido (modo local)",
+          error: error?.message || "Error desconocido",
+        });
+      }
       console.error("Error al exportar con gráficas:", error);
 
       if (fallbackBuffer) {

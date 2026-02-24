@@ -149,7 +149,7 @@
   const excelProgressUI = createExcelProgressUI();
   const EXPORT_JOBS_STORAGE_KEY = "export_utils_pending_jobs_v1";
   const EXPORT_JOBS_ENDPOINT_STATE_KEY = "export_utils_jobs_endpoint_state_v1";
-  const LOCAL_JOB_STALE_MS = 3 * 60 * 1000;
+  const EXPORT_JOBS_ENDPOINT_UNAVAILABLE_TTL_MS = 45 * 1000;
   const LOCAL_EXPORT_TIMEOUT_MS = 120000;
   const EXPORT_PAGE_SESSION_ID = `page-${Date.now()}-${Math.random()
     .toString(36)
@@ -217,39 +217,60 @@
             normalizedJob.updatedAt = now;
           } else if (
             this._esTrabajoLocal(normalizedJob) &&
-            (status === "queued" || status === "running") &&
-            now - updatedAt > LOCAL_JOB_STALE_MS
+            status === "failed" &&
+            String(normalizedJob.ownerSessionId || "") === EXPORT_PAGE_SESSION_ID &&
+            /Interrumpido \(modo local\)/i.test(
+              String(normalizedJob.message || "")
+            )
           ) {
-            normalizedJob.status = "failed";
-            normalizedJob.progress = 100;
-            normalizedJob.message = "Interrumpido (modo local)";
-            normalizedJob.error =
-              normalizedJob.error || "La exportación local se interrumpió.";
+            // Recupera estados marcados por la regla de timeout visual anterior.
+            normalizedJob.status = "running";
+            normalizedJob.progress = Math.max(
+              46,
+              Math.min(96, Number(normalizedJob.progress) || 46)
+            );
+            normalizedJob.message = "Generando (modo local)";
             normalizedJob.updatedAt = now;
           }
           return normalizedJob;
         })
-        .filter((job) => String(job?.id || "").trim());
-
-      // Evitar duplicados visuales del mismo archivo: conservar el más reciente por nombre.
-      const byName = new Map();
-      normalized
-        .slice()
-        .sort(
-          (a, b) =>
-            Math.max(Number(b.updatedAt) || 0, Number(b.createdAt) || 0) -
-            Math.max(Number(a.updatedAt) || 0, Number(a.createdAt) || 0)
-        )
-        .forEach((job) => {
-          const key = String(job?.nombre || job?.id || "")
-            .trim()
-            .toLowerCase();
-          if (!key) return;
-          if (!byName.has(key)) {
-            byName.set(key, job);
+        .filter((job) => String(job?.id || "").trim())
+        .filter((job) => {
+          // Limpiar automáticamente residuos locales interrumpidos para no confundir
+          // cuando el servidor no soporta cola nativa.
+          if (!this._esTrabajoLocal(job)) return true;
+          const status = String(job?.status || "");
+          const msg = String(job?.message || "");
+          if (
+            status === "failed" &&
+            (/Interrumpido \(/i.test(msg) || /interrump/i.test(msg))
+          ) {
+            return false;
           }
+          return true;
         });
-      return Array.from(byName.values());
+
+      // Evitar duplicados por ID conservando el estado más reciente.
+      const byId = new Map();
+      normalized.forEach((job) => {
+        const key = String(job?.id || "").trim();
+        if (!key) return;
+        const prev = byId.get(key);
+        if (!prev) {
+          byId.set(key, job);
+          return;
+        }
+        const prevTs = Math.max(
+          Number(prev.updatedAt) || 0,
+          Number(prev.createdAt) || 0
+        );
+        const currTs = Math.max(
+          Number(job.updatedAt) || 0,
+          Number(job.createdAt) || 0
+        );
+        if (currTs >= prevTs) byId.set(key, job);
+      });
+      return Array.from(byId.values());
     },
 
     _getExportJobsStateStorageKey() {
@@ -260,9 +281,32 @@
       if (this._exportJobsEndpointState) return this._exportJobsEndpointState;
       try {
         const raw = localStorage.getItem(this._getExportJobsStateStorageKey());
-        if (raw === "available" || raw === "unavailable") {
-          this._exportJobsEndpointState = raw;
-          return raw;
+        if (!raw) return null;
+        if (raw === "available") {
+          this._exportJobsEndpointState = "available";
+          return "available";
+        }
+        if (raw === "unavailable") {
+          // Compatibilidad con formato legado sin timestamp:
+          // no lo consideramos definitivo para evitar bloquear la cola para siempre.
+          this._setExportJobsEndpointState(null);
+          return null;
+        }
+        const parsed = JSON.parse(raw);
+        const state = parsed?.state;
+        const timestamp = Number(parsed?.timestamp) || 0;
+        if (state === "available") {
+          this._exportJobsEndpointState = "available";
+          return "available";
+        }
+        if (state === "unavailable") {
+          const age = Date.now() - timestamp;
+          if (timestamp > 0 && age > EXPORT_JOBS_ENDPOINT_UNAVAILABLE_TTL_MS) {
+            this._setExportJobsEndpointState(null);
+            return null;
+          }
+          this._exportJobsEndpointState = "unavailable";
+          return "unavailable";
         }
       } catch (_) {
         // ignore storage errors
@@ -281,7 +325,13 @@
         if (!value) {
           localStorage.removeItem(key);
         } else {
-          localStorage.setItem(key, value);
+          localStorage.setItem(
+            key,
+            JSON.stringify({
+              state: value,
+              timestamp: Date.now(),
+            })
+          );
         }
       } catch (_) {
         // ignore storage errors
@@ -601,22 +651,16 @@
           if (jobError?.code !== "EXPORT_JOBS_UNAVAILABLE") {
             throw jobError;
           }
-          localFallbackJobId = this._crearIdTrabajoLocal();
-          this._registrarTrabajoPendiente({
-            id: localFallbackJobId,
-            tipo: "operativo-local",
+          localFallbackJobId = this._crearTrabajoLocalDescarga({
             nombre: `${baseName}_Graficas.xlsx`,
-          });
-          this._actualizarTrabajoPendiente(localFallbackJobId, {
-            status: "running",
-            progress: 46,
+            tipo: "operativo",
             message: "Generando (modo local)",
           });
           this._showToast(
-            "Servidor sin cola de exportación; usando descarga directa.",
+            "Servidor sin cola en segundo plano; usando descarga directa (no navegues hasta terminar).",
             "warning"
           );
-          const response = await fetch(
+          const response = await this._fetchWithTimeout(
             `${API_BASE}/reportes/operativo-excel-native?${params.toString()}`,
             {
               method: "POST",
@@ -626,7 +670,8 @@
               },
               credentials: "include",
               body: binaryBody,
-            }
+            },
+            LOCAL_EXPORT_TIMEOUT_MS
           );
 
           if (!response.ok) {
@@ -638,23 +683,18 @@
             label: "Descargando archivo...",
             progress: 72,
           });
-          this._actualizarTrabajoPendiente(localFallbackJobId, {
-            status: "running",
-            progress: 72,
-            message: "Descargando",
-          });
           const blob = await this._leerResponseComoBlobConProgreso(response, {
             start: 72,
             end: 96,
             onProgress: (pct, label) => {
+              this._actualizarTrabajoLocalDescarga(localFallbackJobId, {
+                status: "running",
+                progress: Math.max(10, Math.min(99, Number(pct) || 10)),
+                message: label || "Descargando (modo local)",
+              });
               excelProgressUI.update({
                 label: label || "Descargando archivo...",
                 progress: pct,
-              });
-              this._actualizarTrabajoPendiente(localFallbackJobId, {
-                status: "running",
-                progress: Number(pct) || 72,
-                message: label || "Descargando",
               });
             },
           });
@@ -662,15 +702,13 @@
             this._obtenerNombreDescarga(response) ||
             `${baseName}_Graficas.xlsx`;
           this._descargarBlob(blob, filename);
+          this._finalizarTrabajoLocalDescarga(localFallbackJobId, {
+            ok: true,
+            message: "Completado (modo local)",
+          });
           excelProgressUI.update({
             label: "Listo",
             progress: 100,
-          });
-          this._actualizarTrabajoPendiente(localFallbackJobId, {
-            status: "completed",
-            progress: 100,
-            message: "Completado",
-            downloadedAt: Date.now(),
           });
 
           if (onSuccess) onSuccess();
@@ -678,11 +716,10 @@
         }
       } catch (error) {
         if (localFallbackJobId) {
-          this._actualizarTrabajoPendiente(localFallbackJobId, {
-            status: "failed",
-            progress: 100,
-            message: error?.message || "Error",
-            error: error?.message || "Error",
+          this._finalizarTrabajoLocalDescarga(localFallbackJobId, {
+            ok: false,
+            error: error?.message || "Error desconocido",
+            message: "Interrumpido (modo local)",
           });
         }
         console.error("Error al exportar Excel con graficas:", error);
@@ -1241,17 +1278,70 @@
       if (!id) return;
       const list = this._leerTrabajosPendientes();
       if (list.some((item) => String(item?.id || "") === id)) return;
+      const tipo = (job?.tipo || "operativo").toString();
+      const isLocal =
+        this._esTrabajoLocal(id) ||
+        tipo.includes("local") ||
+        String(job?.modo || "").toLowerCase() === "local";
       list.push({
         id,
-        tipo: (job?.tipo || "operativo").toString(),
+        tipo,
         nombre: (job?.nombre || "").toString(),
         status: "queued",
         progress: 0,
         message: "En cola",
         createdAt: Date.now(),
+        ownerSessionId: isLocal
+          ? String(job?.ownerSessionId || EXPORT_PAGE_SESSION_ID)
+          : "",
       });
       this._guardarTrabajosPendientes(list);
       this._renderDescargasPanel();
+    },
+
+    _crearTrabajoLocalDescarga(options = {}) {
+      const {
+        nombre = "Exportacion.xlsx",
+        tipo = "operativo",
+        message = "Generando (modo local)",
+      } = options || {};
+      const id = this._crearIdTrabajoLocal();
+      this._registrarTrabajoPendiente({
+        id,
+        tipo: `${tipo}-local`,
+        nombre,
+        modo: "local",
+        ownerSessionId: EXPORT_PAGE_SESSION_ID,
+      });
+      this._actualizarTrabajoPendiente(id, {
+        status: "running",
+        progress: 8,
+        message,
+      });
+      return id;
+    },
+
+    _actualizarTrabajoLocalDescarga(jobId = "", patch = {}) {
+      const id = String(jobId || "").trim();
+      if (!id || !this._esTrabajoLocal(id)) return;
+      this._actualizarTrabajoPendiente(id, patch || {});
+    },
+
+    _finalizarTrabajoLocalDescarga(jobId = "", options = {}) {
+      const id = String(jobId || "").trim();
+      if (!id || !this._esTrabajoLocal(id)) return;
+      const ok = options?.ok !== false;
+      const status = ok ? "completed" : "failed";
+      const message = ok
+        ? options?.message || "Completado"
+        : options?.message || "Error en descarga local";
+      this._actualizarTrabajoPendiente(id, {
+        status,
+        progress: 100,
+        downloadedAt: ok ? Date.now() : undefined,
+        message,
+        error: ok ? "" : String(options?.error || ""),
+      });
     },
 
     _actualizarTrabajoPendiente(jobId = "", patch = {}) {
