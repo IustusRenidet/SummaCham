@@ -7100,8 +7100,6 @@
   };
 
   const exportarResumenConGraficas = async (nombreEmpresa, anio, mes) => {
-    let fallbackBuffer = null;
-    let fallbackName = "";
     let workbook = null;
     let trabajoSegundoPlano = false;
     let localFallbackJobId = "";
@@ -7117,7 +7115,6 @@
       workbook.creator = "SummaCham";
       workbook.created = new Date();
       const { baseName, empresaTexto, mesNombre } = construirMetadataExportacion();
-      fallbackName = baseName;
       const ajustarAnchosWorksheet = (worksheet, options = {}) => {
         if (!worksheet) return;
         const { min = 8, max = 60, padding = 2 } = options;
@@ -7391,7 +7388,6 @@
         percent: 62,
       });
       const buffer = await workbook.xlsx.writeBuffer();
-      fallbackBuffer = buffer;
 
       if (!graficaData.length) {
         exportProgressUI.update({
@@ -7674,10 +7670,6 @@
         });
       }
       console.error("Error al exportar con gráficas:", error);
-
-      if (fallbackBuffer) {
-        descargarBufferExcel(fallbackBuffer, `${fallbackName || "Resumen"}.xlsx`);
-      }
       if (typeof showToast === "function") {
         const detail = (error?.message || "").toString().trim();
         const safeDetail =

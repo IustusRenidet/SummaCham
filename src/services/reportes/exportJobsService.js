@@ -7,20 +7,23 @@ const JOB_STALE_PENDING_MS = 1000 * 60 * 60 * 6; // 6 horas
 const jobs = new Map();
 
 const now = () => Date.now();
-
-const sanitizeFilenamePart = (value) =>
-  String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^A-Za-z0-9._-]+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
-
-const buildFallbackFilename = ({ tipo, params = {} }) => {
-  const baseDefault = tipo === "resumen" ? "RESUMEN" : "Operativo";
-  const baseName = sanitizeFilenamePart(params.nombreArchivo || baseDefault) || baseDefault;
-  return `${baseName}.xlsx`;
+const DEFAULT_JOB_NATIVE_TIMEOUT_MS = 40000;
+const DEFAULT_JOB_NATIVE_RETRY_TIMEOUT_MS = 120000;
+const normalizarTimeoutMs = (value, fallbackMs, minMs = 10000) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallbackMs;
+  return Math.max(minMs, Math.round(parsed));
 };
+const EXCEL_NATIVE_JOB_TIMEOUT_MS = normalizarTimeoutMs(
+  process.env.EXCEL_NATIVE_JOB_TIMEOUT_MS,
+  DEFAULT_JOB_NATIVE_TIMEOUT_MS,
+  20000
+);
+const EXCEL_NATIVE_JOB_RETRY_TIMEOUT_MS = normalizarTimeoutMs(
+  process.env.EXCEL_NATIVE_JOB_RETRY_TIMEOUT_MS,
+  Math.max(DEFAULT_JOB_NATIVE_RETRY_TIMEOUT_MS, EXCEL_NATIVE_JOB_TIMEOUT_MS),
+  EXCEL_NATIVE_JOB_TIMEOUT_MS
+);
 
 const leerString = (value) => {
   if (typeof value === "string") return value;
@@ -64,6 +67,11 @@ const safeError = (error) => {
   return String(raw).slice(0, 800);
 };
 
+const esTimeoutNativo = (error) => {
+  const texto = String(error?.message || error || "").toLowerCase();
+  return texto.includes("timeout");
+};
+
 const serializeJob = (job) => ({
   id: job.id,
   tipo: job.tipo,
@@ -101,52 +109,47 @@ const createNativeExcelJob = ({ userId, tipo, libroBuffer, params = {} }) => {
     if (!current) return;
     current.status = "running";
     current.progress = 28;
-    current.message = "Generando archivo";
+    current.message = "Generando gráficas nativas";
     current.updatedAt = now();
     try {
-      const payload = {
+      const payloadBase = {
         libroBuffer,
         ...current.params,
       };
-      const result =
-        tipo === "resumen"
-          ? await generarResumenExcel(payload)
-          : await generarOperativoExcel(payload);
+      const generarConTimeout = (timeoutMs) => {
+        const payload = {
+          ...payloadBase,
+          timeoutMs,
+        };
+        return tipo === "resumen"
+          ? generarResumenExcel(payload)
+          : generarOperativoExcel(payload);
+      };
+
+      let result;
+      try {
+        result = await generarConTimeout(EXCEL_NATIVE_JOB_TIMEOUT_MS);
+      } catch (fastError) {
+        if (!esTimeoutNativo(fastError)) {
+          throw fastError;
+        }
+        current.progress = 62;
+        current.message = "Reintentando exportación nativa";
+        current.updatedAt = now();
+        result = await generarConTimeout(EXCEL_NATIVE_JOB_RETRY_TIMEOUT_MS);
+      }
+
       current.buffer = result.buffer;
       current.filename = result.filename;
       current.status = "completed";
       current.progress = 100;
       current.message = "Completado";
+      current.error = "";
       current.updatedAt = now();
     } catch (error) {
-      const fallbackBuffer =
-        libroBuffer && Buffer.isBuffer(libroBuffer)
-          ? Buffer.from(libroBuffer)
-          : libroBuffer
-          ? Buffer.from(libroBuffer)
-          : null;
-      if (fallbackBuffer && fallbackBuffer.length) {
-        current.buffer = fallbackBuffer;
-        current.filename = buildFallbackFilename({
-          tipo,
-          params: current.params,
-        });
-        current.status = "completed";
-        current.progress = 100;
-        current.message = "Completado sin gráficas (fallback)";
-        current.error = safeError(error);
-        current.updatedAt = now();
-        console.warn("Export job completed with fallback workbook:", {
-          id,
-          tipo,
-          error: current.error,
-        });
-        return;
-      }
-
       current.status = "failed";
       current.progress = 100;
-      current.message = "Falló";
+      current.message = "Falló la exportación nativa";
       current.error = safeError(error);
       current.updatedAt = now();
       console.error("Export job failed:", { id, tipo, error });

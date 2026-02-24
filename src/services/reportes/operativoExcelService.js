@@ -102,6 +102,12 @@ const EXCEL_NATIVE_TIMEOUT_MS = Math.max(
   Number(process.env.EXCEL_NATIVE_TIMEOUT_MS || 20000)
 );
 
+const normalizarTimeoutMs = (value, fallbackMs = EXCEL_NATIVE_TIMEOUT_MS) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallbackMs;
+  return Math.max(10000, Math.round(parsed));
+};
+
 const killProcessTree = (proc) =>
   new Promise((resolve) => {
     try {
@@ -161,8 +167,9 @@ const normalizarWorkbookParaExcel = (inputPath) => {
   });
 };
 
-const ejecutarPowerShell = (args) =>
+const ejecutarPowerShell = (args, timeoutMs = EXCEL_NATIVE_TIMEOUT_MS) =>
   new Promise((resolve, reject) => {
+    const timeout = normalizarTimeoutMs(timeoutMs, EXCEL_NATIVE_TIMEOUT_MS);
     const bin = resolverPowerShell();
     const proc = spawn(bin, ["-NoProfile", "-ExecutionPolicy", "Bypass", "-STA", ...args], {
       windowsHide: true,
@@ -182,11 +189,11 @@ const ejecutarPowerShell = (args) =>
         finalize(
           reject,
           new Error(
-            `PowerShell timeout (${Math.round(EXCEL_NATIVE_TIMEOUT_MS / 1000)}s).`
+            `PowerShell timeout (${Math.round(timeout / 1000)}s).`
           )
         );
       });
-    }, EXCEL_NATIVE_TIMEOUT_MS);
+    }, timeout);
     proc.stdout.on("data", (chunk) => {
       stdout += chunk.toString();
     });
@@ -218,7 +225,9 @@ const generarOperativoExcel = async ({
   tableSheetName,
   chartMode,
   seriesMeta,
+  timeoutMs,
 }) => {
+  const nativeTimeoutMs = normalizarTimeoutMs(timeoutMs, EXCEL_NATIVE_TIMEOUT_MS);
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "operativo-"));
   const inputPath = path.join(tempDir, "operativo.xlsx");
   const outputPath = path.join(tempDir, "operativo_graficas.xlsx");
@@ -268,7 +277,9 @@ const generarOperativoExcel = async ({
     }
 
     try {
-      await withExcelNativeLock(() => ejecutarPowerShell(psArgs));
+      await withExcelNativeLock(() =>
+        ejecutarPowerShell(psArgs, nativeTimeoutMs)
+      );
     } catch (errorNative) {
       // Algunos libros generados en cliente pueden disparar "formato/extensión no válidos"
       // en Excel COM aunque sigan siendo reparables. Reintentar tras normalizar.
@@ -280,7 +291,9 @@ const generarOperativoExcel = async ({
       } catch (_) {
         throw errorNative;
       }
-      await withExcelNativeLock(() => ejecutarPowerShell(psArgs));
+      await withExcelNativeLock(() =>
+        ejecutarPowerShell(psArgs, nativeTimeoutMs)
+      );
     }
 
     const baseName = `${limpiarTexto(nombreArchivo || "Operativo")}_${limpiarTexto(
