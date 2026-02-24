@@ -19,6 +19,135 @@
     return match ? match[1] : dataUrl;
   };
 
+  const createExcelProgressUI = () => {
+    const STYLE_ID = "export-utils-excel-progress-style";
+    const OVERLAY_ID = "export-utils-excel-progress-overlay";
+    let overlay = null;
+    let titleEl = null;
+    let labelEl = null;
+    let percentEl = null;
+    let barEl = null;
+    let visible = false;
+
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+    const ensure = () => {
+      if (overlay && titleEl && labelEl && percentEl && barEl) return;
+      if (!document.getElementById(STYLE_ID)) {
+        const style = document.createElement("style");
+        style.id = STYLE_ID;
+        style.textContent = `
+          #${OVERLAY_ID} {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.52);
+            z-index: 6000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+          }
+          #${OVERLAY_ID}[hidden] { display: none !important; }
+          #${OVERLAY_ID} .excel-progress-card {
+            width: min(520px, 100%);
+            background: #ffffff;
+            border: 1px solid rgba(30, 58, 138, 0.2);
+            border-radius: 14px;
+            box-shadow: 0 16px 46px rgba(2, 6, 23, 0.28);
+            padding: 16px 18px;
+          }
+          #${OVERLAY_ID} .excel-progress-title {
+            margin: 0;
+            font-weight: 800;
+            color: #1f3b6b;
+          }
+          #${OVERLAY_ID} .excel-progress-label {
+            margin-top: 4px;
+            font-size: 0.92rem;
+            color: rgba(37, 99, 235, 0.88);
+          }
+          #${OVERLAY_ID} .excel-progress-track {
+            margin-top: 12px;
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            background: #dbeafe;
+            overflow: hidden;
+          }
+          #${OVERLAY_ID} .excel-progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%);
+            transition: width 160ms ease;
+          }
+          #${OVERLAY_ID} .excel-progress-percent {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            text-align: right;
+            color: #334155;
+            font-weight: 600;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      overlay = document.getElementById(OVERLAY_ID);
+      if (!overlay) {
+        overlay = document.createElement("div");
+        overlay.id = OVERLAY_ID;
+        overlay.hidden = true;
+        overlay.innerHTML = `
+          <div class="excel-progress-card" role="status" aria-live="polite" aria-atomic="true">
+            <p class="excel-progress-title">Exportando Excel...</p>
+            <div class="excel-progress-label">Preparando...</div>
+            <div class="excel-progress-track"><div class="excel-progress-bar"></div></div>
+            <div class="excel-progress-percent">0%</div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+      }
+      titleEl = overlay.querySelector(".excel-progress-title");
+      labelEl = overlay.querySelector(".excel-progress-label");
+      percentEl = overlay.querySelector(".excel-progress-percent");
+      barEl = overlay.querySelector(".excel-progress-bar");
+    };
+
+    const update = ({ title, label, progress }) => {
+      ensure();
+      if (!visible) {
+        overlay.hidden = false;
+        visible = true;
+      }
+      if (typeof title === "string" && titleEl) titleEl.textContent = title;
+      if (typeof label === "string" && labelEl) labelEl.textContent = label;
+      if (progress != null && Number.isFinite(Number(progress))) {
+        const pct = clamp(Number(progress), 0, 100);
+        if (barEl) barEl.style.width = `${pct.toFixed(1)}%`;
+        if (percentEl) {
+          percentEl.textContent = `${Math.round(pct)}%`;
+        }
+      }
+    };
+
+    const show = (options = {}) => {
+      update({
+        title: options.title || "Exportando Excel...",
+        label: options.label || "Preparando...",
+        progress: options.progress ?? 2,
+      });
+    };
+
+    const hide = () => {
+      if (!overlay) return;
+      overlay.hidden = true;
+      visible = false;
+    };
+
+    return { show, update, hide };
+  };
+
+  const excelProgressUI = createExcelProgressUI();
+
   const ExportUtils = {
     /**
      * Exportar tabla a Excel (XLSX)
@@ -38,8 +167,14 @@
         onError,
         _skipAutoGraficas = false,
       } = options;
+      let delegatedToChartsExport = false;
 
       try {
+        excelProgressUI.show({
+          title: "Exportando Excel...",
+          label: "Preparando tabla...",
+          progress: 4,
+        });
         const tablaElement =
           typeof tabla === "string"
             ? document.querySelector(tabla)
@@ -56,13 +191,16 @@
         }
 
         if (!_skipAutoGraficas) {
-          const chartTargets = this._resolverGraficas(options.charts);
-          const hasChartContainers = Boolean(
-            document.querySelector(
-              "[data-operativo-chart], [data-gg-chart], [data-custom-chart], #resumenChartsPanel canvas"
-            )
-          );
-          if (chartTargets.length > 0 || hasChartContainers) {
+          const report = this.verificarGraficasExportables({
+            charts: options.charts,
+            mostrar: false,
+          });
+          if ((report?.exportables?.length || 0) > 0) {
+            excelProgressUI.update({
+              label: "Generando Excel con gráficas...",
+              progress: 10,
+            });
+            delegatedToChartsExport = true;
             this.exportarExcelConGraficas({
               tabla: tablaElement,
               nombreArchivo,
@@ -82,12 +220,24 @@
           );
 
         // Usar método mejorado para construir la hoja con estilos
+        excelProgressUI.update({
+          label: "Aplicando estilos y colores...",
+          progress: 30,
+        });
         const hoja = this._tableToSheetWithStyles(tablaElement);
 
         const libro = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(libro, hoja, nombreHoja);
 
+        excelProgressUI.update({
+          label: "Serializando archivo...",
+          progress: 78,
+        });
         XLSX.writeFile(libro, `${baseName}.xlsx`);
+        excelProgressUI.update({
+          label: "Listo",
+          progress: 100,
+        });
 
         if (onSuccess) onSuccess();
         this._showToast("Exportado a Excel correctamente");
@@ -95,6 +245,10 @@
         console.error("Error al exportar Excel:", error);
         if (onError) onError(error);
         this._showToast("Error al exportar: " + error.message, "error");
+      } finally {
+        if (!delegatedToChartsExport) {
+          setTimeout(() => excelProgressUI.hide(), 220);
+        }
       }
     },
 
@@ -123,6 +277,11 @@
       let baseName = nombreArchivo;
 
       try {
+        excelProgressUI.show({
+          title: "Exportando Excel con gráficas...",
+          label: "Preparando datos...",
+          progress: 5,
+        });
         const tablaElement =
           typeof tabla === "string"
             ? document.querySelector(tabla)
@@ -140,9 +299,27 @@
           return;
         }
 
-        if (charts !== false) {
-          this.verificarGraficasExportables({ charts, mostrar: true });
+        const chartReport =
+          charts === false
+            ? { exportables: [] }
+            : this.verificarGraficasExportables({ charts, mostrar: true });
+        const hasExportableCharts =
+          (chartReport?.exportables?.length || 0) > 0;
+        if (!hasExportableCharts) {
+          this.exportarExcel({
+            tabla,
+            nombreArchivo,
+            nombreHoja: nombreHojaTabla,
+            onSuccess,
+            onError,
+            _skipAutoGraficas: true,
+          });
+          return;
         }
+        excelProgressUI.update({
+          label: "Leyendo tabla y gráficas...",
+          progress: 15,
+        });
 
         const metadata = this._obtenerMetadata();
         baseName = `${nombreArchivo}_${metadata.empresaTexto || "Reporte"
@@ -178,6 +355,10 @@
         }
 
         // Construir base con XLSX para preservar estilos
+        excelProgressUI.update({
+          label: "Construyendo Excel base...",
+          progress: 28,
+        });
         const libro = XLSX.utils.book_new();
         const sheetTabla = this._tableToSheetWithStyles(tablaElement);
         XLSX.utils.book_append_sheet(libro, sheetTabla, nombreHojaTabla);
@@ -193,6 +374,10 @@
         XLSX.utils.book_append_sheet(libro, sheetGraficas, nombreHojaGraficas);
 
         baseBuffer = XLSX.write(libro, { bookType: "xlsx", type: "array" });
+        excelProgressUI.update({
+          label: "Enviando al generador nativo...",
+          progress: 45,
+        });
         const binaryBody =
           baseBuffer instanceof ArrayBuffer
             ? baseBuffer
@@ -255,11 +440,28 @@
           throw new Error(text || "No fue posible generar el Excel con gráficas.");
         }
 
-        const blob = await response.blob();
+        excelProgressUI.update({
+          label: "Descargando archivo...",
+          progress: 72,
+        });
+        const blob = await this._leerResponseComoBlobConProgreso(response, {
+          start: 72,
+          end: 96,
+          onProgress: (pct, label) => {
+            excelProgressUI.update({
+              label: label || "Descargando archivo...",
+              progress: pct,
+            });
+          },
+        });
         const filename =
           this._obtenerNombreDescarga(response) ||
           `${baseName}_Graficas.xlsx`;
         this._descargarBlob(blob, filename);
+        excelProgressUI.update({
+          label: "Listo",
+          progress: 100,
+        });
 
         if (onSuccess) onSuccess();
         this._showToast("Excel con tabla y graficas generado.");
@@ -292,6 +494,9 @@
             "error"
           );
         }
+      }
+      finally {
+        setTimeout(() => excelProgressUI.hide(), 220);
       }
     },
 
@@ -768,6 +973,7 @@
     _tableToSheetWithStyles(tabla) {
       // PASO 1: Clonar la tabla y normalizar spans para conservar todas las columnas
       const tablaClone = tabla.cloneNode(true);
+      const cleanupStyleHost = this._montarTablaTemporalParaEstilos(tabla, tablaClone);
 
       // PASO 1.5: Eliminar filas/celdas del clon que estén ocultas en la tabla real
       // (aplica cuando hay modo sin-cuentas, columnas ocultas por JS, etc.)
@@ -933,6 +1139,45 @@
             cell.z = "0.00%";
           }
 
+          // Intentar respetar color de fondo y color de texto reales (computed style)
+          const computedStyle = domCell ? window.getComputedStyle(domCell) : null;
+          if (computedStyle) {
+            const bgHex = this._cssColorToHex(computedStyle.backgroundColor);
+            if (bgHex) {
+              finalStyle.fill = {
+                patternType: "solid",
+                fgColor: { rgb: bgHex },
+              };
+            }
+            const fontHex = this._cssColorToHex(computedStyle.color);
+            if (fontHex) {
+              finalStyle.font = {
+                ...(finalStyle.font || {}),
+                color: { rgb: fontHex },
+              };
+            }
+            const weight = parseInt(computedStyle.fontWeight, 10);
+            if (Number.isFinite(weight) && weight >= 600) {
+              finalStyle.font = {
+                ...(finalStyle.font || {}),
+                bold: true,
+              };
+            }
+            if (computedStyle.fontStyle === "italic") {
+              finalStyle.font = {
+                ...(finalStyle.font || {}),
+                italic: true,
+              };
+            }
+            const computedAlign = (computedStyle.textAlign || "").toLowerCase();
+            if (computedAlign === "left" || computedAlign === "right" || computedAlign === "center") {
+              finalStyle.alignment = {
+                ...(finalStyle.alignment || {}),
+                horizontal: computedAlign,
+              };
+            }
+          }
+
           cell.s = finalStyle;
         }
       }
@@ -959,8 +1204,110 @@
         colWidths.push({ wch: ajuste });
       }
       sheet["!cols"] = colWidths;
+      cleanupStyleHost();
 
       return sheet;
+    },
+
+    _montarTablaTemporalParaEstilos(tablaOriginal, tablaClone) {
+      if (typeof document === "undefined" || !tablaClone) return () => { };
+      const host = document.createElement("div");
+      const rect = tablaOriginal?.getBoundingClientRect?.();
+      host.style.position = "absolute";
+      host.style.left = "-100000px";
+      host.style.top = "0";
+      host.style.visibility = "hidden";
+      host.style.pointerEvents = "none";
+      host.style.overflow = "hidden";
+      host.style.zIndex = "-1";
+      if (rect?.width) {
+        host.style.width = `${Math.max(320, Math.round(rect.width))}px`;
+      }
+      host.appendChild(tablaClone);
+      document.body.appendChild(host);
+      return () => {
+        try {
+          host.remove();
+        } catch (_) {
+          /* ignore */
+        }
+      };
+    },
+
+    _cssColorToHex(value = "") {
+      const text = (value || "").toString().trim().toLowerCase();
+      if (!text || text === "transparent") return "";
+      const rgbMatch = text.match(
+        /^rgba?\(\s*([0-9]{1,3})\s*[,\s]\s*([0-9]{1,3})\s*[,\s]\s*([0-9]{1,3})(?:\s*[,/]\s*([0-9.]+))?\s*\)$/
+      );
+      if (rgbMatch) {
+        const alpha = rgbMatch[4] == null ? 1 : Number(rgbMatch[4]);
+        if (!Number.isFinite(alpha) || alpha <= 0) return "";
+        const toHex = (num) => {
+          const n = Math.max(0, Math.min(255, Number(num) || 0));
+          return n.toString(16).padStart(2, "0").toUpperCase();
+        };
+        return `${toHex(rgbMatch[1])}${toHex(rgbMatch[2])}${toHex(rgbMatch[3])}`;
+      }
+      const hexMatch = text.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+      if (hexMatch) {
+        const raw = hexMatch[1];
+        if (raw.length === 3) {
+          return raw
+            .split("")
+            .map((c) => `${c}${c}`)
+            .join("")
+            .toUpperCase();
+        }
+        return raw.toUpperCase();
+      }
+      return "";
+    },
+
+    async _leerResponseComoBlobConProgreso(response, options = {}) {
+      const { onProgress, start = 0, end = 100 } = options;
+      const total = Number(response.headers.get("Content-Length")) || 0;
+      if (!response.body || !response.body.getReader) {
+        const blob = await response.blob();
+        if (typeof onProgress === "function") {
+          onProgress(end, "Descarga completada");
+        }
+        return blob;
+      }
+
+      const reader = response.body.getReader();
+      const chunks = [];
+      let loaded = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          chunks.push(value);
+          loaded += value.byteLength;
+        }
+        if (typeof onProgress === "function") {
+          let pct = start;
+          if (total > 0) {
+            pct = start + ((loaded / total) * (end - start));
+          } else {
+            pct = Math.min(end, start + 1);
+          }
+          const mb = (bytes) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+          const label =
+            total > 0
+              ? `Descargando archivo... ${mb(loaded)} / ${mb(total)}`
+              : `Descargando archivo... ${mb(loaded)}`;
+          onProgress(pct, label);
+        }
+      }
+      if (typeof onProgress === "function") {
+        onProgress(end, "Descarga completada");
+      }
+      return new Blob(chunks, {
+        type:
+          response.headers.get("Content-Type") ||
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
     },
 
     _xlsxSheetToExcelJSWorksheet(sheet, workbook, nombreHoja) {
@@ -2556,15 +2903,6 @@
     _resolverGraficas(charts) {
       const targets = [];
       const seen = new Set();
-      // Debug: Buscar todos los canvas para diagnóstico
-      const allCanvas = document.querySelectorAll("canvas");
-      const operativoCharts = document.querySelectorAll("[data-operativo-chart]");
-      console.log("📊 _resolverGraficas: Total canvas en DOM:", allCanvas.length);
-      console.log("📊 _resolverGraficas: Contenedores [data-operativo-chart]:", operativoCharts.length);
-      operativoCharts.forEach((el, i) => {
-        const canvas = el.querySelector("canvas") || (el.tagName === "CANVAS" ? el : null);
-        console.log(`📊 _resolverGraficas: [${i}] tag=${el.tagName}, canvas=${!!canvas}, id=${canvas?.id || el.id || "?"}`);
-      });
       const isHidden = (node) => {
         if (!node || !node.isConnected) return true;
         if (node.hidden || node.getAttribute?.("aria-hidden") === "true") {
@@ -2667,22 +3005,6 @@
       pushFromSelector("#resumenChartsPanel canvas, .charts-panel canvas", {
         allowHidden: true,
       });
-      document.querySelectorAll("canvas").forEach((canvas) => {
-        const chart =
-          typeof window.Chart?.getChart === "function"
-            ? window.Chart.getChart(canvas)
-            : null;
-        if (!chart) return;
-        pushCanvas(canvas, resolveTitle(canvas, ""), { allowHidden: true });
-      });
-
-      if (!targets.length && window.Chart?.instances) {
-        Object.values(window.Chart.instances).forEach((chart) => {
-          const canvas = chart?.canvas;
-          if (!canvas) return;
-          pushCanvas(canvas, resolveTitle(canvas, ""), { allowHidden: true });
-        });
-      }
       return targets;
     },
 
@@ -2745,16 +3067,18 @@
           typeof window.Chart?.getChart === "function"
             ? window.Chart.getChart(canvas)
             : null;
-        if (chart && !this._chartTieneDatosExportables(chart)) {
-          report.omitidas.push({ title, reason: "Sin datos" });
+        if (chart) {
+          // Si existe instancia Chart.js y tiene datasets útiles,
+          // es exportable aunque el panel esté colapsado/no renderizado.
+          if (!this._chartTieneDatosExportables(chart)) {
+            report.omitidas.push({ title, reason: "Sin datos" });
+            return;
+          }
+          report.exportables.push({ title });
           return;
         }
         const hasContent = this._canvasTieneContenido(canvas);
-        if (chart && !hasContent) {
-          report.omitidas.push({ title, reason: "Sin render" });
-          return;
-        }
-        if (!chart && !hasContent) {
+        if (!hasContent) {
           report.omitidas.push({ title, reason: "Sin render o sin datos" });
           return;
         }

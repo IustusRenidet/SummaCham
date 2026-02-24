@@ -1226,16 +1226,38 @@
 
   const actualizarGraficas = async () => {
     const panel = document.getElementById("gastosGeneralesChartsPanel");
+    const toggleBtn = document.querySelector(
+      '[data-bs-target="#gastosGeneralesChartsPanel"]'
+    );
     const gastosConfig = getGastosConfig();
     const graficasConfig = getGraficasConfig();
     const manualOnly = isManualOnlyEnabled(graficasConfig);
+    const hasManualCharts = Array.isArray(graficasConfig?.customCharts)
+      ? graficasConfig.customCharts.some(
+        (chart) =>
+          chart?.enabled !== false &&
+          moduleMatchesCurrent(chart?.module) &&
+          Array.isArray(chart?.rows) &&
+          chart.rows.length > 0
+      )
+      : false;
+    const hasAutomaticCharts = TARGETS.some((target) => {
+      const chartCfg =
+        gastosConfig?.charts?.[target.id] || DEFAULT_GASTOS_CONFIG.charts?.[target.id] || {};
+      return chartCfg?.enabled !== false;
+    });
+    const shouldShowChartsPanel =
+      gastosConfig.enabled !== false &&
+      ((manualOnly && hasManualCharts) || (!manualOnly && (hasAutomaticCharts || hasManualCharts)));
     const baseChartType = graficasConfig.chart?.type || "bar";
     if (panel) {
-      if (gastosConfig.enabled === false) {
+      if (!shouldShowChartsPanel) {
         panel.style.display = "none";
+        if (toggleBtn) toggleBtn.style.display = "none";
         return;
       }
       panel.style.display = "";
+      if (toggleBtn) toggleBtn.style.display = "";
     }
 
     const table = document.getElementById("tablaComparacion");

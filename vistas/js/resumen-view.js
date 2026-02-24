@@ -6668,7 +6668,8 @@
       exportProgressUI.show({
         title: "Exportando Excel…",
         label: "Construyendo archivo base…",
-        indeterminate: true,
+        indeterminate: false,
+        percent: 5,
       });
 
       workbook = new ExcelJS.Workbook();
@@ -6703,6 +6704,11 @@
       const tabla = document.getElementById("tablaComparacion");
 
       if (tabla) {
+        exportProgressUI.update({
+          label: "Procesando tabla…",
+          indeterminate: false,
+          percent: 18,
+        });
         const thead = tabla.querySelector("thead");
         const tbody = tabla.querySelector("tbody");
 
@@ -6883,7 +6889,8 @@
       // Obtener datos de gráficas para renderizado programático
       exportProgressUI.update({
         label: "Preparando datos de gráficas…",
-        indeterminate: true,
+        indeterminate: false,
+        percent: 45,
       });
       const graficaData = await obtenerGraficasExportacion({
         empresaId: empresaActual?.id,
@@ -6939,12 +6946,18 @@
 
       exportProgressUI.update({
         label: "Serializando Excel… (puede tardar)",
-        indeterminate: true,
+        indeterminate: false,
+        percent: 62,
       });
       const buffer = await workbook.xlsx.writeBuffer();
       fallbackBuffer = buffer;
 
       if (!graficaData.length) {
+        exportProgressUI.update({
+          label: "Descargando XLSX…",
+          indeterminate: false,
+          percent: 100,
+        });
         descargarBufferExcel(buffer, `${baseName}.xlsx`);
         if (typeof showToast === "function") {
           showToast("✅ Resumen exportado (sin gráficas).", "text-bg-warning");
@@ -6973,7 +6986,8 @@
 
       exportProgressUI.update({
         label: "Generando gráficas nativas en Excel…",
-        indeterminate: true,
+        indeterminate: false,
+        percent: 75,
       });
 
       const authHeaders =
@@ -6999,21 +7013,23 @@
 
       exportProgressUI.update({
         label: "Descargando XLSX…",
-        indeterminate: true,
+        indeterminate: false,
+        percent: 85,
       });
       const blob = await leerBlobConProgreso(response, ({ loaded, total }) => {
         if (total > 0) {
           exportProgressUI.update({
             label: "Descargando XLSX…",
             indeterminate: false,
-            percent: (loaded / total) * 100,
+            percent: 85 + (loaded / total) * 15,
             percentLabel: `${exportProgressUI.formatBytes(loaded)} / ${exportProgressUI.formatBytes(total)}`,
           });
           return;
         }
         exportProgressUI.update({
           label: `Descargando XLSX… ${exportProgressUI.formatBytes(loaded)}`,
-          indeterminate: true,
+          indeterminate: false,
+          percent: 92,
         });
       });
       const header = response.headers.get("content-disposition") || "";
@@ -7029,6 +7045,11 @@
       if (typeof showToast === "function") {
         showToast("✅ Resumen exportado con gráficas.");
       }
+      exportProgressUI.update({
+        label: "Listo",
+        indeterminate: false,
+        percent: 100,
+      });
       exportProgressUI.hide();
     } catch (error) {
       console.error("Error al exportar con gráficas:", error);

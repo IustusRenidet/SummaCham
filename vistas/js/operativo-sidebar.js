@@ -1,5 +1,19 @@
 (() => {
   "use strict";
+  const currentModuleIdRaw =
+    document.body?.dataset?.moduloId ||
+    document.body?.dataset?.modulo ||
+    "";
+  const currentModuleId = (currentModuleIdRaw || "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+  if (currentModuleId === "gastosgenerales") {
+    window.__OperativoSidebarReady = true;
+    return;
+  }
   if (window.__OperativoSidebarInitialized) {
     window.__OperativoSidebarReady = true;
     return;
