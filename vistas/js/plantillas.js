@@ -5680,7 +5680,6 @@
         );
         offcanvas.show();
         panelShown = true;
-        console.log("✅ Panel lateral abierto con Bootstrap Offcanvas");
       } catch (error) {
         console.error("❌ Error al abrir panel con Bootstrap:", error);
         panelShown = false;
@@ -5694,7 +5693,7 @@
       );
       panelShown = openOffcanvasFallback(dom.operationEditorPanel);
       if (panelShown) {
-        console.log("✅ Panel lateral abierto con fallback manual");
+        // opened with fallback
       } else {
         console.error("❌ No se pudo abrir el panel lateral");
       }
@@ -9623,6 +9622,16 @@
 
     if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
       return convertLegacyTermsToV2Tokens(op.formula_terms, op);
+    }
+
+    if (typeof op.formula === "string" && op.formula.trim()) {
+      const parsedLegacyText = parseFormulaExpressionV2(op.formula, {
+        parentSection: (op.parentSection || "").toString().trim(),
+        defaultParentSection: (op.parentSection || "").toString().trim(),
+      });
+      if (parsedLegacyText.valid && Array.isArray(parsedLegacyText.tokens)) {
+        return parsedLegacyText.tokens;
+      }
     }
 
     const legacyTerms = [];

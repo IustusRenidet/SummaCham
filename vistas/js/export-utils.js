@@ -147,8 +147,160 @@
   };
 
   const excelProgressUI = createExcelProgressUI();
+  const EXPORT_JOBS_STORAGE_KEY = "export_utils_pending_jobs_v1";
+  const EXPORT_JOBS_ENDPOINT_STATE_KEY = "export_utils_jobs_endpoint_state_v1";
+  const LOCAL_JOB_STALE_MS = 3 * 60 * 1000;
+  const LOCAL_EXPORT_TIMEOUT_MS = 120000;
+  const EXPORT_PAGE_SESSION_ID = `page-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const ExportUtils = {
+    _pendingJobsWatcherStarted: false,
+    _pendingJobsTimer: null,
+    _pendingJobsInProgress: new Set(),
+    _downloadsUiInitialized: false,
+    _downloadsPanelOpen: false,
+    _jobsStatusCache: new Map(),
+    _exportJobsEndpointState: null,
+
+    _crearIdTrabajoLocal() {
+      return `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    },
+
+    _esTrabajoLocal(jobOrId) {
+      const id =
+        typeof jobOrId === "string"
+          ? jobOrId
+          : (jobOrId?.id || "").toString();
+      return String(id).startsWith("local-");
+    },
+
+    _formatearDuracion(ms) {
+      const total = Math.max(0, Math.floor(Number(ms) || 0));
+      const sec = Math.floor(total / 1000);
+      const min = Math.floor(sec / 60);
+      const remSec = sec % 60;
+      const hr = Math.floor(min / 60);
+      const remMin = min % 60;
+      if (hr > 0) return `${hr}h ${remMin}m`;
+      return `${remMin}m ${String(remSec).padStart(2, "0")}s`;
+    },
+
+    _normalizarTrabajosPendientes(list = []) {
+      const now = Date.now();
+      const normalized = (Array.isArray(list) ? list : [])
+        .map((job) => {
+          const createdAt = Number(job?.createdAt) || now;
+          const updatedAt = Number(job?.updatedAt) || createdAt;
+          const status = String(job?.status || "queued");
+          const normalizedJob = {
+            ...job,
+            createdAt,
+            updatedAt,
+            status,
+          };
+
+          if (
+            this._esTrabajoLocal(normalizedJob) &&
+            (status === "queued" || status === "running") &&
+            normalizedJob.ownerSessionId &&
+            String(normalizedJob.ownerSessionId) !== EXPORT_PAGE_SESSION_ID
+          ) {
+            normalizedJob.status = "failed";
+            normalizedJob.progress = 100;
+            normalizedJob.message = "Interrumpido (otra pantalla)";
+            normalizedJob.error =
+              normalizedJob.error ||
+              "La exportación local pertenecía a otra vista/pestaña.";
+            normalizedJob.updatedAt = now;
+          } else if (
+            this._esTrabajoLocal(normalizedJob) &&
+            (status === "queued" || status === "running") &&
+            now - updatedAt > LOCAL_JOB_STALE_MS
+          ) {
+            normalizedJob.status = "failed";
+            normalizedJob.progress = 100;
+            normalizedJob.message = "Interrumpido (modo local)";
+            normalizedJob.error =
+              normalizedJob.error || "La exportación local se interrumpió.";
+            normalizedJob.updatedAt = now;
+          }
+          return normalizedJob;
+        })
+        .filter((job) => String(job?.id || "").trim());
+
+      // Evitar duplicados visuales del mismo archivo: conservar el más reciente por nombre.
+      const byName = new Map();
+      normalized
+        .slice()
+        .sort(
+          (a, b) =>
+            Math.max(Number(b.updatedAt) || 0, Number(b.createdAt) || 0) -
+            Math.max(Number(a.updatedAt) || 0, Number(a.createdAt) || 0)
+        )
+        .forEach((job) => {
+          const key = String(job?.nombre || job?.id || "")
+            .trim()
+            .toLowerCase();
+          if (!key) return;
+          if (!byName.has(key)) {
+            byName.set(key, job);
+          }
+        });
+      return Array.from(byName.values());
+    },
+
+    _getExportJobsStateStorageKey() {
+      return `${EXPORT_JOBS_ENDPOINT_STATE_KEY}:${API_BASE}`;
+    },
+
+    _getExportJobsEndpointState() {
+      if (this._exportJobsEndpointState) return this._exportJobsEndpointState;
+      try {
+        const raw = localStorage.getItem(this._getExportJobsStateStorageKey());
+        if (raw === "available" || raw === "unavailable") {
+          this._exportJobsEndpointState = raw;
+          return raw;
+        }
+      } catch (_) {
+        // ignore storage errors
+      }
+      return null;
+    },
+
+    _setExportJobsEndpointState(nextState) {
+      const value =
+        nextState === "available" || nextState === "unavailable"
+          ? nextState
+          : null;
+      this._exportJobsEndpointState = value;
+      try {
+        const key = this._getExportJobsStateStorageKey();
+        if (!value) {
+          localStorage.removeItem(key);
+        } else {
+          localStorage.setItem(key, value);
+        }
+      } catch (_) {
+        // ignore storage errors
+      }
+    },
+
+    _debugEnabled() {
+      try {
+        return localStorage.getItem("export_utils_debug") === "1";
+      } catch (_) {
+        return false;
+      }
+    },
+
+    _debugLog(...args) {
+      if (!this._debugEnabled()) return;
+      console.log(...args);
+    },
+
     /**
      * Exportar tabla a Excel (XLSX)
      * @param {Object} options - Opciones de exportación
@@ -275,6 +427,7 @@
       } = options;
       let baseBuffer = null;
       let baseName = nombreArchivo;
+      let localFallbackJobId = "";
 
       try {
         excelProgressUI.show({
@@ -421,51 +574,117 @@
           );
         }
 
-        this._showToast("Generando Excel con gráficas...");
-        const response = await fetch(
-          `${API_BASE}/reportes/operativo-excel-native?${params.toString()}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/octet-stream",
-              ...(window.Sesion?.headersAutenticacion?.() || {}),
-            },
-            credentials: "include",
-            body: binaryBody,
+        this._showToast("Encolando exportación en segundo plano...");
+        try {
+          const job = await this._crearTrabajoExportNativo({
+            tipo: "operativo",
+            params,
+            binaryBody,
+          });
+          this._registrarTrabajoPendiente({
+            id: job.id,
+            tipo: "operativo",
+            nombre: `${baseName}_Graficas.xlsx`,
+          });
+          this._iniciarVigilanciaTrabajosPendientes();
+          excelProgressUI.update({
+            label: "Exportación en segundo plano iniciada",
+            progress: 100,
+          });
+
+          if (onSuccess) onSuccess();
+          this._showToast(
+            "Exportación iniciada. Puedes navegar; se descargará al terminar.",
+            "success"
+          );
+        } catch (jobError) {
+          if (jobError?.code !== "EXPORT_JOBS_UNAVAILABLE") {
+            throw jobError;
           }
-        );
+          localFallbackJobId = this._crearIdTrabajoLocal();
+          this._registrarTrabajoPendiente({
+            id: localFallbackJobId,
+            tipo: "operativo-local",
+            nombre: `${baseName}_Graficas.xlsx`,
+          });
+          this._actualizarTrabajoPendiente(localFallbackJobId, {
+            status: "running",
+            progress: 46,
+            message: "Generando (modo local)",
+          });
+          this._showToast(
+            "Servidor sin cola de exportación; usando descarga directa.",
+            "warning"
+          );
+          const response = await fetch(
+            `${API_BASE}/reportes/operativo-excel-native?${params.toString()}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/octet-stream",
+                ...(window.Sesion?.headersAutenticacion?.() || {}),
+              },
+              credentials: "include",
+              body: binaryBody,
+            }
+          );
 
-        if (!response.ok) {
-          const text = await response.text();
-          throw new Error(text || "No fue posible generar el Excel con gráficas.");
+          if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || "No fue posible generar el Excel con gráficas.");
+          }
+
+          excelProgressUI.update({
+            label: "Descargando archivo...",
+            progress: 72,
+          });
+          this._actualizarTrabajoPendiente(localFallbackJobId, {
+            status: "running",
+            progress: 72,
+            message: "Descargando",
+          });
+          const blob = await this._leerResponseComoBlobConProgreso(response, {
+            start: 72,
+            end: 96,
+            onProgress: (pct, label) => {
+              excelProgressUI.update({
+                label: label || "Descargando archivo...",
+                progress: pct,
+              });
+              this._actualizarTrabajoPendiente(localFallbackJobId, {
+                status: "running",
+                progress: Number(pct) || 72,
+                message: label || "Descargando",
+              });
+            },
+          });
+          const filename =
+            this._obtenerNombreDescarga(response) ||
+            `${baseName}_Graficas.xlsx`;
+          this._descargarBlob(blob, filename);
+          excelProgressUI.update({
+            label: "Listo",
+            progress: 100,
+          });
+          this._actualizarTrabajoPendiente(localFallbackJobId, {
+            status: "completed",
+            progress: 100,
+            message: "Completado",
+            downloadedAt: Date.now(),
+          });
+
+          if (onSuccess) onSuccess();
+          this._showToast("Excel con tabla y graficas generado.");
         }
-
-        excelProgressUI.update({
-          label: "Descargando archivo...",
-          progress: 72,
-        });
-        const blob = await this._leerResponseComoBlobConProgreso(response, {
-          start: 72,
-          end: 96,
-          onProgress: (pct, label) => {
-            excelProgressUI.update({
-              label: label || "Descargando archivo...",
-              progress: pct,
-            });
-          },
-        });
-        const filename =
-          this._obtenerNombreDescarga(response) ||
-          `${baseName}_Graficas.xlsx`;
-        this._descargarBlob(blob, filename);
-        excelProgressUI.update({
-          label: "Listo",
-          progress: 100,
-        });
-
-        if (onSuccess) onSuccess();
-        this._showToast("Excel con tabla y graficas generado.");
       } catch (error) {
+        if (localFallbackJobId) {
+          this._actualizarTrabajoPendiente(localFallbackJobId, {
+            status: "failed",
+            progress: 100,
+            message: error?.message || "Error",
+            error: error?.message || "Error",
+          });
+        }
         console.error("Error al exportar Excel con graficas:", error);
         if (onError) onError(error);
         this._showToast(
@@ -780,9 +999,9 @@
 
     _construirGraficasFallbackOperativo(tablaElement) {
       const datos = this._obtenerDatosOperativo(tablaElement);
-      console.log("📊 _construirGraficasFallbackOperativo: datos obtenidos:", datos.length);
+      this._debugLog("📊 _construirGraficasFallbackOperativo: datos obtenidos:", datos.length);
       if (!datos.length) {
-        console.log("📊 _construirGraficasFallbackOperativo: No hay datos para construir gráficas");
+        this._debugLog("📊 _construirGraficasFallbackOperativo: No hay datos para construir gráficas");
         return [];
       }
       const hasUsefulData = datos.some((item) => {
@@ -796,15 +1015,15 @@
         );
       });
       if (!hasUsefulData) {
-        console.log("📊 _construirGraficasFallbackOperativo: Todos los valores están en cero, se omiten gráficas.");
+        this._debugLog("📊 _construirGraficasFallbackOperativo: Todos los valores están en cero, se omiten gráficas.");
         return [];
       }
       const labels = datos.map((item) => item.etiqueta);
       const presupuestos = datos.map((item) => item.presupuesto);
       const reales = datos.map((item) => item.real);
-      console.log("📊 _construirGraficasFallbackOperativo: labels:", labels);
-      console.log("📊 _construirGraficasFallbackOperativo: presupuestos:", presupuestos);
-      console.log("📊 _construirGraficasFallbackOperativo: reales:", reales);
+      this._debugLog("📊 _construirGraficasFallbackOperativo: labels:", labels);
+      this._debugLog("📊 _construirGraficasFallbackOperativo: presupuestos:", presupuestos);
+      this._debugLog("📊 _construirGraficasFallbackOperativo: reales:", reales);
       const height = Math.min(1200, Math.max(520, labels.length * 34 + 220));
       const images = [];
 
@@ -814,7 +1033,7 @@
         color: "#4472c4",
         titulo: "Ppto Acumulado",
       });
-      console.log("📊 _construirGraficasFallbackOperativo: budgetDataUrl length:", budgetDataUrl?.length || 0);
+      this._debugLog("📊 _construirGraficasFallbackOperativo: budgetDataUrl length:", budgetDataUrl?.length || 0);
       if (budgetDataUrl && this._esDataUrlImagenValida(budgetDataUrl)) {
         images.push({
           title: "Ppto Acumulado",
@@ -830,7 +1049,7 @@
         color: "#ffc000",
         titulo: "Real Acumulado",
       });
-      console.log("📊 _construirGraficasFallbackOperativo: realDataUrl length:", realDataUrl?.length || 0);
+      this._debugLog("📊 _construirGraficasFallbackOperativo: realDataUrl length:", realDataUrl?.length || 0);
       if (realDataUrl && this._esDataUrlImagenValida(realDataUrl)) {
         images.push({
           title: "Real Acumulado",
@@ -840,7 +1059,7 @@
         });
       }
 
-      console.log("📊 _construirGraficasFallbackOperativo: imágenes generadas:", images.length);
+      this._debugLog("📊 _construirGraficasFallbackOperativo: imágenes generadas:", images.length);
       return images;
     },
 
@@ -963,6 +1182,530 @@
       a.download = filename || "Exportacion.xlsx";
       a.click();
       window.URL.revokeObjectURL(url);
+    },
+
+    _leerTrabajosPendientes() {
+      try {
+        const raw = localStorage.getItem(EXPORT_JOBS_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        const normalized = this._normalizarTrabajosPendientes(
+          Array.isArray(parsed) ? parsed : []
+        );
+        const changed =
+          JSON.stringify(Array.isArray(parsed) ? parsed : []) !==
+          JSON.stringify(normalized);
+        if (changed) {
+          this._guardarTrabajosPendientes(normalized);
+        }
+        return normalized;
+      } catch (_) {
+        return [];
+      }
+    },
+
+    _guardarTrabajosPendientes(list = []) {
+      try {
+        localStorage.setItem(EXPORT_JOBS_STORAGE_KEY, JSON.stringify(list));
+      } catch (_) {
+        // ignore storage errors
+      }
+    },
+
+    async _fetchWithTimeout(url, options = {}, timeoutMs = LOCAL_EXPORT_TIMEOUT_MS) {
+      const timeout = Number(timeoutMs);
+      if (!Number.isFinite(timeout) || timeout <= 0) {
+        return fetch(url, options);
+      }
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), timeout);
+      try {
+        return await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          throw new Error(
+            `Tiempo de espera agotado (${Math.round(timeout / 1000)}s).`
+          );
+        }
+        throw error;
+      } finally {
+        window.clearTimeout(timer);
+      }
+    },
+
+    _registrarTrabajoPendiente(job = {}) {
+      const id = (job?.id || "").toString().trim();
+      if (!id) return;
+      const list = this._leerTrabajosPendientes();
+      if (list.some((item) => String(item?.id || "") === id)) return;
+      list.push({
+        id,
+        tipo: (job?.tipo || "operativo").toString(),
+        nombre: (job?.nombre || "").toString(),
+        status: "queued",
+        progress: 0,
+        message: "En cola",
+        createdAt: Date.now(),
+      });
+      this._guardarTrabajosPendientes(list);
+      this._renderDescargasPanel();
+    },
+
+    _actualizarTrabajoPendiente(jobId = "", patch = {}) {
+      const id = String(jobId || "").trim();
+      if (!id) return;
+      const list = this._leerTrabajosPendientes();
+      const idx = list.findIndex((item) => String(item?.id || "") === id);
+      if (idx < 0) return;
+      list[idx] = { ...list[idx], ...patch, updatedAt: Date.now() };
+      this._guardarTrabajosPendientes(list);
+      this._renderDescargasPanel();
+    },
+
+    _quitarTrabajoPendiente(jobId = "") {
+      const id = String(jobId || "").trim();
+      if (!id) return;
+      const list = this._leerTrabajosPendientes().filter(
+        (item) => String(item?.id || "") !== id
+      );
+      this._guardarTrabajosPendientes(list);
+      this._jobsStatusCache.delete(id);
+      this._renderDescargasPanel();
+    },
+
+    async _crearTrabajoExportNativo({ tipo = "operativo", params, binaryBody }) {
+      if (this._getExportJobsEndpointState() === "unavailable") {
+        const err = new Error(
+          "Export jobs endpoint no disponible en este servidor."
+        );
+        err.code = "EXPORT_JOBS_UNAVAILABLE";
+        throw err;
+      }
+      const query = new URLSearchParams(params || {});
+      query.set("tipo", tipo);
+      const response = await fetch(
+        `${API_BASE}/reportes/export-jobs/native?${query.toString()}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/octet-stream",
+            ...(window.Sesion?.headersAutenticacion?.() || {}),
+          },
+          credentials: "include",
+          body: binaryBody,
+        }
+      );
+      if (!response.ok) {
+        if (response.status === 404) {
+          this._setExportJobsEndpointState("unavailable");
+          const err = new Error(
+            "Export jobs endpoint no disponible en este servidor."
+          );
+          err.code = "EXPORT_JOBS_UNAVAILABLE";
+          throw err;
+        }
+        let detail = "";
+        try {
+          detail = await response.text();
+        } catch (_) {
+          detail = "";
+        }
+        throw new Error(detail || "No fue posible crear el trabajo de exportación.");
+      }
+      const payload = await response.json();
+      const job = payload?.job || null;
+      if (!job?.id) {
+        throw new Error("Respuesta inválida al crear trabajo de exportación.");
+      }
+      this._setExportJobsEndpointState("available");
+      return job;
+    },
+
+    async _consultarTrabajoExport(jobId = "") {
+      const id = String(jobId || "").trim();
+      if (!id) return null;
+      const response = await fetch(`${API_BASE}/reportes/export-jobs/${id}`, {
+        method: "GET",
+        headers: {
+          ...(window.Sesion?.headersAutenticacion?.() || {}),
+        },
+        credentials: "include",
+      });
+      if (!response.ok) return null;
+      const payload = await response.json();
+      return payload?.job || null;
+    },
+
+    async _descargarTrabajoExport(jobId = "", fallbackName = "Exportacion.xlsx") {
+      const id = String(jobId || "").trim();
+      if (!id) return false;
+      const response = await fetch(
+        `${API_BASE}/reportes/export-jobs/${id}/download`,
+        {
+          method: "GET",
+          headers: {
+            ...(window.Sesion?.headersAutenticacion?.() || {}),
+          },
+          credentials: "include",
+        }
+      );
+      if (!response.ok) return false;
+      const blob = await response.blob();
+      const filename = this._obtenerNombreDescarga(response) || fallbackName;
+      this._descargarBlob(blob, filename);
+      return true;
+    },
+
+    async _procesarTrabajoPendiente(job = {}) {
+      const id = String(job?.id || "").trim();
+      if (id.startsWith("local-")) return;
+      if (!id || this._pendingJobsInProgress.has(id)) return;
+      this._pendingJobsInProgress.add(id);
+      try {
+        const status = await this._consultarTrabajoExport(id);
+        if (!status) return;
+        this._jobsStatusCache.set(id, status);
+        this._actualizarTrabajoPendiente(id, {
+          status: status.status || "queued",
+          progress: Number.isFinite(Number(status.progress))
+            ? Number(status.progress)
+            : 0,
+          message: status.message || "",
+          error: status.error || "",
+          filename: status.filename || "",
+        });
+        if (status.status === "failed") {
+          this._showToast(
+            `Exportación falló: ${status.error || status.message || id}`,
+            "error"
+          );
+          return;
+        }
+        if (status.status !== "completed") return;
+        if (!job?.downloadedAt) {
+          const downloaded = await this._descargarTrabajoExport(
+            id,
+            job?.nombre || "Exportacion.xlsx"
+          );
+          if (downloaded) {
+            this._actualizarTrabajoPendiente(id, {
+              downloadedAt: Date.now(),
+              status: "completed",
+              message: "Completado",
+            });
+            this._showToast("Exportación completada y descargada.");
+          }
+        }
+      } finally {
+        this._pendingJobsInProgress.delete(id);
+      }
+    },
+
+    _iniciarVigilanciaTrabajosPendientes() {
+      if (this._pendingJobsWatcherStarted) return;
+      this._pendingJobsWatcherStarted = true;
+      const run = async () => {
+        const list = this._leerTrabajosPendientes();
+        if (!list.length) return;
+        for (const job of list.filter((item) => item?.status !== "completed")) {
+          await this._procesarTrabajoPendiente(job);
+          await sleep(120);
+        }
+        this._renderDescargasPanel();
+      };
+      run().catch(() => {});
+      this._pendingJobsTimer = window.setInterval(() => {
+        run().catch(() => {});
+      }, 4000);
+    },
+
+    _ensureDescargasUI() {
+      if (this._downloadsUiInitialized) return;
+      this._downloadsUiInitialized = true;
+      const styleId = "export-utils-downloads-style";
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement("style");
+        style.id = styleId;
+        style.textContent = `
+          #exportJobsFab {
+            position: fixed;
+            right: 16px;
+            bottom: 20px;
+            z-index: 5500;
+            border-radius: 999px;
+            box-shadow: 0 10px 28px rgba(15,23,42,.25);
+          }
+          #exportJobsPanel {
+            position: fixed;
+            right: 16px;
+            bottom: 70px;
+            width: min(460px, calc(100vw - 24px));
+            max-height: min(68vh, 620px);
+            z-index: 5500;
+            display: none;
+          }
+          #exportJobsPanel.open { display: block; }
+          #exportJobsPanel .card {
+            border-radius: 12px;
+            box-shadow: 0 16px 42px rgba(2,6,23,.28);
+            border: 1px solid rgba(148,163,184,.38);
+          }
+          #exportJobsList { max-height: min(52vh, 450px); overflow: auto; }
+          #exportJobsList .job-row { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; }
+          #exportJobsList .job-meta { font-size: .78rem; color: #64748b; }
+        `;
+        document.head.appendChild(style);
+      }
+
+      let fab = document.getElementById("exportJobsFab");
+      if (!fab) {
+        fab = document.createElement("button");
+        fab.id = "exportJobsFab";
+        fab.type = "button";
+        fab.className = "btn btn-primary btn-sm";
+        fab.innerHTML = '<i class="bi bi-download"></i> Descargas';
+        document.body.appendChild(fab);
+      }
+
+      let panel = document.getElementById("exportJobsPanel");
+      if (!panel) {
+        panel = document.createElement("div");
+        panel.id = "exportJobsPanel";
+        panel.innerHTML = `
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <strong>Descargas</strong>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="exportJobsClose">Cerrar</button>
+            </div>
+            <div class="card-body">
+              <div id="exportJobsList" class="d-flex flex-column gap-2"></div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(panel);
+      }
+
+      fab.addEventListener("click", () => {
+        this._downloadsPanelOpen = !this._downloadsPanelOpen;
+        panel.classList.toggle("open", this._downloadsPanelOpen);
+        this._renderDescargasPanel();
+      });
+      panel.querySelector("#exportJobsClose")?.addEventListener("click", () => {
+        this._downloadsPanelOpen = false;
+        panel.classList.remove("open");
+      });
+      panel.addEventListener("click", (event) => {
+        const btn = event.target.closest("[data-job-action]");
+        if (!btn) return;
+        const action = btn.getAttribute("data-job-action") || "";
+        const jobId = btn.getAttribute("data-job-id") || "";
+        if (!jobId) return;
+        const list = this._leerTrabajosPendientes();
+        const job = list.find((item) => String(item?.id || "") === String(jobId));
+        if (action === "remove") {
+          this._quitarTrabajoPendiente(jobId);
+          return;
+        }
+        if (action === "retry" && job) {
+          if (this._esTrabajoLocal(job)) {
+            this._showToast(
+              "Reintenta exportando de nuevo (modo local).",
+              "warning"
+            );
+            return;
+          }
+          this._procesarTrabajoPendiente(job).catch(() => {});
+          return;
+        }
+        if (action === "download" && job) {
+          if (this._esTrabajoLocal(job)) {
+            this._showToast(
+              "Este archivo se descarga automáticamente en modo local.",
+              "warning"
+            );
+            return;
+          }
+          this._descargarTrabajoExport(jobId, job?.nombre || "Exportacion.xlsx")
+            .then((ok) => {
+              if (ok) {
+                this._actualizarTrabajoPendiente(jobId, { downloadedAt: Date.now() });
+                this._showToast("Archivo descargado.");
+              } else {
+                this._showToast("Aún no está listo para descargar.", "warning");
+              }
+            })
+            .catch(() => this._showToast("No fue posible descargar el archivo.", "error"));
+        }
+      });
+      this._reposicionarDescargasUI();
+      window.addEventListener("resize", () => this._reposicionarDescargasUI());
+      window.addEventListener("scroll", () => this._reposicionarDescargasUI(), {
+        passive: true,
+      });
+    },
+
+    _reposicionarDescargasUI() {
+      const fab = document.getElementById("exportJobsFab");
+      const panel = document.getElementById("exportJobsPanel");
+      if (!fab || !panel) return;
+      const vw = window.innerWidth || document.documentElement.clientWidth || 1366;
+      const vh = window.innerHeight || document.documentElement.clientHeight || 768;
+      const blockers = Array.from(
+        document.querySelectorAll(
+          ".tour-trigger-btn, [data-tour-trigger], #tourTriggerBtn, .comentarios-fab-container, #btnComentarios, #comentariosFloatingBtn, #comentariosToggleBtn"
+        )
+      )
+        .filter((el) => el && el.getClientRects?.().length)
+        .map((el) => el.getBoundingClientRect());
+
+      const fabW = Math.max(110, fab.offsetWidth || 120);
+      const fabH = Math.max(34, fab.offsetHeight || 36);
+      const panelW = Math.min(460, Math.max(300, vw - 24));
+      const panelH = Math.min(560, Math.max(220, Math.round(vh * 0.62)));
+      const margin = 16;
+
+      const candidates = [
+        { fab: { right: 16, bottom: 20 }, panel: { right: 16, bottom: 70 } },
+        { fab: { right: 16, bottom: 96 }, panel: { right: 16, bottom: 146 } },
+        { fab: { left: 16, bottom: 20 }, panel: { left: 16, bottom: 70 } },
+        { fab: { left: 16, bottom: 96 }, panel: { left: 16, bottom: 146 } },
+        { fab: { right: 16, top: 84 }, panel: { right: 16, top: 134 } },
+      ];
+
+      const toRect = (anchor, w, h) => {
+        const left =
+          anchor.left != null
+            ? anchor.left
+            : anchor.right != null
+              ? vw - anchor.right - w
+              : margin;
+        const top =
+          anchor.top != null
+            ? anchor.top
+            : anchor.bottom != null
+              ? vh - anchor.bottom - h
+              : margin;
+        return { left, top, right: left + w, bottom: top + h, width: w, height: h };
+      };
+
+      const intersects = (a, b) =>
+        a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+
+      const scoreCandidate = (candidate) => {
+        const fabRect = toRect(candidate.fab, fabW, fabH);
+        const panelRect = toRect(candidate.panel, panelW, panelH);
+        let score = 0;
+        blockers.forEach((b) => {
+          if (intersects(fabRect, b)) score += 10;
+          if (intersects(panelRect, b)) score += 4;
+        });
+        if (fabRect.left < 0 || fabRect.top < 0 || fabRect.right > vw || fabRect.bottom > vh) score += 20;
+        return score;
+      };
+
+      let best = candidates[0];
+      let bestScore = scoreCandidate(best);
+      for (let i = 1; i < candidates.length; i += 1) {
+        const sc = scoreCandidate(candidates[i]);
+        if (sc < bestScore) {
+          best = candidates[i];
+          bestScore = sc;
+        }
+      }
+
+      const applyAnchor = (el, anchor) => {
+        el.style.left = anchor.left != null ? `${anchor.left}px` : "";
+        el.style.right = anchor.right != null ? `${anchor.right}px` : "";
+        el.style.top = anchor.top != null ? `${anchor.top}px` : "";
+        el.style.bottom = anchor.bottom != null ? `${anchor.bottom}px` : "";
+      };
+      applyAnchor(fab, best.fab);
+      applyAnchor(panel, best.panel);
+    },
+
+    _renderDescargasPanel() {
+      this._ensureDescargasUI();
+      this._reposicionarDescargasUI();
+      const panel = document.getElementById("exportJobsPanel");
+      const listEl = document.getElementById("exportJobsList");
+      const fab = document.getElementById("exportJobsFab");
+      if (!listEl || !fab || !panel) return;
+
+      const jobs = this._leerTrabajosPendientes()
+        .slice()
+        .sort((a, b) => Number(b?.createdAt || 0) - Number(a?.createdAt || 0));
+      const activeCount = jobs.filter(
+        (j) => j?.status === "queued" || j?.status === "running"
+      ).length;
+      fab.innerHTML = `<i class="bi bi-download"></i> Descargas${activeCount ? ` (${activeCount})` : ""}`;
+      if (!jobs.length) {
+        listEl.innerHTML =
+          '<div class="text-muted small">No hay exportaciones en cola.</div>';
+        return;
+      }
+
+      const badgeFor = (status = "") => {
+        if (status === "completed") return '<span class="badge text-bg-success">Listo</span>';
+        if (status === "failed") return '<span class="badge text-bg-danger">Error</span>';
+        if (status === "running") return '<span class="badge text-bg-primary">Procesando</span>';
+        return '<span class="badge text-bg-secondary">En cola</span>';
+      };
+
+      listEl.innerHTML = jobs
+        .map((job) => {
+          const id = String(job?.id || "");
+          const name = String(job?.nombre || "Exportacion.xlsx");
+          const status = String(job?.status || "queued");
+          const msg = String(job?.message || "");
+          const isLocal = this._esTrabajoLocal(job);
+          const progress = Number.isFinite(Number(job?.progress))
+            ? Math.max(0, Math.min(100, Number(job.progress)))
+            : 0;
+          const now = Date.now();
+          const startedAt = Number(job?.createdAt) || now;
+          const finishedAt =
+            Number(job?.downloadedAt) || Number(job?.updatedAt) || now;
+          const durationMs =
+            status === "completed" || status === "failed"
+              ? Math.max(0, finishedAt - startedAt)
+              : Math.max(0, now - startedAt);
+          const durationText = this._formatearDuracion(durationMs);
+          const progressBar =
+            status === "completed" || status === "failed"
+              ? ""
+              : `<div class="progress mt-2" style="height:8px;"><div class="progress-bar" role="progressbar" style="width:${progress}%"></div></div>`;
+          const actions =
+            status === "completed"
+              ? `${isLocal ? "" : `<button class="btn btn-sm btn-outline-primary" data-job-action="download" data-job-id="${id}">Descargar</button>`}
+                 <button class="btn btn-sm btn-outline-secondary" data-job-action="remove" data-job-id="${id}">Quitar</button>`
+              : status === "failed"
+                ? `${isLocal ? "" : `<button class="btn btn-sm btn-outline-warning" data-job-action="retry" data-job-id="${id}">Reintentar</button>`}
+                   <button class="btn btn-sm btn-outline-secondary" data-job-action="remove" data-job-id="${id}">Quitar</button>`
+                : `<button class="btn btn-sm btn-outline-secondary" data-job-action="remove" data-job-id="${id}">Quitar</button>`;
+          return `
+            <div class="job-row">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div>
+                  <div class="fw-semibold">${name}</div>
+                  <div class="job-meta">${msg || status}${isLocal ? " · local" : ""} · ${durationText}</div>
+                </div>
+                ${badgeFor(status)}
+              </div>
+              ${progressBar}
+              <div class="d-flex gap-2 mt-2">${actions}</div>
+            </div>
+          `;
+        })
+        .join("");
+    },
+
+    _initBackgroundExports() {
+      this._ensureDescargasUI();
+      this._renderDescargasPanel();
+      this._iniciarVigilanciaTrabajosPendientes();
     },
 
     /**
@@ -2489,13 +3232,13 @@
       if (charts !== false) {
         this.verificarGraficasExportables({ charts, mostrar: true });
       }
-      console.log("📊 PDF: chartTargets encontrados:", chartTargets.length);
+      this._debugLog("📊 PDF: chartTargets encontrados:", chartTargets.length);
       let chartImages = await this._capturarGraficas(chartTargets);
-      console.log("📊 PDF: chartImages capturadas:", chartImages.length);
+      this._debugLog("📊 PDF: chartImages capturadas:", chartImages.length);
       if (!chartImages.length) {
-        console.log("📊 PDF: Usando fallback operativo...");
+        this._debugLog("📊 PDF: Usando fallback operativo...");
         chartImages = this._construirGraficasFallbackOperativo(tablaElement);
-        console.log("📊 PDF: chartImages de fallback:", chartImages.length);
+        this._debugLog("📊 PDF: chartImages de fallback:", chartImages.length);
       }
       if (chartImages.length) {
         chartImages.forEach((img) => {
@@ -3365,14 +4108,14 @@
     async _capturarGraficas(targets = []) {
       const images = [];
       if (!targets.length) {
-        console.log("📊 _capturarGraficas: No hay targets para capturar");
+        this._debugLog("📊 _capturarGraficas: No hay targets para capturar");
         return images;
       }
-      console.log("📊 _capturarGraficas: Procesando", targets.length, "targets");
+      this._debugLog("📊 _capturarGraficas: Procesando", targets.length, "targets");
       for (const target of targets) {
         const canvas = target?.canvas;
         if (!canvas || typeof canvas.toDataURL !== "function") {
-          console.log("📊 _capturarGraficas: Canvas inválido para:", target?.title);
+          this._debugLog("📊 _capturarGraficas: Canvas inválido para:", target?.title);
           continue;
         }
         let restore = null;
@@ -3388,7 +4131,7 @@
               ? window.Chart.getChart(canvas)
               : null;
           if (chart && !this._chartTieneDatosExportables(chart)) {
-            console.log(
+            this._debugLog(
               "📊 _capturarGraficas: Saltando gráfica sin datos:",
               canvas.id || target?.title || "?"
             );
@@ -3399,7 +4142,7 @@
             continue;
           }
 
-          console.log("📊 _capturarGraficas: Canvas", canvas.id || "?",
+          this._debugLog("📊 _capturarGraficas: Canvas", canvas.id || "?",
             "- chart:", !!chart,
             "- dims:", canvas.width, "x", canvas.height,
             "- client:", canvas.clientWidth, "x", canvas.clientHeight);
@@ -3412,7 +4155,7 @@
             (canvas.clientWidth || 0) <= 2 &&
             (canvas.clientHeight || 0) <= 2
           ) {
-            console.log("📊 _capturarGraficas: Saltando canvas sin chart ni dimensiones:", canvas.id);
+            this._debugLog("📊 _capturarGraficas: Saltando canvas sin chart ni dimensiones:", canvas.id);
             if (typeof restore === "function") restore();
             continue;
           }
@@ -3424,7 +4167,7 @@
           await new Promise((resolve) => setTimeout(resolve, 120));
           let hasCanvasContent = this._canvasTieneContenido(canvas);
           if (!chart && !hasCanvasContent) {
-            console.log(
+            this._debugLog(
               "📊 _capturarGraficas: Saltando canvas sin chart y sin contenido:",
               canvas.id || target?.title || "?"
             );
@@ -3465,7 +4208,7 @@
 
           const dataUrlValida = this._esDataUrlImagenValida(dataUrl);
           if (!dataUrlValida || !hasCanvasContent) {
-            console.log("📊 _capturarGraficas: dataUrl inválido o canvas vacío para:", canvas.id,
+            this._debugLog("📊 _capturarGraficas: dataUrl inválido o canvas vacío para:", canvas.id,
               "- válido:", dataUrlValida,
               "- contenido:", hasCanvasContent,
               "- longitud:", dataUrl?.length);
@@ -3473,7 +4216,7 @@
           }
           if (dataUrl) {
             const titulo = target?.title || this._resolverTituloGrafica(canvas, "Grafica");
-            console.log("📊 _capturarGraficas: ✅ Capturada:", titulo, "dataUrl length:", dataUrl.length);
+            this._debugLog("📊 _capturarGraficas: ✅ Capturada:", titulo, "dataUrl length:", dataUrl.length);
             images.push({
               title: titulo,
               dataUrl,
@@ -3787,6 +4530,5 @@
 
   // Exponer globalmente
   window.ExportUtils = ExportUtils;
-
-  console.log("📦 Módulo ExportUtils cargado");
+  ExportUtils._initBackgroundExports();
 })();

@@ -6664,6 +6664,7 @@
     let fallbackBuffer = null;
     let fallbackName = "";
     let workbook = null;
+    let trabajoSegundoPlano = false;
     try {
       exportProgressUI.show({
         title: "Exportando Excel…",
@@ -6989,64 +6990,140 @@
         indeterminate: false,
         percent: 75,
       });
+      if (
+        window.ExportUtils &&
+        typeof window.ExportUtils._crearTrabajoExportNativo === "function"
+      ) {
+        try {
+          const job = await window.ExportUtils._crearTrabajoExportNativo({
+            tipo: "resumen",
+            params,
+            binaryBody,
+          });
+          window.ExportUtils._registrarTrabajoPendiente({
+            id: job?.id,
+            tipo: "resumen",
+            nombre: `${baseName}_Graficas.xlsx`,
+          });
+          window.ExportUtils._iniciarVigilanciaTrabajosPendientes?.();
+          trabajoSegundoPlano = true;
+        } catch (jobError) {
+          if (jobError?.code !== "EXPORT_JOBS_UNAVAILABLE") {
+            throw jobError;
+          }
+          const authHeaders =
+            window.Sesion?.headersAutenticacion?.() || {};
+          const response = await fetch(
+            `${base}/api/reportes/resumen-excel-native?${params.toString()}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/octet-stream",
+                ...authHeaders,
+              },
+              credentials: "include",
+              body: binaryBody,
+            }
+          );
 
-      const authHeaders =
-        window.Sesion?.headersAutenticacion?.() || {};
+          if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || "No fue posible generar el Excel con gráficas.");
+          }
 
-      const response = await fetch(
-        `${base}/api/reportes/resumen-excel-native?${params.toString()}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/octet-stream",
-            ...authHeaders,
-          },
-          credentials: "include",
-          body: binaryBody,
-        }
-      );
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || "No fue posible generar el Excel con gráficas.");
-      }
-
-      exportProgressUI.update({
-        label: "Descargando XLSX…",
-        indeterminate: false,
-        percent: 85,
-      });
-      const blob = await leerBlobConProgreso(response, ({ loaded, total }) => {
-        if (total > 0) {
           exportProgressUI.update({
             label: "Descargando XLSX…",
             indeterminate: false,
-            percent: 85 + (loaded / total) * 15,
-            percentLabel: `${exportProgressUI.formatBytes(loaded)} / ${exportProgressUI.formatBytes(total)}`,
+            percent: 85,
           });
-          return;
+          const blob = await leerBlobConProgreso(response, ({ loaded, total }) => {
+            if (total > 0) {
+              exportProgressUI.update({
+                label: "Descargando XLSX…",
+                indeterminate: false,
+                percent: 85 + (loaded / total) * 15,
+                percentLabel: `${exportProgressUI.formatBytes(loaded)} / ${exportProgressUI.formatBytes(total)}`,
+              });
+              return;
+            }
+            exportProgressUI.update({
+              label: `Descargando XLSX… ${exportProgressUI.formatBytes(loaded)}`,
+              indeterminate: false,
+              percent: 92,
+            });
+          });
+          const header = response.headers.get("content-disposition") || "";
+          const match = header.match(/filename=\"?([^\";]+)\"?/i);
+          const filename = match ? match[1] : `${baseName}_Graficas.xlsx`;
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          a.click();
+          window.URL.revokeObjectURL(url);
         }
+      } else {
+        const authHeaders =
+          window.Sesion?.headersAutenticacion?.() || {};
+        const response = await fetch(
+          `${base}/api/reportes/resumen-excel-native?${params.toString()}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/octet-stream",
+              ...authHeaders,
+            },
+            credentials: "include",
+            body: binaryBody,
+          }
+        );
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || "No fue posible generar el Excel con gráficas.");
+        }
+
         exportProgressUI.update({
-          label: `Descargando XLSX… ${exportProgressUI.formatBytes(loaded)}`,
+          label: "Descargando XLSX…",
           indeterminate: false,
-          percent: 92,
+          percent: 85,
         });
-      });
-      const header = response.headers.get("content-disposition") || "";
-      const match = header.match(/filename=\"?([^\";]+)\"?/i);
-      const filename = match ? match[1] : `${baseName}_Graficas.xlsx`;
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      window.URL.revokeObjectURL(url);
+        const blob = await leerBlobConProgreso(response, ({ loaded, total }) => {
+          if (total > 0) {
+            exportProgressUI.update({
+              label: "Descargando XLSX…",
+              indeterminate: false,
+              percent: 85 + (loaded / total) * 15,
+              percentLabel: `${exportProgressUI.formatBytes(loaded)} / ${exportProgressUI.formatBytes(total)}`,
+            });
+            return;
+          }
+          exportProgressUI.update({
+            label: `Descargando XLSX… ${exportProgressUI.formatBytes(loaded)}`,
+            indeterminate: false,
+            percent: 92,
+          });
+        });
+        const header = response.headers.get("content-disposition") || "";
+        const match = header.match(/filename=\"?([^\";]+)\"?/i);
+        const filename = match ? match[1] : `${baseName}_Graficas.xlsx`;
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      }
 
       if (typeof showToast === "function") {
-        showToast("✅ Resumen exportado con gráficas.");
+        showToast(
+          trabajoSegundoPlano
+            ? "✅ Exportación RESUMEN iniciada en segundo plano. Se descargará al terminar."
+            : "✅ Resumen exportado con gráficas."
+        );
       }
       exportProgressUI.update({
-        label: "Listo",
+        label: trabajoSegundoPlano ? "Trabajo en segundo plano iniciado" : "Listo",
         indeterminate: false,
         percent: 100,
       });

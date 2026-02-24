@@ -4147,6 +4147,12 @@
 
           if (normalizedMatch?.value) {
             moduleSelectInput.value = normalizedMatch.value;
+          } else if (preferredKey) {
+            const injected = document.createElement("option");
+            injected.value = preferred || "RESUMEN";
+            injected.textContent = preferred || "RESUMEN";
+            moduleSelectInput.appendChild(injected);
+            moduleSelectInput.value = injected.value;
           } else if (preferred && options.some((option) => option.value === preferred)) {
             moduleSelectInput.value = preferred;
           } else if (options.length) {
@@ -5075,6 +5081,23 @@
 
         // Abrir editor con una gráfica
         window.openChartEditor = (chartId, chartData) => {
+          const normalizeChartTypeValue = (value, fallback = "inherit") => {
+            const clean = (value || "").toString().trim().toLowerCase();
+            if (["inherit", "bar", "line", "pie", "doughnut"].includes(clean)) {
+              return clean;
+            }
+            return fallback;
+          };
+          const normalizeSourceTypeValue = (value, fallback = "snapshot") => {
+            const clean = (value || "").toString().trim().toLowerCase();
+            if (clean === "snapshot" || clean === "mensual") return clean;
+            return fallback;
+          };
+          const normalizeSeriesModeValue = (value, fallback = "columns") => {
+            const clean = (value || "").toString().trim().toLowerCase();
+            if (clean === "rows" || clean === "columns") return clean;
+            return fallback;
+          };
           currentChartId = String(chartData?.id ?? chartId ?? "").trim();
           currentChart = chartData || {};
           currentModule = setModuleSelectValue(
@@ -5090,11 +5113,20 @@
           if (titleInput) titleInput.value = currentChart.title || "";
           if (subtitleInput) subtitleInput.value = currentChart.subtitle || "";
           if (typeSelect)
-            typeSelect.value = currentChart.chartType || "inherit";
+            typeSelect.value = normalizeChartTypeValue(
+              currentChart.chartType,
+              "inherit",
+            );
           if (sourceTypeSelect)
-            sourceTypeSelect.value = currentChart.sourceType || "snapshot";
+            sourceTypeSelect.value = normalizeSourceTypeValue(
+              currentChart.sourceType,
+              "snapshot",
+            );
           if (seriesModeSelect)
-            seriesModeSelect.value = currentChart.seriesMode || "columns";
+            seriesModeSelect.value = normalizeSeriesModeValue(
+              currentChart.seriesMode,
+              "columns",
+            );
           if (enabledCheck)
             enabledCheck.checked = currentChart.enabled !== false;
           clearValidationState();
@@ -5322,10 +5354,8 @@
               );
               if (existingIndex >= 0) {
                 config.customCharts[existingIndex] = chartData;
-                console.log("Gráfica actualizada:", chartData);
               } else {
                 config.customCharts.push(chartData);
-                console.log("Gráfica creada:", chartData);
               }
 
               // Guardar configuración y reutilizar el resultado normalizado.
@@ -5395,7 +5425,6 @@
               );
               if (existingIndex >= 0) {
                 config.customCharts.splice(existingIndex, 1);
-                console.log("Gráfica eliminada:", currentChartId);
 
                 // Guardar configuración y reutilizar el resultado normalizado.
                 const savedConfig = window.GraficasConfig?.save(config) || config;

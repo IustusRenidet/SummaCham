@@ -6,6 +6,11 @@ const { obtenerEmpresaPorId } = require('../config/empresas');
 const { requireAuth, tienePermisoEmpresa, tienePermisoModulo } = require('../middleware/auth');
 const { generarOperativoExcel } = require('../services/reportes/operativoExcelService');
 const { generarResumenExcel } = require('../services/reportes/resumenExcelService');
+const {
+  createNativeExcelJob,
+  getJobForUser,
+  getJobDownloadForUser,
+} = require('../services/reportes/exportJobsService');
 
 const router = express.Router();
 
@@ -281,6 +286,81 @@ router.post('/resumen-excel-native', rawExcelParser, async (req, res) => {
         `No fue posible generar el Excel con graficas. ${errorExcel.message || ""}`.trim()
       );
   }
+});
+
+router.post('/export-jobs/native', rawExcelParser, async (req, res) => {
+  if (!req.body || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+    return res.status(400).json({ mensaje: 'Archivo Excel no recibido.' });
+  }
+  const tipoRaw = (req.query?.tipo || '').toString().trim().toLowerCase();
+  const tipo = tipoRaw === 'resumen' ? 'resumen' : tipoRaw === 'operativo' ? 'operativo' : '';
+  if (!tipo) {
+    return res.status(400).json({ mensaje: "Parámetro 'tipo' inválido. Usa 'operativo' o 'resumen'." });
+  }
+  try {
+    const job = createNativeExcelJob({
+      userId: req.usuarioActual?.id,
+      tipo,
+      libroBuffer: req.body,
+      params: req.query || {},
+    });
+    return res.status(202).json({ job });
+  } catch (error) {
+    console.error('Error creando export job:', error);
+    return res.status(500).json({
+      mensaje: 'No fue posible crear el trabajo de exportación.',
+      detalle: error?.message || null,
+    });
+  }
+});
+
+router.get('/export-jobs/:jobId', (req, res) => {
+  const jobId = (req.params?.jobId || '').toString().trim();
+  if (!jobId) {
+    return res.status(400).json({ mensaje: 'jobId es requerido.' });
+  }
+  const job = getJobForUser({
+    userId: req.usuarioActual?.id,
+    jobId,
+  });
+  if (!job) {
+    return res.status(404).json({ mensaje: 'Export job no encontrado.' });
+  }
+  return res.json({ job });
+});
+
+router.get('/export-jobs/:jobId/download', (req, res) => {
+  const jobId = (req.params?.jobId || '').toString().trim();
+  if (!jobId) {
+    return res.status(400).json({ mensaje: 'jobId es requerido.' });
+  }
+  const job = getJobDownloadForUser({
+    userId: req.usuarioActual?.id,
+    jobId,
+  });
+  if (!job) {
+    return res.status(404).json({ mensaje: 'Export job no encontrado.' });
+  }
+  if (job.status === 'failed') {
+    return res.status(422).json({
+      mensaje: 'El trabajo de exportación falló.',
+      detalle: job.error || null,
+    });
+  }
+  if (job.status !== 'completed' || !Buffer.isBuffer(job.buffer)) {
+    return res.status(409).json({
+      mensaje: 'El archivo todavía no está listo.',
+      status: job.status,
+    });
+  }
+  const filename = job.filename || `Export_${job.tipo || 'excel'}.xlsx`;
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Length', job.buffer.length);
+  return res.send(job.buffer);
 });
 
 module.exports = router;
