@@ -8,6 +8,20 @@ const jobs = new Map();
 
 const now = () => Date.now();
 
+const sanitizeFilenamePart = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9._-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+const buildFallbackFilename = ({ tipo, params = {} }) => {
+  const baseDefault = tipo === "resumen" ? "RESUMEN" : "Operativo";
+  const baseName = sanitizeFilenamePart(params.nombreArchivo || baseDefault) || baseDefault;
+  return `${baseName}.xlsx`;
+};
+
 const leerString = (value) => {
   if (typeof value === "string") return value;
   if (Array.isArray(value)) return value[0] || "";
@@ -105,6 +119,31 @@ const createNativeExcelJob = ({ userId, tipo, libroBuffer, params = {} }) => {
       current.message = "Completado";
       current.updatedAt = now();
     } catch (error) {
+      const fallbackBuffer =
+        libroBuffer && Buffer.isBuffer(libroBuffer)
+          ? Buffer.from(libroBuffer)
+          : libroBuffer
+          ? Buffer.from(libroBuffer)
+          : null;
+      if (fallbackBuffer && fallbackBuffer.length) {
+        current.buffer = fallbackBuffer;
+        current.filename = buildFallbackFilename({
+          tipo,
+          params: current.params,
+        });
+        current.status = "completed";
+        current.progress = 100;
+        current.message = "Completado sin gráficas (fallback)";
+        current.error = safeError(error);
+        current.updatedAt = now();
+        console.warn("Export job completed with fallback workbook:", {
+          id,
+          tipo,
+          error: current.error,
+        });
+        return;
+      }
+
       current.status = "failed";
       current.progress = 100;
       current.message = "Falló";
@@ -139,4 +178,3 @@ module.exports = {
   getJobForUser,
   getJobDownloadForUser,
 };
-

@@ -2,6 +2,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawn } = require("child_process");
+const XLSX = require("xlsx");
 const { withExcelNativeLock } = require("./excelNativeMutex");
 
 const limpiarTexto = (valor) => (valor == null ? "" : String(valor).trim());
@@ -41,6 +42,31 @@ const resolverPowerShell = () => {
   );
   if (fs.existsSync(system32)) return system32;
   return "powershell";
+};
+
+const esErrorFormatoWorkbook = (error) => {
+  const texto = String(error?.message || error || "").toLowerCase();
+  if (!texto) return false;
+  return (
+    texto.includes("formato o la extensión") ||
+    texto.includes("formato o la extension") ||
+    texto.includes("format or extension") ||
+    texto.includes("cannot open the file") ||
+    texto.includes("no puede abrir el archivo")
+  );
+};
+
+const normalizarWorkbookParaExcel = (inputPath) => {
+  const wb = XLSX.readFile(inputPath, {
+    type: "file",
+    cellDates: true,
+    cellNF: true,
+    cellStyles: true,
+  });
+  XLSX.writeFile(wb, inputPath, {
+    bookType: "xlsx",
+    compression: true,
+  });
 };
 
 const ejecutarPowerShell = (args) =>
@@ -100,22 +126,34 @@ const generarResumenExcel = async ({
 
     escribirTempScript(scriptTemp);
 
-    await withExcelNativeLock(() =>
-      ejecutarPowerShell([
-        "-File",
-        scriptTemp,
-        "-InputPath",
-        inputPath,
-        "-OutputPath",
-        outputPath,
-        "-DataSheetName",
-        hojaDatos,
-        "-ChartsSheetName",
-        hojaGraficas,
-        "-TableSheetName",
-        hojaTabla,
-      ])
-    );
+    const psArgs = [
+      "-File",
+      scriptTemp,
+      "-InputPath",
+      inputPath,
+      "-OutputPath",
+      outputPath,
+      "-DataSheetName",
+      hojaDatos,
+      "-ChartsSheetName",
+      hojaGraficas,
+      "-TableSheetName",
+      hojaTabla,
+    ];
+
+    try {
+      await withExcelNativeLock(() => ejecutarPowerShell(psArgs));
+    } catch (errorNative) {
+      if (!esErrorFormatoWorkbook(errorNative)) {
+        throw errorNative;
+      }
+      try {
+        normalizarWorkbookParaExcel(inputPath);
+      } catch (_) {
+        throw errorNative;
+      }
+      await withExcelNativeLock(() => ejecutarPowerShell(psArgs));
+    }
 
     const baseName = `${limpiarTexto(nombreArchivo || "RESUMEN")}_${limpiarTexto(
       empresa || "Reporte"

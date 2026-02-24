@@ -4587,13 +4587,19 @@
       // NOTE: Uses two sub-passes so that subsections appearing BEFORE their parent principal
       // in the sorted layout (e.g. Membership order=5, INCOME order=10) are still accumulated.
       {
-        const principalAggMap = new Map(); // label -> { block, acc, hasSubs }
+        const principalAggMap = new Map(); // label -> { block, accSubs, accDirect, hasSubs, hasDirect }
         // Sub-pass A: register all principals first
         layoutArr.forEach(block => {
           const tipo = (block.type || block.tipo || "").toLowerCase();
           const isPrincipal = tipo === 'principal' || tipo === 'sum-row-sumavarios' || tipo.includes('principal') || tipo === 'section' || tipo === 'title-row';
           if (isPrincipal) {
-            principalAggMap.set(block.label, { block, acc: totalesCero(), hasSubs: false });
+            principalAggMap.set(block.label, {
+              block,
+              accSubs: totalesCero(),
+              accDirect: totalesCero(),
+              hasSubs: false,
+              hasDirect: false,
+            });
           }
         });
         // Sub-pass B: accumulate subsection totals into their parent principal
@@ -4604,16 +4610,45 @@
             const entry = principalAggMap.get(block.parentSection);
             if (entry) {
               entry.hasSubs = true;
-              sumMetricsLocal(entry.acc, block.totals || {});
+              sumMetricsLocal(entry.accSubs, block.totals || {});
             }
           }
         });
-        principalAggMap.forEach(({ block, acc, hasSubs }) => {
-          // Only override if the section has child subsections AND no explicit formula string
+        // Sub-pass C: accounts directly under principal (without subsection)
+        layoutArr.forEach((block) => {
+          const tipo = (block.type || block.tipo || "").toLowerCase();
+          const isCuenta = tipo === "cuenta" || tipo === "account";
+          if (!isCuenta) return;
+          const parentSection = (block.parentSection || "").toString().trim();
+          if (!parentSection) return;
+          const parentSubsection = (block.parentSubsection || "")
+            .toString()
+            .trim();
+          // Si la cuenta pertenece a una subsección, ya quedó incluida en accSubs.
+          if (parentSubsection) return;
+          const entry = principalAggMap.get(parentSection);
+          if (!entry) return;
+          const sign = applySign(block.sign, 1);
+          entry.hasDirect = true;
+          sumMetricsLocal(entry.accDirect, {
+            actualMonth: toNumber(block?.totals?.actualMonth) * sign,
+            planMonth: toNumber(block?.totals?.planMonth) * sign,
+            prevMonth: toNumber(block?.totals?.prevMonth) * sign,
+            actualYTD: toNumber(block?.totals?.actualYTD) * sign,
+            planYTD: toNumber(block?.totals?.planYTD) * sign,
+            prevYTD: toNumber(block?.totals?.prevYTD) * sign,
+          });
+        });
+        principalAggMap.forEach(({ block, accSubs, accDirect, hasSubs, hasDirect }) => {
+          // Only override if the section has child subsections/direct accounts
+          // AND no explicit formula string.
           const fStr = getFormulaString(block);
           const hasFormulaStr = typeof fStr === 'string' && fStr.trim().length > 3;
           const hasManualFlag = block?.manualFormula === true || block?.__manualFormula === true;
-          if (hasSubs && !(hasFormulaStr || hasManualFlag)) {
+          if ((hasSubs || hasDirect) && !(hasFormulaStr || hasManualFlag)) {
+            const acc = totalesCero();
+            if (hasSubs) sumMetricsLocal(acc, accSubs);
+            if (hasDirect) sumMetricsLocal(acc, accDirect);
             block.totals = { ...acc };
           }
         });
@@ -4890,6 +4925,29 @@
             : Number.isFinite(Number(block.sign))
             ? Number(block.sign)
             : 1;
+        entry.prevMonth += toNumber(block.totals?.prevMonth) * sign;
+        entry.prevYTD += toNumber(block.totals?.prevYTD) * sign;
+      });
+      // PASO B.2: cuentas directas/orfas -> principals (solo prevMonth/prevYTD)
+      // Cubre layouts donde el principal tiene cuentas sin subsección visible
+      // (p.ej. CDMX: GUADALAJARA/MONTERREY/NORTHWEST INCOME), o cuentas cuyo
+      // parentSubsection no existe como bloque "secundaria" en el layout.
+      layoutArr.forEach((block) => {
+        const tipo = (block.type || block.tipo || "").toLowerCase();
+        if (!isCuentaTipo(tipo)) return;
+        const parent = (block.parentSection || "").toString().trim();
+        if (!parent) return;
+        const entry = principalPrevAcc.get(parent);
+        if (!entry) return;
+
+        const parentSub = (block.parentSubsection || "").toString().trim();
+        if (parentSub) {
+          const secKey = buildSecKeyLocal(parent, parentSub);
+          // Si esta cuenta ya fue agregada vía su subsección, no duplicar.
+          if (secKey && secAcc.has(secKey)) return;
+        }
+
+        const sign = Number.isFinite(Number(block.sign)) ? Number(block.sign) : 1;
         entry.prevMonth += toNumber(block.totals?.prevMonth) * sign;
         entry.prevYTD += toNumber(block.totals?.prevYTD) * sign;
       });

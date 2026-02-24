@@ -97,6 +97,31 @@ const resolverPowerShell = () => {
   return "powershell";
 };
 
+const esErrorFormatoWorkbook = (error) => {
+  const texto = String(error?.message || error || "").toLowerCase();
+  if (!texto) return false;
+  return (
+    texto.includes("formato o la extensión") ||
+    texto.includes("formato o la extension") ||
+    texto.includes("format or extension") ||
+    texto.includes("cannot open the file") ||
+    texto.includes("no puede abrir el archivo")
+  );
+};
+
+const normalizarWorkbookParaExcel = (inputPath) => {
+  const wb = XLSX.readFile(inputPath, {
+    type: "file",
+    cellDates: true,
+    cellNF: true,
+    cellStyles: true,
+  });
+  XLSX.writeFile(wb, inputPath, {
+    bookType: "xlsx",
+    compression: true,
+  });
+};
+
 const ejecutarPowerShell = (args) =>
   new Promise((resolve, reject) => {
     const bin = resolverPowerShell();
@@ -185,7 +210,21 @@ const generarOperativoExcel = async ({
       psArgs.push("-SeriesMeta", seriesMeta.trim());
     }
 
-    await withExcelNativeLock(() => ejecutarPowerShell(psArgs));
+    try {
+      await withExcelNativeLock(() => ejecutarPowerShell(psArgs));
+    } catch (errorNative) {
+      // Algunos libros generados en cliente pueden disparar "formato/extensión no válidos"
+      // en Excel COM aunque sigan siendo reparables. Reintentar tras normalizar.
+      if (!esErrorFormatoWorkbook(errorNative)) {
+        throw errorNative;
+      }
+      try {
+        normalizarWorkbookParaExcel(inputPath);
+      } catch (_) {
+        throw errorNative;
+      }
+      await withExcelNativeLock(() => ejecutarPowerShell(psArgs));
+    }
 
     const baseName = `${limpiarTexto(nombreArchivo || "Operativo")}_${limpiarTexto(
       empresa || "Reporte"

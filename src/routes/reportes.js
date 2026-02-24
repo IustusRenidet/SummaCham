@@ -18,7 +18,9 @@ router.use(requireAuth);
 
 const rawExcelParser = express.raw({
   type: 'application/octet-stream',
-  limit: '20mb',
+  // Archivos base con estilos/merges pueden crecer bastante.
+  // Aumentamos margen para evitar rechazos 413 en exportación nativa.
+  limit: '80mb',
 });
 
 const esquemaConsulta = Joi.object({
