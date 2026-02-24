@@ -44,6 +44,45 @@ const resolverPowerShell = () => {
   return "powershell";
 };
 
+const EXCEL_NATIVE_TIMEOUT_MS = Math.max(
+  30000,
+  Number(process.env.EXCEL_NATIVE_TIMEOUT_MS || 180000)
+);
+
+const killProcessTree = (proc) =>
+  new Promise((resolve) => {
+    try {
+      if (!proc || proc.killed || !proc.pid) {
+        resolve();
+        return;
+      }
+      if (process.platform === "win32") {
+        const killer = spawn("taskkill", ["/PID", String(proc.pid), "/T", "/F"], {
+          windowsHide: true,
+          stdio: "ignore",
+        });
+        killer.on("error", () => {
+          try {
+            proc.kill("SIGKILL");
+          } catch (_) {
+            // ignore
+          }
+          resolve();
+        });
+        killer.on("close", () => resolve());
+        return;
+      }
+      try {
+        proc.kill("SIGKILL");
+      } catch (_) {
+        // ignore
+      }
+      resolve();
+    } catch (_) {
+      resolve();
+    }
+  });
+
 const esErrorFormatoWorkbook = (error) => {
   const texto = String(error?.message || error || "").toLowerCase();
   if (!texto) return false;
@@ -76,21 +115,39 @@ const ejecutarPowerShell = (args) =>
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
     });
+    let settled = false;
+    const finalize = (cb, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      cb(value);
+    };
     let stderr = "";
     let stdout = "";
+    const timer = setTimeout(() => {
+      killProcessTree(proc).finally(() => {
+        finalize(
+          reject,
+          new Error(
+            `PowerShell timeout (${Math.round(EXCEL_NATIVE_TIMEOUT_MS / 1000)}s).`
+          )
+        );
+      });
+    }, EXCEL_NATIVE_TIMEOUT_MS);
     proc.stdout.on("data", (chunk) => {
       stdout += chunk.toString();
     });
     proc.stderr.on("data", (chunk) => {
       stderr += chunk.toString();
     });
-    proc.on("error", reject);
+    proc.on("error", (error) => finalize(reject, error));
     proc.on("close", (code) => {
+      if (settled) return;
       if (code === 0) {
-        resolve(stdout.trim());
+        finalize(resolve, stdout.trim());
       } else {
         const msg = stderr || stdout || `PowerShell failed (${code}).`;
-        reject(new Error(msg.trim()));
+        finalize(reject, new Error(msg.trim()));
       }
     });
   });
