@@ -162,11 +162,11 @@ $xlTickLabelPositionLow = -4134
 $xlTickLabelOrientationHorizontal = -4128
 
 $OPER_CHART_LEFT = 20
-$OPER_CHART_WIDTH = 1220
+$OPER_CHART_WIDTH = 1480
 $OPER_CHART_GAP = 4
-$OPER_CHART_MIN_HEIGHT = 260
-$OPER_CHART_MAX_HEIGHT = 620
-$OPER_CHART_SPLIT_HEIGHT = 280
+$OPER_CHART_MIN_HEIGHT = 420
+$OPER_CHART_MAX_HEIGHT = 860
+$OPER_CHART_SPLIT_HEIGHT = 440
 
 function Convert-HexToOle {
   param([string]$HexColor)
@@ -424,7 +424,7 @@ function Set-ChartBarLayout {
     $group = $ChartObject.Chart.ChartGroups(1)
     if (-not $group) { return }
     $group.Overlap = 0
-    $group.GapWidth = 150
+    $group.GapWidth = 90
   }
   catch {}
 }
@@ -437,10 +437,10 @@ function Set-ChartAxesLayout {
   )
   if (-not $ChartObject) { return }
   $labelSpacing = 1
-  if ($LabelsCount -ge 20) {
+  if ($LabelsCount -ge 30) {
     $labelSpacing = 3
   }
-  elseif ($LabelsCount -ge 10) {
+  elseif ($LabelsCount -ge 18) {
     $labelSpacing = 2
   }
   try {
@@ -449,9 +449,9 @@ function Set-ChartAxesLayout {
       try { $categoryAxis.TickLabelSpacing = $labelSpacing } catch {}
       try { $categoryAxis.TickMarkSpacing = $labelSpacing } catch {}
       try { $categoryAxis.TickLabelPosition = $xlTickLabelPositionLow } catch {}
-      try { $categoryAxis.TickLabels.Font.Size = 9 } catch {}
+      try { $categoryAxis.TickLabels.Font.Size = 10 } catch {}
       if ($Orientation -eq "vertical") {
-        if ($LabelsCount -ge 8) {
+        if ($LabelsCount -ge 12) {
           try { $categoryAxis.TickLabels.Orientation = 45 } catch {}
         }
         else {
@@ -490,9 +490,9 @@ function Set-ChartLegendLayout {
     return
   }
   try { $ChartObject.Chart.HasLegend = $true } catch {}
-  $preferRight = ($LabelsCount -ge 8) -or ($SeriesCount -ge 4) -or ($Orientation -eq "vertical")
-  $legendPos = if ($preferRight) { $xlLegendPositionRight } else { $xlLegendPositionBottom }
-  try { $ChartObject.Chart.Legend.Position = $legendPos } catch {}
+  # Siempre a la derecha para evitar solapamiento con el titulo superior
+  try { $ChartObject.Chart.Legend.Position = $xlLegendPositionRight } catch {}
+  try { $ChartObject.Chart.Legend.Font.Size = 9 } catch {}
 }
 
 if (-not (Test-Path $InputPath)) {
@@ -532,275 +532,237 @@ try {
   $wb = Open-WorkbookSafely -ExcelApp $excel -WorkbookPath $inputFull
   Write-Host "Excel: workbook abierto."
 
-try {
-  $wsData = Invoke-ComRetry { $wb.Worksheets.Item($DataSheetName) }
-}
-catch {
-  $sheets = @()
-  try { $sheets = Get-WorkbookSheetNames -Workbook $wb } catch {}
-  if ($sheets.Count) {
-    Write-Error ("Data sheet not found: {0}. Disponibles: {1}" -f $DataSheetName, ($sheets -join ", "))
-  }
-  else {
-    Write-Error "Data sheet not found: $DataSheetName"
-  }
-  try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
-  try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
-  exit 1
-}
-
-function Get-SeriesColumnsForHeaderRow {
-  param(
-    $Values,
-    [int]$RowNumber,
-    [int]$MaxCol
-  )
-  if (-not $Values -or $RowNumber -lt 1) { return @() }
-  $lastCol = 1
-  for ($c = $MaxCol; $c -ge 2; $c--) {
-    if (([string]$Values[$RowNumber, $c]).Trim()) {
-      $lastCol = $c
-      break
-    }
-  }
-  if ($lastCol -lt 2) { return @() }
-  $result = @()
-  for ($col = 2; $col -le $lastCol; $col++) {
-    $seriesName = ([string]$Values[$RowNumber, $col]).Trim()
-    if (-not $seriesName) { continue }
-    $result += [PSCustomObject]@{
-      Column = $col
-      Name   = $seriesName
-    }
-  }
-  return @($result)
-}
-
-function Get-ChartBlocks {
-  param(
-    $Values,
-    [int]$SheetLastRow,
-    [int]$MaxCol
-  )
-  if (-not $Values -or $SheetLastRow -lt 1) { return @() }
-  $blocks = @()
-  $row = 1
-  while ($row -le $SheetLastRow) {
-    $marker = ([string]$Values[$row, 1]).Trim().ToUpperInvariant()
-    if ($marker -ne "CHART") {
-      $row++
-      continue
-    }
-
-    $title = ([string]$Values[$row, 2]).Trim()
-    if (-not $title) { $title = "Grafica" }
-    $headerRow = $row + 1
-    if ($headerRow -gt $SheetLastRow) { break }
-
-    $seriesColumns = Get-SeriesColumnsForHeaderRow -Values $Values -RowNumber $headerRow -MaxCol $MaxCol
-    if ($seriesColumns.Count -eq 0) {
-      $row = $headerRow + 1
-      continue
-    }
-
-    $dataStart = $headerRow + 1
-    while ($dataStart -le $SheetLastRow) {
-      $candidateLabel = ([string]$Values[$dataStart, 1]).Trim()
-      if (-not $candidateLabel) {
-        $dataStart++
-        continue
-      }
-      if ((ConvertTo-NormalizedText $candidateLabel) -eq "CHART") {
-        break
-      }
-      break
-    }
-    if ($dataStart -gt $SheetLastRow) { break }
-
-    $dataEnd = $dataStart
-    while ($dataEnd -le $SheetLastRow) {
-      $currentLabel = ([string]$Values[$dataEnd, 1]).Trim()
-      if (-not $currentLabel) { break }
-      if ((ConvertTo-NormalizedText $currentLabel) -eq "CHART") { break }
-      $dataEnd++
-    }
-    $dataEnd -= 1
-
-    if ($dataEnd -ge $dataStart) {
-      $blocks += [PSCustomObject]@{
-        Title         = $title
-        HeaderRow     = $headerRow
-        DataStart     = $dataStart
-        DataEnd       = $dataEnd
-        SeriesColumns = $seriesColumns
-      }
-      $row = $dataEnd + 1
-      continue
-    }
-    $row = $headerRow + 1
-  }
-  return @($blocks)
-}
-
-$values = $null
-for ($attempt = 0; $attempt -lt 30; $attempt++) {
   try {
-    $usedRange = $wsData.UsedRange
-    $values = $usedRange.Value2
-    break
-  } catch [System.Runtime.InteropServices.COMException] {
-    Start-Sleep -Milliseconds 150
-  }
-}
-
-if ($null -eq $values -or $values -isnot [System.Array] -or $values.Rank -lt 2) {
-  Write-Error "No data found in $DataSheetName."
-  try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
-  try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
-  exit 1
-}
-$lastRow = $values.GetUpperBound(0)
-$maxCol = $values.GetUpperBound(1)
-
-$headerRow = 1
-$maxHeaderScan = [Math]::Min(120, $lastRow)
-for ($i = 1; $i -le $maxHeaderScan; $i++) {
-  $parts = @()
-  for ($c = 1; $c -le [Math]::Min(12, $maxCol); $c++) {
-    $txt = [string]$values[$i, $c]
-    if ($txt) { $parts += $txt.ToLowerInvariant() }
-  }
-  $rowText = ($parts -join " ")
-  if ((($rowText -match "ppto") -or ($rowText -match "presupuesto") -or ($rowText -match "real")) -and ($rowText -match "acum")) {
-    $headerRow = $i
-    break
-  }
-}
-
-$seriesColumns = Get-SeriesColumnsForHeaderRow -Values $values -RowNumber $headerRow -MaxCol $maxCol
-if ($seriesColumns.Count -eq 0) {
-  $metadataRows = @("RESULTADOS OPERATIVOS", "CATEGORIA", "EMPRESA", "PERIODO", "FECHA EXPORTACION")
-  for ($candidate = 1; $candidate -le $maxHeaderScan; $candidate++) {
-    $candidateSeries = Get-SeriesColumnsForHeaderRow -Values $values -RowNumber $candidate -MaxCol $maxCol
-    if ($candidateSeries.Count -eq 0) { continue }
-    $firstCellNorm = ConvertTo-NormalizedText ([string]$values[$candidate, 1])
-    if (-not $firstCellNorm) { continue }
-    if ($metadataRows -contains $firstCellNorm) { continue }
-
-    $parts = @()
-    for ($c = 1; $c -le [Math]::Min(12, $maxCol); $c++) {
-      $txt = [string]$values[$candidate, $c]
-      if ($txt) { $parts += $txt }
-    }
-    $candidateText = ConvertTo-NormalizedText ($parts -join " ")
-    $looksLikeHeader = $candidateText -match "PPTO|PRESUPUESTO|REAL|ACUM|BUDGET|ACTUAL|YTD|20[0-9]{2}"
-    $nextLabel = ([string]$values[$candidate + 1, 1]).Trim()
-    if (-not $looksLikeHeader -and -not $nextLabel) { continue }
-
-    $headerRow = $candidate
-    $seriesColumns = $candidateSeries
-    break
-  }
-}
-
-$dataStart = $headerRow + 1
-while ($dataStart -le $lastRow -and -not ([string]$values[$dataStart, 1]).Trim()) {
-  $dataStart++
-}
-
-if ($lastRow -lt $dataStart) {
-  Write-Error "No data rows found in $DataSheetName."
-  try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
-  try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
-  exit 1
-}
-
-$chartBlocks = Get-ChartBlocks -Values $values -SheetLastRow $lastRow -MaxCol $maxCol
-if ($seriesColumns.Count -eq 0 -and $chartBlocks.Count -eq 0) {
-  Write-Error "No series columns found in $DataSheetName."
-  try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
-  try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
-  exit 1
-}
-
-$wsCharts = $null
-if ($ChartsSheetName -and $ChartsSheetName -ne $DataSheetName) {
-  try {
-    $wsCharts = $wb.Worksheets.Item($ChartsSheetName)
+    $wsData = Invoke-ComRetry { $wb.Worksheets.Item($DataSheetName) }
   }
   catch {
-    $wsCharts = $null
+    $sheets = @()
+    try { $sheets = Get-WorkbookSheetNames -Workbook $wb } catch {}
+    if ($sheets.Count) {
+      Write-Error ("Data sheet not found: {0}. Disponibles: {1}" -f $DataSheetName, ($sheets -join ", "))
+    }
+    else {
+      Write-Error "Data sheet not found: $DataSheetName"
+    }
+    try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+    try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
+    exit 1
   }
 
-  if ($wsCharts) {
-    try { Invoke-ComRetry { $wsCharts.Cells.Clear() } } catch {}
-    try { Invoke-ComRetry { $wsCharts.ChartObjects().Delete() } } catch {}
+  function Get-SeriesColumnsForHeaderRow {
+    param(
+      $Values,
+      [int]$RowNumber,
+      [int]$MaxCol
+    )
+    if (-not $Values -or $RowNumber -lt 1) { return @() }
+    $lastCol = 1
+    for ($c = $MaxCol; $c -ge 2; $c--) {
+      if (([string]$Values[$RowNumber, $c]).Trim()) {
+        $lastCol = $c
+        break
+      }
+    }
+    if ($lastCol -lt 2) { return @() }
+    $result = @()
+    for ($col = 2; $col -le $lastCol; $col++) {
+      $seriesName = ([string]$Values[$RowNumber, $col]).Trim()
+      if (-not $seriesName) { continue }
+      $result += [PSCustomObject]@{
+        Column = $col
+        Name   = $seriesName
+      }
+    }
+    return @($result)
   }
-  else {
-    $wsCharts = Invoke-ComRetry { $wb.Worksheets.Add($null, $wb.Worksheets.Item($wb.Worksheets.Count)) }
-    Invoke-ComRetry { $wsCharts.Name = $ChartsSheetName }
+
+  function Get-ChartBlocks {
+    param(
+      $Values,
+      [int]$SheetLastRow,
+      [int]$MaxCol
+    )
+    if (-not $Values -or $SheetLastRow -lt 1) { return @() }
+    $blocks = @()
+    $row = 1
+    while ($row -le $SheetLastRow) {
+      $marker = ([string]$Values[$row, 1]).Trim().ToUpperInvariant()
+      if ($marker -ne "CHART") {
+        $row++
+        continue
+      }
+
+      $title = ([string]$Values[$row, 2]).Trim()
+      if (-not $title) { $title = "Grafica" }
+      $headerRow = $row + 1
+      if ($headerRow -gt $SheetLastRow) { break }
+
+      $seriesColumns = Get-SeriesColumnsForHeaderRow -Values $Values -RowNumber $headerRow -MaxCol $MaxCol
+      if ($seriesColumns.Count -eq 0) {
+        $row = $headerRow + 1
+        continue
+      }
+
+      $dataStart = $headerRow + 1
+      while ($dataStart -le $SheetLastRow) {
+        $candidateLabel = ([string]$Values[$dataStart, 1]).Trim()
+        if (-not $candidateLabel) {
+          $dataStart++
+          continue
+        }
+        if ((ConvertTo-NormalizedText $candidateLabel) -eq "CHART") {
+          break
+        }
+        break
+      }
+      if ($dataStart -gt $SheetLastRow) { break }
+
+      $dataEnd = $dataStart
+      while ($dataEnd -le $SheetLastRow) {
+        $currentLabel = ([string]$Values[$dataEnd, 1]).Trim()
+        if (-not $currentLabel) { break }
+        if ((ConvertTo-NormalizedText $currentLabel) -eq "CHART") { break }
+        $dataEnd++
+      }
+      $dataEnd -= 1
+
+      if ($dataEnd -ge $dataStart) {
+        $blocks += [PSCustomObject]@{
+          Title         = $title
+          HeaderRow     = $headerRow
+          DataStart     = $dataStart
+          DataEnd       = $dataEnd
+          SeriesColumns = $seriesColumns
+        }
+        $row = $dataEnd + 1
+        continue
+      }
+      $row = $headerRow + 1
+    }
+    return @($blocks)
   }
-}
-else {
-  $wsCharts = $wsData
-}
 
-$chartModeNormalized = $ChartMode
-if (-not $chartModeNormalized) {
-  $chartModeNormalized = "split"
-}
-$chartModeNormalized = $chartModeNormalized.ToString().Trim().ToLowerInvariant()
-
-$baseTop = 20
-if ($wsCharts -eq $wsData) {
-  $baseTop = $wsData.Rows.Item($lastRow + 2).Top
-}
-
-if ($chartModeNormalized -eq "combined") {
-  $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
-  $chartOrientation = Resolve-ChartOrientation -MetaList $seriesMetaList -ChartTitle "Resultados operativos" -SeriesColumns $seriesColumns
-  $chartHeight = 460
-  $labelsCount = [Math]::Max(1, $lastRow - $dataStart + 1)
-  $chart = $wsCharts.ChartObjects().Add($OPER_CHART_LEFT, $baseTop, $OPER_CHART_WIDTH, $chartHeight)
-  $chart.Chart.ChartType = if ($chartOrientation -eq "vertical") { $xlChartTypeColumnClustered } else { $xlChartTypeBarClustered }
-  try {
-    while ($chart.Chart.SeriesCollection().Count -gt 0) {
-      [void]$chart.Chart.SeriesCollection(1).Delete()
+  $values = $null
+  for ($attempt = 0; $attempt -lt 30; $attempt++) {
+    try {
+      $usedRange = $wsData.UsedRange
+      $values = $usedRange.Value2
+      break
+    }
+    catch [System.Runtime.InteropServices.COMException] {
+      Start-Sleep -Milliseconds 150
     }
   }
-  catch {}
-  $chart.Chart.HasTitle = $true
-  $chart.Chart.ChartTitle.Text = "Resultados operativos"
 
-  for ($idx = 0; $idx -lt $seriesColumns.Count; $idx++) {
-    $seriesInfo = $seriesColumns[$idx]
-    $colLetter = Get-ColumnLetter $seriesInfo.Column
-    $rangeValues = $wsData.Range("$colLetter$($dataStart):$colLetter$($lastRow)")
+  if ($null -eq $values -or $values -isnot [System.Array] -or $values.Rank -lt 2) {
+    Write-Error "No data found in $DataSheetName."
+    try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+    try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
+    exit 1
+  }
+  $lastRow = $values.GetUpperBound(0)
+  $maxCol = $values.GetUpperBound(1)
 
-    $series = $chart.Chart.SeriesCollection().NewSeries()
-    $series.Values = $rangeValues
-
-    $series.XValues = $rangeLabels
-    $series.Name = $seriesInfo.Name
-
-    $seriesType = Resolve-SeriesType -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx -ChartTitle "Resultados operativos"
-    $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx -ChartTitle "Resultados operativos"
-    Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType -Orientation $chartOrientation
+  $headerRow = 1
+  $maxHeaderScan = [Math]::Min(120, $lastRow)
+  for ($i = 1; $i -le $maxHeaderScan; $i++) {
+    $parts = @()
+    for ($c = 1; $c -le [Math]::Min(12, $maxCol); $c++) {
+      $txt = [string]$values[$i, $c]
+      if ($txt) { $parts += $txt.ToLowerInvariant() }
+    }
+    $rowText = ($parts -join " ")
+    if ((($rowText -match "ppto") -or ($rowText -match "presupuesto") -or ($rowText -match "real")) -and ($rowText -match "acum")) {
+      $headerRow = $i
+      break
+    }
   }
 
-  Set-ChartBarLayout -ChartObject $chart
-  Set-ChartLegendLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount -SeriesCount $seriesColumns.Count
-  Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount
-}
-elseif ($chartBlocks.Count -gt 0) {
-  $chartTop = $baseTop
-  for ($blockIdx = 0; $blockIdx -lt $chartBlocks.Count; $blockIdx++) {
-    $block = $chartBlocks[$blockIdx]
-    $rangeLabels = $wsData.Range("A$($block.DataStart):A$($block.DataEnd)")
-    $labelsCount = $block.DataEnd - $block.DataStart + 1
-    $chartHeight = [Math]::Max($OPER_CHART_MIN_HEIGHT, [Math]::Min($OPER_CHART_MAX_HEIGHT, 240 + ($labelsCount * 14)))
-    $chartOrientation = Resolve-ChartOrientation -MetaList $seriesMetaList -ChartTitle $block.Title -SeriesColumns $block.SeriesColumns
-    $chart = $wsCharts.ChartObjects().Add($OPER_CHART_LEFT, $chartTop, $OPER_CHART_WIDTH, $chartHeight)
+  $seriesColumns = Get-SeriesColumnsForHeaderRow -Values $values -RowNumber $headerRow -MaxCol $maxCol
+  if ($seriesColumns.Count -eq 0) {
+    $metadataRows = @("RESULTADOS OPERATIVOS", "CATEGORIA", "EMPRESA", "PERIODO", "FECHA EXPORTACION")
+    for ($candidate = 1; $candidate -le $maxHeaderScan; $candidate++) {
+      $candidateSeries = Get-SeriesColumnsForHeaderRow -Values $values -RowNumber $candidate -MaxCol $maxCol
+      if ($candidateSeries.Count -eq 0) { continue }
+      $firstCellNorm = ConvertTo-NormalizedText ([string]$values[$candidate, 1])
+      if (-not $firstCellNorm) { continue }
+      if ($metadataRows -contains $firstCellNorm) { continue }
+
+      $parts = @()
+      for ($c = 1; $c -le [Math]::Min(12, $maxCol); $c++) {
+        $txt = [string]$values[$candidate, $c]
+        if ($txt) { $parts += $txt }
+      }
+      $candidateText = ConvertTo-NormalizedText ($parts -join " ")
+      $looksLikeHeader = $candidateText -match "PPTO|PRESUPUESTO|REAL|ACUM|BUDGET|ACTUAL|YTD|20[0-9]{2}"
+      $nextLabel = ([string]$values[$candidate + 1, 1]).Trim()
+      if (-not $looksLikeHeader -and -not $nextLabel) { continue }
+
+      $headerRow = $candidate
+      $seriesColumns = $candidateSeries
+      break
+    }
+  }
+
+  $dataStart = $headerRow + 1
+  while ($dataStart -le $lastRow -and -not ([string]$values[$dataStart, 1]).Trim()) {
+    $dataStart++
+  }
+
+  if ($lastRow -lt $dataStart) {
+    Write-Error "No data rows found in $DataSheetName."
+    try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+    try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
+    exit 1
+  }
+
+  $chartBlocks = Get-ChartBlocks -Values $values -SheetLastRow $lastRow -MaxCol $maxCol
+  if ($seriesColumns.Count -eq 0 -and $chartBlocks.Count -eq 0) {
+    Write-Error "No series columns found in $DataSheetName."
+    try { if ($wb) { Invoke-ComRetry { $wb.Close($false) } } } catch {}
+    try { if ($excel) { Invoke-ComRetry { $excel.Quit() } } } catch {}
+    exit 1
+  }
+
+  $wsCharts = $null
+  if ($ChartsSheetName -and $ChartsSheetName -ne $DataSheetName) {
+    try {
+      $wsCharts = $wb.Worksheets.Item($ChartsSheetName)
+    }
+    catch {
+      $wsCharts = $null
+    }
+
+    if ($wsCharts) {
+      try { Invoke-ComRetry { $wsCharts.Cells.Clear() } } catch {}
+      try { Invoke-ComRetry { $wsCharts.ChartObjects().Delete() } } catch {}
+    }
+    else {
+      $wsCharts = Invoke-ComRetry { $wb.Worksheets.Add($null, $wb.Worksheets.Item($wb.Worksheets.Count)) }
+      Invoke-ComRetry { $wsCharts.Name = $ChartsSheetName }
+    }
+  }
+  else {
+    $wsCharts = $wsData
+  }
+
+  $chartModeNormalized = $ChartMode
+  if (-not $chartModeNormalized) {
+    $chartModeNormalized = "split"
+  }
+  $chartModeNormalized = $chartModeNormalized.ToString().Trim().ToLowerInvariant()
+
+  $baseTop = 20
+  if ($wsCharts -eq $wsData) {
+    $baseTop = $wsData.Rows.Item($lastRow + 2).Top
+  }
+
+  if ($chartModeNormalized -eq "combined") {
+    $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
+    $chartOrientation = Resolve-ChartOrientation -MetaList $seriesMetaList -ChartTitle "Resultados operativos" -SeriesColumns $seriesColumns
+    $chartHeight = 660
+    $labelsCount = [Math]::Max(1, $lastRow - $dataStart + 1)
+    $chart = $wsCharts.ChartObjects().Add($OPER_CHART_LEFT, $baseTop, $OPER_CHART_WIDTH, $chartHeight)
     $chart.Chart.ChartType = if ($chartOrientation -eq "vertical") { $xlChartTypeColumnClustered } else { $xlChartTypeBarClustered }
     try {
       while ($chart.Chart.SeriesCollection().Count -gt 0) {
@@ -809,12 +771,12 @@ elseif ($chartBlocks.Count -gt 0) {
     }
     catch {}
     $chart.Chart.HasTitle = $true
-    $chart.Chart.ChartTitle.Text = if ($block.Title) { $block.Title } else { "Resultados operativos" }
+    $chart.Chart.ChartTitle.Text = "Resultados operativos"
 
-    for ($seriesIdx = 0; $seriesIdx -lt $block.SeriesColumns.Count; $seriesIdx++) {
-      $seriesInfo = $block.SeriesColumns[$seriesIdx]
+    for ($idx = 0; $idx -lt $seriesColumns.Count; $idx++) {
+      $seriesInfo = $seriesColumns[$idx]
       $colLetter = Get-ColumnLetter $seriesInfo.Column
-      $rangeValues = $wsData.Range("$colLetter$($block.DataStart):$colLetter$($block.DataEnd)")
+      $rangeValues = $wsData.Range("$colLetter$($dataStart):$colLetter$($lastRow)")
 
       $series = $chart.Chart.SeriesCollection().NewSeries()
       $series.Values = $rangeValues
@@ -822,88 +784,127 @@ elseif ($chartBlocks.Count -gt 0) {
       $series.XValues = $rangeLabels
       $series.Name = $seriesInfo.Name
 
-      $seriesType = Resolve-SeriesType -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx -ChartTitle $block.Title
-      $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx -ChartTitle $block.Title
+      $seriesType = Resolve-SeriesType -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx -ChartTitle "Resultados operativos"
+      $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx -ChartTitle "Resultados operativos"
       Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType -Orientation $chartOrientation
     }
 
     Set-ChartBarLayout -ChartObject $chart
-    Set-ChartLegendLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount -SeriesCount $block.SeriesColumns.Count
+    Set-ChartLegendLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount -SeriesCount $seriesColumns.Count
     Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount
-
-    $chartTop += $chartHeight + $OPER_CHART_GAP
   }
-}
-else {
-  $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
-  $splitSeries = @($seriesColumns)
-  $chartTop = $baseTop
-  $labelsCount = [Math]::Max(1, $lastRow - $dataStart + 1)
-  for ($idx = 0; $idx -lt $splitSeries.Count; $idx++) {
-    $seriesInfo = $splitSeries[$idx]
-    $colLetter = Get-ColumnLetter $seriesInfo.Column
-    $rangeValues = $wsData.Range("$colLetter$($dataStart):$colLetter$($lastRow)")
-    $chartOrientation = Resolve-ChartOrientation -MetaList $seriesMetaList -ChartTitle $seriesInfo.Name -SeriesColumns @($seriesInfo)
+  elseif ($chartBlocks.Count -gt 0) {
+    $chartTop = $baseTop
+    for ($blockIdx = 0; $blockIdx -lt $chartBlocks.Count; $blockIdx++) {
+      $block = $chartBlocks[$blockIdx]
+      $rangeLabels = $wsData.Range("A$($block.DataStart):A$($block.DataEnd)")
+      $labelsCount = $block.DataEnd - $block.DataStart + 1
+      $chartHeight = [Math]::Max($OPER_CHART_MIN_HEIGHT, [Math]::Min($OPER_CHART_MAX_HEIGHT, 320 + ($labelsCount * 18)))
+      $chartOrientation = Resolve-ChartOrientation -MetaList $seriesMetaList -ChartTitle $block.Title -SeriesColumns $block.SeriesColumns
+      $chart = $wsCharts.ChartObjects().Add($OPER_CHART_LEFT, $chartTop, $OPER_CHART_WIDTH, $chartHeight)
+      $chart.Chart.ChartType = if ($chartOrientation -eq "vertical") { $xlChartTypeColumnClustered } else { $xlChartTypeBarClustered }
+      try {
+        while ($chart.Chart.SeriesCollection().Count -gt 0) {
+          [void]$chart.Chart.SeriesCollection(1).Delete()
+        }
+      }
+      catch {}
+      $chart.Chart.HasTitle = $true
+      $chart.Chart.ChartTitle.Text = if ($block.Title) { $block.Title } else { "Resultados operativos" }
 
-    $chart = $wsCharts.ChartObjects().Add($OPER_CHART_LEFT, $chartTop, 1100, $OPER_CHART_SPLIT_HEIGHT)
-    $chart.Chart.ChartType = if ($chartOrientation -eq "vertical") { $xlChartTypeColumnClustered } else { $xlChartTypeBarClustered }
+      for ($seriesIdx = 0; $seriesIdx -lt $block.SeriesColumns.Count; $seriesIdx++) {
+        $seriesInfo = $block.SeriesColumns[$seriesIdx]
+        $colLetter = Get-ColumnLetter $seriesInfo.Column
+        $rangeValues = $wsData.Range("$colLetter$($block.DataStart):$colLetter$($block.DataEnd)")
+
+        $series = $chart.Chart.SeriesCollection().NewSeries()
+        $series.Values = $rangeValues
+
+        $series.XValues = $rangeLabels
+        $series.Name = $seriesInfo.Name
+
+        $seriesType = Resolve-SeriesType -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx -ChartTitle $block.Title
+        $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx -ChartTitle $block.Title
+        Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType -Orientation $chartOrientation
+      }
+
+      Set-ChartBarLayout -ChartObject $chart
+      Set-ChartLegendLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount -SeriesCount $block.SeriesColumns.Count
+      Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount
+
+      $chartTop += $chartHeight + $OPER_CHART_GAP
+    }
+  }
+  else {
+    $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
+    $splitSeries = @($seriesColumns)
+    $chartTop = $baseTop
+    $labelsCount = [Math]::Max(1, $lastRow - $dataStart + 1)
+    for ($idx = 0; $idx -lt $splitSeries.Count; $idx++) {
+      $seriesInfo = $splitSeries[$idx]
+      $colLetter = Get-ColumnLetter $seriesInfo.Column
+      $rangeValues = $wsData.Range("$colLetter$($dataStart):$colLetter$($lastRow)")
+      $chartOrientation = Resolve-ChartOrientation -MetaList $seriesMetaList -ChartTitle $seriesInfo.Name -SeriesColumns @($seriesInfo)
+
+      $chart = $wsCharts.ChartObjects().Add($OPER_CHART_LEFT, $chartTop, $OPER_CHART_WIDTH, $OPER_CHART_SPLIT_HEIGHT)
+      $chart.Chart.ChartType = if ($chartOrientation -eq "vertical") { $xlChartTypeColumnClustered } else { $xlChartTypeBarClustered }
+      try {
+        while ($chart.Chart.SeriesCollection().Count -gt 0) {
+          [void]$chart.Chart.SeriesCollection(1).Delete()
+        }
+      }
+      catch {}
+      $series = $chart.Chart.SeriesCollection().NewSeries()
+      $series.Values = $rangeValues
+      $series.XValues = $rangeLabels
+      $series.Name = $seriesInfo.Name
+      $chart.Chart.HasTitle = $true
+      $chart.Chart.ChartTitle.Text = $seriesInfo.Name
+
+      $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx -ChartTitle $seriesInfo.Name
+      Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType "bar" -Orientation $chartOrientation
+      Set-ChartBarLayout -ChartObject $chart
+      Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount
+      $chartTop += $OPER_CHART_SPLIT_HEIGHT + $OPER_CHART_GAP
+    }
+  }
+
+  $wsTable = $null
+  if ($TableSheetName) {
     try {
-      while ($chart.Chart.SeriesCollection().Count -gt 0) {
-        [void]$chart.Chart.SeriesCollection(1).Delete()
+      $wsTable = $wb.Worksheets.Item($TableSheetName)
+    }
+    catch {
+      $wsTable = $null
+    }
+  }
+  if (-not $wsTable) {
+    try {
+      $wsTable = $wb.Worksheets.Item(1)
+    }
+    catch {
+      $wsTable = $null
+    }
+  }
+
+  if (-not $OutputPath) {
+    $dir = Split-Path $inputFull
+    $base = [System.IO.Path]::GetFileNameWithoutExtension($inputFull)
+    $OutputPath = Join-Path $dir ($base + "_graficas.xlsx")
+  }
+
+  if ($wsTable) {
+    try {
+      $usedRange = Invoke-ComRetry { $wsTable.UsedRange }
+      if ($usedRange) {
+        [void](Invoke-ComRetry { $usedRange.Columns.AutoFit() })
       }
     }
-    catch {}
-    $series = $chart.Chart.SeriesCollection().NewSeries()
-    $series.Values = $rangeValues
-    $series.XValues = $rangeLabels
-    $series.Name = $seriesInfo.Name
-    $chart.Chart.HasTitle = $true
-    $chart.Chart.ChartTitle.Text = $seriesInfo.Name
-
-    $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx -ChartTitle $seriesInfo.Name
-    Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType "bar" -Orientation $chartOrientation
-    Set-ChartBarLayout -ChartObject $chart
-    Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount
-    $chartTop += $OPER_CHART_SPLIT_HEIGHT + $OPER_CHART_GAP
-  }
-}
-
-$wsTable = $null
-if ($TableSheetName) {
-  try {
-    $wsTable = $wb.Worksheets.Item($TableSheetName)
-  }
-  catch {
-    $wsTable = $null
-  }
-}
-if (-not $wsTable) {
-  try {
-    $wsTable = $wb.Worksheets.Item(1)
-  }
-  catch {
-    $wsTable = $null
-  }
-}
-
-if (-not $OutputPath) {
-  $dir = Split-Path $inputFull
-  $base = [System.IO.Path]::GetFileNameWithoutExtension($inputFull)
-  $OutputPath = Join-Path $dir ($base + "_graficas.xlsx")
-}
-
-if ($wsTable) {
-  try {
-    $usedRange = Invoke-ComRetry { $wsTable.UsedRange }
-    if ($usedRange) {
-      [void](Invoke-ComRetry { $usedRange.Columns.AutoFit() })
+    catch {
     }
   }
-  catch {
-  }
-}
 
-if ($wsTable) {
+  if ($wsTable) {
     try { Invoke-ComRetry { $wsTable.Activate() } } catch {}
   }
   else {

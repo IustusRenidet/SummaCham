@@ -160,7 +160,7 @@
   // - Para desactivar solo el auto-start del tour principal: `dashboard.autoStart: false`
   const DEFAULT_TOURS_CONFIG = {
     enabled: true,
-    dashboard: { enabled: true, autoStart: true },
+    dashboard: { enabled: true, autoStart: false },
     comitesFlujo: { enabled: true, autoStart: false },
   };
 

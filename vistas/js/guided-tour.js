@@ -302,7 +302,7 @@
       buttonText: "Tour guiado",
       triggerPosition: "left",
       showTrigger: true,
-      autoStart: true,
+      autoStart: false,
       showOnce: true,
       startDelay: 850,
       storageScope: "user",

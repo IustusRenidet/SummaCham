@@ -3090,6 +3090,7 @@ const construirReporteResumen = (
         const secNode = resolveSectionNode(candidate.label, candidate.parent);
         if (!secNode) continue;
         applyTotalsToSection(secNode, totals);
+        secNode.__formulaTerms = obtenerTerminosOperacion(op);
         rebuildMapSecciones();
         storeOperacionTotals(op, totals);
         applied = true;
@@ -3122,9 +3123,9 @@ const construirReporteResumen = (
       const totals = calcularTotalesOperacion(op);
       if (!totals) return;
       applyTotalsToPrincipal(principal, totals);
-      // Guardar los términos de fórmula en el principal para que el cliente
-      // pueda re-evaluarla en modo comparativo (empresa9/10/11/12).
-      principal.__formulaTerms = tokensV2ATerminosLegacy(obtenerTerminosOperacion(op));
+      // Guardar los términos legacy ya normalizados para que el cliente
+      // pueda re-evaluar la fórmula del principal en modo comparativo.
+      principal.__formulaTerms = obtenerTerminosOperacion(op);
       rebuildMapSecciones();
       manualPrincipalKeys.add(principalKey);
       storeOperacionTotals(op, totals);
@@ -3197,9 +3198,9 @@ const construirReporteResumen = (
       const totals = calcularTotalesOperacion(op);
       if (!totals) return;
       applyTotalsToPrincipal(principal, totals);
-      // Guardar los términos de fórmula en el principal para que el cliente
-      // pueda re-evaluarla en modo comparativo (empresa9/10/11/12).
-      principal.__formulaTerms = tokensV2ATerminosLegacy(obtenerTerminosOperacion(op));
+      // Guardar los términos legacy ya normalizados para que el cliente
+      // pueda re-evaluar la fórmula del principal en modo comparativo.
+      principal.__formulaTerms = obtenerTerminosOperacion(op);
       rebuildMapSecciones();
       manualPrincipalKeys.add(key);
       storeOperacionTotals(op, totals);
@@ -3602,6 +3603,9 @@ const construirReporteResumen = (
               : 0,
           orderIndex: secundaria.ordenIndex ?? 0,
           manualFormula: Boolean(secundaria.__manualFormula),
+          formula_terms: Array.isArray(secundaria.__formulaTerms)
+            ? secundaria.__formulaTerms
+            : [],
           totals: {
             actualMonth: secundaria.totalActualMonth,
             planMonth: secundaria.totalPlanMonth,

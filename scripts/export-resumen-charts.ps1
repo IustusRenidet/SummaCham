@@ -176,14 +176,15 @@ $xlAxisTypeValue = 1
 $xlAxisTypeCategory = 2
 $xlAxisCrossesMinimum = 4
 $xlTickLabelPositionLow = -4134
+$xlTickLabelOrientationHorizontal = -4128
 $xlLegendPositionBottom = -4107
 $xlLegendPositionRight = -4152
 
 $RES_CHART_LEFT = 20
-$RES_CHART_WIDTH = 1180
-$RES_CHART_GAP = 4
-$RES_CHART_MIN_HEIGHT = 250
-$RES_CHART_MAX_HEIGHT = 520
+$RES_CHART_WIDTH = 1300
+$RES_CHART_GAP = 15
+$RES_CHART_MIN_HEIGHT = 320
+$RES_CHART_MAX_HEIGHT = 620
 
 function Set-ChartAxesLayout {
   param(
@@ -192,10 +193,10 @@ function Set-ChartAxesLayout {
   )
   if (-not $ChartObject) { return }
   $labelSpacing = 1
-  if ($LabelsCount -ge 20) {
+  if ($LabelsCount -ge 30) {
     $labelSpacing = 3
   }
-  elseif ($LabelsCount -ge 10) {
+  elseif ($LabelsCount -ge 18) {
     $labelSpacing = 2
   }
   try {
@@ -204,12 +205,12 @@ function Set-ChartAxesLayout {
       try { Invoke-ComRetry { $categoryAxis.TickLabelSpacing = $labelSpacing } } catch {}
       try { Invoke-ComRetry { $categoryAxis.TickMarkSpacing = $labelSpacing } } catch {}
       try { Invoke-ComRetry { $categoryAxis.TickLabelPosition = $xlTickLabelPositionLow } } catch {}
-      try { Invoke-ComRetry { $categoryAxis.TickLabels.Font.Size = 9 } } catch {}
-      if ($LabelsCount -ge 8) {
+      try { Invoke-ComRetry { $categoryAxis.TickLabels.Font.Size = 10 } } catch {}
+      if ($LabelsCount -ge 12) {
         try { Invoke-ComRetry { $categoryAxis.TickLabels.Orientation = 45 } } catch {}
       }
       else {
-        try { Invoke-ComRetry { $categoryAxis.TickLabels.Orientation = -4128 } } catch {}
+        try { Invoke-ComRetry { $categoryAxis.TickLabels.Orientation = $xlTickLabelOrientationHorizontal } } catch {}
       }
     }
   }
@@ -237,7 +238,7 @@ function Set-ChartLegendLayout {
     return
   }
   try { Invoke-ComRetry { $ChartObject.Chart.HasLegend = $true } } catch {}
-  $legendPos = if (($LabelsCount -ge 8) -or ($SeriesCount -ge 4)) { $xlLegendPositionRight } else { $xlLegendPositionBottom }
+  $legendPos = if (($SeriesCount -ge 7) -or (($SeriesCount -ge 5) -and ($LabelsCount -ge 20))) { $xlLegendPositionRight } else { $xlLegendPositionBottom }
   try { Invoke-ComRetry { $ChartObject.Chart.Legend.Position = $legendPos } } catch {}
 }
 
@@ -357,7 +358,7 @@ try {
           $seriesNames += ([string]$values[$headerRow, $c]).Trim()
         }
         $labelsCount = [Math]::Max(1, $dataLast - $headerRow)
-        $chartHeight = [Math]::Max($RES_CHART_MIN_HEIGHT, [Math]::Min($RES_CHART_MAX_HEIGHT, 250 + ($labelsCount * 10)))
+        $chartHeight = [Math]::Max($RES_CHART_MIN_HEIGHT, [Math]::Min($RES_CHART_MAX_HEIGHT, 300 + ($labelsCount * 12)))
 
         $rangeLabels = Invoke-ComRetry { $wsData.Range("A$($headerRow + 1):A$($dataLast)") }
 

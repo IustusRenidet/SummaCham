@@ -919,8 +919,8 @@
             ? Number(img.height) / Number(img.width)
             : 0.55;
         const ratio = Math.max(0.35, Math.min(1.4, ratioRaw || 0.55));
-        const width = 1120;
-        const height = Math.max(380, Math.min(780, Math.round(width * ratio)));
+        const width = 1280;
+        const height = Math.max(440, Math.min(660, Math.round(width * ratio)));
         const imgId = this._agregarImagenExcel(workbook, img.dataUrl);
         if (!imgId) return false;
 
@@ -936,7 +936,7 @@
           tl: { col: 0.2, row: imageTop },
           ext: { width, height },
         });
-        chartStart = imageTop + Math.ceil(height / 20) + 3;
+        chartStart = imageTop + Math.ceil(height / 20);
         insertedCharts += 1;
         return true;
       };
@@ -1076,7 +1076,7 @@
                 borderColor: "rgba(47, 84, 150, 0.2)",
                 borderWidth: 1,
                 borderRadius: 8,
-                maxBarThickness: 20,
+                maxBarThickness: 28,
               },
             ],
           },
@@ -1085,7 +1085,7 @@
             maintainAspectRatio: false,
             indexAxis: "y",
             layout: {
-              padding: { top: 24, right: 220, bottom: 20, left: 28 },
+              padding: { top: 24, right: 140, bottom: 20, left: 28 },
             },
             plugins: { legend: { display: false } },
             scales: {
@@ -3181,8 +3181,8 @@
         }, 0);
         let labels = Array.isArray(chart.data.labels)
           ? chart.data.labels.map((rawLabel, idx) =>
-              this._normalizarEtiquetaGrafica(rawLabel, idx)
-            )
+            this._normalizarEtiquetaGrafica(rawLabel, idx)
+          )
           : [];
         if (!labels.length) {
           labels = this._inferirEtiquetasGraficaDesdeDatasets(
@@ -3812,7 +3812,7 @@
         precision: 16,
       });
       const headerX = 15;
-      const chartMargin = 15;
+      const chartMargin = 8;
       const tableMargins = { left: 30, right: 30, top: 25, bottom: 25 };
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
@@ -3921,7 +3921,7 @@
             doc.setFont("helvetica", "bold");
             doc.setFontSize(14);
             doc.text(img.title || "Grafica", chartMargin, y);
-            y += 10;
+            y += 7;
 
             const imgWidth = pageWidth - chartMargin * 2;
             const ratioRaw = img.width && img.height ? img.height / img.width : 0.6;

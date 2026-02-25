@@ -386,19 +386,19 @@ def _compute_chart_size(
 
     if is_combined:
         width = (
-            27.0
+            31.0
             if orientation == "horizontal"
-            else max(22.0, min(31.0, 21.0 + max_label_len * 0.14))
+            else max(25.0, min(36.0, 23.0 + max_label_len * 0.18))
         )
         if orientation == "horizontal":
             height = max(
-                10.2,
-                min(28.0, 8.0 + labels_count * 0.50 + (1.4 if max_label_len > 24 else 0.0)),
+                11.0,
+                min(32.0, 8.8 + labels_count * 0.54 + (1.6 if max_label_len > 24 else 0.0)),
             )
         else:
             height = max(
-                7.6,
-                min(17.4, 5.9 + labels_count * 0.17 + min(2.6, max_label_len * 0.016)),
+                8.2,
+                min(19.0, 6.2 + labels_count * 0.19 + min(2.8, max_label_len * 0.018)),
             )
         return width, height
 
@@ -408,30 +408,30 @@ def _compute_chart_size(
         return width, height
 
     width = (
-        max(27.0, min(38.0, 27.0 + max_label_len * 0.16))
+        max(30.0, min(44.0, 30.0 + max_label_len * 0.18))
         if orientation == "horizontal"
-        else max(22.0, min(34.0, 22.0 + max_label_len * 0.10))
+        else max(24.0, min(38.0, 24.0 + max_label_len * 0.12))
     )
     if orientation == "horizontal":
         height = max(
-            8.8,
+            9.6,
             min(
-                22.0,
-                6.2
-                + labels_count * 0.46
+                25.0,
+                6.8
+                + labels_count * 0.50
                 + (series_count - 1) * 0.16
-                + (1.0 if max_label_len > 24 else 0.0),
+                + (1.2 if max_label_len > 24 else 0.0),
             ),
         )
     else:
         height = max(
-            6.8,
+            7.6,
             min(
-                14.6,
-                5.2
-                + labels_count * 0.12
+                16.8,
+                5.8
+                + labels_count * 0.13
                 + (series_count - 1) * 0.08
-                + (0.6 if max_label_len > 22 else 0.0),
+                + (0.8 if max_label_len > 22 else 0.0),
             ),
         )
     return width, height
@@ -610,13 +610,18 @@ def anchor_start_row(ws_data, ws_charts):
     return 2
 
 
-def _configure_cartesian_axes(chart, orientation, labels_count=1):
+def _configure_cartesian_axes(chart, orientation, labels_count=1, max_label_len=0):
     orientation = "horizontal" if orientation == "horizontal" else "vertical"
     labels_count = max(1, int(labels_count or 1))
+    max_label_len = max(0, int(max_label_len or 0))
     label_skip = 1
-    if labels_count > 20:
+    if labels_count > 36:
+        label_skip = 4
+    elif labels_count > 26:
         label_skip = 3
-    elif labels_count > 10:
+    elif labels_count > 22:
+        label_skip = 2
+    elif labels_count > 18 and max_label_len > 12:
         label_skip = 2
     try:
         if chart.x_axis is not None:
@@ -780,7 +785,15 @@ def add_chart_for_block(ws_data, ws_charts, block, meta_list, top_row, is_combin
         chart_kind = "bar"
 
     total_series = len(series_specs)
-    legend_position = "r" if (labels_count >= 9 or total_series >= 4 or max_label_len >= 16) else "b"
+    legend_position = (
+        "r"
+        if (
+            total_series >= 7
+            or (total_series >= 5 and labels_count >= 20)
+            or max_label_len >= 26
+        )
+        else "b"
+    )
 
     if chart_kind == "line":
         base_chart = LineChart()
@@ -807,7 +820,12 @@ def add_chart_for_block(ws_data, ws_charts, block, meta_list, top_row, is_combin
             style_series(base_chart.series[-1], spec["fill"], spec["line"], "bar")
         base_chart.set_categories(categories)
 
-    _configure_cartesian_axes(base_chart, orientation, labels_count=labels_count)
+    _configure_cartesian_axes(
+        base_chart,
+        orientation,
+        labels_count=labels_count,
+        max_label_len=max_label_len,
+    )
 
     try:
         base_chart.legend.position = legend_position

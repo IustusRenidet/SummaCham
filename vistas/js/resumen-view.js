@@ -5139,21 +5139,10 @@
       */
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
 
-      // 1. Build a map of all available blocks for reference
-      // Support duplicates (Section vs Subsection) by using arrays
-      const contextMap = new Map();
-      const addToMap = (k, v) => addContextReference(contextMap, k, v);
-
-      layoutArr.forEach(b => {
-        if (b.label) addToMap(b.label, b);
-        if (b.nombre) addToMap(b.nombre, b);
-        if (b.id) addToMap(b.id, b); // ID fallback
-        if (b.Clase) addToMap(b.Clase, b); // Operation Class fallback
-        if (b.clase) addToMap(b.clase, b);
-
-        // Add explicit subsection property if available
-        if (b.subseccion) addToMap(b.subseccion, b);
-      });
+      // 1. Build a map of all available blocks for reference.
+      // MUST include `cuenta` aliases so formula_terms tipo "account"
+      // (ej. 401-000-000-00) resuelvan correctamente en subsecciones.
+      const contextMap = construirContextMapLayout(layoutArr);
 
       // DEBUG: Log contextMap contents
       if (DEBUG_FORMULAS) {
