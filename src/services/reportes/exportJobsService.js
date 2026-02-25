@@ -72,6 +72,17 @@ const esTimeoutNativo = (error) => {
   return texto.includes("timeout");
 };
 
+const debeReintentarTimeout = (error) => {
+  if (!esTimeoutNativo(error)) return false;
+  if (
+    error?.code === "EXCEL_NATIVE_LOCK_TIMEOUT" &&
+    String(error?.phase || "").toLowerCase() === "wait"
+  ) {
+    return false;
+  }
+  return true;
+};
+
 const serializeJob = (job) => ({
   id: job.id,
   tipo: job.tipo,
@@ -130,7 +141,7 @@ const createNativeExcelJob = ({ userId, tipo, libroBuffer, params = {} }) => {
       try {
         result = await generarConTimeout(EXCEL_NATIVE_JOB_TIMEOUT_MS);
       } catch (fastError) {
-        if (!esTimeoutNativo(fastError)) {
+        if (!debeReintentarTimeout(fastError)) {
           throw fastError;
         }
         current.progress = 62;

@@ -108,11 +108,57 @@ const normalizarTimeoutMs = (value, fallbackMs = EXCEL_NATIVE_TIMEOUT_MS) => {
   return Math.max(10000, Math.round(parsed));
 };
 
-const killProcessTree = (proc) =>
+const EXCEL_NATIVE_LOCK_WAIT_BUFFER_MS = Math.max(
+  5000,
+  Number(process.env.EXCEL_NATIVE_LOCK_WAIT_BUFFER_MS || 45000)
+);
+const EXCEL_NATIVE_LOCK_HOLD_BUFFER_MS = Math.max(
+  5000,
+  Number(process.env.EXCEL_NATIVE_LOCK_HOLD_BUFFER_MS || 45000)
+);
+const EXCEL_NATIVE_KILL_TIMEOUT_MS = Math.max(
+  1000,
+  Number(process.env.EXCEL_NATIVE_KILL_TIMEOUT_MS || 7000)
+);
+
+const buildLockOptions = (nativeTimeoutMs, label) => ({
+  label,
+  waitTimeoutMs: normalizarTimeoutMs(
+    process.env.EXCEL_NATIVE_LOCK_WAIT_TIMEOUT_MS,
+    nativeTimeoutMs + EXCEL_NATIVE_LOCK_WAIT_BUFFER_MS
+  ),
+  holdTimeoutMs: normalizarTimeoutMs(
+    process.env.EXCEL_NATIVE_LOCK_HOLD_TIMEOUT_MS,
+    nativeTimeoutMs + EXCEL_NATIVE_LOCK_HOLD_BUFFER_MS
+  ),
+});
+
+const killProcessTree = (proc, killTimeoutMs = EXCEL_NATIVE_KILL_TIMEOUT_MS) =>
   new Promise((resolve) => {
+    const timeout = Math.max(
+      1000,
+      Number(killTimeoutMs) || EXCEL_NATIVE_KILL_TIMEOUT_MS
+    );
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(forceTimer);
+      resolve();
+    };
+    const forceTimer = setTimeout(() => {
+      try {
+        if (proc && !proc.killed) {
+          proc.kill("SIGKILL");
+        }
+      } catch (_) {
+        // ignore
+      }
+      done();
+    }, timeout);
     try {
       if (!proc || proc.killed || !proc.pid) {
-        resolve();
+        done();
         return;
       }
       if (process.platform === "win32") {
@@ -126,9 +172,9 @@ const killProcessTree = (proc) =>
           } catch (_) {
             // ignore
           }
-          resolve();
+          done();
         });
-        killer.on("close", () => resolve());
+        killer.on("close", () => done());
         return;
       }
       try {
@@ -136,9 +182,9 @@ const killProcessTree = (proc) =>
       } catch (_) {
         // ignore
       }
-      resolve();
+      done();
     } catch (_) {
-      resolve();
+      done();
     }
   });
 
@@ -277,8 +323,9 @@ const generarOperativoExcel = async ({
     }
 
     try {
-      await withExcelNativeLock(() =>
-        ejecutarPowerShell(psArgs, nativeTimeoutMs)
+      await withExcelNativeLock(
+        () => ejecutarPowerShell(psArgs, nativeTimeoutMs),
+        buildLockOptions(nativeTimeoutMs, "operativo-native")
       );
     } catch (errorNative) {
       // Algunos libros generados en cliente pueden disparar "formato/extensión no válidos"
@@ -291,8 +338,9 @@ const generarOperativoExcel = async ({
       } catch (_) {
         throw errorNative;
       }
-      await withExcelNativeLock(() =>
-        ejecutarPowerShell(psArgs, nativeTimeoutMs)
+      await withExcelNativeLock(
+        () => ejecutarPowerShell(psArgs, nativeTimeoutMs),
+        buildLockOptions(nativeTimeoutMs, "operativo-native-retry")
       );
     }
 

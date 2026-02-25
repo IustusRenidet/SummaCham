@@ -4157,39 +4157,25 @@
           chartsSheetName,
           tableSheetName: '',
         });
-
-        const response = await fetchWithTimeout(
-          `${base}/api/reportes/resumen-excel-native?${params.toString()}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/octet-stream',
-              ...(window.Sesion?.headersAutenticacion?.() || {}),
-            },
-            credentials: 'include',
-            body: binaryBody,
-          },
-          NATIVE_EXCEL_TIMEOUT_MS
-        );
-
-        if (!response.ok) {
-          const text = await response.text();
-          throw new Error(text || 'No fue posible generar el Excel con gráficas.');
+        if (
+          !window.ExportUtils ||
+          typeof window.ExportUtils._crearTrabajoExportNativo !== "function"
+        ) {
+          throw new Error(
+            "ExportUtils no está disponible para exportación en segundo plano."
+          );
         }
-
-        const blob = await response.blob();
-        const header = response.headers.get('content-disposition') || '';
-        const match = header.match(/filename=\"?([^\";]+)\"?/i);
-        const filename =
-          (match ? match[1] : '') ||
-          `Graficas_Resumen_${datos.anio}_${datos.mes}_${Date.now()}.xlsx`;
-
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        window.URL.revokeObjectURL(url);
+        const job = await window.ExportUtils._crearTrabajoExportNativo({
+          tipo: "resumen",
+          params,
+          binaryBody,
+        });
+        window.ExportUtils._registrarTrabajoPendiente({
+          id: job?.id,
+          tipo: "resumen",
+          nombre: `Graficas_Resumen_${datos.anio}_${datos.mes}.xlsx`,
+        });
+        window.ExportUtils._iniciarVigilanciaTrabajosPendientes?.();
         return true;
       };
 

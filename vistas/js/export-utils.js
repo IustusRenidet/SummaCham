@@ -489,7 +489,6 @@
       } = options;
       let baseBuffer = null;
       let baseName = nombreArchivo;
-      let localFallbackJobId = "";
 
       try {
         excelProgressUI.show({
@@ -661,84 +660,18 @@
             "success"
           );
         } catch (jobError) {
-          if (jobError?.code !== "EXPORT_JOBS_UNAVAILABLE") {
-            throw jobError;
+          if (jobError?.code === "EXPORT_JOBS_UNAVAILABLE") {
+            throw new Error(
+              "La cola de exportación en segundo plano no está disponible en este servidor."
+            );
           }
-          localFallbackJobId = this._crearTrabajoLocalDescarga({
-            nombre: `${baseName}_Graficas.xlsx`,
-            tipo: "operativo",
-            message: "Generando (modo local)",
-          });
-          this._showToast(
-            "Servidor sin cola en segundo plano; usando descarga directa (no navegues hasta terminar).",
-            "warning"
-          );
-          const response = await this._fetchWithTimeout(
-            `${API_BASE}/reportes/operativo-excel-native?${params.toString()}`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/octet-stream",
-                ...(window.Sesion?.headersAutenticacion?.() || {}),
-              },
-              credentials: "include",
-              body: binaryBody,
-            },
-            LOCAL_EXPORT_TIMEOUT_MS
-          );
-
-          if (!response.ok) {
-            const text = await response.text();
-            throw new Error(text || "No fue posible generar el Excel con gráficas.");
-          }
-
-          excelProgressUI.update({
-            label: "Descargando archivo...",
-            progress: 72,
-          });
-          const blob = await this._leerResponseComoBlobConProgreso(response, {
-            start: 72,
-            end: 96,
-            onProgress: (pct, label) => {
-              this._actualizarTrabajoLocalDescarga(localFallbackJobId, {
-                status: "running",
-                progress: Math.max(10, Math.min(99, Number(pct) || 10)),
-                message: label || "Descargando (modo local)",
-              });
-              excelProgressUI.update({
-                label: label || "Descargando archivo...",
-                progress: pct,
-              });
-            },
-          });
-          const filename =
-            this._obtenerNombreDescarga(response) ||
-            `${baseName}_Graficas.xlsx`;
-          this._descargarBlob(blob, filename);
-          this._finalizarTrabajoLocalDescarga(localFallbackJobId, {
-            ok: true,
-            message: "Completado (modo local)",
-          });
-          excelProgressUI.update({
-            label: "Listo",
-            progress: 100,
-          });
-
-          if (onSuccess) onSuccess();
-          this._showToast("Excel con tabla y graficas generado.");
+          throw jobError;
         }
       } catch (error) {
-        if (localFallbackJobId) {
-          this._finalizarTrabajoLocalDescarga(localFallbackJobId, {
-            ok: false,
-            error: error?.message || "Error desconocido",
-            message: "Interrumpido (modo local)",
-          });
-        }
         console.error("Error al exportar Excel con graficas:", error);
         if (onError) onError(error);
         this._showToast(
-          "No se pudo generar el Excel con graficas nativas.",
+          "No se pudo generar el Excel con graficas nativas. " + (error?.message || ""),
           "error"
         );
       }
