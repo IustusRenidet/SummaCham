@@ -15,7 +15,7 @@ except Exception as exc:  # pragma: no cover - runtime dependency guard
     print(str(exc), file=sys.stderr)
     raise
 
-CHART_GAP_ROWS = 2
+CHART_GAP_ROWS = 1
 
 
 def text(v):
@@ -352,7 +352,7 @@ def _chart_rows_from_height(height_inches):
     except Exception:
         height = 8.0
     # Compactar separación vertical entre gráficas sin encimarlas.
-    return max(16, int(round(height * 4.6)) + CHART_GAP_ROWS)
+    return max(15, int(round(height * 4.4)) + CHART_GAP_ROWS)
 
 
 def _max_category_label_len(ws_data, block):
@@ -385,43 +385,53 @@ def _compute_chart_size(
     max_label_len = max(0, int(max_label_len or 0))
 
     if is_combined:
-        width = 24.0 if orientation == "horizontal" else max(20.0, min(28.0, 19.0 + max_label_len * 0.12))
+        width = (
+            27.0
+            if orientation == "horizontal"
+            else max(22.0, min(31.0, 21.0 + max_label_len * 0.14))
+        )
         if orientation == "horizontal":
-            height = max(10.0, min(32.0, 7.6 + labels_count * 0.62 + (1.8 if max_label_len > 24 else 0.0)))
+            height = max(
+                10.2,
+                min(28.0, 8.0 + labels_count * 0.50 + (1.4 if max_label_len > 24 else 0.0)),
+            )
         else:
-            height = max(7.0, min(17.0, 5.8 + labels_count * 0.24 + min(3.0, max_label_len * 0.02)))
+            height = max(
+                7.6,
+                min(17.4, 5.9 + labels_count * 0.17 + min(2.6, max_label_len * 0.016)),
+            )
         return width, height
 
     if chart_visual_type in {"pie", "doughnut"}:
-        width = 18.0
-        height = max(6.8, min(12.0, 5.8 + labels_count * 0.16))
+        width = 20.0
+        height = max(7.4, min(12.8, 6.2 + labels_count * 0.14))
         return width, height
 
     width = (
-        max(24.0, min(34.0, 24.0 + max_label_len * 0.12))
+        max(27.0, min(38.0, 27.0 + max_label_len * 0.16))
         if orientation == "horizontal"
-        else max(18.0, min(26.0, 18.0 + max_label_len * 0.06))
+        else max(22.0, min(34.0, 22.0 + max_label_len * 0.10))
     )
     if orientation == "horizontal":
         height = max(
-            9.0,
+            8.8,
             min(
-                34.0,
-                6.8
-                + labels_count * 0.62
-                + (series_count - 1) * 0.18
-                + (1.8 if max_label_len > 24 else 0.0),
+                22.0,
+                6.2
+                + labels_count * 0.46
+                + (series_count - 1) * 0.16
+                + (1.0 if max_label_len > 24 else 0.0),
             ),
         )
     else:
         height = max(
-            6.6,
+            6.8,
             min(
-                18.0,
-                4.9
-                + labels_count * 0.20
-                + (series_count - 1) * 0.11
-                + (1.2 if max_label_len > 22 else 0.0),
+                14.6,
+                5.2
+                + labels_count * 0.12
+                + (series_count - 1) * 0.08
+                + (0.6 if max_label_len > 22 else 0.0),
             ),
         )
     return width, height
@@ -600,8 +610,14 @@ def anchor_start_row(ws_data, ws_charts):
     return 2
 
 
-def _configure_cartesian_axes(chart, orientation):
+def _configure_cartesian_axes(chart, orientation, labels_count=1):
     orientation = "horizontal" if orientation == "horizontal" else "vertical"
+    labels_count = max(1, int(labels_count or 1))
+    label_skip = 1
+    if labels_count > 20:
+        label_skip = 3
+    elif labels_count > 10:
+        label_skip = 2
     try:
         if chart.x_axis is not None:
             chart.x_axis.tickLblPos = "low"
@@ -609,12 +625,12 @@ def _configure_cartesian_axes(chart, orientation):
         pass
     try:
         if chart.x_axis is not None:
-            chart.x_axis.tickLblSkip = 1
+            chart.x_axis.tickLblSkip = label_skip
     except Exception:
         pass
     try:
         if chart.y_axis is not None:
-            chart.y_axis.tickLblSkip = 1
+            chart.y_axis.tickLblSkip = label_skip
     except Exception:
         pass
     try:
@@ -764,9 +780,7 @@ def add_chart_for_block(ws_data, ws_charts, block, meta_list, top_row, is_combin
         chart_kind = "bar"
 
     total_series = len(series_specs)
-    legend_position = (
-        "r" if orientation == "horizontal" and (labels_count >= 8 or total_series >= 6) else "b"
-    )
+    legend_position = "r" if (labels_count >= 9 or total_series >= 4 or max_label_len >= 16) else "b"
 
     if chart_kind == "line":
         base_chart = LineChart()
@@ -793,7 +807,7 @@ def add_chart_for_block(ws_data, ws_charts, block, meta_list, top_row, is_combin
             style_series(base_chart.series[-1], spec["fill"], spec["line"], "bar")
         base_chart.set_categories(categories)
 
-    _configure_cartesian_axes(base_chart, orientation)
+    _configure_cartesian_axes(base_chart, orientation, labels_count=labels_count)
 
     try:
         base_chart.legend.position = legend_position

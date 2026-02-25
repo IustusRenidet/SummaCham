@@ -4605,12 +4605,15 @@
         clone.totals = leerTotalesFilaTabla(row);
       });
 
+      refactorizarFormulasLegacyLayout(layoutVisible);
       recalcularPrincipales(layoutVisible);
       if (comparativaActiva) {
         recalcularPrevDesdeHijos(layoutVisible);
       }
       recalcularOperacionesLayout(layoutVisible);
-      recalcularConsolidados(layoutVisible, capituloKey, { comparativaActiva });
+      if (!VERDAD_ABSOLUTA_FORMULAS) {
+        recalcularConsolidados(layoutVisible, capituloKey, { comparativaActiva });
+      }
       // Regla estricta final: toda operación con fórmula explícita debe prevalecer
       // sobre cualquier fallback/ajuste intermedio.
       recalcularOperacionesLayout(layoutVisible);
@@ -4711,6 +4714,9 @@
       const source = (formulaRaw || "").toString();
       const tokens = [];
       let buffer = "";
+      let inSingleQuote = false;
+      let inDoubleQuote = false;
+      let literalParenDepth = 0;
 
       const flush = () => {
         const value = buffer.trim();
@@ -4734,11 +4740,63 @@
         return "";
       };
 
+      const isOperatorChar = (ch = "") =>
+        ["+", "-", "*", "/", "("].includes(ch);
+
       for (let i = 0; i < source.length; i += 1) {
         const ch = source[i];
         const op = ch === "×" ? "*" : ch === "÷" ? "/" : ch;
 
-        if (op === "+" || op === "*" || op === "/" || op === "(" || op === ")") {
+        if (ch === "'" && !inDoubleQuote) {
+          inSingleQuote = !inSingleQuote;
+          buffer += ch;
+          continue;
+        }
+        if (ch === '"' && !inSingleQuote) {
+          inDoubleQuote = !inDoubleQuote;
+          buffer += ch;
+          continue;
+        }
+
+        if (inSingleQuote || inDoubleQuote) {
+          buffer += ch;
+          continue;
+        }
+
+        if (op === "(") {
+          const prev = getPrevNonSpace(i);
+          const bufferHasText = buffer.trim().length > 0;
+          const abreGrupo =
+            !bufferHasText && (!prev || isOperatorChar(prev));
+
+          if (!abreGrupo) {
+            literalParenDepth += 1;
+            buffer += ch;
+            continue;
+          }
+
+          flush();
+          tokens.push({ kind: "op", value: op });
+          continue;
+        }
+
+        if (op === ")") {
+          if (literalParenDepth > 0) {
+            literalParenDepth -= 1;
+            buffer += ch;
+            continue;
+          }
+          flush();
+          tokens.push({ kind: "op", value: op });
+          continue;
+        }
+
+        if (literalParenDepth > 0) {
+          buffer += ch;
+          continue;
+        }
+
+        if (op === "+" || op === "*" || op === "/") {
           flush();
           tokens.push({ kind: "op", value: op });
           continue;
@@ -5294,8 +5352,13 @@
           // AND no explicit formula string.
           const fStr = getFormulaString(block);
           const hasFormulaStr = typeof fStr === 'string' && fStr.trim().length > 3;
+          const hasFormulaTerms =
+            Array.isArray(block?.formula_terms) && block.formula_terms.length > 0;
           const hasManualFlag = block?.manualFormula === true || block?.__manualFormula === true;
-          if ((hasSubs || hasDirect) && !(hasFormulaStr || hasManualFlag)) {
+          const preserveBackendManualTotals =
+            !VERDAD_ABSOLUTA_FORMULAS && hasManualFlag && !hasFormulaTerms && !hasFormulaStr;
+          const hasExplicitFormula = hasFormulaTerms || hasFormulaStr;
+          if ((hasSubs || hasDirect) && !(hasExplicitFormula || preserveBackendManualTotals)) {
             const acc = totalesCero();
             if (hasSubs) sumMetricsLocal(acc, accSubs);
             if (hasDirect) sumMetricsLocal(acc, accDirect);
@@ -6343,6 +6406,7 @@
       // Renderizar usando SOLO el layout (que ya tiene todo en orden correcto)
       if (layout && layout.length) {
         renderizoLayout = true;
+        refactorizarFormulasLegacyLayout(layout);
         // ALWAYS recalculate principals to ensure manual formulas and aggregations are applied.
         // The recalcularPrincipales function internally handles manual overrides vs auto-sum.
         recalcularPrincipales(layout);
@@ -6355,7 +6419,10 @@
           recalcularPrevDesdeHijos(layout);
           recalcularOperacionesPrevComparativo(layout);
         }
-        recalcularConsolidados(layout, capituloName, { comparativaActiva });
+        recalcularOperacionesLayout(layout);
+        if (!VERDAD_ABSOLUTA_FORMULAS) {
+          recalcularConsolidados(layout, capituloName, { comparativaActiva });
+        }
         // Cierre estricto por fórmula para todas las tablas renderizadas:
         // cuentas -> subsecciones -> secciones -> operaciones.
         recalcularOperacionesLayout(layout);
@@ -6748,6 +6815,10 @@
     wireCollapseControls();
     aplicarStickyEncabezados();
     bindStickyResize();
+    if (typeof window !== "undefined") {
+      window.__RESUMEN_FORMULAS_REFACTORIZADAS =
+        formulasLegacyRefactorizadas.slice();
+    }
   };
 
   const actualizarEtiquetasAnio = (anio) => {

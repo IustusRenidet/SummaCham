@@ -154,10 +154,19 @@ $xlChartTypeLine = 4
 $xlChartTypeColumnClustered = 51
 $xlChartTypeBarClustered = 57
 $xlLegendPositionBottom = -4107
+$xlLegendPositionRight = -4152
 $xlAxisTypeValue = 1
 $xlAxisTypeCategory = 2
 $xlAxisCrossesMinimum = 4
 $xlTickLabelPositionLow = -4134
+$xlTickLabelOrientationHorizontal = -4128
+
+$OPER_CHART_LEFT = 20
+$OPER_CHART_WIDTH = 1220
+$OPER_CHART_GAP = 4
+$OPER_CHART_MIN_HEIGHT = 260
+$OPER_CHART_MAX_HEIGHT = 620
+$OPER_CHART_SPLIT_HEIGHT = 280
 
 function Convert-HexToOle {
   param([string]$HexColor)
@@ -423,15 +432,35 @@ function Set-ChartBarLayout {
 function Set-ChartAxesLayout {
   param(
     $ChartObject,
-    [string]$Orientation = "horizontal"
+    [string]$Orientation = "horizontal",
+    [int]$LabelsCount = 0
   )
   if (-not $ChartObject) { return }
+  $labelSpacing = 1
+  if ($LabelsCount -ge 20) {
+    $labelSpacing = 3
+  }
+  elseif ($LabelsCount -ge 10) {
+    $labelSpacing = 2
+  }
   try {
     $categoryAxis = $ChartObject.Chart.Axes($xlAxisTypeCategory)
     if ($categoryAxis) {
-      try { $categoryAxis.TickLabelSpacing = 1 } catch {}
-      try { $categoryAxis.TickMarkSpacing = 1 } catch {}
+      try { $categoryAxis.TickLabelSpacing = $labelSpacing } catch {}
+      try { $categoryAxis.TickMarkSpacing = $labelSpacing } catch {}
       try { $categoryAxis.TickLabelPosition = $xlTickLabelPositionLow } catch {}
+      try { $categoryAxis.TickLabels.Font.Size = 9 } catch {}
+      if ($Orientation -eq "vertical") {
+        if ($LabelsCount -ge 8) {
+          try { $categoryAxis.TickLabels.Orientation = 45 } catch {}
+        }
+        else {
+          try { $categoryAxis.TickLabels.Orientation = $xlTickLabelOrientationHorizontal } catch {}
+        }
+      }
+      else {
+        try { $categoryAxis.TickLabels.Orientation = $xlTickLabelOrientationHorizontal } catch {}
+      }
     }
   }
   catch {}
@@ -446,6 +475,24 @@ function Set-ChartAxesLayout {
     }
   }
   catch {}
+}
+
+function Set-ChartLegendLayout {
+  param(
+    $ChartObject,
+    [string]$Orientation = "horizontal",
+    [int]$LabelsCount = 0,
+    [int]$SeriesCount = 0
+  )
+  if (-not $ChartObject) { return }
+  if ($SeriesCount -le 1) {
+    try { $ChartObject.Chart.HasLegend = $false } catch {}
+    return
+  }
+  try { $ChartObject.Chart.HasLegend = $true } catch {}
+  $preferRight = ($LabelsCount -ge 8) -or ($SeriesCount -ge 4) -or ($Orientation -eq "vertical")
+  $legendPos = if ($preferRight) { $xlLegendPositionRight } else { $xlLegendPositionBottom }
+  try { $ChartObject.Chart.Legend.Position = $legendPos } catch {}
 }
 
 if (-not (Test-Path $InputPath)) {
@@ -712,7 +759,9 @@ if ($wsCharts -eq $wsData) {
 if ($chartModeNormalized -eq "combined") {
   $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
   $chartOrientation = Resolve-ChartOrientation -MetaList $seriesMetaList -ChartTitle "Resultados operativos" -SeriesColumns $seriesColumns
-  $chart = $wsCharts.ChartObjects().Add(20, $baseTop, 1120, 420)
+  $chartHeight = 460
+  $labelsCount = [Math]::Max(1, $lastRow - $dataStart + 1)
+  $chart = $wsCharts.ChartObjects().Add($OPER_CHART_LEFT, $baseTop, $OPER_CHART_WIDTH, $chartHeight)
   $chart.Chart.ChartType = if ($chartOrientation -eq "vertical") { $xlChartTypeColumnClustered } else { $xlChartTypeBarClustered }
   try {
     while ($chart.Chart.SeriesCollection().Count -gt 0) {
@@ -720,8 +769,6 @@ if ($chartModeNormalized -eq "combined") {
     }
   }
   catch {}
-  $chart.Chart.HasLegend = $true
-  try { $chart.Chart.Legend.Position = $xlLegendPositionBottom } catch {}
   $chart.Chart.HasTitle = $true
   $chart.Chart.ChartTitle.Text = "Resultados operativos"
 
@@ -742,7 +789,8 @@ if ($chartModeNormalized -eq "combined") {
   }
 
   Set-ChartBarLayout -ChartObject $chart
-  Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation
+  Set-ChartLegendLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount -SeriesCount $seriesColumns.Count
+  Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount
 }
 elseif ($chartBlocks.Count -gt 0) {
   $chartTop = $baseTop
@@ -750,9 +798,9 @@ elseif ($chartBlocks.Count -gt 0) {
     $block = $chartBlocks[$blockIdx]
     $rangeLabels = $wsData.Range("A$($block.DataStart):A$($block.DataEnd)")
     $labelsCount = $block.DataEnd - $block.DataStart + 1
-    $chartHeight = [Math]::Max(320, [Math]::Min(700, 220 + ($labelsCount * 18)))
+    $chartHeight = [Math]::Max($OPER_CHART_MIN_HEIGHT, [Math]::Min($OPER_CHART_MAX_HEIGHT, 240 + ($labelsCount * 14)))
     $chartOrientation = Resolve-ChartOrientation -MetaList $seriesMetaList -ChartTitle $block.Title -SeriesColumns $block.SeriesColumns
-    $chart = $wsCharts.ChartObjects().Add(20, $chartTop, 1120, $chartHeight)
+    $chart = $wsCharts.ChartObjects().Add($OPER_CHART_LEFT, $chartTop, $OPER_CHART_WIDTH, $chartHeight)
     $chart.Chart.ChartType = if ($chartOrientation -eq "vertical") { $xlChartTypeColumnClustered } else { $xlChartTypeBarClustered }
     try {
       while ($chart.Chart.SeriesCollection().Count -gt 0) {
@@ -760,8 +808,6 @@ elseif ($chartBlocks.Count -gt 0) {
       }
     }
     catch {}
-    $chart.Chart.HasLegend = $block.SeriesColumns.Count -gt 1
-    try { $chart.Chart.Legend.Position = $xlLegendPositionBottom } catch {}
     $chart.Chart.HasTitle = $true
     $chart.Chart.ChartTitle.Text = if ($block.Title) { $block.Title } else { "Resultados operativos" }
 
@@ -782,22 +828,24 @@ elseif ($chartBlocks.Count -gt 0) {
     }
 
     Set-ChartBarLayout -ChartObject $chart
-    Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation
+    Set-ChartLegendLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount -SeriesCount $block.SeriesColumns.Count
+    Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount
 
-    $chartTop += $chartHeight + 16
+    $chartTop += $chartHeight + $OPER_CHART_GAP
   }
 }
 else {
   $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
   $splitSeries = @($seriesColumns)
   $chartTop = $baseTop
+  $labelsCount = [Math]::Max(1, $lastRow - $dataStart + 1)
   for ($idx = 0; $idx -lt $splitSeries.Count; $idx++) {
     $seriesInfo = $splitSeries[$idx]
     $colLetter = Get-ColumnLetter $seriesInfo.Column
     $rangeValues = $wsData.Range("$colLetter$($dataStart):$colLetter$($lastRow)")
     $chartOrientation = Resolve-ChartOrientation -MetaList $seriesMetaList -ChartTitle $seriesInfo.Name -SeriesColumns @($seriesInfo)
 
-    $chart = $wsCharts.ChartObjects().Add(20, $chartTop, 960, 300)
+    $chart = $wsCharts.ChartObjects().Add($OPER_CHART_LEFT, $chartTop, 1100, $OPER_CHART_SPLIT_HEIGHT)
     $chart.Chart.ChartType = if ($chartOrientation -eq "vertical") { $xlChartTypeColumnClustered } else { $xlChartTypeBarClustered }
     try {
       while ($chart.Chart.SeriesCollection().Count -gt 0) {
@@ -815,8 +863,8 @@ else {
     $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx -ChartTitle $seriesInfo.Name
     Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType "bar" -Orientation $chartOrientation
     Set-ChartBarLayout -ChartObject $chart
-    Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation
-    $chartTop += 260
+    Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation -LabelsCount $labelsCount
+    $chartTop += $OPER_CHART_SPLIT_HEIGHT + $OPER_CHART_GAP
   }
 }
 
