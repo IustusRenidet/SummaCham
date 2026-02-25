@@ -755,10 +755,10 @@
         document
           .getElementById("btnExportExcel")
           ?.addEventListener("click", () => {
-            ExportUtils.exportarExcel({
+            ExportUtils.exportarExcelConGraficas({
               tabla: "#tablaComparacion",
               nombreArchivo: "VPE",
-              nombreHoja: "VPE",
+              nombreHojaTabla: "VPE",
             });
           });
         document

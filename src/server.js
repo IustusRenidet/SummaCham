@@ -6,6 +6,9 @@ const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const { inicializarBaseDatos, getDb } = require("./db/sqlite");
 const backupService = require("./services/backupService");
+const {
+  bootstrapExcelNativeRuntime,
+} = require("./services/reportes/excelNativeBootstrap");
 const SqliteStore = require("better-sqlite3-session-store")(session);
 
 let instanciaServidor = null;
@@ -82,6 +85,13 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
     backupService.start();
   } catch (error) {
     console.error("⚠ Error iniciando servicio de backups:", error);
+  }
+
+  // Preparar runtime de exportación Excel nativa (openpyxl/com) antes de cargar rutas.
+  try {
+    bootstrapExcelNativeRuntime();
+  } catch (error) {
+    console.warn("⚠ No fue posible bootstrap de Excel nativo:", error?.message || error);
   }
 
   const rutasAuth = require("./routes/auth");

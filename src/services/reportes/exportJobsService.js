@@ -2,6 +2,10 @@ const crypto = require("crypto");
 const { generarOperativoExcel } = require("./operativoExcelService");
 const { generarResumenExcel } = require("./resumenExcelService");
 const { getExcelNativeLockState } = require("./excelNativeMutex");
+const {
+  cleanupExcelProcesses,
+  EXCEL_NATIVE_KILL_TIMEOUT_MS,
+} = require("./excelNativeProcessGuard");
 
 const JOB_TTL_MS = 1000 * 60 * 90; // 90 minutos
 const JOB_STALE_PENDING_MS = 1000 * 60 * 60 * 6; // 6 horas
@@ -145,6 +149,7 @@ const createNativeExcelJob = ({ userId, tipo, libroBuffer, params = {} }) => {
     hardTimeoutTimer = setTimeout(() => {
       const live = jobs.get(id);
       if (!live || live.status !== "running") return;
+      const lockState = lockStateToText();
       live.status = "failed";
       live.progress = 100;
       live.message = "Falló la exportación nativa";
@@ -152,15 +157,24 @@ const createNativeExcelJob = ({ userId, tipo, libroBuffer, params = {} }) => {
         new Error(
           `Tiempo máximo excedido (${Math.round(
             EXCEL_NATIVE_JOB_HARD_TIMEOUT_MS / 1000
-          )}s). Estado lock: ${lockStateToText()}`
+          )}s). Estado lock: ${lockState}`
         )
       );
       live.updatedAt = now();
+      cleanupExcelProcesses("job-hard-timeout", EXCEL_NATIVE_KILL_TIMEOUT_MS)
+        .then((cleanup) => {
+          console.error("Export job hard-timeout cleanup:", {
+            id,
+            tipo,
+            cleanup,
+          });
+        })
+        .catch(() => null);
       console.error("Export job hard-timeout:", {
         id,
         tipo,
         hardTimeoutMs: EXCEL_NATIVE_JOB_HARD_TIMEOUT_MS,
-        lockState: lockStateToText(),
+        lockState,
       });
     }, EXCEL_NATIVE_JOB_HARD_TIMEOUT_MS);
     try {

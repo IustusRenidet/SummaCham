@@ -764,10 +764,10 @@
         document
           .getElementById("btnExportExcel")
           ?.addEventListener("click", () => {
-            ExportUtils.exportarExcel({
+            ExportUtils.exportarExcelConGraficas({
               tabla: "#tablaComparacion",
               nombreArchivo: "Membresia",
-              nombreHoja: "Membresia",
+              nombreHojaTabla: "Membresia",
             });
           });
         document

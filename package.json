@@ -28,6 +28,8 @@
     "native:use-electron": "node scripts/manage-native.js use-electron",
     "native:status": "node scripts/manage-native.js status",
     "native:ensure": "node scripts/manage-native.js ensure",
+    "setup:excel-native": "node scripts/setup-excel-native-runtime.js",
+    "setup:excel-native:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-excel-native.ps1",
     "import:layouts-2025": "python scripts/import_summary_resumen_2025.py",
     "ppt:from-excel": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/export-excel-charts-to-ppt.ps1",
     "ppt:from-excel:ui": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/export-excel-charts-to-ppt-ui.ps1",

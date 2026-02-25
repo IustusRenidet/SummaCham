@@ -4,6 +4,18 @@ const path = require("path");
 const { spawn } = require("child_process");
 const XLSX = require("xlsx");
 const { withExcelNativeLock } = require("./excelNativeMutex");
+const {
+  EXCEL_NATIVE_KILL_TIMEOUT_MS,
+  EXCEL_NATIVE_FORCE_KILL_BEFORE_RUN,
+  EXCEL_NATIVE_FORCE_KILL_ON_TIMEOUT,
+  cleanupExcelProcesses,
+} = require("./excelNativeProcessGuard");
+const {
+  shouldTryOpenpyxl,
+  shouldUseComOnly,
+  shouldFallbackToCom,
+  ejecutarOpenpyxlNativeCharts,
+} = require("./excelNativeOpenpyxlRunner");
 
 const limpiarTexto = (valor) => (valor == null ? "" : String(valor).trim());
 
@@ -62,10 +74,6 @@ const EXCEL_NATIVE_LOCK_WAIT_BUFFER_MS = Math.max(
 const EXCEL_NATIVE_LOCK_HOLD_BUFFER_MS = Math.max(
   5000,
   Number(process.env.EXCEL_NATIVE_LOCK_HOLD_BUFFER_MS || 45000)
-);
-const EXCEL_NATIVE_KILL_TIMEOUT_MS = Math.max(
-  1000,
-  Number(process.env.EXCEL_NATIVE_KILL_TIMEOUT_MS || 7000)
 );
 
 const buildLockOptions = (nativeTimeoutMs, label) => ({
@@ -185,14 +193,23 @@ const ejecutarPowerShell = (args, timeoutMs = EXCEL_NATIVE_TIMEOUT_MS) =>
     let stdout = "";
     const timer = setTimeout(() => {
       killProcessTree(proc).finally(() => {
-        const out = recortarLog(stdout);
-        const err = recortarLog(stderr);
-        finalize(
-          reject,
-          new Error(
-            `PowerShell timeout (${Math.round(timeout / 1000)}s). Stdout: ${out} Stderr: ${err}`
-          )
-        );
+        const timeoutDetails = () => {
+          const out = recortarLog(stdout);
+          const err = recortarLog(stderr);
+          finalize(
+            reject,
+            new Error(
+              `PowerShell timeout (${Math.round(timeout / 1000)}s). Stdout: ${out} Stderr: ${err}`
+            )
+          );
+        };
+        if (!EXCEL_NATIVE_FORCE_KILL_ON_TIMEOUT) {
+          timeoutDetails();
+          return;
+        }
+        cleanupExcelProcesses("resumen-timeout", EXCEL_NATIVE_KILL_TIMEOUT_MS)
+          .catch(() => null)
+          .finally(timeoutDetails);
       });
     }, timeout);
     proc.stdout.on("data", (chunk) => {
@@ -244,6 +261,36 @@ const generarResumenExcel = async ({
       : Buffer.from(libroBuffer);
     fs.writeFileSync(inputPath, buffer);
 
+    const baseName = `${limpiarTexto(nombreArchivo || "RESUMEN")}_${limpiarTexto(
+      empresa || "Reporte"
+    )}_${limpiarTexto(mes)}_${limpiarTexto(anio)}`;
+    const safeBase = quitarAcentos(baseName || "RESUMEN");
+    const filename = `${safeBase}_Graficas.xlsx`.replace(/_+/g, "_");
+
+    if (!shouldUseComOnly() && shouldTryOpenpyxl()) {
+      try {
+        await ejecutarOpenpyxlNativeCharts({
+          tipo: "resumen",
+          inputPath,
+          outputPath,
+          dataSheetName: hojaDatos,
+          chartsSheetName: hojaGraficas,
+          tableSheetName: hojaTabla,
+          timeoutMs: nativeTimeoutMs,
+        });
+        const outputBuffer = fs.readFileSync(outputPath);
+        return { buffer: outputBuffer, filename };
+      } catch (errorOpenpyxl) {
+        if (!shouldFallbackToCom()) {
+          throw errorOpenpyxl;
+        }
+        console.warn(
+          "OpenPyXL fallo en resumen. Se intentara COM fallback:",
+          errorOpenpyxl?.message || errorOpenpyxl
+        );
+      }
+    }
+
     escribirTempScript(scriptTemp);
 
     const psArgs = [
@@ -260,10 +307,18 @@ const generarResumenExcel = async ({
       "-TableSheetName",
       hojaTabla,
     ];
+    const runNativeExport = async (label) => {
+      if (EXCEL_NATIVE_FORCE_KILL_BEFORE_RUN) {
+        await cleanupExcelProcesses(label, EXCEL_NATIVE_KILL_TIMEOUT_MS).catch(
+          () => null
+        );
+      }
+      return ejecutarPowerShell(psArgs, nativeTimeoutMs);
+    };
 
     try {
       await withExcelNativeLock(
-        () => ejecutarPowerShell(psArgs, nativeTimeoutMs),
+        () => runNativeExport("resumen-before-run"),
         buildLockOptions(nativeTimeoutMs, "resumen-native")
       );
     } catch (errorNative) {
@@ -276,16 +331,10 @@ const generarResumenExcel = async ({
         throw errorNative;
       }
       await withExcelNativeLock(
-        () => ejecutarPowerShell(psArgs, nativeTimeoutMs),
+        () => runNativeExport("resumen-before-run-retry"),
         buildLockOptions(nativeTimeoutMs, "resumen-native-retry")
       );
     }
-
-    const baseName = `${limpiarTexto(nombreArchivo || "RESUMEN")}_${limpiarTexto(
-      empresa || "Reporte"
-    )}_${limpiarTexto(mes)}_${limpiarTexto(anio)}`;
-    const safeBase = quitarAcentos(baseName || "RESUMEN");
-    const filename = `${safeBase}_Graficas.xlsx`.replace(/_+/g, "_");
 
     const outputBuffer = fs.readFileSync(outputPath);
     return { buffer: outputBuffer, filename };

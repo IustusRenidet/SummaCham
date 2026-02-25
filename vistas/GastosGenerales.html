@@ -728,7 +728,7 @@
     <script>
       document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('btnExportExcel')?.addEventListener('click', () => {
-          ExportUtils.exportarExcel({ tabla: '#tablaComparacion', nombreArchivo: 'Gastos_Generales', nombreHoja: 'Gastos_Generales' });
+          ExportUtils.exportarExcelConGraficas({ tabla: '#tablaComparacion', nombreArchivo: 'Gastos_Generales', nombreHojaTabla: 'Gastos_Generales' });
         });
         document.getElementById('btnPrintPDF')?.addEventListener('click', () => {
           ExportUtils.imprimirPDF({ tabla: '#tablaComparacion', titulo: 'Gastos Generales' });

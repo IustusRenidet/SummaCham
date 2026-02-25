@@ -758,10 +758,10 @@
         document
           .getElementById("btnExportExcel")
           ?.addEventListener("click", () => {
-            ExportUtils.exportarExcel({
+            ExportUtils.exportarExcelConGraficas({
               tabla: "#tablaComparacion",
               nombreArchivo: "Presupuestos",
-              nombreHoja: "Presupuestos",
+              nombreHojaTabla: "Presupuestos",
             });
           });
         document

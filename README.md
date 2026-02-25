@@ -69,6 +69,19 @@ cd SummaCham
 npm install
 ```
 
+#### 2.1. Preparar exportación nativa Excel (recomendado)
+
+En Windows ejecuta una sola vez:
+
+```bash
+npm run setup:excel-native:win
+```
+
+Este comando:
+- configura `EXCEL_NATIVE_ENGINE=openpyxl`,
+- prepara runtime Python (venv administrado),
+- instala `openpyxl` automáticamente cuando haga falta.
+
 #### 3. Configurar Ambiente
 
 **Copia el archivo de ejemplo:**
@@ -126,6 +139,7 @@ npm start
 |--------|-------------|
 | `npm start` | Inicia la aplicación en Electron |
 | `npm run server` | Solo inicia el servidor Node.js |
+| `npm run setup:excel-native:win` | Prepara runtime openpyxl para exportación nativa (Windows) |
 | `npm run dev` | Modo desarrollo con hot-reload |
 | `npm run build` | Crea ejecutable de producción |
 | `npm run build:win` | Build específico para Windows |

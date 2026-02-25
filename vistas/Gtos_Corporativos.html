@@ -763,10 +763,10 @@
         document
           .getElementById("btnExportExcel")
           ?.addEventListener("click", () => {
-            ExportUtils.exportarExcel({
+            ExportUtils.exportarExcelConGraficas({
               tabla: "#tablaComparacion",
               nombreArchivo: "Gastos_Corporativos",
-              nombreHoja: "Gastos_Corporativos",
+              nombreHojaTabla: "Gastos_Corporativos",
             });
           });
         document

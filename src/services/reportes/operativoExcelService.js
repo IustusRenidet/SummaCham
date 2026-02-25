@@ -4,6 +4,18 @@ const path = require("path");
 const { spawn } = require("child_process");
 const XLSX = require("xlsx");
 const { withExcelNativeLock } = require("./excelNativeMutex");
+const {
+  EXCEL_NATIVE_KILL_TIMEOUT_MS,
+  EXCEL_NATIVE_FORCE_KILL_BEFORE_RUN,
+  EXCEL_NATIVE_FORCE_KILL_ON_TIMEOUT,
+  cleanupExcelProcesses,
+} = require("./excelNativeProcessGuard");
+const {
+  shouldTryOpenpyxl,
+  shouldUseComOnly,
+  shouldFallbackToCom,
+  ejecutarOpenpyxlNativeCharts,
+} = require("./excelNativeOpenpyxlRunner");
 
 const limpiarTexto = (valor) => (valor == null ? "" : String(valor).trim());
 
@@ -115,10 +127,6 @@ const EXCEL_NATIVE_LOCK_WAIT_BUFFER_MS = Math.max(
 const EXCEL_NATIVE_LOCK_HOLD_BUFFER_MS = Math.max(
   5000,
   Number(process.env.EXCEL_NATIVE_LOCK_HOLD_BUFFER_MS || 45000)
-);
-const EXCEL_NATIVE_KILL_TIMEOUT_MS = Math.max(
-  1000,
-  Number(process.env.EXCEL_NATIVE_KILL_TIMEOUT_MS || 7000)
 );
 
 const buildLockOptions = (nativeTimeoutMs, label) => ({
@@ -238,14 +246,23 @@ const ejecutarPowerShell = (args, timeoutMs = EXCEL_NATIVE_TIMEOUT_MS) =>
     let stdout = "";
     const timer = setTimeout(() => {
       killProcessTree(proc).finally(() => {
-        const out = recortarLog(stdout);
-        const err = recortarLog(stderr);
-        finalize(
-          reject,
-          new Error(
-            `PowerShell timeout (${Math.round(timeout / 1000)}s). Stdout: ${out} Stderr: ${err}`
-          )
-        );
+        const timeoutDetails = () => {
+          const out = recortarLog(stdout);
+          const err = recortarLog(stderr);
+          finalize(
+            reject,
+            new Error(
+              `PowerShell timeout (${Math.round(timeout / 1000)}s). Stdout: ${out} Stderr: ${err}`
+            )
+          );
+        };
+        if (!EXCEL_NATIVE_FORCE_KILL_ON_TIMEOUT) {
+          timeoutDetails();
+          return;
+        }
+        cleanupExcelProcesses("operativo-timeout", EXCEL_NATIVE_KILL_TIMEOUT_MS)
+          .catch(() => null)
+          .finally(timeoutDetails);
       });
     }, timeout);
     proc.stdout.on("data", (chunk) => {
@@ -308,6 +325,38 @@ const generarOperativoExcel = async ({
       XLSX.writeFile(wb, inputPath);
     }
 
+    const baseName = `${limpiarTexto(nombreArchivo || "Operativo")}_${limpiarTexto(
+      empresa || "Reporte"
+    )}_${limpiarTexto(mes)}_${limpiarTexto(anio)}`;
+    const safeBase = quitarAcentos(baseName || "Operativo");
+    const filename = `${safeBase}_Graficas.xlsx`.replace(/_+/g, "_");
+
+    if (!shouldUseComOnly() && shouldTryOpenpyxl()) {
+      try {
+        await ejecutarOpenpyxlNativeCharts({
+          tipo: "operativo",
+          inputPath,
+          outputPath,
+          dataSheetName: hojaDatos,
+          chartsSheetName: hojaGraficas,
+          tableSheetName: hojaTabla,
+          chartMode: modoGrafica,
+          seriesMeta,
+          timeoutMs: nativeTimeoutMs,
+        });
+        const buffer = fs.readFileSync(outputPath);
+        return { buffer, filename };
+      } catch (errorOpenpyxl) {
+        if (!shouldFallbackToCom()) {
+          throw errorOpenpyxl;
+        }
+        console.warn(
+          "OpenPyXL fallo en operativo. Se intentara COM fallback:",
+          errorOpenpyxl?.message || errorOpenpyxl
+        );
+      }
+    }
+
     escribirTempScript(scriptTemp);
 
     const psArgs = [
@@ -329,10 +378,18 @@ const generarOperativoExcel = async ({
     if (typeof seriesMeta === "string" && seriesMeta.trim()) {
       psArgs.push("-SeriesMeta", seriesMeta.trim());
     }
+    const runNativeExport = async (label) => {
+      if (EXCEL_NATIVE_FORCE_KILL_BEFORE_RUN) {
+        await cleanupExcelProcesses(label, EXCEL_NATIVE_KILL_TIMEOUT_MS).catch(
+          () => null
+        );
+      }
+      return ejecutarPowerShell(psArgs, nativeTimeoutMs);
+    };
 
     try {
       await withExcelNativeLock(
-        () => ejecutarPowerShell(psArgs, nativeTimeoutMs),
+        () => runNativeExport("operativo-before-run"),
         buildLockOptions(nativeTimeoutMs, "operativo-native")
       );
     } catch (errorNative) {
@@ -347,16 +404,10 @@ const generarOperativoExcel = async ({
         throw errorNative;
       }
       await withExcelNativeLock(
-        () => ejecutarPowerShell(psArgs, nativeTimeoutMs),
+        () => runNativeExport("operativo-before-run-retry"),
         buildLockOptions(nativeTimeoutMs, "operativo-native-retry")
       );
     }
-
-    const baseName = `${limpiarTexto(nombreArchivo || "Operativo")}_${limpiarTexto(
-      empresa || "Reporte"
-    )}_${limpiarTexto(mes)}_${limpiarTexto(anio)}`;
-    const safeBase = quitarAcentos(baseName || "Operativo");
-    const filename = `${safeBase}_Graficas.xlsx`.replace(/_+/g, "_");
 
     const buffer = fs.readFileSync(outputPath);
     return { buffer, filename };
