@@ -32,6 +32,40 @@ function Test-PythonAvailable {
   }
 }
 
+function Resolve-PythonExecutable {
+  try {
+    $fromPy = (& py -3 -c "import sys; print(sys.executable)" 2>$null | Select-Object -First 1)
+    if ($fromPy) {
+      $candidate = $fromPy.ToString().Trim()
+      if ($candidate -and (Test-Path $candidate)) {
+        return $candidate
+      }
+    }
+  }
+  catch {}
+
+  try {
+    $fromPython = (& python -c "import sys; print(sys.executable)" 2>$null | Select-Object -First 1)
+    if ($fromPython) {
+      $candidate = $fromPython.ToString().Trim()
+      if ($candidate -and (Test-Path $candidate)) {
+        return $candidate
+      }
+    }
+  }
+  catch {}
+
+  try {
+    $cmd = Get-Command python -ErrorAction Stop
+    if ($cmd -and $cmd.Source -and (Test-Path $cmd.Source)) {
+      return $cmd.Source
+    }
+  }
+  catch {}
+
+  return ""
+}
+
 function Ensure-EnvKey {
   param(
     [string]$FilePath,
@@ -86,10 +120,23 @@ if (-not (Test-PythonAvailable)) {
 
 Write-Ok "Python detectado."
 
+$pythonExecutable = Resolve-PythonExecutable
+if ($pythonExecutable) {
+  Write-Info "Python ejecutable detectado: $pythonExecutable"
+} else {
+  Write-WarnMsg "No se pudo resolver ruta absoluta de python.exe. Se usará launcher py."
+}
+
 $envFile = Join-Path $repoRoot ".env.production"
 Ensure-EnvKey -FilePath $envFile -Key "EXCEL_NATIVE_ENGINE" -Value "openpyxl"
 Ensure-EnvKey -FilePath $envFile -Key "EXCEL_NATIVE_AUTO_BOOTSTRAP" -Value "1"
-Ensure-EnvKey -FilePath $envFile -Key "EXCEL_NATIVE_BOOTSTRAP_PYTHON_BIN" -Value "py"
+if ($pythonExecutable) {
+  Ensure-EnvKey -FilePath $envFile -Key "EXCEL_NATIVE_PYTHON_BIN" -Value "`"$pythonExecutable`""
+  Ensure-EnvKey -FilePath $envFile -Key "EXCEL_NATIVE_BOOTSTRAP_PYTHON_BIN" -Value "`"$pythonExecutable`""
+}
+else {
+  Ensure-EnvKey -FilePath $envFile -Key "EXCEL_NATIVE_BOOTSTRAP_PYTHON_BIN" -Value "py -3"
+}
 Ensure-EnvKey -FilePath $envFile -Key "EXCEL_NATIVE_TIMEOUT_MS" -Value "300000"
 Ensure-EnvKey -FilePath $envFile -Key "EXCEL_NATIVE_PYTHON_TIMEOUT_MS" -Value "300000"
 Write-Ok "Variables de .env.production preparadas."
@@ -101,4 +148,3 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Ok "Excel nativo listo. Reinicia el servicio Node para aplicar cambios."
-

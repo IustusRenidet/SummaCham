@@ -30,16 +30,144 @@ const resolverScript = () => {
   return path.join(basePath, "scripts", "export-native-charts-openpyxl.py");
 };
 
-const candidatePythonBins = () => {
-  const envBin = String(process.env.EXCEL_NATIVE_PYTHON_BIN || "").trim();
-  const bins = [];
-  if (envBin) bins.push(envBin);
-  if (process.platform === "win32") {
-    bins.push("py", "python", "python3");
-  } else {
-    bins.push("python3", "python");
+const parseCommandTokens = (rawCommand) => {
+  const raw = String(rawCommand || "").trim();
+  if (!raw) return [];
+  const tokens = [];
+  const regex = /"([^"]*)"|'([^']*)'|[^\s]+/g;
+  let match;
+  while ((match = regex.exec(raw))) {
+    const token = match[1] ?? match[2] ?? match[0];
+    if (token) tokens.push(token);
   }
-  return Array.from(new Set(bins.filter(Boolean)));
+  return tokens;
+};
+
+const toPythonCandidate = (bin, prefixArgs = []) => ({
+  bin: String(bin || "").trim(),
+  prefixArgs: Array.isArray(prefixArgs)
+    ? prefixArgs.map((arg) => String(arg || "").trim()).filter(Boolean)
+    : [],
+});
+
+const parsePythonCandidateFromEnv = (rawCommand) => {
+  const tokens = parseCommandTokens(rawCommand);
+  if (!tokens.length) return null;
+  return toPythonCandidate(tokens[0], tokens.slice(1));
+};
+
+const dedupePythonCandidates = (candidates) => {
+  const seen = new Set();
+  const unique = [];
+  for (const candidate of candidates || []) {
+    if (!candidate || !candidate.bin) continue;
+    const key = `${candidate.bin}::${(candidate.prefixArgs || []).join(" ")}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(candidate);
+  }
+  return unique;
+};
+
+const resolveRuntimeRoot = () => {
+  const fromEnv = String(process.env.EXCEL_NATIVE_RUNTIME_DIR || "").trim();
+  if (fromEnv) return path.resolve(fromEnv);
+  const dataDir = String(process.env.PANELAMCHAM_DATA_DIR || "").trim();
+  if (dataDir) return path.join(path.resolve(dataDir), "excel-native");
+  return path.resolve(process.cwd(), "datos", "excel-native");
+};
+
+const resolveVenvPython = (runtimeRoot) => {
+  if (!runtimeRoot) return "";
+  if (process.platform === "win32") {
+    return path.join(runtimeRoot, "venv", "Scripts", "python.exe");
+  }
+  return path.join(runtimeRoot, "venv", "bin", "python");
+};
+
+const resolveRuntimeRoots = () => {
+  const roots = [];
+  roots.push(resolveRuntimeRoot());
+  const projectRoot = path.resolve(__dirname, "..", "..", "..");
+  roots.push(path.join(projectRoot, "datos", "excel-native"));
+  return Array.from(new Set(roots.map((root) => path.resolve(root))));
+};
+
+const getWindowsAbsolutePythonCandidates = () => {
+  if (process.platform !== "win32") return [];
+  const results = [];
+  const addIfExists = (pythonPath) => {
+    if (!pythonPath) return;
+    try {
+      if (fs.existsSync(pythonPath)) {
+        results.push(path.resolve(pythonPath));
+      }
+    } catch (_) {
+      // ignore
+    }
+  };
+  const scanPythonHome = (baseDir) => {
+    if (!baseDir) return;
+    try {
+      if (!fs.existsSync(baseDir)) return;
+      addIfExists(path.join(baseDir, "python.exe"));
+      const children = fs.readdirSync(baseDir, { withFileTypes: true });
+      for (const child of children) {
+        if (!child?.isDirectory?.()) continue;
+        if (!/^python/i.test(child.name || "")) continue;
+        addIfExists(path.join(baseDir, child.name, "python.exe"));
+      }
+    } catch (_) {
+      // ignore
+    }
+  };
+
+  const localAppData = process.env.LOCALAPPDATA || "";
+  const userProfile = process.env.USERPROFILE || "";
+  const programFiles = process.env.ProgramFiles || "C:\\Program Files";
+  const programFilesX86 = process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
+  const commonRoots = [
+    path.join(localAppData, "Programs", "Python"),
+    path.join(userProfile, "AppData", "Local", "Programs", "Python"),
+    "C:\\Users\\Administrador\\AppData\\Local\\Programs\\Python",
+    path.join(programFiles, "Python"),
+    path.join(programFilesX86, "Python"),
+    "C:\\Python",
+    "C:\\Python311",
+    "C:\\Python312",
+    "C:\\Python313",
+    "C:\\Python314",
+  ];
+  for (const root of commonRoots) {
+    scanPythonHome(root);
+  }
+  return Array.from(new Set(results));
+};
+
+const candidatePythonCommands = () => {
+  const envCandidate = parsePythonCandidateFromEnv(process.env.EXCEL_NATIVE_PYTHON_BIN);
+  const candidates = [];
+  if (envCandidate) candidates.push(envCandidate);
+
+  for (const runtimeRoot of resolveRuntimeRoots()) {
+    const venvPython = resolveVenvPython(runtimeRoot);
+    if (venvPython) candidates.push(toPythonCandidate(venvPython));
+  }
+
+  if (process.platform === "win32") {
+    candidates.push(
+      toPythonCandidate("py", ["-3"]),
+      toPythonCandidate("py"),
+      toPythonCandidate("python"),
+      toPythonCandidate("python3")
+    );
+    for (const absolutePython of getWindowsAbsolutePythonCandidates()) {
+      candidates.push(toPythonCandidate(absolutePython));
+    }
+  } else {
+    candidates.push(toPythonCandidate("python3"), toPythonCandidate("python"));
+  }
+  return dedupePythonCandidates(candidates);
 };
 
 const killProcessTree = (proc, timeoutMs) =>
@@ -105,7 +233,7 @@ const esErrorBinNoEncontrado = (error) => {
   const code = String(error?.code || "").toUpperCase();
   if (code === "ENOENT") return true;
   const msg = String(error?.message || "").toLowerCase();
-  return msg.includes("not found") || msg.includes("no se reconoce");
+  return msg.includes("not found") || msg.includes("no se reconoce") || msg.includes("no such file");
 };
 
 const ejecutarPython = (bin, args, timeoutMs) =>
@@ -196,11 +324,15 @@ const ejecutarOpenpyxlNativeCharts = async ({
   }
 
   const timeout = normalizarTimeoutMs(timeoutMs, EXCEL_NATIVE_PYTHON_TIMEOUT_MS);
-  const bins = candidatePythonBins();
+  const candidates = candidatePythonCommands();
+  const attempted = [];
   let lastError = null;
-  for (const bin of bins) {
+  for (const candidate of candidates) {
+    const bin = candidate.bin;
+    const prefixArgs = Array.isArray(candidate.prefixArgs) ? candidate.prefixArgs : [];
+    attempted.push(`${bin}${prefixArgs.length ? ` ${prefixArgs.join(" ")}` : ""}`);
     try {
-      await ejecutarPython(bin, argsBase, timeout);
+      await ejecutarPython(bin, [...prefixArgs, ...argsBase], timeout);
       return true;
     } catch (error) {
       lastError = error;
@@ -214,7 +346,10 @@ const ejecutarOpenpyxlNativeCharts = async ({
       }
     }
   }
-  if (lastError) throw lastError;
+  if (lastError) {
+    const attempts = attempted.length ? ` Candidatos: ${attempted.join(" | ")}` : "";
+    throw new Error(`${lastError.message || lastError}.${attempts}`);
+  }
   throw new Error("No se encontró un intérprete Python disponible.");
 };
 

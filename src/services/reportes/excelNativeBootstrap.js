@@ -27,12 +27,60 @@ const runCommandSync = (bin, args = [], options = {}) => {
   };
 };
 
+const parseCommandTokens = (rawCommand) => {
+  const raw = toText(rawCommand);
+  if (!raw) return [];
+  const tokens = [];
+  const regex = /"([^"]*)"|'([^']*)'|[^\s]+/g;
+  let match;
+  while ((match = regex.exec(raw))) {
+    const token = match[1] ?? match[2] ?? match[0];
+    if (token) tokens.push(token);
+  }
+  return tokens;
+};
+
+const toPythonCandidate = (bin, prefixArgs = []) => ({
+  bin: toText(bin),
+  prefixArgs: Array.isArray(prefixArgs)
+    ? prefixArgs.map((arg) => toText(arg)).filter(Boolean)
+    : [],
+});
+
+const parsePythonCandidate = (rawCommand) => {
+  const tokens = parseCommandTokens(rawCommand);
+  if (!tokens.length) return null;
+  return toPythonCandidate(tokens[0], tokens.slice(1));
+};
+
+const dedupePythonCandidates = (candidates = []) => {
+  const seen = new Set();
+  const unique = [];
+  for (const candidate of candidates) {
+    if (!candidate || !candidate.bin) continue;
+    const key = `${candidate.bin}::${(candidate.prefixArgs || []).join(" ")}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(candidate);
+  }
+  return unique;
+};
+
+const getProjectRoot = () => path.resolve(__dirname, "..", "..", "..");
+
 const resolveRuntimeRoot = () => {
   const fromEnv = toText(process.env.EXCEL_NATIVE_RUNTIME_DIR);
   if (fromEnv) return path.resolve(fromEnv);
   const dataDir = toText(process.env.PANELAMCHAM_DATA_DIR);
   if (dataDir) return path.join(path.resolve(dataDir), "excel-native");
   return path.resolve(process.cwd(), "datos", "excel-native");
+};
+
+const resolveRuntimeRoots = () => {
+  const roots = [];
+  roots.push(resolveRuntimeRoot());
+  roots.push(path.join(getProjectRoot(), "datos", "excel-native"));
+  return Array.from(new Set(roots.map((root) => path.resolve(root))));
 };
 
 const resolveVenvPython = (venvDir) => {
@@ -42,21 +90,73 @@ const resolveVenvPython = (venvDir) => {
   return path.join(venvDir, "bin", "python");
 };
 
+const getWindowsAbsolutePythonBins = () => {
+  if (process.platform !== "win32") return [];
+  const bins = [];
+  const addIfExists = (pythonPath) => {
+    if (!pythonPath) return;
+    try {
+      if (fs.existsSync(pythonPath)) bins.push(path.resolve(pythonPath));
+    } catch (_) {
+      // ignore
+    }
+  };
+  const scanRoot = (rootDir) => {
+    if (!rootDir) return;
+    try {
+      if (!fs.existsSync(rootDir)) return;
+      addIfExists(path.join(rootDir, "python.exe"));
+      const children = fs.readdirSync(rootDir, { withFileTypes: true });
+      for (const child of children) {
+        if (!child?.isDirectory?.()) continue;
+        if (!/^python/i.test(child.name || "")) continue;
+        addIfExists(path.join(rootDir, child.name, "python.exe"));
+      }
+    } catch (_) {
+      // ignore
+    }
+  };
+
+  const localAppData = process.env.LOCALAPPDATA || "";
+  const userProfile = process.env.USERPROFILE || "";
+  const programFiles = process.env.ProgramFiles || "C:\\Program Files";
+  const programFilesX86 = process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
+  const roots = [
+    path.join(localAppData, "Programs", "Python"),
+    path.join(userProfile, "AppData", "Local", "Programs", "Python"),
+    "C:\\Users\\Administrador\\AppData\\Local\\Programs\\Python",
+    path.join(programFiles, "Python"),
+    path.join(programFilesX86, "Python"),
+    "C:\\Python",
+    "C:\\Python311",
+    "C:\\Python312",
+    "C:\\Python313",
+    "C:\\Python314",
+  ];
+  for (const root of roots) scanRoot(root);
+  return Array.from(new Set(bins));
+};
+
 const getBootstrapPythonCandidates = () => {
-  const fromEnv = toText(process.env.EXCEL_NATIVE_BOOTSTRAP_PYTHON_BIN);
   const candidates = [];
-  if (fromEnv) {
-    candidates.push({ bin: fromEnv, prefixArgs: [] });
+  const fromEnvCandidate = parsePythonCandidate(process.env.EXCEL_NATIVE_BOOTSTRAP_PYTHON_BIN);
+  if (fromEnvCandidate) {
+    candidates.push(fromEnvCandidate);
   }
   if (process.platform === "win32") {
-    candidates.push({ bin: "py", prefixArgs: ["-3"] });
-    candidates.push({ bin: "python", prefixArgs: [] });
-    candidates.push({ bin: "python3", prefixArgs: [] });
+    candidates.push(
+      toPythonCandidate("py", ["-3"]),
+      toPythonCandidate("py"),
+      toPythonCandidate("python"),
+      toPythonCandidate("python3")
+    );
+    for (const absoluteBin of getWindowsAbsolutePythonBins()) {
+      candidates.push(toPythonCandidate(absoluteBin));
+    }
   } else {
-    candidates.push({ bin: "python3", prefixArgs: [] });
-    candidates.push({ bin: "python", prefixArgs: [] });
+    candidates.push(toPythonCandidate("python3"), toPythonCandidate("python"));
   }
-  return candidates;
+  return dedupePythonCandidates(candidates);
 };
 
 const validateOpenpyxl = (pythonBin, prefixArgs = []) =>
@@ -94,24 +194,29 @@ const ensureOpenpyxlRuntime = () => {
 
   const autoBootstrap = isTruthy(process.env.EXCEL_NATIVE_AUTO_BOOTSTRAP, true);
   const runtimeRoot = resolveRuntimeRoot();
+  const runtimeRoots = resolveRuntimeRoots();
   const venvDir = path.join(runtimeRoot, "venv");
   const venvPython = resolveVenvPython(venvDir);
 
   // 1) Use configured python if valid.
-  const envPython = toText(process.env.EXCEL_NATIVE_PYTHON_BIN);
-  if (envPython) {
-    const check = validateOpenpyxl(envPython);
+  const envPythonCandidate = parsePythonCandidate(process.env.EXCEL_NATIVE_PYTHON_BIN);
+  if (envPythonCandidate?.bin) {
+    const check = validateOpenpyxl(envPythonCandidate.bin, envPythonCandidate.prefixArgs);
     if (check.ok) {
-      return { ok: true, pythonBin: envPython, source: "env" };
+      return { ok: true, pythonBin: envPythonCandidate.bin, source: "env" };
     }
   }
 
-  // 2) Use existing managed venv if valid.
-  if (fs.existsSync(venvPython)) {
+  // 2) Use existing managed venv (cualquier runtime root válido) if valid.
+  for (const root of runtimeRoots) {
+    const venvDir = path.join(root, "venv");
+    const venvPython = resolveVenvPython(venvDir);
+    if (!fs.existsSync(venvPython)) continue;
     const check = validateOpenpyxl(venvPython);
     if (check.ok) {
+      process.env.EXCEL_NATIVE_RUNTIME_DIR = root;
       process.env.EXCEL_NATIVE_PYTHON_BIN = venvPython;
-      return { ok: true, pythonBin: venvPython, source: "managed-venv" };
+      return { ok: true, pythonBin: venvPython, source: "managed-venv", runtimeRoot: root };
     }
   }
 
@@ -163,6 +268,7 @@ const ensureOpenpyxlRuntime = () => {
     }
 
     process.env.EXCEL_NATIVE_PYTHON_BIN = venvPython;
+    process.env.EXCEL_NATIVE_RUNTIME_DIR = runtimeRoot;
     return {
       ok: true,
       pythonBin: venvPython,
@@ -235,4 +341,3 @@ module.exports = {
   ensureExcelNativeDefaults,
   ensureOpenpyxlRuntime,
 };
-
