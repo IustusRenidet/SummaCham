@@ -73,7 +73,8 @@
     "asarUnpack": [
       "node_modules/better-sqlite3/**/*",
       "node_modules/node-firebird/**/*",
-      "native_modules/**/*"
+      "native_modules/**/*",
+      "scripts/export-native-charts-openpyxl.py"
     ],
     "compression": "maximum",
     "directories": {

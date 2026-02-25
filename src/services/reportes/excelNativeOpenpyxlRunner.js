@@ -16,6 +16,9 @@ const EXCEL_NATIVE_PYTHON_TIMEOUT_MS = Math.max(
   Number(process.env.EXCEL_NATIVE_PYTHON_TIMEOUT_MS || EXCEL_NATIVE_TIMEOUT_MS)
 );
 
+const OPENPYXL_SCRIPT_NAME = "export-native-charts-openpyxl.py";
+const OPENPYXL_SCRIPT_RELATIVE = path.join("scripts", OPENPYXL_SCRIPT_NAME);
+
 const normalizarTimeoutMs = (
   value,
   fallbackMs = EXCEL_NATIVE_PYTHON_TIMEOUT_MS
@@ -25,9 +28,9 @@ const normalizarTimeoutMs = (
   return Math.max(10000, Math.round(parsed));
 };
 
-const resolverScript = () => {
-  const basePath = path.join(__dirname, "..", "..", "..");
-  return path.join(basePath, "scripts", "export-native-charts-openpyxl.py");
+const isInsideAsarPath = (targetPath) => {
+  const normalized = String(targetPath || "").toLowerCase().replace(/\//g, "\\");
+  return normalized.includes(".asar\\");
 };
 
 const parseCommandTokens = (rawCommand) => {
@@ -75,6 +78,76 @@ const resolveRuntimeRoot = () => {
   const dataDir = String(process.env.PANELAMCHAM_DATA_DIR || "").trim();
   if (dataDir) return path.join(path.resolve(dataDir), "excel-native");
   return path.resolve(process.cwd(), "datos", "excel-native");
+};
+
+const resolveScriptCandidates = () => {
+  const candidates = [];
+  const addCandidate = (candidatePath) => {
+    if (!candidatePath) return;
+    candidates.push(path.resolve(candidatePath));
+  };
+
+  const repoLikeRoot = path.resolve(__dirname, "..", "..", "..");
+  addCandidate(path.join(repoLikeRoot, OPENPYXL_SCRIPT_RELATIVE));
+
+  if (process.resourcesPath) {
+    addCandidate(path.join(process.resourcesPath, OPENPYXL_SCRIPT_RELATIVE));
+    addCandidate(
+      path.join(process.resourcesPath, "app.asar.unpacked", OPENPYXL_SCRIPT_RELATIVE)
+    );
+  }
+
+  return Array.from(new Set(candidates));
+};
+
+const materializeScriptOutsideAsar = (sourcePath) => {
+  if (!sourcePath || !fs.existsSync(sourcePath)) return "";
+  const runtimeScriptDir = path.join(resolveRuntimeRoot(), "scripts");
+  const runtimeScriptPath = path.join(runtimeScriptDir, OPENPYXL_SCRIPT_NAME);
+  try {
+    fs.mkdirSync(runtimeScriptDir, { recursive: true });
+    const sourceBuffer = fs.readFileSync(sourcePath);
+    let shouldWrite = true;
+    if (fs.existsSync(runtimeScriptPath)) {
+      try {
+        const targetBuffer = fs.readFileSync(runtimeScriptPath);
+        shouldWrite = !targetBuffer.equals(sourceBuffer);
+      } catch (_) {
+        shouldWrite = true;
+      }
+    }
+    if (shouldWrite) {
+      fs.writeFileSync(runtimeScriptPath, sourceBuffer);
+    }
+    return runtimeScriptPath;
+  } catch (_) {
+    return "";
+  }
+};
+
+const resolverScript = () => {
+  const candidates = resolveScriptCandidates();
+
+  for (const candidatePath of candidates) {
+    if (!fs.existsSync(candidatePath)) continue;
+    if (!isInsideAsarPath(candidatePath)) {
+      return candidatePath;
+    }
+  }
+
+  for (const candidatePath of candidates) {
+    if (!fs.existsSync(candidatePath)) continue;
+    if (!isInsideAsarPath(candidatePath)) continue;
+    const materialized = materializeScriptOutsideAsar(candidatePath);
+    if (materialized && fs.existsSync(materialized)) {
+      return materialized;
+    }
+  }
+
+  const listed = candidates.length ? candidates.join(" | ") : "sin candidatos";
+  throw new Error(
+    `No se encontró script OpenPyXL fuera de asar. Candidatos: ${listed}`
+  );
 };
 
 const resolveVenvPython = (runtimeRoot) => {
