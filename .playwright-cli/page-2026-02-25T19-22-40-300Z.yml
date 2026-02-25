@@ -1,0 +1,803 @@
+- generic [ref=e3]:
+  - complementary "Navegación principal" [ref=e4]:
+    - img "AmCham" [ref=e6]
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - button "Resumen 1" [expanded] [ref=e9] [cursor=pointer]:
+          - generic [ref=e10]: Resumen
+          - generic [ref=e11]: "1"
+        - button "Resumen summary" [ref=e13] [cursor=pointer]:
+          - generic [ref=e14]: Resumen
+          - generic [ref=e15]: summary
+      - generic [ref=e16]:
+        - button "Divisiones 11" [expanded] [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: Divisiones
+          - generic [ref=e19]: "11"
+        - generic [ref=e20]:
+          - button "Presupuestos ppto" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: Presupuestos
+            - generic [ref=e23]: ppto
+          - button "Comités" [ref=e24] [cursor=pointer]:
+            - generic [ref=e25]: Comités
+          - button "Comunicación" [ref=e26] [cursor=pointer]:
+            - generic [ref=e27]: Comunicación
+          - button "Dirección" [ref=e97] [cursor=pointer]:
+            - generic [ref=e98]: Dirección
+          - button "Eventos" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: Eventos
+          - generic [ref=e30]:
+            - button "Finanzas 1" [expanded] [ref=e99] [cursor=pointer]:
+              - generic [ref=e32]: Finanzas
+              - generic [ref=e33]: "1"
+            - button "Gastos Generales finanzas" [ref=e38] [cursor=pointer]:
+              - generic [ref=e39]: Gastos Generales
+              - generic [ref=e40]: finanzas
+          - button "Gastos Corporativos" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: Gastos Corporativos
+          - button "Membresía" [ref=e46] [cursor=pointer]:
+            - generic [ref=e47]: Membresía
+          - button "Recursos Humanos" [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]: Recursos Humanos
+          - button "Servicios a la Membresía" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: Servicios a la Membresía
+          - button "T&IC" [ref=e52] [cursor=pointer]:
+            - generic [ref=e53]: T&IC
+      - generic [ref=e56]:
+        - button "Configuración 5" [expanded] [ref=e57] [cursor=pointer]:
+          - generic [ref=e58]: Configuración
+          - generic [ref=e59]: "5"
+        - generic [ref=e60]:
+          - button "Mi Perfil perfil" [ref=e61] [cursor=pointer]:
+            - generic [ref=e62]: Mi Perfil
+            - generic [ref=e63]: perfil
+          - button "Administrar usuarios Permisos" [ref=e64] [cursor=pointer]:
+            - generic [ref=e65]: Administrar usuarios
+            - generic [ref=e66]: Permisos
+          - button "Crear usuario" [ref=e67] [cursor=pointer]:
+            - generic [ref=e68]: Crear usuario
+          - button "Gestor de Plantillas" [ref=e69] [cursor=pointer]:
+            - generic [ref=e70]: Gestor de Plantillas
+          - button "Administrar conexiones" [ref=e71] [cursor=pointer]:
+            - generic [ref=e72]: Administrar conexiones
+  - main [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - button "Ocultar menú lateral" [expanded] [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]: ☰
+        - generic [ref=e78]:
+          - heading "Resumen" [level=2] [ref=e79]
+          - generic [ref=e80]: summary
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - button "Tour guiado" [ref=e83] [cursor=pointer]
+          - button "Opciones" [ref=e84] [cursor=pointer]:
+            - generic [ref=e85]: Opciones
+        - button "Notificaciones" [ref=e87] [cursor=pointer]:
+          - img [ref=e88]
+        - generic [ref=e90]:
+          - generic [ref=e91]: "Empresa:"
+          - combobox "Empresa:" [ref=e92]:
+            - option "Ciudad de México"
+            - option "Guadalajara" [selected]
+            - option "Noreste"
+            - option "Noroeste"
+        - button "Cerrar sesión" [ref=e93] [cursor=pointer]
+    - iframe [ref=e100]:
+      - generic [active] [ref=f3e1]:
+        - generic [ref=f3e2]:
+          - generic [ref=f3e8]:
+            - heading "Resumen" [level=1] [ref=f3e9]
+            - paragraph [ref=f3e10]: Capítulo GUADALAJARA · Periodo ENERO 2026
+          - generic [ref=f3e11]:
+            - generic [ref=f3e12]:
+              - generic [ref=f3e13]: Ejercicio
+              - combobox "Ejercicio" [ref=f3e14] [cursor=pointer]:
+                - option "2026" [selected]
+                - option "2025"
+                - option "2024"
+                - option "2023"
+                - option "2022"
+                - option "2021"
+                - option "2020"
+                - option "2019"
+                - option "2018"
+                - option "2017"
+                - option "2016"
+                - option "2015"
+                - option "2014"
+                - option "2013"
+                - option "2012"
+                - option "2011"
+                - option "2010"
+                - option "2009"
+                - option "2008"
+                - option "2007"
+                - option "2006"
+                - option "2005"
+            - generic [ref=f3e15]:
+              - generic [ref=f3e16]: Periodo
+              - combobox "Periodo" [ref=f3e17] [cursor=pointer]:
+                - option "Enero" [selected]
+                - option "Febrero"
+                - option "Marzo"
+                - option "Abril"
+                - option "Mayo"
+                - option "Junio"
+                - option "Julio"
+                - option "Agosto"
+                - option "Septiembre"
+                - option "Octubre"
+                - option "Noviembre"
+                - option "Diciembre"
+            - generic [ref=f3e18]:
+              - generic [ref=f3e19]: Comparar con
+              - generic [ref=f3e20]:
+                - generic [ref=f3e21]:
+                  - checkbox "Comparar con" [checked]
+                - generic [ref=f3e25]: Empresa 10
+          - generic:
+            - button "" [ref=f3e26] [cursor=pointer]:
+              - generic [ref=f3e27]: 
+            - text:  
+          - generic [ref=f3e30]:
+            - textbox "Buscar cuenta o descripción..." [ref=f3e33] [cursor=pointer]
+            - generic [ref=f3e34]:
+              - group "Colapsar/Expandir secciones" [ref=f3e35]:
+                - button " Colapsar" [ref=f3e36] [cursor=pointer]:
+                  - generic [ref=f3e37]: 
+                  - generic [ref=f3e38]: Colapsar
+                - button " Expandir" [ref=f3e39] [cursor=pointer]:
+                  - generic [ref=f3e40]: 
+                  - generic [ref=f3e41]: Expandir
+              - button " Graficas" [ref=f3e42] [cursor=pointer]:
+                - generic [ref=f3e43]: 
+                - generic [ref=f3e44]: Graficas
+              - button " Imprimir PDF" [ref=f3e45] [cursor=pointer]:
+                - generic [ref=f3e46]: 
+                - generic [ref=f3e47]: Imprimir PDF
+              - button " Exportar XLSX" [ref=f3e48] [cursor=pointer]:
+                - generic [ref=f3e49]: 
+                - generic [ref=f3e50]: Exportar XLSX
+          - generic:
+            - generic:  
+          - table [ref=f3e56]:
+            - rowgroup [ref=f3e62]:
+              - row "Cuenta ENE 2026 Descripción YTD 2026" [ref=f3e63]:
+                - columnheader "Cuenta" [ref=f3e64] [cursor=pointer]
+                - columnheader "ENE 2026" [ref=f3e65] [cursor=pointer]
+                - columnheader "Descripción" [ref=f3e66] [cursor=pointer]
+                - columnheader "YTD 2026" [ref=f3e67] [cursor=pointer]
+              - row "Real Ppto. Real ENE 2025 B/(W)% vs. Ppto. B/(W)% vs. Real ENE 2025 Real acumulado Ppto. acumulado Real acumulado 2025 B/(W)% vs. Ppto. acumulado B/(W)% vs. Real acumulado 2025" [ref=f3e68]:
+                - columnheader "Real" [ref=f3e69] [cursor=pointer]
+                - columnheader "Ppto." [ref=f3e70] [cursor=pointer]
+                - columnheader "Real ENE 2025" [ref=f3e71] [cursor=pointer]
+                - columnheader "B/(W)% vs. Ppto." [ref=f3e72] [cursor=pointer]
+                - columnheader "B/(W)% vs. Real ENE 2025" [ref=f3e73] [cursor=pointer]
+                - columnheader "Real acumulado" [ref=f3e74] [cursor=pointer]
+                - columnheader "Ppto. acumulado" [ref=f3e75] [cursor=pointer]
+                - columnheader "Real acumulado 2025" [ref=f3e76] [cursor=pointer]
+                - columnheader "B/(W)% vs. Ppto. acumulado" [ref=f3e77] [cursor=pointer]
+                - columnheader "B/(W)% vs. Real acumulado 2025" [ref=f3e78] [cursor=pointer]
+            - rowgroup [ref=f3e79]:
+              - row "1,594,150.45 2,028,024.80 955,100.92 -21.39 % 66.91 %  INCOME 1,594,150.45 2,028,024.80 955,100.92 -21.39 % 66.91 %" [ref=f3e90]:
+                - cell [ref=f3e91] [cursor=pointer]
+                - cell "1,594,150.45" [ref=f3e92] [cursor=pointer]
+                - cell "2,028,024.80" [ref=f3e93] [cursor=pointer]
+                - cell "955,100.92" [ref=f3e94] [cursor=pointer]
+                - cell "-21.39 %" [ref=f3e95] [cursor=pointer]
+                - cell "66.91 %" [ref=f3e96] [cursor=pointer]
+                - cell " INCOME" [ref=f3e97] [cursor=pointer]:
+                  - generic [ref=f3e98]: 
+                  - text: INCOME
+                - cell "1,594,150.45" [ref=f3e99] [cursor=pointer]
+                - cell "2,028,024.80" [ref=f3e100] [cursor=pointer]
+                - cell "955,100.92" [ref=f3e101] [cursor=pointer]
+                - cell "-21.39 %" [ref=f3e102] [cursor=pointer]
+                - cell "66.91 %" [ref=f3e103] [cursor=pointer]
+              - row "934,755.55 979,994.80 834,118.16 -4.62 % 12.07 %  Membership 934,755.55 979,994.80 834,118.16 -4.62 % 12.07 %" [ref=f3e104]:
+                - cell [ref=f3e105] [cursor=pointer]
+                - cell "934,755.55" [ref=f3e106] [cursor=pointer]
+                - cell "979,994.80" [ref=f3e107] [cursor=pointer]
+                - cell "834,118.16" [ref=f3e108] [cursor=pointer]
+                - cell "-4.62 %" [ref=f3e109] [cursor=pointer]
+                - cell "12.07 %" [ref=f3e110] [cursor=pointer]
+                - cell " Membership" [ref=f3e111] [cursor=pointer]:
+                  - generic [ref=f3e112]: 
+                  - text: Membership
+                - cell "934,755.55" [ref=f3e113] [cursor=pointer]
+                - cell "979,994.80" [ref=f3e114] [cursor=pointer]
+                - cell "834,118.16" [ref=f3e115] [cursor=pointer]
+                - cell "-4.62 %" [ref=f3e116] [cursor=pointer]
+                - cell "12.07 %" [ref=f3e117] [cursor=pointer]
+              - row "✎ 400-000-000-00 910,255.55 937,958.80 796,918.16 -2.95 % 14.22 % ✎ Cuotas Netas 910,255.55 937,958.80 796,918.16 -2.95 % 14.22 %" [ref=f3e118]:
+                - cell "✎ 400-000-000-00" [ref=f3e119] [cursor=pointer]
+                - cell "910,255.55" [ref=f3e120] [cursor=pointer]
+                - cell "937,958.80" [ref=f3e121] [cursor=pointer]
+                - cell "796,918.16" [ref=f3e122] [cursor=pointer]
+                - cell "-2.95 %" [ref=f3e123] [cursor=pointer]
+                - cell "14.22 %" [ref=f3e124] [cursor=pointer]
+                - cell "✎ Cuotas Netas" [ref=f3e125] [cursor=pointer]
+                - cell "910,255.55" [ref=f3e126] [cursor=pointer]
+                - cell "937,958.80" [ref=f3e127] [cursor=pointer]
+                - cell "796,918.16" [ref=f3e128] [cursor=pointer]
+                - cell "-2.95 %" [ref=f3e129] [cursor=pointer]
+                - cell "14.22 %" [ref=f3e130] [cursor=pointer]
+              - row "✎ 401-000-000-00 24,500.00 42,036.00 37,200.00 -41.72 % -34.14 % ✎ Ingresos socios nuevos 24,500.00 42,036.00 37,200.00 -41.72 % -34.14 %" [ref=f3e131]:
+                - cell "✎ 401-000-000-00" [ref=f3e132] [cursor=pointer]
+                - cell "24,500.00" [ref=f3e133] [cursor=pointer]
+                - cell "42,036.00" [ref=f3e134] [cursor=pointer]
+                - cell "37,200.00" [ref=f3e135] [cursor=pointer]
+                - cell "-41.72 %" [ref=f3e136] [cursor=pointer]
+                - cell "-34.14 %" [ref=f3e137] [cursor=pointer]
+                - cell "✎ Ingresos socios nuevos" [ref=f3e138] [cursor=pointer]
+                - cell "24,500.00" [ref=f3e139] [cursor=pointer]
+                - cell "42,036.00" [ref=f3e140] [cursor=pointer]
+                - cell "37,200.00" [ref=f3e141] [cursor=pointer]
+                - cell "-41.72 %" [ref=f3e142] [cursor=pointer]
+                - cell "-34.14 %" [ref=f3e143] [cursor=pointer]
+              - row "570,300.00 925,000.00 42,382.76 -38.35 % 1245.59 %  Events 570,300.00 925,000.00 42,382.76 -38.35 % 1245.59 %" [ref=f3e144]:
+                - cell [ref=f3e145] [cursor=pointer]
+                - cell "570,300.00" [ref=f3e146] [cursor=pointer]
+                - cell "925,000.00" [ref=f3e147] [cursor=pointer]
+                - cell "42,382.76" [ref=f3e148] [cursor=pointer]
+                - cell "-38.35 %" [ref=f3e149] [cursor=pointer]
+                - cell "1245.59 %" [ref=f3e150] [cursor=pointer]
+                - cell " Events" [ref=f3e151] [cursor=pointer]:
+                  - generic [ref=f3e152]: 
+                  - text: Events
+                - cell "570,300.00" [ref=f3e153] [cursor=pointer]
+                - cell "925,000.00" [ref=f3e154] [cursor=pointer]
+                - cell "42,382.76" [ref=f3e155] [cursor=pointer]
+                - cell "-38.35 %" [ref=f3e156] [cursor=pointer]
+                - cell "1245.59 %" [ref=f3e157] [cursor=pointer]
+              - row "✎ 405-000-000-00 345,300.00 475,000.00 42,382.76 -27.31 % 714.72 % ✎ Eventos 345,300.00 475,000.00 42,382.76 -27.31 % 714.72 %" [ref=f3e158]:
+                - cell "✎ 405-000-000-00" [ref=f3e159] [cursor=pointer]
+                - cell "345,300.00" [ref=f3e160] [cursor=pointer]
+                - cell "475,000.00" [ref=f3e161] [cursor=pointer]
+                - cell "42,382.76" [ref=f3e162] [cursor=pointer]
+                - cell "-27.31 %" [ref=f3e163] [cursor=pointer]
+                - cell "714.72 %" [ref=f3e164] [cursor=pointer]
+                - cell "✎ Eventos" [ref=f3e165] [cursor=pointer]
+                - cell "345,300.00" [ref=f3e166] [cursor=pointer]
+                - cell "475,000.00" [ref=f3e167] [cursor=pointer]
+                - cell "42,382.76" [ref=f3e168] [cursor=pointer]
+                - cell "-27.31 %" [ref=f3e169] [cursor=pointer]
+                - cell "714.72 %" [ref=f3e170] [cursor=pointer]
+              - row "✎ 406-000-000-00 225,000.00 450,000.00 0.00 -50.00 % 0.00 % ✎ Patrocinios 225,000.00 450,000.00 0.00 -50.00 % 0.00 %" [ref=f3e171]:
+                - cell "✎ 406-000-000-00" [ref=f3e172] [cursor=pointer]
+                - cell "225,000.00" [ref=f3e173] [cursor=pointer]
+                - cell "450,000.00" [ref=f3e174] [cursor=pointer]
+                - cell "0.00" [ref=f3e175] [cursor=pointer]
+                - cell "-50.00 %" [ref=f3e176] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e177] [cursor=pointer]
+                - cell "✎ Patrocinios" [ref=f3e178] [cursor=pointer]
+                - cell "225,000.00" [ref=f3e179] [cursor=pointer]
+                - cell "450,000.00" [ref=f3e180] [cursor=pointer]
+                - cell "0.00" [ref=f3e181] [cursor=pointer]
+                - cell "-50.00 %" [ref=f3e182] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e183] [cursor=pointer]
+              - row "24,994.90 40,500.00 0.00 -38.28 % 0.00 %  Committees 24,994.90 40,500.00 0.00 -38.28 % 0.00 %" [ref=f3e184]:
+                - cell [ref=f3e185] [cursor=pointer]
+                - cell "24,994.90" [ref=f3e186] [cursor=pointer]
+                - cell "40,500.00" [ref=f3e187] [cursor=pointer]
+                - cell "0.00" [ref=f3e188] [cursor=pointer]
+                - cell "-38.28 %" [ref=f3e189] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e190] [cursor=pointer]
+                - cell " Committees" [ref=f3e191] [cursor=pointer]:
+                  - generic [ref=f3e192]: 
+                  - text: Committees
+                - cell "24,994.90" [ref=f3e193] [cursor=pointer]
+                - cell "40,500.00" [ref=f3e194] [cursor=pointer]
+                - cell "0.00" [ref=f3e195] [cursor=pointer]
+                - cell "-38.28 %" [ref=f3e196] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e197] [cursor=pointer]
+              - row "✎ 404-000-000-00 24,994.90 40,500.00 0.00 -38.28 % 0.00 % ✎ Comités 24,994.90 40,500.00 0.00 -38.28 % 0.00 %" [ref=f3e198]:
+                - cell "✎ 404-000-000-00" [ref=f3e199] [cursor=pointer]
+                - cell "24,994.90" [ref=f3e200] [cursor=pointer]
+                - cell "40,500.00" [ref=f3e201] [cursor=pointer]
+                - cell "0.00" [ref=f3e202] [cursor=pointer]
+                - cell "-38.28 %" [ref=f3e203] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e204] [cursor=pointer]
+                - cell "✎ Comités" [ref=f3e205] [cursor=pointer]
+                - cell "24,994.90" [ref=f3e206] [cursor=pointer]
+                - cell "40,500.00" [ref=f3e207] [cursor=pointer]
+                - cell "0.00" [ref=f3e208] [cursor=pointer]
+                - cell "-38.28 %" [ref=f3e209] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e210] [cursor=pointer]
+              - row "0.00 0.00 0.00 0.00 % 0.00 %  T&IC 0.00 0.00 0.00 0.00 % 0.00 %" [ref=f3e211]:
+                - cell [ref=f3e212] [cursor=pointer]
+                - cell "0.00" [ref=f3e213] [cursor=pointer]
+                - cell "0.00" [ref=f3e214] [cursor=pointer]
+                - cell "0.00" [ref=f3e215] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e216] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e217] [cursor=pointer]
+                - cell " T&IC" [ref=f3e218] [cursor=pointer]:
+                  - generic [ref=f3e219]: 
+                  - text: T&IC
+                - cell "0.00" [ref=f3e220] [cursor=pointer]
+                - cell "0.00" [ref=f3e221] [cursor=pointer]
+                - cell "0.00" [ref=f3e222] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e223] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e224] [cursor=pointer]
+              - row "✎ 407-000-000-00 0.00 0.00 0.00 0.00 % 0.00 % ✎ Trade & Investment Center 0.00 0.00 0.00 0.00 % 0.00 %" [ref=f3e225]:
+                - cell "✎ 407-000-000-00" [ref=f3e226] [cursor=pointer]
+                - cell "0.00" [ref=f3e227] [cursor=pointer]
+                - cell "0.00" [ref=f3e228] [cursor=pointer]
+                - cell "0.00" [ref=f3e229] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e230] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e231] [cursor=pointer]
+                - cell "✎ Trade & Investment Center" [ref=f3e232] [cursor=pointer]
+                - cell "0.00" [ref=f3e233] [cursor=pointer]
+                - cell "0.00" [ref=f3e234] [cursor=pointer]
+                - cell "0.00" [ref=f3e235] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e236] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e237] [cursor=pointer]
+              - row "64,100.00 82,530.00 78,600.00 -22.33 % -18.45 %  Services to Members 64,100.00 82,530.00 78,600.00 -22.33 % -18.45 %" [ref=f3e238]:
+                - cell [ref=f3e239] [cursor=pointer]
+                - cell "64,100.00" [ref=f3e240] [cursor=pointer]
+                - cell "82,530.00" [ref=f3e241] [cursor=pointer]
+                - cell "78,600.00" [ref=f3e242] [cursor=pointer]
+                - cell "-22.33 %" [ref=f3e243] [cursor=pointer]
+                - cell "-18.45 %" [ref=f3e244] [cursor=pointer]
+                - cell " Services to Members" [ref=f3e245] [cursor=pointer]:
+                  - generic [ref=f3e246]: 
+                  - text: Services to Members
+                - cell "64,100.00" [ref=f3e247] [cursor=pointer]
+                - cell "82,530.00" [ref=f3e248] [cursor=pointer]
+                - cell "78,600.00" [ref=f3e249] [cursor=pointer]
+                - cell "-22.33 %" [ref=f3e250] [cursor=pointer]
+                - cell "-18.45 %" [ref=f3e251] [cursor=pointer]
+              - row "✎ 403-000-000-00 64,100.00 82,530.00 78,600.00 -22.33 % -18.45 % ✎ Venta Publicaciones 64,100.00 82,530.00 78,600.00 -22.33 % -18.45 %" [ref=f3e252]:
+                - cell "✎ 403-000-000-00" [ref=f3e253] [cursor=pointer]
+                - cell "64,100.00" [ref=f3e254] [cursor=pointer]
+                - cell "82,530.00" [ref=f3e255] [cursor=pointer]
+                - cell "78,600.00" [ref=f3e256] [cursor=pointer]
+                - cell "-22.33 %" [ref=f3e257] [cursor=pointer]
+                - cell "-18.45 %" [ref=f3e258] [cursor=pointer]
+                - cell "✎ Venta Publicaciones" [ref=f3e259] [cursor=pointer]
+                - cell "64,100.00" [ref=f3e260] [cursor=pointer]
+                - cell "82,530.00" [ref=f3e261] [cursor=pointer]
+                - cell "78,600.00" [ref=f3e262] [cursor=pointer]
+                - cell "-22.33 %" [ref=f3e263] [cursor=pointer]
+                - cell "-18.45 %" [ref=f3e264] [cursor=pointer]
+              - row "✎ 408-000-000-00 0.00 0.00 0.00 0.00 % 0.00 % ✎ Visas 0.00 0.00 0.00 0.00 % 0.00 %" [ref=f3e265]:
+                - cell "✎ 408-000-000-00" [ref=f3e266] [cursor=pointer]
+                - cell "0.00" [ref=f3e267] [cursor=pointer]
+                - cell "0.00" [ref=f3e268] [cursor=pointer]
+                - cell "0.00" [ref=f3e269] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e270] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e271] [cursor=pointer]
+                - cell "✎ Visas" [ref=f3e272] [cursor=pointer]
+                - cell "0.00" [ref=f3e273] [cursor=pointer]
+                - cell "0.00" [ref=f3e274] [cursor=pointer]
+                - cell "0.00" [ref=f3e275] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e276] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e277] [cursor=pointer]
+              - row "1,347,061.56 1,637,950.15 617,155.29 -17.76 % 118.27 %  EXPENSE 1,347,061.56 1,637,950.15 617,155.29 -17.76 % 118.27 %" [ref=f3e278]:
+                - cell [ref=f3e279] [cursor=pointer]
+                - cell "1,347,061.56" [ref=f3e280] [cursor=pointer]
+                - cell "1,637,950.15" [ref=f3e281] [cursor=pointer]
+                - cell "617,155.29" [ref=f3e282] [cursor=pointer]
+                - cell "-17.76 %" [ref=f3e283] [cursor=pointer]
+                - cell "118.27 %" [ref=f3e284] [cursor=pointer]
+                - cell " EXPENSE" [ref=f3e285] [cursor=pointer]:
+                  - generic [ref=f3e286]: 
+                  - text: EXPENSE
+                - cell "1,347,061.56" [ref=f3e287] [cursor=pointer]
+                - cell "1,637,950.15" [ref=f3e288] [cursor=pointer]
+                - cell "617,155.29" [ref=f3e289] [cursor=pointer]
+                - cell "-17.76 %" [ref=f3e290] [cursor=pointer]
+                - cell "118.27 %" [ref=f3e291] [cursor=pointer]
+              - row "92,228.10 39,950.58 4,563.21 130.86 % 1921.12 %  Membership 92,228.10 39,950.58 4,563.21 130.86 % 1921.12 %" [ref=f3e292]:
+                - cell [ref=f3e293] [cursor=pointer]
+                - cell "92,228.10" [ref=f3e294] [cursor=pointer]
+                - cell "39,950.58" [ref=f3e295] [cursor=pointer]
+                - cell "4,563.21" [ref=f3e296] [cursor=pointer]
+                - cell "130.86 %" [ref=f3e297] [cursor=pointer]
+                - cell "1921.12 %" [ref=f3e298] [cursor=pointer]
+                - cell " Membership" [ref=f3e299] [cursor=pointer]:
+                  - generic [ref=f3e300]: 
+                  - text: Membership
+                - cell "92,228.10" [ref=f3e301] [cursor=pointer]
+                - cell "39,950.58" [ref=f3e302] [cursor=pointer]
+                - cell "4,563.21" [ref=f3e303] [cursor=pointer]
+                - cell "130.86 %" [ref=f3e304] [cursor=pointer]
+                - cell "1921.12 %" [ref=f3e305] [cursor=pointer]
+              - row "✎ 702-000-000-00 0.00 1,657.00 1,563.21 -100.00 % -100.00 % ✎ Gastos Promoción 0.00 1,657.00 1,563.21 -100.00 % -100.00 %" [ref=f3e306]:
+                - cell "✎ 702-000-000-00" [ref=f3e307] [cursor=pointer]
+                - cell "0.00" [ref=f3e308] [cursor=pointer]
+                - cell "1,657.00" [ref=f3e309] [cursor=pointer]
+                - cell "1,563.21" [ref=f3e310] [cursor=pointer]
+                - cell "-100.00 %" [ref=f3e311] [cursor=pointer]
+                - cell "-100.00 %" [ref=f3e312] [cursor=pointer]
+                - cell "✎ Gastos Promoción" [ref=f3e313] [cursor=pointer]
+                - cell "0.00" [ref=f3e314] [cursor=pointer]
+                - cell "1,657.00" [ref=f3e315] [cursor=pointer]
+                - cell "1,563.21" [ref=f3e316] [cursor=pointer]
+                - cell "-100.00 %" [ref=f3e317] [cursor=pointer]
+                - cell "-100.00 %" [ref=f3e318] [cursor=pointer]
+              - row "✎ 503-000-000-00 92,228.10 38,293.58 3,000.00 140.84 % 2974.27 % ✎ Comisiones por venta de membresías 92,228.10 38,293.58 3,000.00 140.84 % 2974.27 %" [ref=f3e319]:
+                - cell "✎ 503-000-000-00" [ref=f3e320] [cursor=pointer]
+                - cell "92,228.10" [ref=f3e321] [cursor=pointer]
+                - cell "38,293.58" [ref=f3e322] [cursor=pointer]
+                - cell "3,000.00" [ref=f3e323] [cursor=pointer]
+                - cell "140.84 %" [ref=f3e324] [cursor=pointer]
+                - cell "2974.27 %" [ref=f3e325] [cursor=pointer]
+                - cell "✎ Comisiones por venta de membresías" [ref=f3e326] [cursor=pointer]
+                - cell "92,228.10" [ref=f3e327] [cursor=pointer]
+                - cell "38,293.58" [ref=f3e328] [cursor=pointer]
+                - cell "3,000.00" [ref=f3e329] [cursor=pointer]
+                - cell "140.84 %" [ref=f3e330] [cursor=pointer]
+                - cell "2974.27 %" [ref=f3e331] [cursor=pointer]
+              - row "412,419.45 700,000.00 24,047.83 -41.08 % 1615.00 %  Events 412,419.45 700,000.00 24,047.83 -41.08 % 1615.00 %" [ref=f3e332]:
+                - cell [ref=f3e333] [cursor=pointer]
+                - cell "412,419.45" [ref=f3e334] [cursor=pointer]
+                - cell "700,000.00" [ref=f3e335] [cursor=pointer]
+                - cell "24,047.83" [ref=f3e336] [cursor=pointer]
+                - cell "-41.08 %" [ref=f3e337] [cursor=pointer]
+                - cell "1615.00 %" [ref=f3e338] [cursor=pointer]
+                - cell " Events" [ref=f3e339] [cursor=pointer]:
+                  - generic [ref=f3e340]: 
+                  - text: Events
+                - cell "412,419.45" [ref=f3e341] [cursor=pointer]
+                - cell "700,000.00" [ref=f3e342] [cursor=pointer]
+                - cell "24,047.83" [ref=f3e343] [cursor=pointer]
+                - cell "-41.08 %" [ref=f3e344] [cursor=pointer]
+                - cell "1615.00 %" [ref=f3e345] [cursor=pointer]
+              - row "✎ 701-000-000-00 412,419.45 700,000.00 24,047.83 -41.08 % 1615.00 % ✎ Costo Eventos 412,419.45 700,000.00 24,047.83 -41.08 % 1615.00 %" [ref=f3e346]:
+                - cell "✎ 701-000-000-00" [ref=f3e347] [cursor=pointer]
+                - cell "412,419.45" [ref=f3e348] [cursor=pointer]
+                - cell "700,000.00" [ref=f3e349] [cursor=pointer]
+                - cell "24,047.83" [ref=f3e350] [cursor=pointer]
+                - cell "-41.08 %" [ref=f3e351] [cursor=pointer]
+                - cell "1615.00 %" [ref=f3e352] [cursor=pointer]
+                - cell "✎ Costo Eventos" [ref=f3e353] [cursor=pointer]
+                - cell "412,419.45" [ref=f3e354] [cursor=pointer]
+                - cell "700,000.00" [ref=f3e355] [cursor=pointer]
+                - cell "24,047.83" [ref=f3e356] [cursor=pointer]
+                - cell "-41.08 %" [ref=f3e357] [cursor=pointer]
+                - cell "1615.00 %" [ref=f3e358] [cursor=pointer]
+              - row "30,085.95 36,000.00 0.00 -16.43 % 0.00 %  Committees 30,085.95 36,000.00 0.00 -16.43 % 0.00 %" [ref=f3e359]:
+                - cell [ref=f3e360] [cursor=pointer]
+                - cell "30,085.95" [ref=f3e361] [cursor=pointer]
+                - cell "36,000.00" [ref=f3e362] [cursor=pointer]
+                - cell "0.00" [ref=f3e363] [cursor=pointer]
+                - cell "-16.43 %" [ref=f3e364] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e365] [cursor=pointer]
+                - cell " Committees" [ref=f3e366] [cursor=pointer]:
+                  - generic [ref=f3e367]: 
+                  - text: Committees
+                - cell "30,085.95" [ref=f3e368] [cursor=pointer]
+                - cell "36,000.00" [ref=f3e369] [cursor=pointer]
+                - cell "0.00" [ref=f3e370] [cursor=pointer]
+                - cell "-16.43 %" [ref=f3e371] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e372] [cursor=pointer]
+              - row "✎ 502-000-000-00 30,085.95 36,000.00 0.00 -16.43 % 0.00 % ✎ Costo comités 30,085.95 36,000.00 0.00 -16.43 % 0.00 %" [ref=f3e373]:
+                - cell "✎ 502-000-000-00" [ref=f3e374] [cursor=pointer]
+                - cell "30,085.95" [ref=f3e375] [cursor=pointer]
+                - cell "36,000.00" [ref=f3e376] [cursor=pointer]
+                - cell "0.00" [ref=f3e377] [cursor=pointer]
+                - cell "-16.43 %" [ref=f3e378] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e379] [cursor=pointer]
+                - cell "✎ Costo comités" [ref=f3e380] [cursor=pointer]
+                - cell "30,085.95" [ref=f3e381] [cursor=pointer]
+                - cell "36,000.00" [ref=f3e382] [cursor=pointer]
+                - cell "0.00" [ref=f3e383] [cursor=pointer]
+                - cell "-16.43 %" [ref=f3e384] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e385] [cursor=pointer]
+              - row "✎ 504-000-000-00 0.00 0.00 0.00 0.00 % 0.00 % ✎ Comisiones EWDP 0.00 0.00 0.00 0.00 % 0.00 %" [ref=f3e386]:
+                - cell "✎ 504-000-000-00" [ref=f3e387] [cursor=pointer]
+                - cell "0.00" [ref=f3e388] [cursor=pointer]
+                - cell "0.00" [ref=f3e389] [cursor=pointer]
+                - cell "0.00" [ref=f3e390] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e391] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e392] [cursor=pointer]
+                - cell "✎ Comisiones EWDP" [ref=f3e393] [cursor=pointer]
+                - cell "0.00" [ref=f3e394] [cursor=pointer]
+                - cell "0.00" [ref=f3e395] [cursor=pointer]
+                - cell "0.00" [ref=f3e396] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e397] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e398] [cursor=pointer]
+              - row "0.00 0.00 0.00 0.00 % 0.00 %  T&IC 0.00 0.00 0.00 0.00 % 0.00 %" [ref=f3e399]:
+                - cell [ref=f3e400] [cursor=pointer]
+                - cell "0.00" [ref=f3e401] [cursor=pointer]
+                - cell "0.00" [ref=f3e402] [cursor=pointer]
+                - cell "0.00" [ref=f3e403] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e404] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e405] [cursor=pointer]
+                - cell " T&IC" [ref=f3e406] [cursor=pointer]:
+                  - generic [ref=f3e407]: 
+                  - text: T&IC
+                - cell "0.00" [ref=f3e408] [cursor=pointer]
+                - cell "0.00" [ref=f3e409] [cursor=pointer]
+                - cell "0.00" [ref=f3e410] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e411] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e412] [cursor=pointer]
+              - row "✎ 703-000-000-00 0.00 0.00 0.00 0.00 % 0.00 % ✎ Costo Trade & Investment Center 0.00 0.00 0.00 0.00 % 0.00 %" [ref=f3e413]:
+                - cell "✎ 703-000-000-00" [ref=f3e414] [cursor=pointer]
+                - cell "0.00" [ref=f3e415] [cursor=pointer]
+                - cell "0.00" [ref=f3e416] [cursor=pointer]
+                - cell "0.00" [ref=f3e417] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e418] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e419] [cursor=pointer]
+                - cell "✎ Costo Trade & Investment Center" [ref=f3e420] [cursor=pointer]
+                - cell "0.00" [ref=f3e421] [cursor=pointer]
+                - cell "0.00" [ref=f3e422] [cursor=pointer]
+                - cell "0.00" [ref=f3e423] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e424] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e425] [cursor=pointer]
+              - row "32,050.00 41,265.00 39,300.00 -22.33 % -18.45 %  Services to Members 32,050.00 41,265.00 39,300.00 -22.33 % -18.45 %" [ref=f3e426]:
+                - cell [ref=f3e427] [cursor=pointer]
+                - cell "32,050.00" [ref=f3e428] [cursor=pointer]
+                - cell "41,265.00" [ref=f3e429] [cursor=pointer]
+                - cell "39,300.00" [ref=f3e430] [cursor=pointer]
+                - cell "-22.33 %" [ref=f3e431] [cursor=pointer]
+                - cell "-18.45 %" [ref=f3e432] [cursor=pointer]
+                - cell " Services to Members" [ref=f3e433] [cursor=pointer]:
+                  - generic [ref=f3e434]: 
+                  - text: Services to Members
+                - cell "32,050.00" [ref=f3e435] [cursor=pointer]
+                - cell "41,265.00" [ref=f3e436] [cursor=pointer]
+                - cell "39,300.00" [ref=f3e437] [cursor=pointer]
+                - cell "-22.33 %" [ref=f3e438] [cursor=pointer]
+                - cell "-18.45 %" [ref=f3e439] [cursor=pointer]
+              - row "✎ 601-000-000-00 32,050.00 41,265.00 39,300.00 -22.33 % -18.45 % ✎ Gastos Venta Publicaciones 32,050.00 41,265.00 39,300.00 -22.33 % -18.45 %" [ref=f3e440]:
+                - cell "✎ 601-000-000-00" [ref=f3e441] [cursor=pointer]
+                - cell "32,050.00" [ref=f3e442] [cursor=pointer]
+                - cell "41,265.00" [ref=f3e443] [cursor=pointer]
+                - cell "39,300.00" [ref=f3e444] [cursor=pointer]
+                - cell "-22.33 %" [ref=f3e445] [cursor=pointer]
+                - cell "-18.45 %" [ref=f3e446] [cursor=pointer]
+                - cell "✎ Gastos Venta Publicaciones" [ref=f3e447] [cursor=pointer]
+                - cell "32,050.00" [ref=f3e448] [cursor=pointer]
+                - cell "41,265.00" [ref=f3e449] [cursor=pointer]
+                - cell "39,300.00" [ref=f3e450] [cursor=pointer]
+                - cell "-22.33 %" [ref=f3e451] [cursor=pointer]
+                - cell "-18.45 %" [ref=f3e452] [cursor=pointer]
+              - row "102,567.88 153,853.71 101,689.86 -33.33 % 0.86 %  Gastos G&A 102,567.88 153,853.71 101,689.86 -33.33 % 0.86 %" [ref=f3e453]:
+                - cell [ref=f3e454] [cursor=pointer]
+                - cell "102,567.88" [ref=f3e455] [cursor=pointer]
+                - cell "153,853.71" [ref=f3e456] [cursor=pointer]
+                - cell "101,689.86" [ref=f3e457] [cursor=pointer]
+                - cell "-33.33 %" [ref=f3e458] [cursor=pointer]
+                - cell "0.86 %" [ref=f3e459] [cursor=pointer]
+                - cell " Gastos G&A" [ref=f3e460] [cursor=pointer]:
+                  - generic [ref=f3e461]: 
+                  - text: Gastos G&A
+                - cell "102,567.88" [ref=f3e462] [cursor=pointer]
+                - cell "153,853.71" [ref=f3e463] [cursor=pointer]
+                - cell "101,689.86" [ref=f3e464] [cursor=pointer]
+                - cell "-33.33 %" [ref=f3e465] [cursor=pointer]
+                - cell "0.86 %" [ref=f3e466] [cursor=pointer]
+              - row "✎ 801-000-000-00 27,435.98 34,680.16 20,272.00 -20.89 % 35.34 % ✎ Gasto de Administración 27,435.98 34,680.16 20,272.00 -20.89 % 35.34 %" [ref=f3e467]:
+                - cell "✎ 801-000-000-00" [ref=f3e468] [cursor=pointer]
+                - cell "27,435.98" [ref=f3e469] [cursor=pointer]
+                - cell "34,680.16" [ref=f3e470] [cursor=pointer]
+                - cell "20,272.00" [ref=f3e471] [cursor=pointer]
+                - cell "-20.89 %" [ref=f3e472] [cursor=pointer]
+                - cell "35.34 %" [ref=f3e473] [cursor=pointer]
+                - cell "✎ Gasto de Administración" [ref=f3e474] [cursor=pointer]
+                - cell "27,435.98" [ref=f3e475] [cursor=pointer]
+                - cell "34,680.16" [ref=f3e476] [cursor=pointer]
+                - cell "20,272.00" [ref=f3e477] [cursor=pointer]
+                - cell "-20.89 %" [ref=f3e478] [cursor=pointer]
+                - cell "35.34 %" [ref=f3e479] [cursor=pointer]
+              - row "✎ 901-000-000-00 75,131.90 119,173.55 81,417.86 -36.96 % -7.72 % ✎ Gastos Generales 75,131.90 119,173.55 81,417.86 -36.96 % -7.72 %" [ref=f3e480]:
+                - cell "✎ 901-000-000-00" [ref=f3e481] [cursor=pointer]
+                - cell "75,131.90" [ref=f3e482] [cursor=pointer]
+                - cell "119,173.55" [ref=f3e483] [cursor=pointer]
+                - cell "81,417.86" [ref=f3e484] [cursor=pointer]
+                - cell "-36.96 %" [ref=f3e485] [cursor=pointer]
+                - cell "-7.72 %" [ref=f3e486] [cursor=pointer]
+                - cell "✎ Gastos Generales" [ref=f3e487] [cursor=pointer]
+                - cell "75,131.90" [ref=f3e488] [cursor=pointer]
+                - cell "119,173.55" [ref=f3e489] [cursor=pointer]
+                - cell "81,417.86" [ref=f3e490] [cursor=pointer]
+                - cell "-36.96 %" [ref=f3e491] [cursor=pointer]
+                - cell "-7.72 %" [ref=f3e492] [cursor=pointer]
+              - row "599,806.95 559,332.32 374,295.29 7.24 % 60.25 %  Nómina 599,806.95 559,332.32 374,295.29 7.24 % 60.25 %" [ref=f3e493]:
+                - cell [ref=f3e494] [cursor=pointer]
+                - cell "599,806.95" [ref=f3e495] [cursor=pointer]
+                - cell "559,332.32" [ref=f3e496] [cursor=pointer]
+                - cell "374,295.29" [ref=f3e497] [cursor=pointer]
+                - cell "7.24 %" [ref=f3e498] [cursor=pointer]
+                - cell "60.25 %" [ref=f3e499] [cursor=pointer]
+                - cell " Nómina" [ref=f3e500] [cursor=pointer]:
+                  - generic [ref=f3e501]: 
+                  - text: Nómina
+                - cell "599,806.95" [ref=f3e502] [cursor=pointer]
+                - cell "559,332.32" [ref=f3e503] [cursor=pointer]
+                - cell "374,295.29" [ref=f3e504] [cursor=pointer]
+                - cell "7.24 %" [ref=f3e505] [cursor=pointer]
+                - cell "60.25 %" [ref=f3e506] [cursor=pointer]
+              - row "✎ 501-000-000-00 599,806.95 559,332.32 374,295.29 7.24 % 60.25 % ✎ Nómina 599,806.95 559,332.32 374,295.29 7.24 % 60.25 %" [ref=f3e507]:
+                - cell "✎ 501-000-000-00" [ref=f3e508] [cursor=pointer]
+                - cell "599,806.95" [ref=f3e509] [cursor=pointer]
+                - cell "559,332.32" [ref=f3e510] [cursor=pointer]
+                - cell "374,295.29" [ref=f3e511] [cursor=pointer]
+                - cell "7.24 %" [ref=f3e512] [cursor=pointer]
+                - cell "60.25 %" [ref=f3e513] [cursor=pointer]
+                - cell "✎ Nómina" [ref=f3e514] [cursor=pointer]
+                - cell "599,806.95" [ref=f3e515] [cursor=pointer]
+                - cell "559,332.32" [ref=f3e516] [cursor=pointer]
+                - cell "374,295.29" [ref=f3e517] [cursor=pointer]
+                - cell "7.24 %" [ref=f3e518] [cursor=pointer]
+                - cell "60.25 %" [ref=f3e519] [cursor=pointer]
+              - row "331,103.03 360,748.33 299,581.10 -8.22 % 10.52 %  Gastos Corporativos 331,103.03 360,748.33 299,581.10 -8.22 % 10.52 %" [ref=f3e520]:
+                - cell [ref=f3e521] [cursor=pointer]
+                - cell "331,103.03" [ref=f3e522] [cursor=pointer]
+                - cell "360,748.33" [ref=f3e523] [cursor=pointer]
+                - cell "299,581.10" [ref=f3e524] [cursor=pointer]
+                - cell "-8.22 %" [ref=f3e525] [cursor=pointer]
+                - cell "10.52 %" [ref=f3e526] [cursor=pointer]
+                - cell " Gastos Corporativos" [ref=f3e527] [cursor=pointer]:
+                  - generic [ref=f3e528]: 
+                  - text: Gastos Corporativos
+                - cell "331,103.03" [ref=f3e529] [cursor=pointer]
+                - cell "360,748.33" [ref=f3e530] [cursor=pointer]
+                - cell "299,581.10" [ref=f3e531] [cursor=pointer]
+                - cell "-8.22 %" [ref=f3e532] [cursor=pointer]
+                - cell "10.52 %" [ref=f3e533] [cursor=pointer]
+              - row "✎ 903-000-000-00 331,103.03 360,748.33 299,581.10 -8.22 % 10.52 % ✎ Gastos Corporativos 331,103.03 360,748.33 299,581.10 -8.22 % 10.52 %" [ref=f3e534]:
+                - cell "✎ 903-000-000-00" [ref=f3e535] [cursor=pointer]
+                - cell "331,103.03" [ref=f3e536] [cursor=pointer]
+                - cell "360,748.33" [ref=f3e537] [cursor=pointer]
+                - cell "299,581.10" [ref=f3e538] [cursor=pointer]
+                - cell "-8.22 %" [ref=f3e539] [cursor=pointer]
+                - cell "10.52 %" [ref=f3e540] [cursor=pointer]
+                - cell "✎ Gastos Corporativos" [ref=f3e541] [cursor=pointer]
+                - cell "331,103.03" [ref=f3e542] [cursor=pointer]
+                - cell "360,748.33" [ref=f3e543] [cursor=pointer]
+                - cell "299,581.10" [ref=f3e544] [cursor=pointer]
+                - cell "-8.22 %" [ref=f3e545] [cursor=pointer]
+                - cell "10.52 %" [ref=f3e546] [cursor=pointer]
+              - row "253,199.80 253,199.79 226,322.00 0.00 % 11.88 %  Cargos Administrativos 253,199.80 253,199.79 226,322.00 0.00 % 11.88 %" [ref=f3e547]:
+                - cell [ref=f3e548] [cursor=pointer]
+                - cell "253,199.80" [ref=f3e549] [cursor=pointer]
+                - cell "253,199.79" [ref=f3e550] [cursor=pointer]
+                - cell "226,322.00" [ref=f3e551] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e552] [cursor=pointer]
+                - cell "11.88 %" [ref=f3e553] [cursor=pointer]
+                - cell " Cargos Administrativos" [ref=f3e554] [cursor=pointer]:
+                  - generic [ref=f3e555]: 
+                  - text: Cargos Administrativos
+                - cell "253,199.80" [ref=f3e556] [cursor=pointer]
+                - cell "253,199.79" [ref=f3e557] [cursor=pointer]
+                - cell "226,322.00" [ref=f3e558] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e559] [cursor=pointer]
+                - cell "11.88 %" [ref=f3e560] [cursor=pointer]
+              - row "✎ 903-016-000-00 253,199.80 253,199.79 226,322.00 0.00 % 11.88 % ✎ Cargos Administrativos 253,199.80 253,199.79 226,322.00 0.00 % 11.88 %" [ref=f3e561]:
+                - cell "✎ 903-016-000-00" [ref=f3e562] [cursor=pointer]
+                - cell "253,199.80" [ref=f3e563] [cursor=pointer]
+                - cell "253,199.79" [ref=f3e564] [cursor=pointer]
+                - cell "226,322.00" [ref=f3e565] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e566] [cursor=pointer]
+                - cell "11.88 %" [ref=f3e567] [cursor=pointer]
+                - cell "✎ Cargos Administrativos" [ref=f3e568] [cursor=pointer]
+                - cell "253,199.80" [ref=f3e569] [cursor=pointer]
+                - cell "253,199.79" [ref=f3e570] [cursor=pointer]
+                - cell "226,322.00" [ref=f3e571] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e572] [cursor=pointer]
+                - cell "11.88 %" [ref=f3e573] [cursor=pointer]
+              - row "247,088.89 390,074.65 337,945.63 -36.66 % -26.89 % RESULTADOS OPERATIVOS 247,088.89 390,074.65 337,945.63 -36.66 % -26.89 %" [ref=f3e574]:
+                - cell [ref=f3e575] [cursor=pointer]
+                - cell "247,088.89" [ref=f3e576] [cursor=pointer]
+                - cell "390,074.65" [ref=f3e577] [cursor=pointer]
+                - cell "337,945.63" [ref=f3e578] [cursor=pointer]
+                - cell "-36.66 %" [ref=f3e579] [cursor=pointer]
+                - cell "-26.89 %" [ref=f3e580] [cursor=pointer]
+                - cell "RESULTADOS OPERATIVOS" [ref=f3e581] [cursor=pointer]
+                - cell "247,088.89" [ref=f3e582] [cursor=pointer]
+                - cell "390,074.65" [ref=f3e583] [cursor=pointer]
+                - cell "337,945.63" [ref=f3e584] [cursor=pointer]
+                - cell "-36.66 %" [ref=f3e585] [cursor=pointer]
+                - cell "-26.89 %" [ref=f3e586] [cursor=pointer]
+              - row "0.00 0.00 0.00 0.00 % 0.00 %  MEMBER CENTRICITY 0.00 0.00 0.00 0.00 % 0.00 %" [ref=f3e587]:
+                - cell [ref=f3e588] [cursor=pointer]
+                - cell "0.00" [ref=f3e589] [cursor=pointer]
+                - cell "0.00" [ref=f3e590] [cursor=pointer]
+                - cell "0.00" [ref=f3e591] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e592] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e593] [cursor=pointer]
+                - cell " MEMBER CENTRICITY" [ref=f3e594] [cursor=pointer]:
+                  - generic [ref=f3e595]: 
+                  - text: MEMBER CENTRICITY
+                - cell "0.00" [ref=f3e596] [cursor=pointer]
+                - cell "0.00" [ref=f3e597] [cursor=pointer]
+                - cell "0.00" [ref=f3e598] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e599] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e600] [cursor=pointer]
+              - row "✎ 904-000-000-00 0.00 0.00 41,606.60 0.00 % -100.00 % ✎ Member Centricity 0.00 0.00 41,606.60 0.00 % -100.00 %" [ref=f3e601]:
+                - cell "✎ 904-000-000-00" [ref=f3e602] [cursor=pointer]
+                - cell "0.00" [ref=f3e603] [cursor=pointer]
+                - cell "0.00" [ref=f3e604] [cursor=pointer]
+                - cell "41,606.60" [ref=f3e605] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e606] [cursor=pointer]
+                - cell "-100.00 %" [ref=f3e607] [cursor=pointer]
+                - cell "✎ Member Centricity" [ref=f3e608] [cursor=pointer]
+                - cell "0.00" [ref=f3e609] [cursor=pointer]
+                - cell "0.00" [ref=f3e610] [cursor=pointer]
+                - cell "41,606.60" [ref=f3e611] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e612] [cursor=pointer]
+                - cell "-100.00 %" [ref=f3e613] [cursor=pointer]
+              - row "53.85 0.00 29.04 0.00 % 85.43 %  OTHER 53.85 0.00 29.04 0.00 % 85.43 %" [ref=f3e614]:
+                - cell [ref=f3e615] [cursor=pointer]
+                - cell "53.85" [ref=f3e616] [cursor=pointer]
+                - cell "0.00" [ref=f3e617] [cursor=pointer]
+                - cell "29.04" [ref=f3e618] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e619] [cursor=pointer]
+                - cell "85.43 %" [ref=f3e620] [cursor=pointer]
+                - cell " OTHER" [ref=f3e621] [cursor=pointer]:
+                  - generic [ref=f3e622]: 
+                  - text: OTHER
+                - cell "53.85" [ref=f3e623] [cursor=pointer]
+                - cell "0.00" [ref=f3e624] [cursor=pointer]
+                - cell "29.04" [ref=f3e625] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e626] [cursor=pointer]
+                - cell "85.43 %" [ref=f3e627] [cursor=pointer]
+              - row "53.85 0.00 29.04 0.00 % 85.43 %  Other 53.85 0.00 29.04 0.00 % 85.43 %" [ref=f3e628]:
+                - cell [ref=f3e629] [cursor=pointer]
+                - cell "53.85" [ref=f3e630] [cursor=pointer]
+                - cell "0.00" [ref=f3e631] [cursor=pointer]
+                - cell "29.04" [ref=f3e632] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e633] [cursor=pointer]
+                - cell "85.43 %" [ref=f3e634] [cursor=pointer]
+                - cell " Other" [ref=f3e635] [cursor=pointer]:
+                  - generic [ref=f3e636]: 
+                  - text: Other
+                - cell "53.85" [ref=f3e637] [cursor=pointer]
+                - cell "0.00" [ref=f3e638] [cursor=pointer]
+                - cell "29.04" [ref=f3e639] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e640] [cursor=pointer]
+                - cell "85.43 %" [ref=f3e641] [cursor=pointer]
+              - row "✎ 402-000-000-00 53.85 0.00 29.04 0.00 % 85.43 % ✎ Otros Ingresos 53.85 0.00 29.04 0.00 % 85.43 %" [ref=f3e642]:
+                - cell "✎ 402-000-000-00" [ref=f3e643] [cursor=pointer]
+                - cell "53.85" [ref=f3e644] [cursor=pointer]
+                - cell "0.00" [ref=f3e645] [cursor=pointer]
+                - cell "29.04" [ref=f3e646] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e647] [cursor=pointer]
+                - cell "85.43 %" [ref=f3e648] [cursor=pointer]
+                - cell "✎ Otros Ingresos" [ref=f3e649] [cursor=pointer]
+                - cell "53.85" [ref=f3e650] [cursor=pointer]
+                - cell "0.00" [ref=f3e651] [cursor=pointer]
+                - cell "29.04" [ref=f3e652] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e653] [cursor=pointer]
+                - cell "85.43 %" [ref=f3e654] [cursor=pointer]
+              - row "✎ 410-000-000-00 0.00 0.00 0.00 0.00 % 0.00 % ✎ Utilidad Cambiaria 0.00 0.00 0.00 0.00 % 0.00 %" [ref=f3e655]:
+                - cell "✎ 410-000-000-00" [ref=f3e656] [cursor=pointer]
+                - cell "0.00" [ref=f3e657] [cursor=pointer]
+                - cell "0.00" [ref=f3e658] [cursor=pointer]
+                - cell "0.00" [ref=f3e659] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e660] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e661] [cursor=pointer]
+                - cell "✎ Utilidad Cambiaria" [ref=f3e662] [cursor=pointer]
+                - cell "0.00" [ref=f3e663] [cursor=pointer]
+                - cell "0.00" [ref=f3e664] [cursor=pointer]
+                - cell "0.00" [ref=f3e665] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e666] [cursor=pointer]
+                - cell "0.00 %" [ref=f3e667] [cursor=pointer]
+              - row "247,142.74 390,074.65 337,974.67 -36.64 % -26.88 % NET RESULTS 247,142.74 390,074.65 337,974.67 -36.64 % -26.88 %" [ref=f3e668]:
+                - cell [ref=f3e669] [cursor=pointer]
+                - cell "247,142.74" [ref=f3e670] [cursor=pointer]
+                - cell "390,074.65" [ref=f3e671] [cursor=pointer]
+                - cell "337,974.67" [ref=f3e672] [cursor=pointer]
+                - cell "-36.64 %" [ref=f3e673] [cursor=pointer]
+                - cell "-26.88 %" [ref=f3e674] [cursor=pointer]
+                - cell "NET RESULTS" [ref=f3e675] [cursor=pointer]
+                - cell "247,142.74" [ref=f3e676] [cursor=pointer]
+                - cell "390,074.65" [ref=f3e677] [cursor=pointer]
+                - cell "337,974.67" [ref=f3e678] [cursor=pointer]
+                - cell "-36.64 %" [ref=f3e679] [cursor=pointer]
+                - cell "-26.88 %" [ref=f3e680] [cursor=pointer]
+        - button " Descargas" [ref=f3e83] [cursor=pointer]:
+          - generic [ref=f3e84]: 
+          - text: Descargas
+        - text:     
+        - generic:
+          - button " Ver globos" [ref=f3e85] [cursor=pointer]:
+            - generic [ref=f3e86]: 
+            - text: Ver globos
+          - button " Comentarios" [ref=f3e87] [cursor=pointer]:
+            - generic [ref=f3e88]: 
+            - text: Comentarios
+        - button "Tour resumen" [ref=f3e89] [cursor=pointer]

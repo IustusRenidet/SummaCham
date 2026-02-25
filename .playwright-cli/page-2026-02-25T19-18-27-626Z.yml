@@ -1,0 +1,590 @@
+- generic [ref=e3]:
+  - complementary "Navegación principal" [ref=e4]:
+    - img "AmCham" [ref=e6]
+    - generic [ref=e7]:
+      - button "Resumen 1" [active] [ref=e9] [cursor=pointer]:
+        - generic [ref=e10]: Resumen
+        - generic [ref=e11]: "1"
+      - generic [ref=e16]:
+        - button "Divisiones 11" [expanded] [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: Divisiones
+          - generic [ref=e19]: "11"
+        - generic [ref=e20]:
+          - button "Presupuestos ppto" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: Presupuestos
+            - generic [ref=e23]: ppto
+          - button "Comités" [ref=e24] [cursor=pointer]:
+            - generic [ref=e25]: Comités
+          - button "Comunicación" [ref=e26] [cursor=pointer]:
+            - generic [ref=e27]: Comunicación
+          - button "Dirección" [ref=e167] [cursor=pointer]:
+            - generic [ref=e168]: Dirección
+          - button "Eventos" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: Eventos
+          - generic [ref=e30]:
+            - button "Finanzas 1" [expanded] [ref=e169] [cursor=pointer]:
+              - generic [ref=e32]: Finanzas
+              - generic [ref=e33]: "1"
+            - button "Gastos Generales finanzas" [ref=e38] [cursor=pointer]:
+              - generic [ref=e39]: Gastos Generales
+              - generic [ref=e40]: finanzas
+          - button "Gastos Corporativos" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: Gastos Corporativos
+          - button "Membresía" [ref=e46] [cursor=pointer]:
+            - generic [ref=e47]: Membresía
+          - button "Recursos Humanos" [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]: Recursos Humanos
+          - button "Servicios a la Membresía" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: Servicios a la Membresía
+          - button "T&IC" [ref=e52] [cursor=pointer]:
+            - generic [ref=e53]: T&IC
+      - generic [ref=e56]:
+        - button "Configuración 5" [expanded] [ref=e57] [cursor=pointer]:
+          - generic [ref=e58]: Configuración
+          - generic [ref=e59]: "5"
+        - generic [ref=e60]:
+          - button "Mi Perfil perfil" [ref=e61] [cursor=pointer]:
+            - generic [ref=e62]: Mi Perfil
+            - generic [ref=e63]: perfil
+          - button "Administrar usuarios Permisos" [ref=e64] [cursor=pointer]:
+            - generic [ref=e65]: Administrar usuarios
+            - generic [ref=e66]: Permisos
+          - button "Crear usuario" [ref=e67] [cursor=pointer]:
+            - generic [ref=e68]: Crear usuario
+          - button "Gestor de Plantillas" [ref=e69] [cursor=pointer]:
+            - generic [ref=e70]: Gestor de Plantillas
+          - button "Administrar conexiones" [ref=e71] [cursor=pointer]:
+            - generic [ref=e72]: Administrar conexiones
+  - main [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - button "Ocultar menú lateral" [expanded] [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]: ☰
+        - heading "Gastos Corporativos" [level=2] [ref=e170]
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - button "Tour guiado" [ref=e83] [cursor=pointer]
+          - button "Opciones" [ref=e84] [cursor=pointer]:
+            - generic [ref=e85]: Opciones
+        - button "Notificaciones" [ref=e87] [cursor=pointer]:
+          - img [ref=e88]
+        - generic [ref=e90]:
+          - generic [ref=e91]: "Empresa:"
+          - combobox "Empresa:" [ref=e92]:
+            - option "Ciudad de México"
+            - option "Guadalajara"
+            - option "Noreste"
+            - option "Noroeste" [selected]
+        - button "Cerrar sesión" [ref=e93] [cursor=pointer]
+    - iframe [ref=e171]:
+      - generic [active] [ref=f154e1]:
+        - generic [ref=f154e2]:
+          - generic [ref=f154e7]:
+            - generic [ref=f154e8]:
+              - heading "Gastos Corporativos" [level=1] [ref=f154e9]
+              - paragraph [ref=f154e10]: Ejercicio 2026 · Noroeste
+            - button "Ver flujo de autorización" [ref=f154e11] [cursor=pointer]:
+              - generic [ref=f154e12]: 
+          - generic [ref=f154e14]:
+            - generic [ref=f154e15]: Ejercicio
+            - combobox "Ejercicio" [ref=f154e16] [cursor=pointer]:
+              - option "2026" [selected]
+              - option "2025"
+              - option "2024"
+              - option "2023"
+              - option "2022"
+              - option "2021"
+              - option "2020"
+              - option "2019"
+              - option "2018"
+              - option "2017"
+          - generic [ref=f154e21]:
+            - generic [ref=f154e22]:
+              - generic [ref=f154e23] [cursor=pointer]: Redondear
+              - generic [ref=f154e24]:
+                - checkbox "Redondear"
+            - generic [ref=f154e26]:
+              - paragraph [ref=f154e27]: Estado del presupuesto
+              - generic [ref=f154e28]: Sin cargar
+              - paragraph
+            - group [ref=f154e29]:
+              - button " Cargar presupuesto" [ref=f154e30] [cursor=pointer]:
+                - generic [ref=f154e31]: 
+                - generic [ref=f154e32]: Cargar presupuesto
+              - text:     
+              - button " Centro de borradores" [ref=f154e33] [cursor=pointer]:
+                - generic [ref=f154e34]: 
+                - generic [ref=f154e35]: Centro de borradores
+              - text:  
+            - group [ref=f154e36]:
+              - button " Colapsar" [ref=f154e37] [cursor=pointer]:
+                - generic [ref=f154e38]: 
+                - text: Colapsar
+              - button " Expandir" [ref=f154e39] [cursor=pointer]:
+                - generic [ref=f154e40]: 
+                - text: Expandir
+          - generic [ref=f154e43]:
+            - textbox "Buscar cuenta o descripción..." [ref=f154e46] [cursor=pointer]
+            - button "Ocultar cuentas" [pressed] [ref=f154e47] [cursor=pointer]
+            - text: 
+            - button " Excel" [ref=f154e48] [cursor=pointer]:
+              - generic [ref=f154e49]: 
+              - text: Excel
+            - button " PDF" [ref=f154e50] [cursor=pointer]:
+              - generic [ref=f154e51]: 
+              - text: PDF
+          - table [ref=f154e56]:
+            - rowgroup [ref=f154e57]:
+              - row "CUENTA GASTOS CORPORATIVOS 2026 Presupuesto 2026 Ppto ENE-26 Real ENE-26 Ppto FEB-26 Ppto MAR-26 Ppto ABR-26 Ppto MAY-26 Ppto JUN-26 Ppto JUL-26 Ppto AGO-26 Ppto SEP-26 Ppto OCT-26 Ppto NOV-26 Ppto DIC-26 Ppto. Acumulado 2026 Real Acumulado 2026" [ref=f154e58]:
+                - columnheader "CUENTA" [ref=f154e59]
+                - columnheader "GASTOS CORPORATIVOS 2026" [ref=f154e60]
+                - columnheader "Presupuesto 2026" [ref=f154e61]
+                - columnheader "Ppto ENE-26" [ref=f154e62]
+                - columnheader "Real ENE-26" [ref=f154e63]
+                - columnheader "Ppto FEB-26" [ref=f154e64]
+                - columnheader "Ppto MAR-26" [ref=f154e65]
+                - columnheader "Ppto ABR-26" [ref=f154e66]
+                - columnheader "Ppto MAY-26" [ref=f154e67]
+                - columnheader "Ppto JUN-26" [ref=f154e68]
+                - columnheader "Ppto JUL-26" [ref=f154e69]
+                - columnheader "Ppto AGO-26" [ref=f154e70]
+                - columnheader "Ppto SEP-26" [ref=f154e71]
+                - columnheader "Ppto OCT-26" [ref=f154e72]
+                - columnheader "Ppto NOV-26" [ref=f154e73]
+                - columnheader "Ppto DIC-26" [ref=f154e74]
+                - columnheader "Ppto. Acumulado 2026" [ref=f154e75]
+                - columnheader "Real Acumulado 2026" [ref=f154e76]
+            - rowgroup [ref=f154e77]:
+              - row " Gastos Corporativos" [ref=f154e78]:
+                - cell " Gastos Corporativos" [ref=f154e79] [cursor=pointer]:
+                  - generic [ref=f154e80]: 
+                  - text: Gastos Corporativos
+              - row "903-002-000-00 Seguro Gtos Médicos Mayores 108,000.00 9,000.00 10,344.96 9,000.00 9,000.00 9,000.00 9,000.00 9,000.00 9,000.00 9,000.00 9,000.00 9,000.00 9,000.00 9,000.00 9,000.00 10,344.96" [ref=f154e81]:
+                - cell "903-002-000-00" [ref=f154e82]
+                - cell "Seguro Gtos Médicos Mayores" [ref=f154e83]
+                - cell "108,000.00" [ref=f154e84]
+                - cell "9,000.00" [ref=f154e85]
+                - cell "10,344.96" [ref=f154e86]
+                - cell "9,000.00" [ref=f154e87]
+                - cell "9,000.00" [ref=f154e88]
+                - cell "9,000.00" [ref=f154e89]
+                - cell "9,000.00" [ref=f154e90]
+                - cell "9,000.00" [ref=f154e91]
+                - cell "9,000.00" [ref=f154e92]
+                - cell "9,000.00" [ref=f154e93]
+                - cell "9,000.00" [ref=f154e94]
+                - cell "9,000.00" [ref=f154e95]
+                - cell "9,000.00" [ref=f154e96]
+                - cell "9,000.00" [ref=f154e97]
+                - cell "9,000.00" [ref=f154e98]
+                - cell "10,344.96" [ref=f154e99]
+              - row "903-003-000-00 Seguro de Vida 2,967.44 247.29 247.29 247.29 247.29 247.29 247.29 247.29 247.29 247.29 247.29 247.29 247.29 247.29 247.29 247.29" [ref=f154e100]:
+                - cell "903-003-000-00" [ref=f154e101]
+                - cell "Seguro de Vida" [ref=f154e102]
+                - cell "2,967.44" [ref=f154e103]
+                - cell "247.29" [ref=f154e104]
+                - cell "247.29" [ref=f154e105]
+                - cell "247.29" [ref=f154e106]
+                - cell "247.29" [ref=f154e107]
+                - cell "247.29" [ref=f154e108]
+                - cell "247.29" [ref=f154e109]
+                - cell "247.29" [ref=f154e110]
+                - cell "247.29" [ref=f154e111]
+                - cell "247.29" [ref=f154e112]
+                - cell "247.29" [ref=f154e113]
+                - cell "247.29" [ref=f154e114]
+                - cell "247.29" [ref=f154e115]
+                - cell "247.29" [ref=f154e116]
+                - cell "247.29" [ref=f154e117]
+                - cell "247.29" [ref=f154e118]
+              - row "903-004-000-00 Seguro Empresarial 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00" [ref=f154e119]:
+                - cell "903-004-000-00" [ref=f154e120]
+                - cell "Seguro Empresarial" [ref=f154e121]
+                - cell "0.00" [ref=f154e122]
+                - cell "0.00" [ref=f154e123]
+                - cell "0.00" [ref=f154e124]
+                - cell "0.00" [ref=f154e125]
+                - cell "0.00" [ref=f154e126]
+                - cell "0.00" [ref=f154e127]
+                - cell "0.00" [ref=f154e128]
+                - cell "0.00" [ref=f154e129]
+                - cell "0.00" [ref=f154e130]
+                - cell "0.00" [ref=f154e131]
+                - cell "0.00" [ref=f154e132]
+                - cell "0.00" [ref=f154e133]
+                - cell "0.00" [ref=f154e134]
+                - cell "0.00" [ref=f154e135]
+                - cell "0.00" [ref=f154e136]
+                - cell "0.00" [ref=f154e137]
+              - row "903-005-000-00 Seguro Gobierno Corporativo 2,968.00 247.33 0.00 247.33 247.33 247.33 247.33 247.33 247.33 247.33 247.33 247.33 247.33 247.33 247.33 0.00" [ref=f154e138]:
+                - cell "903-005-000-00" [ref=f154e139]
+                - cell "Seguro Gobierno Corporativo" [ref=f154e140]
+                - cell "2,968.00" [ref=f154e141]
+                - cell "247.33" [ref=f154e142]
+                - cell "0.00" [ref=f154e143]
+                - cell "247.33" [ref=f154e144]
+                - cell "247.33" [ref=f154e145]
+                - cell "247.33" [ref=f154e146]
+                - cell "247.33" [ref=f154e147]
+                - cell "247.33" [ref=f154e148]
+                - cell "247.33" [ref=f154e149]
+                - cell "247.33" [ref=f154e150]
+                - cell "247.33" [ref=f154e151]
+                - cell "247.33" [ref=f154e152]
+                - cell "247.33" [ref=f154e153]
+                - cell "247.33" [ref=f154e154]
+                - cell "247.33" [ref=f154e155]
+                - cell "0.00" [ref=f154e156]
+              - row "903-006-000-00 Programa de Asistencia (PAE)Empresarial 1,630.71 135.89 135.89 135.89 135.89 135.89 135.89 135.89 135.89 135.89 135.89 135.89 135.89 135.89 135.89 135.89" [ref=f154e157]:
+                - cell "903-006-000-00" [ref=f154e158]
+                - cell "Programa de Asistencia (PAE)Empresarial" [ref=f154e159]
+                - cell "1,630.71" [ref=f154e160]
+                - cell "135.89" [ref=f154e161]
+                - cell "135.89" [ref=f154e162]
+                - cell "135.89" [ref=f154e163]
+                - cell "135.89" [ref=f154e164]
+                - cell "135.89" [ref=f154e165]
+                - cell "135.89" [ref=f154e166]
+                - cell "135.89" [ref=f154e167]
+                - cell "135.89" [ref=f154e168]
+                - cell "135.89" [ref=f154e169]
+                - cell "135.89" [ref=f154e170]
+                - cell "135.89" [ref=f154e171]
+                - cell "135.89" [ref=f154e172]
+                - cell "135.89" [ref=f154e173]
+                - cell "135.89" [ref=f154e174]
+                - cell "135.89" [ref=f154e175]
+              - row "903-007-000-00 Dominios 81.68 6.81 6.42 6.81 6.81 6.81 6.81 6.81 6.81 6.81 6.81 6.81 6.81 6.81 6.81 6.42" [ref=f154e176]:
+                - cell "903-007-000-00" [ref=f154e177]
+                - cell "Dominios" [ref=f154e178]
+                - cell "81.68" [ref=f154e179]
+                - cell "6.81" [ref=f154e180]
+                - cell "6.42" [ref=f154e181]
+                - cell "6.81" [ref=f154e182]
+                - cell "6.81" [ref=f154e183]
+                - cell "6.81" [ref=f154e184]
+                - cell "6.81" [ref=f154e185]
+                - cell "6.81" [ref=f154e186]
+                - cell "6.81" [ref=f154e187]
+                - cell "6.81" [ref=f154e188]
+                - cell "6.81" [ref=f154e189]
+                - cell "6.81" [ref=f154e190]
+                - cell "6.81" [ref=f154e191]
+                - cell "6.81" [ref=f154e192]
+                - cell "6.81" [ref=f154e193]
+                - cell "6.42" [ref=f154e194]
+              - row "903-008-000-00 CRM 19,153.78 1,596.15 1,505.80 1,596.15 1,596.15 1,596.15 1,596.15 1,596.15 1,596.15 1,596.15 1,596.15 1,596.15 1,596.15 1,596.15 1,596.15 1,505.80" [ref=f154e195]:
+                - cell "903-008-000-00" [ref=f154e196]
+                - cell "CRM" [ref=f154e197]
+                - cell "19,153.78" [ref=f154e198]
+                - cell "1,596.15" [ref=f154e199]
+                - cell "1,505.80" [ref=f154e200]
+                - cell "1,596.15" [ref=f154e201]
+                - cell "1,596.15" [ref=f154e202]
+                - cell "1,596.15" [ref=f154e203]
+                - cell "1,596.15" [ref=f154e204]
+                - cell "1,596.15" [ref=f154e205]
+                - cell "1,596.15" [ref=f154e206]
+                - cell "1,596.15" [ref=f154e207]
+                - cell "1,596.15" [ref=f154e208]
+                - cell "1,596.15" [ref=f154e209]
+                - cell "1,596.15" [ref=f154e210]
+                - cell "1,596.15" [ref=f154e211]
+                - cell "1,596.15" [ref=f154e212]
+                - cell "1,505.80" [ref=f154e213]
+              - row "903-009-000-00 Servicios de Telecomunicaciones 31,189.44 2,599.12 2,452.00 2,599.12 2,599.12 2,599.12 2,599.12 2,599.12 2,599.12 2,599.12 2,599.12 2,599.12 2,599.12 2,599.12 2,599.12 2,452.00" [ref=f154e214]:
+                - cell "903-009-000-00" [ref=f154e215]
+                - cell "Servicios de Telecomunicaciones" [ref=f154e216]
+                - cell "31,189.44" [ref=f154e217]
+                - cell "2,599.12" [ref=f154e218]
+                - cell "2,452.00" [ref=f154e219]
+                - cell "2,599.12" [ref=f154e220]
+                - cell "2,599.12" [ref=f154e221]
+                - cell "2,599.12" [ref=f154e222]
+                - cell "2,599.12" [ref=f154e223]
+                - cell "2,599.12" [ref=f154e224]
+                - cell "2,599.12" [ref=f154e225]
+                - cell "2,599.12" [ref=f154e226]
+                - cell "2,599.12" [ref=f154e227]
+                - cell "2,599.12" [ref=f154e228]
+                - cell "2,599.12" [ref=f154e229]
+                - cell "2,599.12" [ref=f154e230]
+                - cell "2,599.12" [ref=f154e231]
+                - cell "2,452.00" [ref=f154e232]
+              - row "903-010-000-00 Licencias Generales 29,011.62 2,417.63 1,722.49 2,417.63 2,417.63 2,417.63 2,417.63 2,417.63 2,417.63 2,417.63 2,417.63 2,417.63 2,417.63 2,417.63 2,417.63 1,722.49" [ref=f154e233]:
+                - cell "903-010-000-00" [ref=f154e234]
+                - cell "Licencias Generales" [ref=f154e235]
+                - cell "29,011.62" [ref=f154e236]
+                - cell "2,417.63" [ref=f154e237]
+                - cell "1,722.49" [ref=f154e238]
+                - cell "2,417.63" [ref=f154e239]
+                - cell "2,417.63" [ref=f154e240]
+                - cell "2,417.63" [ref=f154e241]
+                - cell "2,417.63" [ref=f154e242]
+                - cell "2,417.63" [ref=f154e243]
+                - cell "2,417.63" [ref=f154e244]
+                - cell "2,417.63" [ref=f154e245]
+                - cell "2,417.63" [ref=f154e246]
+                - cell "2,417.63" [ref=f154e247]
+                - cell "2,417.63" [ref=f154e248]
+                - cell "2,417.63" [ref=f154e249]
+                - cell "2,417.63" [ref=f154e250]
+                - cell "1,722.49" [ref=f154e251]
+              - row "903-011-000-00 Licencias Correos Corporativos 16,939.22 1,411.60 1,331.70 1,411.60 1,411.60 1,411.60 1,411.60 1,411.60 1,411.60 1,411.60 1,411.60 1,411.60 1,411.60 1,411.60 1,411.60 1,331.70" [ref=f154e252]:
+                - cell "903-011-000-00" [ref=f154e253]
+                - cell "Licencias Correos Corporativos" [ref=f154e254]
+                - cell "16,939.22" [ref=f154e255]
+                - cell "1,411.60" [ref=f154e256]
+                - cell "1,331.70" [ref=f154e257]
+                - cell "1,411.60" [ref=f154e258]
+                - cell "1,411.60" [ref=f154e259]
+                - cell "1,411.60" [ref=f154e260]
+                - cell "1,411.60" [ref=f154e261]
+                - cell "1,411.60" [ref=f154e262]
+                - cell "1,411.60" [ref=f154e263]
+                - cell "1,411.60" [ref=f154e264]
+                - cell "1,411.60" [ref=f154e265]
+                - cell "1,411.60" [ref=f154e266]
+                - cell "1,411.60" [ref=f154e267]
+                - cell "1,411.60" [ref=f154e268]
+                - cell "1,411.60" [ref=f154e269]
+                - cell "1,331.70" [ref=f154e270]
+              - row "903-012-000-00 Estudio Actuarial 1,053.72 87.81 86.98 87.81 87.81 87.81 87.81 87.81 87.81 87.81 87.81 87.81 87.81 87.81 87.81 86.98" [ref=f154e271]:
+                - cell "903-012-000-00" [ref=f154e272]
+                - cell "Estudio Actuarial" [ref=f154e273]
+                - cell "1,053.72" [ref=f154e274]
+                - cell "87.81" [ref=f154e275]
+                - cell "86.98" [ref=f154e276]
+                - cell "87.81" [ref=f154e277]
+                - cell "87.81" [ref=f154e278]
+                - cell "87.81" [ref=f154e279]
+                - cell "87.81" [ref=f154e280]
+                - cell "87.81" [ref=f154e281]
+                - cell "87.81" [ref=f154e282]
+                - cell "87.81" [ref=f154e283]
+                - cell "87.81" [ref=f154e284]
+                - cell "87.81" [ref=f154e285]
+                - cell "87.81" [ref=f154e286]
+                - cell "87.81" [ref=f154e287]
+                - cell "87.81" [ref=f154e288]
+                - cell "86.98" [ref=f154e289]
+              - row "903-013-000-00 Gastos Notariales 524.57 43.71 43.71 43.71 43.71 43.71 43.71 43.71 43.71 43.71 43.71 43.71 43.71 43.71 43.71 43.71" [ref=f154e290]:
+                - cell "903-013-000-00" [ref=f154e291]
+                - cell "Gastos Notariales" [ref=f154e292]
+                - cell "524.57" [ref=f154e293]
+                - cell "43.71" [ref=f154e294]
+                - cell "43.71" [ref=f154e295]
+                - cell "43.71" [ref=f154e296]
+                - cell "43.71" [ref=f154e297]
+                - cell "43.71" [ref=f154e298]
+                - cell "43.71" [ref=f154e299]
+                - cell "43.71" [ref=f154e300]
+                - cell "43.71" [ref=f154e301]
+                - cell "43.71" [ref=f154e302]
+                - cell "43.71" [ref=f154e303]
+                - cell "43.71" [ref=f154e304]
+                - cell "43.71" [ref=f154e305]
+                - cell "43.71" [ref=f154e306]
+                - cell "43.71" [ref=f154e307]
+                - cell "43.71" [ref=f154e308]
+              - row "903-014-000-00 Auditorías Externas 21,201.70 1,766.81 1,766.81 1,766.81 1,766.81 1,766.81 1,766.81 1,766.81 1,766.81 1,766.81 1,766.81 1,766.81 1,766.81 1,766.81 1,766.81 1,766.81" [ref=f154e309]:
+                - cell "903-014-000-00" [ref=f154e310]
+                - cell "Auditorías Externas" [ref=f154e311]
+                - cell "21,201.70" [ref=f154e312]
+                - cell "1,766.81" [ref=f154e313]
+                - cell "1,766.81" [ref=f154e314]
+                - cell "1,766.81" [ref=f154e315]
+                - cell "1,766.81" [ref=f154e316]
+                - cell "1,766.81" [ref=f154e317]
+                - cell "1,766.81" [ref=f154e318]
+                - cell "1,766.81" [ref=f154e319]
+                - cell "1,766.81" [ref=f154e320]
+                - cell "1,766.81" [ref=f154e321]
+                - cell "1,766.81" [ref=f154e322]
+                - cell "1,766.81" [ref=f154e323]
+                - cell "1,766.81" [ref=f154e324]
+                - cell "1,766.81" [ref=f154e325]
+                - cell "1,766.81" [ref=f154e326]
+                - cell "1,766.81" [ref=f154e327]
+              - row "903-015-000-00 Registro de Marcas 2,068.78 172.40 172.40 172.40 172.40 172.40 172.40 172.40 172.40 172.40 172.40 172.40 172.40 172.40 172.40 172.40" [ref=f154e328]:
+                - cell "903-015-000-00" [ref=f154e329]
+                - cell "Registro de Marcas" [ref=f154e330]
+                - cell "2,068.78" [ref=f154e331]
+                - cell "172.40" [ref=f154e332]
+                - cell "172.40" [ref=f154e333]
+                - cell "172.40" [ref=f154e334]
+                - cell "172.40" [ref=f154e335]
+                - cell "172.40" [ref=f154e336]
+                - cell "172.40" [ref=f154e337]
+                - cell "172.40" [ref=f154e338]
+                - cell "172.40" [ref=f154e339]
+                - cell "172.40" [ref=f154e340]
+                - cell "172.40" [ref=f154e341]
+                - cell "172.40" [ref=f154e342]
+                - cell "172.40" [ref=f154e343]
+                - cell "172.40" [ref=f154e344]
+                - cell "172.40" [ref=f154e345]
+                - cell "172.40" [ref=f154e346]
+              - row "903-016-000-00 Membresía AACCLA 16,322.50 1,360.21 1,394.70 1,360.21 1,360.21 1,360.21 1,360.21 1,360.21 1,360.21 1,360.21 1,360.21 1,360.21 1,360.21 1,360.21 1,360.21 1,394.70" [ref=f154e347]:
+                - cell "903-016-000-00" [ref=f154e348]
+                - cell "Membresía AACCLA" [ref=f154e349]
+                - cell "16,322.50" [ref=f154e350]
+                - cell "1,360.21" [ref=f154e351]
+                - cell "1,394.70" [ref=f154e352]
+                - cell "1,360.21" [ref=f154e353]
+                - cell "1,360.21" [ref=f154e354]
+                - cell "1,360.21" [ref=f154e355]
+                - cell "1,360.21" [ref=f154e356]
+                - cell "1,360.21" [ref=f154e357]
+                - cell "1,360.21" [ref=f154e358]
+                - cell "1,360.21" [ref=f154e359]
+                - cell "1,360.21" [ref=f154e360]
+                - cell "1,360.21" [ref=f154e361]
+                - cell "1,360.21" [ref=f154e362]
+                - cell "1,360.21" [ref=f154e363]
+                - cell "1,360.21" [ref=f154e364]
+                - cell "1,394.70" [ref=f154e365]
+              - row "903-017-000-00 T&IC Licencias 39,724.71 3,310.39 1,912.41 3,310.39 3,310.39 3,310.39 3,310.39 3,310.39 3,310.39 3,310.39 3,310.39 3,310.39 3,310.39 3,310.39 3,310.39 1,912.41" [ref=f154e366]:
+                - cell "903-017-000-00" [ref=f154e367]
+                - cell "T&IC Licencias" [ref=f154e368]
+                - cell "39,724.71" [ref=f154e369]
+                - cell "3,310.39" [ref=f154e370]
+                - cell "1,912.41" [ref=f154e371]
+                - cell "3,310.39" [ref=f154e372]
+                - cell "3,310.39" [ref=f154e373]
+                - cell "3,310.39" [ref=f154e374]
+                - cell "3,310.39" [ref=f154e375]
+                - cell "3,310.39" [ref=f154e376]
+                - cell "3,310.39" [ref=f154e377]
+                - cell "3,310.39" [ref=f154e378]
+                - cell "3,310.39" [ref=f154e379]
+                - cell "3,310.39" [ref=f154e380]
+                - cell "3,310.39" [ref=f154e381]
+                - cell "3,310.39" [ref=f154e382]
+                - cell "3,310.39" [ref=f154e383]
+                - cell "1,912.41" [ref=f154e384]
+              - row "903-018-000-00 LinkedIn Herramienta 5,248.92 437.41 535.68 437.41 437.41 437.41 437.41 437.41 437.41 437.41 437.41 437.41 437.41 437.41 437.41 535.68" [ref=f154e385]:
+                - cell "903-018-000-00" [ref=f154e386]
+                - cell "LinkedIn Herramienta" [ref=f154e387]
+                - cell "5,248.92" [ref=f154e388]
+                - cell "437.41" [ref=f154e389]
+                - cell "535.68" [ref=f154e390]
+                - cell "437.41" [ref=f154e391]
+                - cell "437.41" [ref=f154e392]
+                - cell "437.41" [ref=f154e393]
+                - cell "437.41" [ref=f154e394]
+                - cell "437.41" [ref=f154e395]
+                - cell "437.41" [ref=f154e396]
+                - cell "437.41" [ref=f154e397]
+                - cell "437.41" [ref=f154e398]
+                - cell "437.41" [ref=f154e399]
+                - cell "437.41" [ref=f154e400]
+                - cell "437.41" [ref=f154e401]
+                - cell "437.41" [ref=f154e402]
+                - cell "535.68" [ref=f154e403]
+              - row "903-019-000-00 Zoom Herramienta 2,802.27 233.52 216.84 233.52 233.52 233.52 233.52 233.52 233.52 233.52 233.52 233.52 233.52 233.52 233.52 216.84" [ref=f154e404]:
+                - cell "903-019-000-00" [ref=f154e405]
+                - cell "Zoom Herramienta" [ref=f154e406]
+                - cell "2,802.27" [ref=f154e407]
+                - cell "233.52" [ref=f154e408]
+                - cell "216.84" [ref=f154e409]
+                - cell "233.52" [ref=f154e410]
+                - cell "233.52" [ref=f154e411]
+                - cell "233.52" [ref=f154e412]
+                - cell "233.52" [ref=f154e413]
+                - cell "233.52" [ref=f154e414]
+                - cell "233.52" [ref=f154e415]
+                - cell "233.52" [ref=f154e416]
+                - cell "233.52" [ref=f154e417]
+                - cell "233.52" [ref=f154e418]
+                - cell "233.52" [ref=f154e419]
+                - cell "233.52" [ref=f154e420]
+                - cell "233.52" [ref=f154e421]
+                - cell "216.84" [ref=f154e422]
+              - row "903-020-000-00 NarwhalHub Herramienta 30,644.31 2,553.69 0.00 2,553.69 2,553.69 2,553.69 2,553.69 2,553.69 2,553.69 2,553.69 2,553.69 2,553.69 2,553.69 2,553.69 2,553.69 0.00" [ref=f154e423]:
+                - cell "903-020-000-00" [ref=f154e424]
+                - cell "NarwhalHub Herramienta" [ref=f154e425]
+                - cell "30,644.31" [ref=f154e426]
+                - cell "2,553.69" [ref=f154e427]
+                - cell "0.00" [ref=f154e428]
+                - cell "2,553.69" [ref=f154e429]
+                - cell "2,553.69" [ref=f154e430]
+                - cell "2,553.69" [ref=f154e431]
+                - cell "2,553.69" [ref=f154e432]
+                - cell "2,553.69" [ref=f154e433]
+                - cell "2,553.69" [ref=f154e434]
+                - cell "2,553.69" [ref=f154e435]
+                - cell "2,553.69" [ref=f154e436]
+                - cell "2,553.69" [ref=f154e437]
+                - cell "2,553.69" [ref=f154e438]
+                - cell "2,553.69" [ref=f154e439]
+                - cell "2,553.69" [ref=f154e440]
+                - cell "0.00" [ref=f154e441]
+              - row "903-021-000-00 Posicionamiento 36,124.80 3,010.40 2,464.68 3,010.40 3,010.40 3,010.40 3,010.40 3,010.40 3,010.40 3,010.40 3,010.40 3,010.40 3,010.40 3,010.40 3,010.40 2,464.68" [ref=f154e442]:
+                - cell "903-021-000-00" [ref=f154e443]
+                - cell "Posicionamiento" [ref=f154e444]
+                - cell "36,124.80" [ref=f154e445]
+                - cell "3,010.40" [ref=f154e446]
+                - cell "2,464.68" [ref=f154e447]
+                - cell "3,010.40" [ref=f154e448]
+                - cell "3,010.40" [ref=f154e449]
+                - cell "3,010.40" [ref=f154e450]
+                - cell "3,010.40" [ref=f154e451]
+                - cell "3,010.40" [ref=f154e452]
+                - cell "3,010.40" [ref=f154e453]
+                - cell "3,010.40" [ref=f154e454]
+                - cell "3,010.40" [ref=f154e455]
+                - cell "3,010.40" [ref=f154e456]
+                - cell "3,010.40" [ref=f154e457]
+                - cell "3,010.40" [ref=f154e458]
+                - cell "3,010.40" [ref=f154e459]
+                - cell "2,464.68" [ref=f154e460]
+              - row "903-001-000-00 Sueldos y Salarios VPE/Nacionales 1,012,799.17 84,399.93 84,399.94 84,399.93 84,399.93 84,399.93 84,399.93 84,399.93 84,399.93 84,399.93 84,399.93 84,399.93 84,399.93 84,399.93 84,399.93 84,399.94" [ref=f154e461]:
+                - cell "903-001-000-00" [ref=f154e462]
+                - cell "Sueldos y Salarios VPE/Nacionales" [ref=f154e463]
+                - cell "1,012,799.17" [ref=f154e464]
+                - cell "84,399.93" [ref=f154e465]
+                - cell "84,399.94" [ref=f154e466]
+                - cell "84,399.93" [ref=f154e467]
+                - cell "84,399.93" [ref=f154e468]
+                - cell "84,399.93" [ref=f154e469]
+                - cell "84,399.93" [ref=f154e470]
+                - cell "84,399.93" [ref=f154e471]
+                - cell "84,399.93" [ref=f154e472]
+                - cell "84,399.93" [ref=f154e473]
+                - cell "84,399.93" [ref=f154e474]
+                - cell "84,399.93" [ref=f154e475]
+                - cell "84,399.93" [ref=f154e476]
+                - cell "84,399.93" [ref=f154e477]
+                - cell "84,399.93" [ref=f154e478]
+                - cell "84,399.94" [ref=f154e479]
+              - row "Suma Gastos Corporativos 2,760,914.68 230,076.20 221,481.40 230,076.20 230,076.20 230,076.20 230,076.20 230,076.20 230,076.20 230,076.20 230,076.20 230,076.20 230,076.20 230,076.20 230,076.20 221,481.40" [ref=f154e480]:
+                - cell [ref=f154e481]
+                - cell "Suma Gastos Corporativos" [ref=f154e482]
+                - cell "2,760,914.68" [ref=f154e483]
+                - cell "230,076.20" [ref=f154e484]
+                - cell "221,481.40" [ref=f154e485]
+                - cell "230,076.20" [ref=f154e486]
+                - cell "230,076.20" [ref=f154e487]
+                - cell "230,076.20" [ref=f154e488]
+                - cell "230,076.20" [ref=f154e489]
+                - cell "230,076.20" [ref=f154e490]
+                - cell "230,076.20" [ref=f154e491]
+                - cell "230,076.20" [ref=f154e492]
+                - cell "230,076.20" [ref=f154e493]
+                - cell "230,076.20" [ref=f154e494]
+                - cell "230,076.20" [ref=f154e495]
+                - cell "230,076.20" [ref=f154e496]
+                - cell "230,076.20" [ref=f154e497]
+                - cell "221,481.40" [ref=f154e498]
+        - text:     
+        - generic:
+          - button " Ver globos" [ref=f154e500] [cursor=pointer]:
+            - generic [ref=f154e501]: 
+            - text: Ver globos
+          - button " Comentarios" [ref=f154e502] [cursor=pointer]:
+            - generic [ref=f154e503]: 
+            - text: Comentarios
+        - button " Descargas" [ref=f154e504] [cursor=pointer]:
+          - generic [ref=f154e505]: 
+          - text: Descargas

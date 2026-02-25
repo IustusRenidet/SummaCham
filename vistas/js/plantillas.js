@@ -2194,9 +2194,11 @@
 
       ensureAccountIds(state.cuentas);
       state.operaciones = sortOperations(state.layout.operaciones || []);
+      ensureOperationRowIds(state.operaciones);
       if (isModuloPiloto()) {
         const extracted = extractColumnConfigFromOperations(state.operaciones);
         state.operaciones = extracted.operaciones;
+        ensureOperationRowIds(state.operaciones);
         state.columnasConfig =
           Array.isArray(extracted.columnasConfig) &&
             extracted.columnasConfig.length
@@ -2398,6 +2400,40 @@
 
   function getAccountRowId(cuenta) {
     return assignAccountRowId(cuenta);
+  }
+
+  let operationRowIdSeed = 0;
+  function buildOperationRowId() {
+    operationRowIdSeed += 1;
+    return `op_${Date.now().toString(36)}_${operationRowIdSeed}`;
+  }
+
+  function assignOperationRowId(op) {
+    if (!op) return "";
+    const existing =
+      op.__opRowId || op.__layoutOpRowId || op.__operationRowId || op._opRowId || "";
+    const id = existing || buildOperationRowId();
+    if (!op.__opRowId) {
+      try {
+        Object.defineProperty(op, "__opRowId", {
+          value: id,
+          writable: false,
+          enumerable: false,
+        });
+      } catch {
+        op.__opRowId = id;
+      }
+    }
+    return op.__opRowId || id;
+  }
+
+  function ensureOperationRowIds(operations = state.operaciones) {
+    if (!Array.isArray(operations)) return;
+    operations.forEach((op) => assignOperationRowId(op));
+  }
+
+  function getOperationRowId(op) {
+    return assignOperationRowId(op);
   }
 
   function resolveAccountByIdOrCode(idOrCode) {
@@ -3446,6 +3482,7 @@
     ensureAccountIds(state.cuentas);
     dom.layoutPreview.innerHTML = renderEditableLayout();
     bindLayoutEvents();
+    window.DragDropReorder?.reinitAfterRender?.();
     window.updateAvailableElementsFromTable?.("#layoutPreview");
     updateSelectionInfo();
     updateLayoutOrderPanel();
@@ -3865,6 +3902,7 @@
         type: "operation",
         label,
         opId,
+        opRefId: getOperationRowId(op),
         kind: detectOperationType(op),
         parentSection: principal || "",
         parentSubsection: secundaria || "",
@@ -7091,17 +7129,17 @@
 
   function moveTemplateRowOrderToIndex(rowIndex, targetIndex) {
     const rows = getTemplateRowsForReorder();
-    if (!rows.length) return;
+    if (!rows.length) return false;
     const currentIndex = Number(rowIndex);
-    if (!Number.isInteger(currentIndex)) return;
-    if (currentIndex < 0 || currentIndex >= rows.length) return;
+    if (!Number.isInteger(currentIndex)) return false;
+    if (currentIndex < 0 || currentIndex >= rows.length) return false;
 
     const rawTarget = Number(targetIndex);
-    if (!Number.isFinite(rawTarget)) return;
+    if (!Number.isFinite(rawTarget)) return false;
     let desired = Math.floor(rawTarget);
     if (desired < 0) desired = 0;
     if (desired >= rows.length) desired = rows.length - 1;
-    if (desired === currentIndex) return;
+    if (desired === currentIndex) return false;
 
     const resolveRowLevel = (row = {}) => {
       const type = row?.type || "";
@@ -7222,7 +7260,8 @@
 
     const reordered = remaining.slice();
     reordered.splice(insertAt, 0, ...block);
-    applyTemplateRowsOrder(reordered, { silent: false });
+    const result = applyTemplateRowsOrder(reordered, { silent: false });
+    return Boolean(result?.success);
   }
 
   function moveSectionOrder(sectionName, direction) {
@@ -7502,6 +7541,16 @@
   }
 
   function findOperationsForOrderedRow(row = {}) {
+    const refId = (row.opRefId || row.operationRefId || "")
+      .toString()
+      .trim();
+    if (refId) {
+      const byRef = (state.operaciones || []).find(
+        (op) => getOperationRowId(op) === refId,
+      );
+      if (byRef) return [byRef];
+    }
+
     const idCandidates = [row.opId, row.operationId]
       .map((value) => (value || "").toString().trim())
       .filter(Boolean);
@@ -7892,19 +7941,35 @@
       }
     });
 
-    (state.cuentas || []).forEach((cuenta, idx) => {
+    let tailAccountOrder = cursor;
+    (state.cuentas || []).forEach((cuenta) => {
       const accountId = getAccountRowId(cuenta);
       if (touchedAccounts.has(accountId)) return;
-      const fallbackOrder = cursor + idx;
-      cuenta.orden_presentacion = fallbackOrder;
-      cuenta.orden = fallbackOrder;
+      const existingOrder =
+        cuenta?.orden_presentacion == null ||
+          (typeof cuenta?.orden_presentacion === "string" &&
+            cuenta.orden_presentacion.trim() === "")
+          ? Number(cuenta?.orden)
+          : Number(cuenta.orden_presentacion);
+      if (Number.isFinite(existingOrder)) return;
+      cuenta.orden_presentacion = tailAccountOrder;
+      cuenta.orden = tailAccountOrder;
+      tailAccountOrder += 1;
     });
 
-    (state.operaciones || []).forEach((op, idx) => {
+    let tailOperationOrder = tailAccountOrder;
+    (state.operaciones || []).forEach((op) => {
       if (touchedOperations.has(op)) return;
-      const fallbackOrder = cursor + idx;
-      op.orden_presentacion = fallbackOrder;
-      op.orden = fallbackOrder;
+      const existingOrder =
+        op?.orden_presentacion == null ||
+          (typeof op?.orden_presentacion === "string" &&
+            op.orden_presentacion.trim() === "")
+          ? Number(op?.orden)
+          : Number(op.orden_presentacion);
+      if (Number.isFinite(existingOrder)) return;
+      op.orden_presentacion = tailOperationOrder;
+      op.orden = tailOperationOrder;
+      tailOperationOrder += 1;
     });
 
     state.cuentas = sortAccountsByOrder(state.cuentas || []);
@@ -8009,6 +8074,9 @@
 
       Object.keys(sanitized).forEach((key) => {
         if (/^operacion_\d+$/i.test(key)) {
+          delete sanitized[key];
+        }
+        if (key.startsWith("__") || key === "_opRowId") {
           delete sanitized[key];
         }
       });
@@ -14446,6 +14514,7 @@
   window.moveSubsectionOrder = moveSubsectionOrder;
   window.moveAccountOrder = moveAccountOrder;
   window.moveOperationOrder = moveOperationOrder;
+  window.moveTemplateRowOrderToIndex = moveTemplateRowOrderToIndex;
   window.getTemplateRowsForReorder = getTemplateRowsForReorder;
   window.applyTemplateRowsOrder = applyTemplateRowsOrder;
   window.editRowOperation = editRowOperation;

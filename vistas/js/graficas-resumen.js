@@ -3799,7 +3799,7 @@
           responsive: false,
           maintainAspectRatio: false,
           plugins: {
-            legend: { display: true, position: 'bottom' },
+            legend: { display: true, position: 'right', labels: { font: { size: 11 }, padding: 8, boxWidth: 12 } },
             title: { display: false },
           },
           scales: isPie

@@ -1386,6 +1386,9 @@
         },
         credentials: "include",
       });
+      if (response.status === 404) {
+        return { status: "missing", error: "Export job no encontrado." };
+      }
       if (!response.ok) return null;
       const payload = await response.json();
       return payload?.job || null;
@@ -1418,6 +1421,17 @@
       this._pendingJobsInProgress.add(id);
       try {
         const status = await this._consultarTrabajoExport(id);
+        if (status?.status === "missing") {
+          this._actualizarTrabajoPendiente(id, {
+            status: "failed",
+            progress: 100,
+            message: "Trabajo de exportación no encontrado",
+            error:
+              "El trabajo de exportación expiró o fue eliminado del servidor.",
+            pollFailures: Number(job?.pollFailures) || 0,
+          });
+          return;
+        }
         if (!status) {
           const pollFailures = (Number(job?.pollFailures) || 0) + 1;
           if (pollFailures >= 5) {

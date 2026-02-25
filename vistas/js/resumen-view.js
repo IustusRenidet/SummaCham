@@ -3092,8 +3092,14 @@
 
   const recalcularPrevLayoutDesdeCuentas = (layoutArr = []) => {
     if (!Array.isArray(layoutArr) || !layoutArr.length) return;
-    // Modo estricto: no arrastrar comparativo automáticamente de cuentas hacia
-    // subsecciones/principales. Esos renglones solo deben llenarse por fórmula explícita.
+    // Esta ruta corre durante carga de comparativo (antes de render) y no debe
+    // depender de helpers declarados en scopes posteriores.
+    if (typeof recalcularPrevDesdeHijos === "function") {
+      recalcularPrevDesdeHijos(layoutArr);
+    }
+    if (typeof recalcularOperacionesPrevComparativo === "function") {
+      recalcularOperacionesPrevComparativo(layoutArr);
+    }
   };
 
   const indexarComparativoCapitulo = (capitulo = {}) => {
@@ -5424,7 +5430,7 @@
     // hay comparativa activa, sin tocar actualMonth/planMonth ni el resultado de fórmulas.
     // Esto corrige que los principales con manualFormula:true (sin fórmula string) conservaban
     // el prevMonth del año anterior en lugar del valor de la empresa comparativa.
-    const recalcularPrevDesdeHijos = (layoutArr = []) => {
+    function recalcularPrevDesdeHijos(layoutArr = []) {
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
 
       const buildSecKeyLocal = (parentSection = "", subsectionLabel = "") => {
@@ -5554,21 +5560,9 @@
         });
       });
 
-      // Construir contextMap actualizado (con prevMonth de comparativa ya en subsecciones)
-      // para re-evaluar fórmulas de principales que las tengan.
-      const ctxMapPrev = new Map();
-      const addToCtxPrev = (k, v) => addContextReference(ctxMapPrev, k, v);
-      layoutArr.forEach((b) => {
-        if (!b) return;
-        if (b.label) addToCtxPrev(b.label, b);
-        if (b.nombre) addToCtxPrev(b.nombre, b);
-        if (b.id) addToCtxPrev(b.id, b);
-        if (b.Clase) addToCtxPrev(b.Clase, b);
-        if (b.clase) addToCtxPrev(b.clase, b);
-        if (b.subseccion) addToCtxPrev(b.subseccion, b);
-        if (b.parentSection) addToCtxPrev(b.parentSection, b);
-        if (b.parentSubsection) addToCtxPrev(b.parentSubsection, b);
-      });
+      // Reusar el mismo constructor de contexto que en recalcularPrincipales para
+      // mantener paridad total de resolución (incluye aliases de cuenta).
+      const ctxMapPrev = construirContextMapLayout(layoutArr);
 
       // PASO B: subsections → principals (sólo prevMonth/prevYTD)
       // Para principales con fórmula string: re-evaluar la fórmula con los prevMonth ya
@@ -5593,7 +5587,9 @@
           block.totals.prevYTD = calculateFormulaValue(fStr, ctxMapPrev, "prevYTD", block);
           return;
         }
-        principalPrevAcc.set(block.label, { prevMonth: 0, prevYTD: 0, block });
+        const principalKey = normalizarLabel(block.label || "");
+        if (!principalKey) return;
+        principalPrevAcc.set(principalKey, { prevMonth: 0, prevYTD: 0, block });
       });
       layoutArr.forEach((block) => {
         const tipo = (block.type || block.tipo || "").toLowerCase();
@@ -5614,7 +5610,7 @@
       layoutArr.forEach((block) => {
         const tipo = (block.type || block.tipo || "").toLowerCase();
         if (!isSecundariaTipo(tipo)) return;
-        const parent = block.parentSection || "";
+        const parent = normalizarLabel(block.parentSection || "");
         const entry = principalPrevAcc.get(parent);
         if (!entry) return;
         const secKey = buildSecKeyLocal(parent || "", block.label || "");
@@ -5637,7 +5633,7 @@
       layoutArr.forEach((block) => {
         const tipo = (block.type || block.tipo || "").toLowerCase();
         if (!isCuentaTipo(tipo)) return;
-        const parent = (block.parentSection || "").toString().trim();
+        const parent = normalizarLabel((block.parentSection || "").toString().trim());
         if (!parent) return;
         const entry = principalPrevAcc.get(parent);
         if (!entry) return;
@@ -5658,7 +5654,7 @@
         block.totals.prevMonth = prevMonth;
         block.totals.prevYTD = prevYTD;
       });
-    };
+    }
 
     // Re-evalúa prevMonth/prevYTD de operaciones con fórmula usando los valores de
     // secciones ya actualizados por recalcularPrincipales (que incorpora datos del
@@ -5666,20 +5662,8 @@
     // del backend usa totalPrevMonth de SQL que puede diferir del comparativo.
     const recalcularOperacionesPrevComparativo = (layoutArr = []) => {
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
-      // Construir contextMap con los valores actuales (post-recalcularPrincipales)
-      const ctxMap = new Map();
-      const addToCtx = (k, v) => addContextReference(ctxMap, k, v);
-      layoutArr.forEach((b) => {
-        if (!b) return;
-        if (b.label) addToCtx(b.label, b);
-        if (b.nombre) addToCtx(b.nombre, b);
-        if (b.id) addToCtx(b.id, b);
-        if (b.Clase) addToCtx(b.Clase, b);
-        if (b.clase) addToCtx(b.clase, b);
-        if (b.subseccion) addToCtx(b.subseccion, b);
-        if (b.parentSection) addToCtx(b.parentSection, b);
-        if (b.parentSubsection) addToCtx(b.parentSubsection, b);
-      });
+      // Mismo contextMap que usa el resto del motor de fórmulas.
+      const ctxMap = construirContextMapLayout(layoutArr);
       layoutArr.forEach((block) => {
         const tipo = (block?.type || block?.tipo || "").toLowerCase();
         if (tipo !== "operation" && tipo !== "operacion") return;
@@ -7491,12 +7475,12 @@
               plugins: {
                 legend: {
                   display: true,
-                  position: 'bottom',
+                  position: 'right',
                   labels: {
-                    font: { size: 24, weight: 'bold' },
-                    padding: 30,
+                    font: { size: 11 },
+                    padding: 8,
                     usePointStyle: true,
-                    boxWidth: 20
+                    boxWidth: 12
                   }
                 },
                 title: {
@@ -7507,27 +7491,27 @@
                 y: {
                   beginAtZero: true,
                   ticks: {
-                    font: { size: 20 },
+                    font: { size: 11 },
                     callback: function (value) {
                       return value.toLocaleString('es-MX', { maximumFractionDigits: 0 });
                     }
                   },
                   grid: {
                     color: 'rgba(0,0,0,0.08)',
-                    lineWidth: 2
+                    lineWidth: 1
                   }
                 },
                 x: {
-                  ticks: { font: { size: 18 } },
+                  ticks: { font: { size: 10 }, maxRotation: 35, minRotation: 0 },
                   grid: { display: false }
                 }
               },
               layout: {
                 padding: {
-                  left: 30,
-                  right: 30,
-                  top: 100,
-                  bottom: 30
+                  left: 10,
+                  right: 10,
+                  top: 16,
+                  bottom: 10
                 }
               },
               barPercentage: 0.7
@@ -7655,20 +7639,21 @@
             plugins: {
               legend: {
                 display: true,
-                position: "bottom",
+                position: "right",
                 labels: {
-                  font: { size: 20, weight: "bold" },
-                  padding: 24,
+                  font: { size: 11 },
+                  padding: 8,
+                  boxWidth: 12,
                 },
               },
               title: { display: false },
             },
             layout: {
               padding: {
-                left: 20,
-                right: 20,
-                top: 24,
-                bottom: 20,
+                left: 10,
+                right: 10,
+                top: 16,
+                bottom: 10,
               },
             },
             scales: esPie
@@ -7677,7 +7662,7 @@
                 y: {
                   beginAtZero: true,
                   ticks: {
-                    font: { size: 18 },
+                    font: { size: 11 },
                     callback: (value) =>
                       Number(value || 0).toLocaleString("es-MX", {
                         maximumFractionDigits: 0,
@@ -7688,7 +7673,7 @@
                   },
                 },
                 x: {
-                  ticks: { font: { size: 16 } },
+                  ticks: { font: { size: 10 }, maxRotation: 35, minRotation: 0 },
                   grid: { display: false },
                 },
               },
