@@ -351,15 +351,34 @@
       console.log(...args);
     },
 
+    _esEntornoLocal() {
+      try {
+        const protocol = (window.location?.protocol || "").toLowerCase();
+        const host = (window.location?.hostname || "").toLowerCase();
+        if (protocol === "file:") return true;
+        if (!host) return false;
+        if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+          return true;
+        }
+        return host.endsWith(".local");
+      } catch (_) {
+        return false;
+      }
+    },
+
     _usarExportJobsSegundoPlano() {
       try {
         const forced = localStorage.getItem("export_utils_force_background_jobs");
         if (forced === "1") return true;
-        if (forced === "0") return false;
+        // En producción no permitimos apagar la cola por accidente.
+        if (forced === "0") {
+          if (this._esEntornoLocal()) return false;
+          localStorage.removeItem("export_utils_force_background_jobs");
+        }
       } catch (_) {
         // ignore storage errors
       }
-      // Default: habilitado. Si el endpoint no existe/no responde, ya cae a modo directo.
+      // Default: habilitado.
       return true;
     },
 
@@ -1285,7 +1304,6 @@
 
     async _crearTrabajoExportNativo({ tipo = "operativo", params, binaryBody }) {
       if (!this._usarExportJobsSegundoPlano()) {
-        this._setExportJobsEndpointState("unavailable");
         const err = new Error(
           "Exportación en segundo plano deshabilitada en este entorno."
         );
