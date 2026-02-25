@@ -151,6 +151,7 @@
   const EXPORT_JOBS_ENDPOINT_STATE_KEY = "export_utils_jobs_endpoint_state_v1";
   const EXPORT_JOBS_ENDPOINT_UNAVAILABLE_TTL_MS = 45 * 1000;
   const LOCAL_EXPORT_TIMEOUT_MS = 300000;
+  const BACKGROUND_EXPORT_MAX_RUNTIME_MS = 1000 * 60 * 15;
   const EXPORT_PAGE_SESSION_ID = `page-${Date.now()}-${Math.random()
     .toString(36)
     .slice(2, 8)}`;
@@ -1434,6 +1435,27 @@
           error: status.error || "",
           filename: status.filename || "",
         });
+        const statusName = String(status.status || "").toLowerCase();
+        const baseCreatedAt =
+          Number(status.createdAt) || Number(job?.createdAt) || Date.now();
+        const jobAgeMs = Date.now() - baseCreatedAt;
+        if (
+          (statusName === "queued" || statusName === "running") &&
+          jobAgeMs > BACKGROUND_EXPORT_MAX_RUNTIME_MS
+        ) {
+          this._actualizarTrabajoPendiente(id, {
+            status: "failed",
+            progress: 100,
+            message: "Tiempo máximo excedido en servidor",
+            error:
+              "La exportación excedió el tiempo máximo. Intenta nuevamente.",
+          });
+          this._showToast(
+            "La exportación tardó demasiado y fue detenida. Intenta nuevamente.",
+            "warning"
+          );
+          return;
+        }
         if (status.status === "failed") {
           this._showToast(
             `Exportación falló: ${status.error || status.message || id}`,

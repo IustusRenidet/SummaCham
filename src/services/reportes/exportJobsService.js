@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const { generarOperativoExcel } = require("./operativoExcelService");
 const { generarResumenExcel } = require("./resumenExcelService");
+const { getExcelNativeLockState } = require("./excelNativeMutex");
 
 const JOB_TTL_MS = 1000 * 60 * 90; // 90 minutos
 const JOB_STALE_PENDING_MS = 1000 * 60 * 60 * 6; // 6 horas
@@ -23,6 +24,15 @@ const EXCEL_NATIVE_JOB_RETRY_TIMEOUT_MS = normalizarTimeoutMs(
   process.env.EXCEL_NATIVE_JOB_RETRY_TIMEOUT_MS,
   Math.max(DEFAULT_JOB_NATIVE_RETRY_TIMEOUT_MS, EXCEL_NATIVE_JOB_TIMEOUT_MS),
   EXCEL_NATIVE_JOB_TIMEOUT_MS
+);
+const DEFAULT_JOB_HARD_TIMEOUT_MS = Math.max(
+  1000 * 60 * 10,
+  EXCEL_NATIVE_JOB_TIMEOUT_MS + EXCEL_NATIVE_JOB_RETRY_TIMEOUT_MS + 1000 * 60 * 2
+);
+const EXCEL_NATIVE_JOB_HARD_TIMEOUT_MS = normalizarTimeoutMs(
+  process.env.EXCEL_NATIVE_JOB_HARD_TIMEOUT_MS,
+  DEFAULT_JOB_HARD_TIMEOUT_MS,
+  60000
 );
 
 const leerString = (value) => {
@@ -95,6 +105,15 @@ const serializeJob = (job) => ({
   error: job.error || "",
 });
 
+const lockStateToText = () => {
+  try {
+    const state = getExcelNativeLockState();
+    return JSON.stringify(state);
+  } catch (_) {
+    return "{}";
+  }
+};
+
 const createNativeExcelJob = ({ userId, tipo, libroBuffer, params = {} }) => {
   cleanupJobs();
   const id = crypto.randomUUID();
@@ -122,6 +141,28 @@ const createNativeExcelJob = ({ userId, tipo, libroBuffer, params = {} }) => {
     current.progress = 28;
     current.message = "Generando gráficas nativas";
     current.updatedAt = now();
+    let hardTimeoutTimer = null;
+    hardTimeoutTimer = setTimeout(() => {
+      const live = jobs.get(id);
+      if (!live || live.status !== "running") return;
+      live.status = "failed";
+      live.progress = 100;
+      live.message = "Falló la exportación nativa";
+      live.error = safeError(
+        new Error(
+          `Tiempo máximo excedido (${Math.round(
+            EXCEL_NATIVE_JOB_HARD_TIMEOUT_MS / 1000
+          )}s). Estado lock: ${lockStateToText()}`
+        )
+      );
+      live.updatedAt = now();
+      console.error("Export job hard-timeout:", {
+        id,
+        tipo,
+        hardTimeoutMs: EXCEL_NATIVE_JOB_HARD_TIMEOUT_MS,
+        lockState: lockStateToText(),
+      });
+    }, EXCEL_NATIVE_JOB_HARD_TIMEOUT_MS);
     try {
       const payloadBase = {
         libroBuffer,
@@ -150,6 +191,9 @@ const createNativeExcelJob = ({ userId, tipo, libroBuffer, params = {} }) => {
         result = await generarConTimeout(EXCEL_NATIVE_JOB_RETRY_TIMEOUT_MS);
       }
 
+      if (current.status === "failed") {
+        return;
+      }
       current.buffer = result.buffer;
       current.filename = result.filename;
       current.status = "completed";
@@ -158,12 +202,19 @@ const createNativeExcelJob = ({ userId, tipo, libroBuffer, params = {} }) => {
       current.error = "";
       current.updatedAt = now();
     } catch (error) {
+      if (current.status === "failed") {
+        return;
+      }
       current.status = "failed";
       current.progress = 100;
       current.message = "Falló la exportación nativa";
       current.error = safeError(error);
       current.updatedAt = now();
       console.error("Export job failed:", { id, tipo, error });
+    } finally {
+      if (hardTimeoutTimer) {
+        clearTimeout(hardTimeoutTimer);
+      }
     }
   };
 
