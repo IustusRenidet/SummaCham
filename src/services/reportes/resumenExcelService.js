@@ -175,14 +175,22 @@ const ejecutarPowerShell = (args, timeoutMs = EXCEL_NATIVE_TIMEOUT_MS) =>
       clearTimeout(timer);
       cb(value);
     };
+    const recortarLog = (text, maxLen = 1800) => {
+      const raw = String(text || "").trim();
+      if (!raw) return "";
+      if (raw.length <= maxLen) return raw;
+      return `...${raw.slice(-maxLen)}`;
+    };
     let stderr = "";
     let stdout = "";
     const timer = setTimeout(() => {
       killProcessTree(proc).finally(() => {
+        const out = recortarLog(stdout);
+        const err = recortarLog(stderr);
         finalize(
           reject,
           new Error(
-            `PowerShell timeout (${Math.round(timeout / 1000)}s). Stderr: ${stderr}`
+            `PowerShell timeout (${Math.round(timeout / 1000)}s). Stdout: ${out} Stderr: ${err}`
           )
         );
       });

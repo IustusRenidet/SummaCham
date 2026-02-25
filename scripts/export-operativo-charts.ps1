@@ -101,6 +101,40 @@ function Get-WorkbookSheetNames {
   return $names
 }
 
+function Open-WorkbookSafely {
+  param(
+    [Parameter(Mandatory = $true)]$ExcelApp,
+    [Parameter(Mandatory = $true)][string]$WorkbookPath
+  )
+
+  $missing = [System.Type]::Missing
+  try {
+    return Invoke-ComRetry {
+      $ExcelApp.Workbooks.Open(
+        $WorkbookPath,  # Filename
+        0,              # UpdateLinks: no actualizar vínculos
+        $true,          # ReadOnly
+        $missing,       # Format
+        $missing,       # Password
+        $missing,       # WriteResPassword
+        $true,          # IgnoreReadOnlyRecommended
+        $missing,       # Origin
+        $missing,       # Delimiter
+        $false,         # Editable
+        $false,         # Notify
+        $missing,       # Converter
+        $false,         # AddToMru
+        $true,          # Local
+        1               # CorruptLoad: xlRepairFile
+      )
+    }
+  }
+  catch {
+    # Fallback conservador por compatibilidad entre versiones de Excel.
+    return Invoke-ComRetry { $ExcelApp.Workbooks.Open($WorkbookPath) }
+  }
+}
+
 $excel = $null
 $wb = $null
 
@@ -310,10 +344,14 @@ try {
   $excel.Visible = $false
   $excel.DisplayAlerts = $false
   try { $excel.AskToUpdateLinks = $false } catch {}
+  try { $excel.AutomationSecurity = 3 } catch {}
+  try { $excel.AlertBeforeOverwriting = $false } catch {}
   try { $excel.EnableEvents = $false } catch {}
   try { $excel.ScreenUpdating = $false } catch {}
 
-  $wb = Invoke-ComRetry { $excel.Workbooks.Open($inputFull) }
+  Write-Host "Excel: abriendo workbook..."
+  $wb = Open-WorkbookSafely -ExcelApp $excel -WorkbookPath $inputFull
+  Write-Host "Excel: workbook abierto."
 
 try {
   $wsData = Invoke-ComRetry { $wb.Worksheets.Item($DataSheetName) }
