@@ -172,6 +172,34 @@ function Get-SeriesColor {
   return $palette[$Index % $palette.Count]
 }
 
+$xlAxisTypeValue = 1
+$xlAxisTypeCategory = 2
+$xlAxisCrossesMinimum = 4
+$xlTickLabelPositionLow = -4134
+
+function Set-ChartAxesLayout {
+  param($ChartObject)
+  if (-not $ChartObject) { return }
+  try {
+    $categoryAxis = Invoke-ComRetry { $ChartObject.Chart.Axes($xlAxisTypeCategory) }
+    if ($categoryAxis) {
+      try { Invoke-ComRetry { $categoryAxis.TickLabelSpacing = 1 } } catch {}
+      try { Invoke-ComRetry { $categoryAxis.TickMarkSpacing = 1 } } catch {}
+      try { Invoke-ComRetry { $categoryAxis.TickLabelPosition = $xlTickLabelPositionLow } } catch {}
+    }
+  }
+  catch {}
+  try {
+    $valueAxis = Invoke-ComRetry { $ChartObject.Chart.Axes($xlAxisTypeValue) }
+    if ($valueAxis) {
+      try { Invoke-ComRetry { $valueAxis.TickLabels.NumberFormat = "#,##0.00" } } catch {}
+      # Mantiene etiquetas de categoría abajo cuando hay valores negativos.
+      try { Invoke-ComRetry { $valueAxis.Crosses = $xlAxisCrossesMinimum } } catch {}
+    }
+  }
+  catch {}
+}
+
 $excel = $null
 $wb = $null
 $wsData = $null
@@ -329,7 +357,8 @@ try {
             try { Invoke-ComRetry { $series.Interior.Color = $color } } catch {}
           }
         }
-        $chartTop += 380
+        Set-ChartAxesLayout -ChartObject $chartObj
+        $chartTop += 320
       }
 
       $row = $dataLast + 2

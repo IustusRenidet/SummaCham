@@ -15,6 +15,8 @@ except Exception as exc:  # pragma: no cover - runtime dependency guard
     print(str(exc), file=sys.stderr)
     raise
 
+CHART_GAP_ROWS = 2
+
 
 def text(v):
     if v is None:
@@ -349,8 +351,8 @@ def _chart_rows_from_height(height_inches):
         height = float(height_inches)
     except Exception:
         height = 8.0
-    # Aproximación: 1 pulgada ~= 5 filas de Excel con alto por defecto.
-    return max(20, int(round(height * 5.2)) + 4)
+    # Compactar separación vertical entre gráficas sin encimarlas.
+    return max(16, int(round(height * 4.6)) + CHART_GAP_ROWS)
 
 
 def _max_category_label_len(ws_data, block):
@@ -383,43 +385,43 @@ def _compute_chart_size(
     max_label_len = max(0, int(max_label_len or 0))
 
     if is_combined:
-        width = 26.0 if orientation == "horizontal" else max(22.0, min(30.0, 20.0 + max_label_len * 0.14))
+        width = 24.0 if orientation == "horizontal" else max(20.0, min(28.0, 19.0 + max_label_len * 0.12))
         if orientation == "horizontal":
-            height = max(12.0, min(38.0, 8.8 + labels_count * 0.72 + (2.2 if max_label_len > 24 else 0.0)))
+            height = max(10.0, min(32.0, 7.6 + labels_count * 0.62 + (1.8 if max_label_len > 24 else 0.0)))
         else:
-            height = max(8.0, min(20.0, 6.6 + labels_count * 0.30 + min(4.0, max_label_len * 0.03)))
+            height = max(7.0, min(17.0, 5.8 + labels_count * 0.24 + min(3.0, max_label_len * 0.02)))
         return width, height
 
     if chart_visual_type in {"pie", "doughnut"}:
-        width = 20.0
-        height = max(7.2, min(14.0, 6.0 + labels_count * 0.22))
+        width = 18.0
+        height = max(6.8, min(12.0, 5.8 + labels_count * 0.16))
         return width, height
 
     width = (
-        max(28.0, min(40.0, 28.0 + max_label_len * 0.16))
+        max(24.0, min(34.0, 24.0 + max_label_len * 0.12))
         if orientation == "horizontal"
-        else max(20.0, min(30.0, 20.0 + max_label_len * 0.08))
+        else max(18.0, min(26.0, 18.0 + max_label_len * 0.06))
     )
     if orientation == "horizontal":
         height = max(
-            12.0,
+            9.0,
             min(
-                42.0,
-                8.0
-                + labels_count * 0.78
-                + (series_count - 1) * 0.24
-                + (2.4 if max_label_len > 24 else 0.0),
+                34.0,
+                6.8
+                + labels_count * 0.62
+                + (series_count - 1) * 0.18
+                + (1.8 if max_label_len > 24 else 0.0),
             ),
         )
     else:
         height = max(
-            8.0,
+            6.6,
             min(
-                22.0,
-                5.4
-                + labels_count * 0.26
-                + (series_count - 1) * 0.14
-                + (1.6 if max_label_len > 22 else 0.0),
+                18.0,
+                4.9
+                + labels_count * 0.20
+                + (series_count - 1) * 0.11
+                + (1.2 if max_label_len > 22 else 0.0),
             ),
         )
     return width, height
@@ -598,6 +600,56 @@ def anchor_start_row(ws_data, ws_charts):
     return 2
 
 
+def _configure_cartesian_axes(chart, orientation):
+    orientation = "horizontal" if orientation == "horizontal" else "vertical"
+    try:
+        if chart.x_axis is not None:
+            chart.x_axis.tickLblPos = "low"
+    except Exception:
+        pass
+    try:
+        if chart.x_axis is not None:
+            chart.x_axis.tickLblSkip = 1
+    except Exception:
+        pass
+    try:
+        if chart.y_axis is not None:
+            chart.y_axis.tickLblSkip = 1
+    except Exception:
+        pass
+    try:
+        if chart.x_axis is not None:
+            chart.x_axis.delete = False
+    except Exception:
+        pass
+    try:
+        if chart.y_axis is not None:
+            chart.y_axis.delete = False
+    except Exception:
+        pass
+    if orientation == "vertical":
+        try:
+            # Mantener etiquetas de categorías abajo (evita que "desaparezcan" al cruzar en cero).
+            chart.y_axis.crosses = "min"
+        except Exception:
+            pass
+        try:
+            if chart.x_axis is not None:
+                chart.x_axis.tickLblPos = "low"
+        except Exception:
+            pass
+    else:
+        try:
+            chart.x_axis.crosses = "autoZero"
+        except Exception:
+            pass
+        try:
+            if chart.y_axis is not None:
+                chart.y_axis.tickLblPos = "nextTo"
+        except Exception:
+            pass
+
+
 def add_chart_for_block(ws_data, ws_charts, block, meta_list, top_row, is_combined=False):
     categories = Reference(
         ws_data, min_col=1, min_row=block["data_start"], max_row=block["data_end"]
@@ -740,6 +792,8 @@ def add_chart_for_block(ws_data, ws_charts, block, meta_list, top_row, is_combin
             base_chart.add_data(spec["ref"], titles_from_data=True)
             style_series(base_chart.series[-1], spec["fill"], spec["line"], "bar")
         base_chart.set_categories(categories)
+
+    _configure_cartesian_axes(base_chart, orientation)
 
     try:
         base_chart.legend.position = legend_position

@@ -4176,6 +4176,9 @@
     const planColumnKey = `budget-${claveMes}`;
     const DEBUG_FORMULAS =
       typeof window !== "undefined" && Boolean(window.DEBUG_RESUMEN_FORMULAS);
+    const VERDAD_ABSOLUTA_FORMULAS = true;
+    const formulasLegacyRefactorizadas = [];
+    const formulasLegacyRefactorizadasSet = new Set();
     const normalizarEtiqueta = (texto = "") =>
       texto.toString().trim().toUpperCase().replace(/\s+/g, " ");
     const debeOmitirEtiqueta = () => false;
@@ -4315,6 +4318,181 @@
       return t === "operation" || t === "operacion";
     };
 
+    const limpiarTerminoFormula = (valor = "") =>
+      (valor || "")
+        .toString()
+        .trim()
+        .replace(/^["']+|["']+$/g, "")
+        .trim();
+
+    const desanidarParentesisExternos = (valor = "") => {
+      let txt = (valor || "").toString().trim();
+      let cambio = true;
+      while (cambio && txt.startsWith("(") && txt.endsWith(")")) {
+        cambio = false;
+        let depth = 0;
+        let balancea = true;
+        for (let i = 0; i < txt.length; i += 1) {
+          const ch = txt[i];
+          if (ch === "(") depth += 1;
+          else if (ch === ")") depth -= 1;
+          if (depth < 0) {
+            balancea = false;
+            break;
+          }
+          if (depth === 0 && i < txt.length - 1) {
+            balancea = false;
+            break;
+          }
+        }
+        if (balancea && depth === 0) {
+          txt = txt.slice(1, -1).trim();
+          cambio = true;
+        }
+      }
+      return txt;
+    };
+
+    const parsearFormulaLegacyLineal = (formulaTexto = "") => {
+      const source = (formulaTexto || "").toString().trim();
+      if (!source) return null;
+      // Solo migramos fórmulas lineales (+/-). Expresiones complejas permanecen
+      // en formato texto para no alterar semántica.
+      if (/[*/]/.test(source)) return null;
+      if (/\([^()]*[+\-*/][^()]*\)/.test(source)) return null;
+
+      const terms = [];
+      let buffer = "";
+      let operator = "+";
+      let depth = 0;
+      let inSingle = false;
+      let inDouble = false;
+
+      const pushBuffer = () => {
+        const raw = desanidarParentesisExternos(limpiarTerminoFormula(buffer));
+        if (!raw) return false;
+        terms.push({ operator, value: raw });
+        buffer = "";
+        return true;
+      };
+
+      for (let i = 0; i < source.length; i += 1) {
+        const ch = source[i];
+
+        if (ch === "'" && !inDouble) {
+          inSingle = !inSingle;
+          buffer += ch;
+          continue;
+        }
+        if (ch === '"' && !inSingle) {
+          inDouble = !inDouble;
+          buffer += ch;
+          continue;
+        }
+
+        if (!inSingle && !inDouble) {
+          if (ch === "(") depth += 1;
+          else if (ch === ")" && depth > 0) depth -= 1;
+
+          if ((ch === "+" || ch === "-") && depth === 0) {
+            if (!buffer.trim()) {
+              operator = ch;
+              continue;
+            }
+            if (!pushBuffer()) return null;
+            operator = ch;
+            continue;
+          }
+        }
+
+        buffer += ch;
+      }
+
+      if (buffer.trim() && !pushBuffer()) return null;
+      return terms.length ? terms : null;
+    };
+
+    const inferirTipoTerminoLegacy = (value = "", layoutArr = []) => {
+      const clean = limpiarTerminoFormula(value);
+      if (/^-?\d+(?:\.\d+)?$/.test(clean)) return "const";
+      const key = normalizarAliasFormula(clean);
+      if (!key) return "section";
+
+      for (const block of Array.isArray(layoutArr) ? layoutArr : []) {
+        if (!block || typeof block !== "object") continue;
+        const aliases = [
+          block.label,
+          block.nombre,
+          block.id,
+          block.Clase,
+          block.clase,
+          block.operacion_label,
+          block.operacion_etiqueta,
+        ]
+          .map((v) => normalizarAliasFormula(v || ""))
+          .filter(Boolean);
+        if (!aliases.includes(key)) continue;
+        if (esBloqueOperacion(block)) return "operation";
+        if (esBloqueCuenta(block)) return "account";
+        return "section";
+      }
+      return "section";
+    };
+
+    const registrarFormulaLegacyRefactorizada = (
+      block,
+      original,
+      terms = []
+    ) => {
+      const label = (block?.label || block?.id || "SIN_LABEL").toString().trim();
+      const clave = `${normalizarLabel(label)}::${original}`;
+      if (formulasLegacyRefactorizadasSet.has(clave)) return;
+      formulasLegacyRefactorizadasSet.add(clave);
+      formulasLegacyRefactorizadas.push({
+        label,
+        formulaOriginal: original,
+        terms: terms.map((t) => ({
+          operator: t.operator,
+          type: t.type,
+          value: t.value,
+        })),
+      });
+    };
+
+    const refactorizarFormulasLegacyLayout = (layoutArr = []) => {
+      if (!Array.isArray(layoutArr) || !layoutArr.length) return;
+      layoutArr.forEach((block) => {
+        if (!block || typeof block !== "object") return;
+        if (Array.isArray(block.formula_terms) && block.formula_terms.length) return;
+        const formulaTexto =
+          (typeof block.formula === "string" && block.formula.trim()) ||
+          (typeof block.Formula === "string" && block.Formula.trim()) ||
+          (typeof block.manualFormula === "string" && block.manualFormula.trim()) ||
+          "";
+        if (!formulaTexto) return;
+
+        const parsed = parsearFormulaLegacyLineal(formulaTexto);
+        if (!parsed || !parsed.length) return;
+
+        const terms = parsed
+          .map((term) => ({
+            operator:
+              ((term?.operator || "+").toString().trim() || "+").startsWith("-")
+                ? "-"
+                : "+",
+            type: inferirTipoTerminoLegacy(term?.value || "", layoutArr),
+            value: limpiarTerminoFormula(term?.value || ""),
+          }))
+          .filter((term) => term.value);
+        if (!terms.length) return;
+
+        block.formula_terms = terms;
+        block.__legacyFormulaRefactored = true;
+        block.__legacyFormulaOriginal = formulaTexto;
+        registrarFormulaLegacyRefactorizada(block, formulaTexto, terms);
+      });
+    };
+
     const construirContextMapLayout = (layoutArr = []) => {
       const contextMap = new Map();
       (Array.isArray(layoutArr) ? layoutArr : []).forEach((block) => {
@@ -4433,6 +4611,9 @@
       }
       recalcularOperacionesLayout(layoutVisible);
       recalcularConsolidados(layoutVisible, capituloKey, { comparativaActiva });
+      // Regla estricta final: toda operación con fórmula explícita debe prevalecer
+      // sobre cualquier fallback/ajuste intermedio.
+      recalcularOperacionesLayout(layoutVisible);
 
       clonePairs.forEach(({ original, clone }) => {
         original.totals = { ...totalesCero(), ...(clone.totals || {}) };
@@ -4448,18 +4629,8 @@
     // Helper to get formula string from block
     // Nota: `manualFormula` suele ser boolean (flag), no string.
     const getFormulaString = (block) => {
-      const rawDirect =
-        block && typeof block === "object"
-          ? block.formula ?? block.Formula ?? null
-          : null;
-      if (typeof rawDirect === "string" && rawDirect.trim()) {
-        return rawDirect.trim();
-      }
-      const rawManual = block?.manualFormula;
-      if (typeof rawManual === "string" && rawManual.trim()) {
-        return rawManual.trim();
-      }
-      // If no direct formula, try to build from formula_terms
+      // Prioridad estricta: usar fórmula estructurada (formula_terms) cuando exista.
+      // Evita ambigüedades de parseo en fórmulas texto con paréntesis/espacios.
       if (Array.isArray(block?.formula_terms) && block.formula_terms.length) {
         return block.formula_terms
           .map((term) => {
@@ -4484,6 +4655,17 @@
           .join(" ")
           .replace(/^\+\s+/, "")
           .trim();
+      }
+      const rawDirect =
+        block && typeof block === "object"
+          ? block.formula ?? block.Formula ?? null
+          : null;
+      if (typeof rawDirect === "string" && rawDirect.trim()) {
+        return rawDirect.trim();
+      }
+      const rawManual = block?.manualFormula;
+      if (typeof rawManual === "string" && rawManual.trim()) {
+        return rawManual.trim();
       }
       return "";
     };
@@ -6174,6 +6356,9 @@
           recalcularOperacionesPrevComparativo(layout);
         }
         recalcularConsolidados(layout, capituloName, { comparativaActiva });
+        // Cierre estricto por fórmula para todas las tablas renderizadas:
+        // cuentas -> subsecciones -> secciones -> operaciones.
+        recalcularOperacionesLayout(layout);
 
         /* ORIGINAL CHECK:
         const autoCalcEnabled = Array.isArray(layout)

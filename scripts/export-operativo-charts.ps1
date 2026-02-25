@@ -151,9 +151,13 @@ trap {
 try { [ExcelMessageFilter]::Register() } catch {}
 
 $xlChartTypeLine = 4
+$xlChartTypeColumnClustered = 51
 $xlChartTypeBarClustered = 57
 $xlLegendPositionBottom = -4107
 $xlAxisTypeValue = 1
+$xlAxisTypeCategory = 2
+$xlAxisCrossesMinimum = 4
+$xlTickLabelPositionLow = -4134
 
 function Convert-HexToOle {
   param([string]$HexColor)
@@ -196,10 +200,37 @@ function Find-SeriesMetaEntry {
   param(
     [array]$MetaList,
     [string]$SeriesName,
-    [int]$SeriesIndex
+    [int]$SeriesIndex,
+    [string]$ChartTitle = ""
   )
   if (-not $MetaList) { return $null }
   $normalizedSeries = ConvertTo-NormalizedText $SeriesName
+  $normalizedChart = ConvertTo-NormalizedText $ChartTitle
+
+  if ($normalizedChart) {
+    foreach ($entry in $MetaList) {
+      if (-not $entry) { continue }
+      $entryChart = ""
+      if ($entry.PSObject.Properties.Name -contains "chartTitle") {
+        $entryChart = [string]$entry.chartTitle
+      }
+      elseif ($entry.PSObject.Properties.Name -contains "title") {
+        $entryChart = [string]$entry.title
+      }
+      if ((ConvertTo-NormalizedText $entryChart) -ne $normalizedChart) { continue }
+      $entryLabel = ""
+      if ($entry.PSObject.Properties.Name -contains "label") {
+        $entryLabel = [string]$entry.label
+      }
+      elseif ($entry.PSObject.Properties.Name -contains "name") {
+        $entryLabel = [string]$entry.name
+      }
+      if (-not $entryLabel) { continue }
+      if ((ConvertTo-NormalizedText $entryLabel) -eq $normalizedSeries) {
+        return $entry
+      }
+    }
+  }
 
   foreach ($entry in $MetaList) {
     if (-not $entry) { continue }
@@ -226,9 +257,10 @@ function Resolve-SeriesColorHex {
   param(
     [array]$MetaList,
     [string]$SeriesName,
-    [int]$SeriesIndex
+    [int]$SeriesIndex,
+    [string]$ChartTitle = ""
   )
-  $entry = Find-SeriesMetaEntry -MetaList $MetaList -SeriesName $SeriesName -SeriesIndex $SeriesIndex
+  $entry = Find-SeriesMetaEntry -MetaList $MetaList -SeriesName $SeriesName -SeriesIndex $SeriesIndex -ChartTitle $ChartTitle
   if ($entry) {
     $rawColor = ""
     if ($entry.PSObject.Properties.Name -contains "color") {
@@ -253,9 +285,10 @@ function Resolve-SeriesType {
   param(
     [array]$MetaList,
     [string]$SeriesName,
-    [int]$SeriesIndex
+    [int]$SeriesIndex,
+    [string]$ChartTitle = ""
   )
-  $entry = Find-SeriesMetaEntry -MetaList $MetaList -SeriesName $SeriesName -SeriesIndex $SeriesIndex
+  $entry = Find-SeriesMetaEntry -MetaList $MetaList -SeriesName $SeriesName -SeriesIndex $SeriesIndex -ChartTitle $ChartTitle
   if ($entry) {
     $rawType = ""
     if ($entry.PSObject.Properties.Name -contains "type") {
@@ -270,11 +303,77 @@ function Resolve-SeriesType {
   return "bar"
 }
 
+function Resolve-ChartOrientation {
+  param(
+    [array]$MetaList,
+    [string]$ChartTitle = "",
+    [array]$SeriesColumns = @()
+  )
+  if (-not $MetaList) { return "horizontal" }
+  $normalizedChart = ConvertTo-NormalizedText $ChartTitle
+
+  if ($normalizedChart) {
+    foreach ($entry in $MetaList) {
+      if (-not $entry) { continue }
+      $entryChart = ""
+      if ($entry.PSObject.Properties.Name -contains "chartTitle") {
+        $entryChart = [string]$entry.chartTitle
+      }
+      elseif ($entry.PSObject.Properties.Name -contains "title") {
+        $entryChart = [string]$entry.title
+      }
+      if ((ConvertTo-NormalizedText $entryChart) -ne $normalizedChart) { continue }
+      $orientation = ""
+      if ($entry.PSObject.Properties.Name -contains "chartOrientation") {
+        $orientation = ([string]$entry.chartOrientation).Trim().ToLowerInvariant()
+      }
+      elseif ($entry.PSObject.Properties.Name -contains "orientation") {
+        $orientation = ([string]$entry.orientation).Trim().ToLowerInvariant()
+      }
+      if ($orientation -eq "horizontal" -or $orientation -eq "vertical") {
+        return $orientation
+      }
+      $indexAxis = ""
+      if ($entry.PSObject.Properties.Name -contains "indexAxis") {
+        $indexAxis = ([string]$entry.indexAxis).Trim().ToLowerInvariant()
+      }
+      if ($indexAxis -eq "y") { return "horizontal" }
+      if ($indexAxis -eq "x") { return "vertical" }
+    }
+  }
+
+  if ($SeriesColumns) {
+    for ($i = 0; $i -lt $SeriesColumns.Count; $i++) {
+      $seriesName = [string]$SeriesColumns[$i].Name
+      $entry = Find-SeriesMetaEntry -MetaList $MetaList -SeriesName $seriesName -SeriesIndex $i -ChartTitle $ChartTitle
+      if (-not $entry) { continue }
+      $orientation = ""
+      if ($entry.PSObject.Properties.Name -contains "chartOrientation") {
+        $orientation = ([string]$entry.chartOrientation).Trim().ToLowerInvariant()
+      }
+      elseif ($entry.PSObject.Properties.Name -contains "orientation") {
+        $orientation = ([string]$entry.orientation).Trim().ToLowerInvariant()
+      }
+      if ($orientation -eq "horizontal" -or $orientation -eq "vertical") {
+        return $orientation
+      }
+      $indexAxis = ""
+      if ($entry.PSObject.Properties.Name -contains "indexAxis") {
+        $indexAxis = ([string]$entry.indexAxis).Trim().ToLowerInvariant()
+      }
+      if ($indexAxis -eq "y") { return "horizontal" }
+      if ($indexAxis -eq "x") { return "vertical" }
+    }
+  }
+  return "horizontal"
+}
+
 function Set-SeriesStyle {
   param(
     $Series,
     [string]$HexColor,
-    [string]$SeriesType
+    [string]$SeriesType,
+    [string]$Orientation = "horizontal"
   )
   if (-not $Series) { return }
 
@@ -284,7 +383,12 @@ function Set-SeriesStyle {
     try { $Series.Format.Line.Weight = 2 } catch {}
   }
   else {
-    try { $Series.ChartType = $xlChartTypeBarClustered } catch {}
+    if ($Orientation -eq "vertical") {
+      try { $Series.ChartType = $xlChartTypeColumnClustered } catch {}
+    }
+    else {
+      try { $Series.ChartType = $xlChartTypeBarClustered } catch {}
+    }
   }
 
   $oleColor = Convert-HexToOle $HexColor
@@ -312,6 +416,34 @@ function Set-ChartBarLayout {
     if (-not $group) { return }
     $group.Overlap = 0
     $group.GapWidth = 150
+  }
+  catch {}
+}
+
+function Set-ChartAxesLayout {
+  param(
+    $ChartObject,
+    [string]$Orientation = "horizontal"
+  )
+  if (-not $ChartObject) { return }
+  try {
+    $categoryAxis = $ChartObject.Chart.Axes($xlAxisTypeCategory)
+    if ($categoryAxis) {
+      try { $categoryAxis.TickLabelSpacing = 1 } catch {}
+      try { $categoryAxis.TickMarkSpacing = 1 } catch {}
+      try { $categoryAxis.TickLabelPosition = $xlTickLabelPositionLow } catch {}
+    }
+  }
+  catch {}
+  try {
+    $valueAxis = $ChartObject.Chart.Axes($xlAxisTypeValue)
+    if ($valueAxis) {
+      try { $valueAxis.TickLabels.NumberFormat = "#,##0.00" } catch {}
+      if ($Orientation -eq "vertical") {
+        # Mantiene las etiquetas de categoría abajo aunque existan valores negativos.
+        try { $valueAxis.Crosses = $xlAxisCrossesMinimum } catch {}
+      }
+    }
   }
   catch {}
 }
@@ -579,8 +711,9 @@ if ($wsCharts -eq $wsData) {
 
 if ($chartModeNormalized -eq "combined") {
   $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
+  $chartOrientation = Resolve-ChartOrientation -MetaList $seriesMetaList -ChartTitle "Resultados operativos" -SeriesColumns $seriesColumns
   $chart = $wsCharts.ChartObjects().Add(20, $baseTop, 1120, 420)
-  $chart.Chart.ChartType = $xlChartTypeBarClustered
+  $chart.Chart.ChartType = if ($chartOrientation -eq "vertical") { $xlChartTypeColumnClustered } else { $xlChartTypeBarClustered }
   try {
     while ($chart.Chart.SeriesCollection().Count -gt 0) {
       [void]$chart.Chart.SeriesCollection(1).Delete()
@@ -603,17 +736,13 @@ if ($chartModeNormalized -eq "combined") {
     $series.XValues = $rangeLabels
     $series.Name = $seriesInfo.Name
 
-    $seriesType = Resolve-SeriesType -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx
-    $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx
-    Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType
+    $seriesType = Resolve-SeriesType -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx -ChartTitle "Resultados operativos"
+    $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx -ChartTitle "Resultados operativos"
+    Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType -Orientation $chartOrientation
   }
 
   Set-ChartBarLayout -ChartObject $chart
-  try {
-    $valueAxis = $chart.Chart.Axes($xlAxisTypeValue)
-    $valueAxis.TickLabels.NumberFormat = "#,##0.00"
-  }
-  catch {}
+  Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation
 }
 elseif ($chartBlocks.Count -gt 0) {
   $chartTop = $baseTop
@@ -622,8 +751,9 @@ elseif ($chartBlocks.Count -gt 0) {
     $rangeLabels = $wsData.Range("A$($block.DataStart):A$($block.DataEnd)")
     $labelsCount = $block.DataEnd - $block.DataStart + 1
     $chartHeight = [Math]::Max(320, [Math]::Min(700, 220 + ($labelsCount * 18)))
+    $chartOrientation = Resolve-ChartOrientation -MetaList $seriesMetaList -ChartTitle $block.Title -SeriesColumns $block.SeriesColumns
     $chart = $wsCharts.ChartObjects().Add(20, $chartTop, 1120, $chartHeight)
-    $chart.Chart.ChartType = $xlChartTypeBarClustered
+    $chart.Chart.ChartType = if ($chartOrientation -eq "vertical") { $xlChartTypeColumnClustered } else { $xlChartTypeBarClustered }
     try {
       while ($chart.Chart.SeriesCollection().Count -gt 0) {
         [void]$chart.Chart.SeriesCollection(1).Delete()
@@ -646,32 +776,29 @@ elseif ($chartBlocks.Count -gt 0) {
       $series.XValues = $rangeLabels
       $series.Name = $seriesInfo.Name
 
-      $seriesType = Resolve-SeriesType -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx
-      $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx
-      Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType
+      $seriesType = Resolve-SeriesType -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx -ChartTitle $block.Title
+      $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx -ChartTitle $block.Title
+      Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType -Orientation $chartOrientation
     }
 
     Set-ChartBarLayout -ChartObject $chart
-    try {
-      $valueAxis = $chart.Chart.Axes($xlAxisTypeValue)
-      $valueAxis.TickLabels.NumberFormat = "#,##0.00"
-    }
-    catch {}
+    Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation
 
-    $chartTop += $chartHeight + 35
+    $chartTop += $chartHeight + 16
   }
 }
 else {
   $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
   $splitSeries = @($seriesColumns)
+  $chartTop = $baseTop
   for ($idx = 0; $idx -lt $splitSeries.Count; $idx++) {
     $seriesInfo = $splitSeries[$idx]
     $colLetter = Get-ColumnLetter $seriesInfo.Column
     $rangeValues = $wsData.Range("$colLetter$($dataStart):$colLetter$($lastRow)")
-    $chartTop = $baseTop + ($idx * 320)
+    $chartOrientation = Resolve-ChartOrientation -MetaList $seriesMetaList -ChartTitle $seriesInfo.Name -SeriesColumns @($seriesInfo)
 
     $chart = $wsCharts.ChartObjects().Add(20, $chartTop, 960, 300)
-    $chart.Chart.ChartType = $xlChartTypeBarClustered
+    $chart.Chart.ChartType = if ($chartOrientation -eq "vertical") { $xlChartTypeColumnClustered } else { $xlChartTypeBarClustered }
     try {
       while ($chart.Chart.SeriesCollection().Count -gt 0) {
         [void]$chart.Chart.SeriesCollection(1).Delete()
@@ -685,14 +812,11 @@ else {
     $chart.Chart.HasTitle = $true
     $chart.Chart.ChartTitle.Text = $seriesInfo.Name
 
-    $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx
-    Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType "bar"
+    $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx -ChartTitle $seriesInfo.Name
+    Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType "bar" -Orientation $chartOrientation
     Set-ChartBarLayout -ChartObject $chart
-    try {
-      $valueAxis = $chart.Chart.Axes($xlAxisTypeValue)
-      $valueAxis.TickLabels.NumberFormat = "#,##0.00"
-    }
-    catch {}
+    Set-ChartAxesLayout -ChartObject $chart -Orientation $chartOrientation
+    $chartTop += 260
   }
 }
 
