@@ -8,7 +8,8 @@ import unicodedata
 
 try:
     from openpyxl import load_workbook
-    from openpyxl.chart import BarChart, LineChart, Reference
+    from openpyxl.chart import BarChart, DoughnutChart, LineChart, PieChart, Reference
+    from openpyxl.chart.label import DataLabelList
     from openpyxl.utils import get_column_letter
 except Exception as exc:  # pragma: no cover - runtime dependency guard
     print(str(exc), file=sys.stderr)
@@ -18,7 +19,12 @@ except Exception as exc:  # pragma: no cover - runtime dependency guard
 def text(v):
     if v is None:
         return ""
-    return str(v).strip()
+    raw = str(v).strip()
+    if not raw:
+        return ""
+    cleaned = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]", " ", raw)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
 
 
 def normalized_text(v):
@@ -27,15 +33,85 @@ def normalized_text(v):
         return ""
     decomposed = unicodedata.normalize("NFD", raw)
     stripped = "".join(ch for ch in decomposed if unicodedata.category(ch) != "Mn")
-    return stripped.upper()
+    cleaned = re.sub(r"[^A-Za-z0-9]+", " ", stripped).strip()
+    return cleaned.upper()
+
+
+def _clamp_byte(value):
+    try:
+        return max(0, min(255, int(round(float(value)))))
+    except Exception:
+        return 0
+
+
+def _parse_percent_or_number(raw, max_value=1.0):
+    if raw is None:
+        return None
+    txt = str(raw).strip()
+    if not txt:
+        return None
+    try:
+        if txt.endswith("%"):
+            pct = float(txt[:-1])
+            return (pct / 100.0) * max_value
+        return float(txt)
+    except Exception:
+        return None
+
+
+def _blend_rgba_to_hex(r, g, b, a=1.0):
+    alpha_raw = _parse_percent_or_number(a, 1.0)
+    alpha = alpha_raw if alpha_raw is not None else 1.0
+    alpha = max(0.0, min(1.0, float(alpha)))
+
+    def blend(channel):
+        base = _clamp_byte(channel)
+        return int(round(alpha * base + (1.0 - alpha) * 255.0))
+
+    rb = blend(r)
+    gb = blend(g)
+    bb = blend(b)
+    return f"{rb:02X}{gb:02X}{bb:02X}"
 
 
 def sanitize_hex(color, fallback="4472C4"):
-    source = text(color).lstrip("#")
-    if re.fullmatch(r"[0-9A-Fa-f]{6}", source):
-        return source.upper()
+    source_raw = text(color).strip()
+    source = source_raw.lstrip("#")
+
     if re.fullmatch(r"[0-9A-Fa-f]{3}", source):
         return "".join(ch * 2 for ch in source).upper()
+    if re.fullmatch(r"[0-9A-Fa-f]{6}", source):
+        return source.upper()
+    if re.fullmatch(r"[0-9A-Fa-f]{4}", source):
+        expanded = "".join(ch * 2 for ch in source)
+        r = int(expanded[0:2], 16)
+        g = int(expanded[2:4], 16)
+        b = int(expanded[4:6], 16)
+        a = int(expanded[6:8], 16) / 255.0
+        return _blend_rgba_to_hex(r, g, b, a)
+    if re.fullmatch(r"[0-9A-Fa-f]{8}", source):
+        r = int(source[0:2], 16)
+        g = int(source[2:4], 16)
+        b = int(source[4:6], 16)
+        a = int(source[6:8], 16) / 255.0
+        return _blend_rgba_to_hex(r, g, b, a)
+
+    rgb_match = re.fullmatch(
+        r"rgba?\(\s*([0-9]{1,3}%?)\s*[,\s]\s*([0-9]{1,3}%?)\s*[,\s]\s*([0-9]{1,3}%?)(?:\s*[,/]\s*([0-9.]+%?))?\s*\)",
+        source_raw,
+        re.IGNORECASE,
+    )
+    if rgb_match:
+        def parse_channel(comp):
+            parsed = _parse_percent_or_number(comp, 255.0)
+            return _clamp_byte(parsed if parsed is not None else 0)
+
+        r = parse_channel(rgb_match.group(1))
+        g = parse_channel(rgb_match.group(2))
+        b = parse_channel(rgb_match.group(3))
+        a = rgb_match.group(4) if rgb_match.group(4) is not None else 1.0
+        return _blend_rgba_to_hex(r, g, b, a)
+
     return fallback
 
 
@@ -89,65 +165,264 @@ def parse_series_meta(series_meta):
     return []
 
 
-def find_meta_entry(meta_list, name, idx):
+def _entry_series_key(entry):
+    if not isinstance(entry, dict):
+        return ""
+    return normalized_text(entry.get("key") or entry.get("label") or entry.get("name") or "")
+
+
+def _entry_chart_key(entry):
+    if not isinstance(entry, dict):
+        return ""
+    return normalized_text(entry.get("chartKey") or entry.get("chartTitle") or entry.get("title") or "")
+
+
+def _entry_order(entry):
+    if not isinstance(entry, dict):
+        return None
+    try:
+        parsed = int(entry.get("order"))
+        return parsed
+    except Exception:
+        return None
+
+
+def find_meta_entry(meta_list, name, idx, chart_title=""):
     target = normalized_text(name)
-    for entry in meta_list:
-        if not isinstance(entry, dict):
-            continue
-        label = entry.get("label") or entry.get("name") or ""
-        if normalized_text(label) == target and target:
+    chart_key = normalized_text(chart_title)
+    entries = [entry for entry in meta_list if isinstance(entry, dict)]
+
+    # 1) Match exact by chart + series key.
+    if chart_key:
+        for entry in entries:
+            if _entry_chart_key(entry) == chart_key and _entry_series_key(entry) == target and target:
+                return entry
+
+    # 2) Match global by series key.
+    for entry in entries:
+        if _entry_series_key(entry) == target and target:
             return entry
-    if 0 <= idx < len(meta_list):
-        entry = meta_list[idx]
-        if isinstance(entry, dict):
+
+    # 3) Match by chart + order as fallback.
+    if chart_key:
+        for entry in entries:
+            if _entry_chart_key(entry) == chart_key and _entry_order(entry) == idx:
+                return entry
+
+    # 4) Match global by order.
+    for entry in entries:
+        if _entry_order(entry) == idx:
             return entry
+
     return None
 
 
-def resolve_series_type(meta_list, name, idx):
-    entry = find_meta_entry(meta_list, name, idx)
+def resolve_series_type(meta_list, name, idx, chart_title=""):
+    entry = find_meta_entry(meta_list, name, idx, chart_title)
     if entry:
         raw = text(entry.get("type") or entry.get("chartType")).lower()
-        if raw == "line":
-            return "line"
+        if raw in {"line", "bar", "pie", "doughnut"}:
+            return raw
     return "bar"
 
 
-def resolve_series_color(meta_list, name, idx):
-    entry = find_meta_entry(meta_list, name, idx)
+def _entry_orientation(entry):
+    if not isinstance(entry, dict):
+        return ""
+    orientation = text(entry.get("chartOrientation") or entry.get("orientation")).lower()
+    if orientation in {"horizontal", "vertical"}:
+        return orientation
+    index_axis = text(entry.get("indexAxis") or entry.get("chartIndexAxis")).lower()
+    if index_axis == "y":
+        return "horizontal"
+    if index_axis == "x":
+        return "vertical"
+    return ""
+
+
+def _resolve_chart_orientation(meta_list, iterable, chart_title=""):
+    entries = _collect_chart_meta_entries(meta_list, iterable, chart_title)
+    for entry in entries:
+        orientation = _entry_orientation(entry)
+        if orientation:
+            return orientation
+    return "vertical"
+
+
+def _collect_chart_meta_entries(meta_list, iterable, chart_title=""):
+    entries = []
+    for idx, (_, series_name) in enumerate(iterable):
+        entry = find_meta_entry(meta_list, series_name, idx, chart_title)
+        if entry:
+            entries.append(entry)
+    chart_key = normalized_text(chart_title)
+    if chart_key:
+        for entry in meta_list:
+            if isinstance(entry, dict) and _entry_chart_key(entry) == chart_key:
+                entries.append(entry)
+    return entries
+
+
+def _resolve_chart_visual_type(meta_list, iterable, chart_title=""):
+    series_types = []
+    for idx, (_, series_name) in enumerate(iterable):
+        series_types.append(resolve_series_type(meta_list, series_name, idx, chart_title))
+    effective = [t for t in series_types if t]
+    if not effective:
+        return "cartesian"
+    if all(t in {"pie", "doughnut"} for t in effective):
+        return "doughnut" if "doughnut" in effective else "pie"
+    return "cartesian"
+
+
+def resolve_series_colors(meta_list, name, idx, chart_title="", series_type="bar"):
+    entry = find_meta_entry(meta_list, name, idx, chart_title)
     if entry:
-        value = text(entry.get("color"))
-        if value:
-            return sanitize_hex(value, "4472C4")
+        base_raw = text(entry.get("color"))
+        fill_raw = text(entry.get("fillColor") or entry.get("fill") or base_raw)
+        line_raw = text(entry.get("lineColor") or entry.get("strokeColor") or base_raw or fill_raw)
+        base = sanitize_hex(base_raw, "4472C4") if base_raw else "4472C4"
+        fill = sanitize_hex(fill_raw, base)
+        line = sanitize_hex(line_raw, fill)
+        primary = line if series_type == "line" else fill
+        return fill, line, primary
 
     norm = normalized_text(name)
     if "NET" in norm or "NETO" in norm:
-        return "94A3B8"
+        default = "94A3B8"
+        return default, default, default
     if "ANTERIOR" in norm or "AA" in norm or "PREV" in norm:
-        return "94A3B8"
+        default = "94A3B8"
+        return default, default, default
     if "PPTO" in norm or "PRESUPUESTO" in norm or "BUDGET" in norm:
-        return "60A5FA"
+        default = "60A5FA"
+        return default, default, default
     if "REAL" in norm:
-        return "0D47A1"
+        default = "0D47A1"
+        return default, default, default
     palette = ["0D47A1", "60A5FA", "94A3B8", "F59E0B", "10B981", "4472C4"]
-    return palette[idx % len(palette)]
+    default = palette[idx % len(palette)]
+    return default, default, default
 
 
-def style_series(series, hex_color, series_type):
-    color = sanitize_hex(hex_color, "4472C4")
-    try:
-        series.graphicalProperties.solidFill = color
-    except Exception:
-        pass
-    try:
-        series.graphicalProperties.line.solidFill = color
-    except Exception:
-        pass
-    if series_type == "line":
+def style_series(series, fill_hex, line_hex, series_type):
+    fill_color = sanitize_hex(fill_hex, "4472C4")
+    line_color = sanitize_hex(line_hex, fill_color)
+    if series_type == "bar":
         try:
-            series.marker.symbol = "none"
+            # Mantener el mismo color para valores negativos (solo barras).
+            series.invertIfNegative = False
         except Exception:
             pass
+    try:
+        series.graphicalProperties.solidFill = fill_color
+    except Exception:
+        pass
+    if series_type in {"bar", "line"}:
+        try:
+            series.graphicalProperties.line.solidFill = line_color
+        except Exception:
+            pass
+    if series_type == "line":
+        # Configuración conservadora para evitar XML inválido en ciertas versiones de Excel.
+        # Evitamos tocar marker/marker properties y solo aplicamos color de línea.
+        pass
+
+
+def enable_value_labels(chart, show_percent=False, show_values=True, dense=False):
+    try:
+        labels = DataLabelList()
+        labels.showVal = bool(show_values)
+        labels.showPercent = bool(show_percent)
+        labels.showSerName = False
+        labels.showCatName = False
+        labels.showLegendKey = False
+        labels.showBubbleSize = False
+        labels.showLeaderLines = bool(show_percent and not dense)
+        chart.dataLabels = labels
+    except Exception:
+        pass
+
+
+def _chart_rows_from_height(height_inches):
+    try:
+        height = float(height_inches)
+    except Exception:
+        height = 8.0
+    # Aproximación: 1 pulgada ~= 5 filas de Excel con alto por defecto.
+    return max(20, int(round(height * 5.2)) + 4)
+
+
+def _max_category_label_len(ws_data, block):
+    if ws_data is None or not isinstance(block, dict):
+        return 0
+    start = int(block.get("data_start") or 0)
+    end = int(block.get("data_end") or 0)
+    if start <= 0 or end <= 0 or end < start:
+        return 0
+    max_len = 0
+    for row in range(start, end + 1):
+        label = text(ws_data.cell(row=row, column=1).value)
+        if not label:
+            continue
+        max_len = max(max_len, len(label))
+    return max_len
+
+
+def _compute_chart_size(
+    labels_count,
+    series_count,
+    orientation="vertical",
+    is_combined=False,
+    chart_visual_type="cartesian",
+    max_label_len=0,
+):
+    labels_count = max(1, int(labels_count or 1))
+    series_count = max(1, int(series_count or 1))
+    orientation = "horizontal" if orientation == "horizontal" else "vertical"
+    max_label_len = max(0, int(max_label_len or 0))
+
+    if is_combined:
+        width = 26.0 if orientation == "horizontal" else max(22.0, min(30.0, 20.0 + max_label_len * 0.14))
+        if orientation == "horizontal":
+            height = max(12.0, min(38.0, 8.8 + labels_count * 0.72 + (2.2 if max_label_len > 24 else 0.0)))
+        else:
+            height = max(8.0, min(20.0, 6.6 + labels_count * 0.30 + min(4.0, max_label_len * 0.03)))
+        return width, height
+
+    if chart_visual_type in {"pie", "doughnut"}:
+        width = 20.0
+        height = max(7.2, min(14.0, 6.0 + labels_count * 0.22))
+        return width, height
+
+    width = (
+        max(28.0, min(40.0, 28.0 + max_label_len * 0.16))
+        if orientation == "horizontal"
+        else max(20.0, min(30.0, 20.0 + max_label_len * 0.08))
+    )
+    if orientation == "horizontal":
+        height = max(
+            12.0,
+            min(
+                42.0,
+                8.0
+                + labels_count * 0.78
+                + (series_count - 1) * 0.24
+                + (2.4 if max_label_len > 24 else 0.0),
+            ),
+        )
+    else:
+        height = max(
+            8.0,
+            min(
+                22.0,
+                5.4
+                + labels_count * 0.26
+                + (series_count - 1) * 0.14
+                + (1.6 if max_label_len > 22 else 0.0),
+            ),
+        )
+    return width, height
 
 
 def parse_resumen_blocks(ws_data):
@@ -328,23 +603,6 @@ def add_chart_for_block(ws_data, ws_charts, block, meta_list, top_row, is_combin
         ws_data, min_col=1, min_row=block["data_start"], max_row=block["data_end"]
     )
 
-    bar_chart = BarChart()
-    bar_chart.type = "col"
-    bar_chart.grouping = "clustered"
-    bar_chart.overlap = 0
-    bar_chart.title = block.get("title") or "Grafica"
-    bar_chart.y_axis.number_format = "#,##0.00"
-    bar_chart.y_axis.title = ""
-    bar_chart.x_axis.title = ""
-
-    line_chart = LineChart()
-    line_chart.y_axis.number_format = "#,##0.00"
-    line_chart.y_axis.axId = 200
-    line_chart.y_axis.crosses = "max"
-
-    bar_count = 0
-    line_count = 0
-
     if block.get("series"):
         iterable = [(s["col"], s["name"]) for s in block["series"]]
     else:
@@ -352,6 +610,71 @@ def add_chart_for_block(ws_data, ws_charts, block, meta_list, top_row, is_combin
         for col in block.get("series_cols", []):
             iterable.append((col, text(ws_data.cell(row=block["header_row"], column=col).value)))
 
+    chart_title = block.get("title") or "Grafica"
+    labels_count = max(1, block["data_end"] - block["data_start"] + 1)
+    max_label_len = _max_category_label_len(ws_data, block)
+    orientation = _resolve_chart_orientation(meta_list, iterable, chart_title)
+    chart_visual_type = _resolve_chart_visual_type(meta_list, iterable, chart_title)
+
+    if chart_visual_type in {"pie", "doughnut"}:
+        pie_series = None
+        pie_series_name = ""
+        for idx, (col_idx, series_name) in enumerate(iterable):
+            series_name = series_name or f"Serie {idx + 1}"
+            ref = Reference(
+                ws_data,
+                min_col=col_idx,
+                max_col=col_idx,
+                min_row=block["header_row"],
+                max_row=block["data_end"],
+            )
+            pie_series = ref
+            pie_series_name = series_name
+            break
+
+        if pie_series is None:
+            return top_row
+
+        base_chart = DoughnutChart() if chart_visual_type == "doughnut" else PieChart()
+        base_chart.title = chart_title
+        try:
+            if chart_visual_type == "doughnut":
+                base_chart.holeSize = 55
+        except Exception:
+            pass
+        base_chart.add_data(pie_series, titles_from_data=True)
+        base_chart.set_categories(categories)
+        show_labels = labels_count <= 12
+        enable_value_labels(base_chart, show_percent=show_labels, show_values=False, dense=not show_labels)
+        try:
+            base_chart.legend.position = "r" if labels_count > 9 else "b"
+        except Exception:
+            pass
+
+        fill_color, line_color, _ = resolve_series_colors(
+            meta_list, pie_series_name, 0, chart_title, chart_visual_type
+        )
+        if base_chart.series:
+            style_series(base_chart.series[0], fill_color, line_color, "bar")
+
+        width, height = _compute_chart_size(
+            labels_count,
+            1,
+            orientation=orientation,
+            is_combined=is_combined,
+            chart_visual_type=chart_visual_type,
+            max_label_len=max_label_len,
+        )
+        base_chart.width = width
+        base_chart.height = height
+        row_step = _chart_rows_from_height(height)
+
+        ws_charts.add_chart(base_chart, f"A{top_row}")
+        return top_row + row_step
+
+    series_specs = []
+    has_line = False
+    has_bar = False
     for idx, (col_idx, series_name) in enumerate(iterable):
         series_name = series_name or f"Serie {idx + 1}"
         ref = Reference(
@@ -361,47 +684,90 @@ def add_chart_for_block(ws_data, ws_charts, block, meta_list, top_row, is_combin
             min_row=block["header_row"],
             max_row=block["data_end"],
         )
-        series_type = resolve_series_type(meta_list, series_name, idx)
-        series_color = resolve_series_color(meta_list, series_name, idx)
-        if series_type == "line":
-            line_chart.add_data(ref, titles_from_data=True)
-            line_chart.set_categories(categories)
-            style_series(line_chart.series[-1], series_color, series_type)
-            line_count += 1
-        else:
-            bar_chart.add_data(ref, titles_from_data=True)
-            style_series(bar_chart.series[-1], series_color, series_type)
-            bar_count += 1
+        requested_type = resolve_series_type(meta_list, series_name, idx, chart_title)
+        if requested_type not in {"line", "bar"}:
+            requested_type = "bar"
+        fill_color, line_color, _ = resolve_series_colors(
+            meta_list, series_name, idx, chart_title, requested_type
+        )
+        has_line = has_line or requested_type == "line"
+        has_bar = has_bar or requested_type == "bar"
+        series_specs.append(
+            {
+                "ref": ref,
+                "fill": fill_color,
+                "line": line_color,
+                "requested_type": requested_type,
+            }
+        )
 
-    if bar_count == 0 and line_count > 0:
-        base_chart = line_chart
-        base_chart.title = block.get("title") or "Grafica"
-    else:
-        base_chart = bar_chart
+    if not series_specs:
+        return top_row
+
+    # Modo seguro: evitar combinaciones bar+line (axis secundarios),
+    # porque en algunos entornos Excel termina reparando el archivo.
+    mixed_types = has_line and has_bar
+    chart_kind = "line" if has_line and not has_bar else "bar"
+    if mixed_types:
+        chart_kind = "bar"
+
+    total_series = len(series_specs)
+    legend_position = (
+        "r" if orientation == "horizontal" and (labels_count >= 8 or total_series >= 6) else "b"
+    )
+
+    if chart_kind == "line":
+        base_chart = LineChart()
+        base_chart.title = chart_title
+        base_chart.y_axis.number_format = "#,##0.00"
+        for spec in series_specs:
+            base_chart.add_data(spec["ref"], titles_from_data=True)
+            style_series(base_chart.series[-1], spec["fill"], spec["line"], "line")
         base_chart.set_categories(categories)
-        if line_count > 0:
-            base_chart += line_chart
-
-    labels_count = max(1, block["data_end"] - block["data_start"] + 1)
-    if is_combined:
-        base_chart.width = 20
-        base_chart.height = 8
-        row_step = 24
     else:
-        base_chart.width = 20
-        base_chart.height = max(6.0, min(13.5, 4.5 + labels_count * 0.18))
-        row_step = max(18, min(40, int(12 + labels_count * 0.6)))
+        base_chart = BarChart()
+        base_chart.type = "bar" if orientation == "horizontal" else "col"
+        base_chart.grouping = "clustered"
+        base_chart.overlap = 0
+        base_chart.title = chart_title
+        try:
+            base_chart.varyColors = False
+        except Exception:
+            pass
+        # En openpyxl el eje de valores del BarChart es y_axis en ambos barDir (col/bar).
+        base_chart.y_axis.number_format = "#,##0.00"
+        for spec in series_specs:
+            base_chart.add_data(spec["ref"], titles_from_data=True)
+            style_series(base_chart.series[-1], spec["fill"], spec["line"], "bar")
+        base_chart.set_categories(categories)
+
+    try:
+        base_chart.legend.position = legend_position
+    except Exception:
+        pass
+
+    width, height = _compute_chart_size(
+        labels_count,
+        total_series,
+        orientation=orientation,
+        is_combined=is_combined,
+        chart_visual_type="cartesian",
+        max_label_len=max_label_len,
+    )
+    base_chart.width = width
+    base_chart.height = height
+    row_step = _chart_rows_from_height(height)
 
     ws_charts.add_chart(base_chart, f"A{top_row}")
     return top_row + row_step
 
 
-def process_resumen(wb, ws_data, ws_charts, table_sheet_name):
+def process_resumen(wb, ws_data, ws_charts, table_sheet_name, series_meta):
     blocks = parse_resumen_blocks(ws_data)
     if not blocks:
         raise RuntimeError(f"No chart blocks found in {ws_data.title}.")
     top_row = anchor_start_row(ws_data, ws_charts)
-    meta_list = []
+    meta_list = parse_series_meta(series_meta)
     for block in blocks:
         top_row = add_chart_for_block(ws_data, ws_charts, block, meta_list, top_row)
 
@@ -510,7 +876,7 @@ def run():
 
     kind = text(args.kind).lower()
     if kind == "resumen":
-        process_resumen(wb, ws_data, ws_charts, args.table_sheet_name)
+        process_resumen(wb, ws_data, ws_charts, args.table_sheet_name, args.series_meta)
     else:
         process_operativo(
             wb, ws_data, ws_charts, args.table_sheet_name, args.chart_mode, args.series_meta
@@ -527,4 +893,3 @@ if __name__ == "__main__":
     except Exception as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(1)
-

@@ -37,18 +37,21 @@
         title: "Resultado Operativo por Capitulo",
         subtitle: "Real acumulado / Ppto acumulado / Real acumulado del anio anterior",
         chartType: "inherit",
+        barDirection: "inherit",
       },
       net: {
         enabled: true,
         title: "Resumen Neto por Capitulo",
         subtitle: "Real acumulado / Ppto acumulado / Real acumulado del anio anterior",
         chartType: "inherit",
+        barDirection: "inherit",
       },
       consolidated: {
         enabled: true,
         title: "Consolidados Operativos vs Netos",
         subtitle: "Real acumulado / Ppto acumulado / Real acumulado del anio anterior",
         chartType: "inherit",
+        barDirection: "inherit",
       },
     },
     consolidatedSeries: {
@@ -68,6 +71,7 @@
     chart: {
       type: "bar",
       stacked: false,
+      barDirection: "vertical",
     },
     ingreso: {
       enabled: true,
@@ -274,6 +278,7 @@
         title: "Resultado Operativo por Capitulo",
         subtitle: "Real acumulado / Ppto acumulado / Real acumulado del anio anterior",
         chartType: "inherit",
+        barDirection: "inherit",
         sourceType: "snapshot",
         seriesMode: "columns",
         enabled: true,
@@ -311,6 +316,7 @@
         title: "Resumen Neto por Capitulo",
         subtitle: "Real acumulado / Ppto acumulado / Real acumulado del anio anterior",
         chartType: "inherit",
+        barDirection: "inherit",
         sourceType: "snapshot",
         seriesMode: "columns",
         enabled: true,
@@ -348,6 +354,7 @@
         title: "Consolidados Operativos vs Netos",
         subtitle: "Real acumulado / Ppto acumulado / Real acumulado del anio anterior",
         chartType: "inherit",
+        barDirection: "inherit",
         sourceType: "snapshot",
         seriesMode: "rows",
         enabled: true,
@@ -375,6 +382,7 @@
         title: "Ingreso por capitulo",
         subtitle: "Real acumulado por mes",
         chartType: "inherit",
+        barDirection: "inherit",
         sourceType: "mensual",
         seriesMode: "rows",
         enabled: true,
@@ -417,6 +425,7 @@
         title: "Ingreso nacional",
         subtitle: "Real acumulado por mes",
         chartType: "inherit",
+        barDirection: "inherit",
         sourceType: "mensual",
         seriesMode: "rows",
         enabled: true,
@@ -492,6 +501,32 @@
     return fallback;
   };
 
+  const normalizeBarDirection = (value, fallback = "inherit") => {
+    if (typeof value !== "string") return fallback;
+    const clean = value.trim().toLowerCase();
+    if (!clean) return fallback;
+    if (clean === "inherit") return "inherit";
+    if (
+      clean === "horizontal" ||
+      clean === "acostadas" ||
+      clean === "acostada" ||
+      clean === "h" ||
+      clean === "y"
+    ) {
+      return "horizontal";
+    }
+    if (
+      clean === "vertical" ||
+      clean === "paradas" ||
+      clean === "parada" ||
+      clean === "v" ||
+      clean === "x"
+    ) {
+      return "vertical";
+    }
+    return fallback;
+  };
+
   const normalizeSourceType = (value, fallback = "snapshot") => {
     if (typeof value !== "string") return fallback;
     const clean = value.trim().toLowerCase();
@@ -502,9 +537,29 @@
   };
 
   const normalizeSeriesMode = (value, fallback = "columns") => {
+    if (typeof value === "boolean") return value ? "rows" : "columns";
     if (typeof value !== "string") return fallback;
     const clean = value.trim().toLowerCase();
-    if (clean === "rows" || clean === "columns") return clean;
+    if (
+      clean === "rows" ||
+      clean === "row" ||
+      clean === "filas" ||
+      clean === "fila" ||
+      clean === "y"
+    ) {
+      return "rows";
+    }
+    if (
+      clean === "columns" ||
+      clean === "column" ||
+      clean === "cols" ||
+      clean === "col" ||
+      clean === "columnas" ||
+      clean === "columna" ||
+      clean === "x"
+    ) {
+      return "columns";
+    }
     return fallback;
   };
 
@@ -764,6 +819,7 @@
         typeof chart?.subtitle === "string" ? chart.subtitle.trim() : "";
       const chartType =
         normalizeChartType(chart?.chartType, "inherit");
+      const barDirection = normalizeBarDirection(chart?.barDirection, "inherit");
       const enabled = typeof chart?.enabled === "boolean" ? chart.enabled : true;
       const seriesMode = normalizeSeriesMode(chart?.seriesMode, "columns");
       const cdmxOnly = chart?.cdmxOnly === true;
@@ -773,6 +829,10 @@
         .filter(Boolean);
       const seriesKeys = Array.isArray(chart?.seriesKeys)
         ? chart.seriesKeys
+            .map((key) => normalizeSeriesKeyForModule(key, moduleKey))
+            .filter(Boolean)
+        : Array.isArray(chart?.columns)
+        ? chart.columns
             .map((key) => normalizeSeriesKeyForModule(key, moduleKey))
             .filter(Boolean)
         : [];
@@ -830,12 +890,24 @@
         seenSeries.add(seriesKey);
         mergedSeries.push(serie);
       });
+      mergedSeriesKeys.forEach((key) => {
+        const seriesKey = normalizeSeriesSelectionKey(key);
+        if (!seriesKey || seenSeries.has(seriesKey)) return;
+        seenSeries.add(seriesKey);
+        mergedSeries.push({
+          key,
+          label: key,
+          color: "#0d47a1",
+          enabled: true,
+        });
+      });
       return {
         id,
         module,
         title,
         subtitle,
         chartType,
+        barDirection,
         enabled,
         seriesMode,
         cdmxOnly,
@@ -1000,6 +1072,10 @@
           override.chartType,
           base.charts[key].chartType || "inherit"
         );
+        base.charts[key].barDirection = normalizeBarDirection(
+          override.barDirection,
+          base.charts[key].barDirection || "inherit"
+        );
       });
     }
 
@@ -1037,6 +1113,10 @@
       if (typeof config.chart.stacked === "boolean") {
         base.chart.stacked = config.chart.stacked;
       }
+      base.chart.barDirection = normalizeBarDirection(
+        config.chart.barDirection,
+        base.chart.barDirection || "vertical"
+      );
     }
 
     if (config.ingreso && typeof config.ingreso === "object") {
@@ -1561,6 +1641,7 @@
   const legendShowToggle = document.getElementById("legendShowToggle");
   const legendPositionSelect = document.getElementById("legendPositionSelect");
   const chartTypeSelect = document.getElementById("chartTypeSelect");
+  const chartBarDirectionSelect = document.getElementById("chartBarDirectionSelect");
   const chartStackedToggle = document.getElementById("chartStackedToggle");
   const manualOnlyToggle = document.getElementById("manualOnlyToggle");
   const manualChartsContainer = document.getElementById("manualChartsContainer");
@@ -1573,6 +1654,13 @@
     if (!statusEl) return;
     statusEl.textContent = message;
     statusEl.setAttribute("data-tone", tone);
+  };
+
+  const updateGlobalBarDirectionState = () => {
+    if (!chartBarDirectionSelect) return;
+    const normalizedType = normalizeChartType(chartTypeSelect?.value, "bar");
+    const enabled = normalizedType === "bar";
+    chartBarDirectionSelect.disabled = !enabled;
   };
 
 
@@ -1940,6 +2028,8 @@
         ? chart.title.trim()
         : `Grafica ${index + 1}`;
     const subtitle = typeof chart?.subtitle === "string" ? chart.subtitle.trim() : "";
+    const chartType = normalizeChartType(chart?.chartType, "inherit");
+    const barDirection = normalizeBarDirection(chart?.barDirection, "inherit");
     const enabled = chart?.enabled !== false;
     const seriesMode = normalizeSeriesMode(chart?.seriesMode, "columns");
     const showRowColors = seriesMode === "rows";
@@ -2042,17 +2132,35 @@
       )}</div>
 
       <div class="row g-2 mt-3">
-        <div class="col-12 col-lg-6">
+        <div class="col-12 col-lg-4">
           <label class="form-label small fw-semibold mb-1">Titulo</label>
           <input class="form-control form-control-sm" type="text" data-simple-title value="${escapeHtml(
             title
           )}" />
         </div>
-        <div class="col-12 col-lg-6">
+        <div class="col-12 col-lg-4">
           <label class="form-label small fw-semibold mb-1">Subtitulo</label>
           <input class="form-control form-control-sm" type="text" data-simple-subtitle value="${escapeHtml(
             subtitle
           )}" />
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label small fw-semibold mb-1">Tipo</label>
+          <select class="form-select form-select-sm" data-simple-type>
+            <option value="inherit">Heredar</option>
+            <option value="bar">Barras</option>
+            <option value="line">Lineas</option>
+            <option value="pie">Pastel</option>
+            <option value="doughnut">Dona</option>
+          </select>
+        </div>
+        <div class="col-6 col-lg-2" data-simple-bar-direction-wrap>
+          <label class="form-label small fw-semibold mb-1">Direccion barras</label>
+          <select class="form-select form-select-sm" data-simple-bar-direction>
+            <option value="inherit">Heredar</option>
+            <option value="vertical">Paradas</option>
+            <option value="horizontal">Acostadas</option>
+          </select>
         </div>
       </div>
 
@@ -2069,6 +2177,15 @@
 
     const chipsContainer = wrapper.querySelector("[data-simple-columns]");
     renderSimpleSeriesChips(chipsContainer, effectiveSeriesKeys, optionMap);
+    const typeSelect = wrapper.querySelector("[data-simple-type]");
+    if (typeSelect) typeSelect.value = chartType;
+    const directionSelect = wrapper.querySelector("[data-simple-bar-direction]");
+    if (directionSelect) directionSelect.value = barDirection;
+    updateBarDirectionVisibility(
+      wrapper,
+      "[data-simple-type]",
+      "[data-simple-bar-direction-wrap]"
+    );
     return wrapper;
   };
 
@@ -2118,12 +2235,27 @@
     hint.textContent = buildManualSourceHint(moduleValue, sourceValue);
   };
 
+  const isBarDirectionVisible = (chartTypeValue) => {
+    const normalized = normalizeChartType(chartTypeValue, "inherit");
+    return normalized === "bar" || normalized === "inherit";
+  };
+
+  const updateBarDirectionVisibility = (card, typeSelector, wrapSelector) => {
+    if (!card) return;
+    const typeSelect = card.querySelector(typeSelector);
+    const wrap = card.querySelector(wrapSelector);
+    if (!wrap) return;
+    const visible = isBarDirectionVisible(typeSelect?.value);
+    wrap.classList.toggle("d-none", !visible);
+  };
+
   const buildManualChartCard = (chart, index) => {
     const chartId = chart?.id || buildCustomChartId();
     const moduleValue = normalizeModuleValue(chart?.module, "RESUMEN");
     const title = chart?.title || `Grafica manual ${index + 1}`;
     const subtitle = chart?.subtitle || "";
     const chartType = chart?.chartType || "inherit";
+    const barDirection = normalizeBarDirection(chart?.barDirection, "inherit");
     const sourceType = chart?.sourceType || "snapshot";
     const enabled = chart?.enabled !== false;
     const seriesMode = normalizeSeriesMode(chart?.seriesMode, "columns");
@@ -2150,11 +2282,11 @@
         </button>
       </div>
       <div class="row g-2">
-        <div class="col-12 col-lg-4">
+        <div class="col-12 col-lg-3">
           <label class="form-label small fw-semibold">Modulo</label>
           <select class="form-select form-select-sm" data-manual-module></select>
         </div>
-        <div class="col-12 col-lg-4">
+        <div class="col-12 col-lg-3">
           <label class="form-label small fw-semibold">Origen</label>
           <select class="form-select form-select-sm" data-manual-source>
             <option value="snapshot">Tabla actual</option>
@@ -2162,7 +2294,7 @@
           </select>
           <div class="form-text" data-manual-source-hint></div>
         </div>
-        <div class="col-12 col-lg-4">
+        <div class="col-12 col-lg-3">
           <label class="form-label small fw-semibold">Tipo</label>
           <select class="form-select form-select-sm" data-manual-type>
             <option value="inherit">Heredar</option>
@@ -2170,6 +2302,14 @@
             <option value="line">Lineas</option>
             <option value="pie">Pastel</option>
             <option value="doughnut">Dona</option>
+          </select>
+        </div>
+        <div class="col-12 col-lg-3" data-manual-bar-direction-wrap>
+          <label class="form-label small fw-semibold">Direccion barras</label>
+          <select class="form-select form-select-sm" data-manual-bar-direction>
+            <option value="inherit">Heredar</option>
+            <option value="vertical">Paradas</option>
+            <option value="horizontal">Acostadas</option>
           </select>
         </div>
       </div>
@@ -2206,6 +2346,8 @@
     if (sourceSelect) sourceSelect.value = sourceType;
     const typeSelect = wrapper.querySelector("[data-manual-type]");
     if (typeSelect) typeSelect.value = chartType;
+    const barDirectionSelect = wrapper.querySelector("[data-manual-bar-direction]");
+    if (barDirectionSelect) barDirectionSelect.value = barDirection;
     const titleInput = wrapper.querySelector("[data-manual-title]");
     if (titleInput) titleInput.value = title;
     const subtitleInput = wrapper.querySelector("[data-manual-subtitle]");
@@ -2219,6 +2361,11 @@
     const seriesOptions = getSeriesOptionsForModule(moduleValue);
     renderSeriesOptions(seriesContainer, seriesOptions, seriesKeys);
     updateManualSourceHint(wrapper);
+    updateBarDirectionVisibility(
+      wrapper,
+      "[data-manual-type]",
+      "[data-manual-bar-direction-wrap]"
+    );
 
     return wrapper;
   };
@@ -2327,8 +2474,15 @@
     if (legendPositionSelect)
       legendPositionSelect.value = config.legend?.position || "bottom";
     if (chartTypeSelect) chartTypeSelect.value = config.chart?.type || "bar";
+    if (chartBarDirectionSelect) {
+      chartBarDirectionSelect.value = normalizeBarDirection(
+        config.chart?.barDirection,
+        "vertical"
+      );
+    }
     if (chartStackedToggle)
       chartStackedToggle.checked = Boolean(config.chart?.stacked);
+    updateGlobalBarDirectionState();
     if (manualOnlyToggle) {
       manualOnlyToggle.checked = config.manualOnly === true;
       manualOnlyToggle.disabled = false;
@@ -2374,6 +2528,10 @@
           existing.chartType,
           fallback.chartType || "inherit"
         ),
+        barDirection: normalizeBarDirection(
+          existing.barDirection,
+          fallback.barDirection || "inherit"
+        ),
       };
     });
     if (chartRows.length === 0) {
@@ -2413,6 +2571,10 @@
     draft.chart = {
       type: chartTypeSelect ? chartTypeSelect.value : "bar",
       stacked: chartStackedToggle ? chartStackedToggle.checked : false,
+      barDirection: normalizeBarDirection(
+        chartBarDirectionSelect?.value,
+        baseConfig.chart?.barDirection || defaults.chart?.barDirection || "vertical"
+      ),
     };
     draft.manualOnly = manualOnlyToggle
       ? manualOnlyToggle.checked
@@ -2470,6 +2632,8 @@
         const titleInput = card.querySelector("[data-simple-title]");
         const subtitleInput = card.querySelector("[data-simple-subtitle]");
         const enabledInput = card.querySelector("[data-simple-enabled]");
+        const typeSelect = card.querySelector("[data-simple-type]");
+        const barDirectionSelect = card.querySelector("[data-simple-bar-direction]");
 
         nextChart.id = id;
         nextChart.title =
@@ -2481,6 +2645,14 @@
           typeof enabledInput?.checked === "boolean"
             ? enabledInput.checked
             : baseChart.enabled !== false;
+        nextChart.chartType = normalizeChartType(
+          typeSelect?.value,
+          baseChart.chartType || "inherit"
+        );
+        nextChart.barDirection = normalizeBarDirection(
+          barDirectionSelect?.value,
+          baseChart.barDirection || "inherit"
+        );
 
         const seriesMode = normalizeSeriesMode(
           baseChart?.seriesMode || card.getAttribute("data-simple-series-mode"),
@@ -2547,6 +2719,7 @@
         const subtitleInput = card.querySelector("[data-manual-subtitle]");
         const typeSelect = card.querySelector("[data-manual-type]");
         const sourceSelect = card.querySelector("[data-manual-source]");
+        const barDirectionSelect = card.querySelector("[data-manual-bar-direction]");
         const rowsInput = card.querySelector("[data-manual-rows]");
         const enabledInput = card.querySelector("[data-manual-enabled]");
         const seriesInputs = Array.from(
@@ -2608,6 +2781,7 @@
           title: titleInput?.value?.trim() || `Grafica manual ${index + 1}`,
           subtitle: subtitleInput?.value?.trim() || "",
           chartType: normalizeChartType(typeSelect?.value, "inherit"),
+          barDirection: normalizeBarDirection(barDirectionSelect?.value, "inherit"),
           sourceType: normalizeSourceType(sourceSelect?.value, "snapshot"),
           enabled: Boolean(enabledInput?.checked),
           seriesMode,
@@ -2729,6 +2903,18 @@
         if (preview) preview.textContent = target.value?.trim() || "";
       }
     });
+    simpleChartsContainer.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!target) return;
+      if (!target.matches("[data-simple-type]")) return;
+      const card = target.closest("[data-simple-chart-id]");
+      if (!card) return;
+      updateBarDirectionVisibility(
+        card,
+        "[data-simple-type]",
+        "[data-simple-bar-direction-wrap]"
+      );
+    });
   }
 
   if (resetBtn) {
@@ -2755,6 +2941,7 @@
         title: `Grafica manual ${nextIndex + 1}`,
         subtitle: "",
         chartType: "inherit",
+        barDirection: "inherit",
         sourceType: "snapshot",
         enabled: true,
         seriesKeys: [],
@@ -2802,7 +2989,23 @@
         const card = target.closest("[data-manual-chart-id]");
         if (!card) return;
         updateManualSourceHint(card);
+        return;
       }
+      if (target.matches("[data-manual-type]")) {
+        const card = target.closest("[data-manual-chart-id]");
+        if (!card) return;
+        updateBarDirectionVisibility(
+          card,
+          "[data-manual-type]",
+          "[data-manual-bar-direction-wrap]"
+        );
+      }
+    });
+  }
+
+  if (chartTypeSelect) {
+    chartTypeSelect.addEventListener("change", () => {
+      updateGlobalBarDirectionState();
     });
   }
 

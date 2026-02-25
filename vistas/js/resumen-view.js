@@ -89,9 +89,29 @@
   };
 
   const normalizeSeriesMode = (value, fallback = "columns") => {
+    if (typeof value === "boolean") return value ? "rows" : "columns";
     if (typeof value !== "string") return fallback;
     const clean = value.trim().toLowerCase();
-    if (clean === "rows" || clean === "columns") return clean;
+    if (
+      clean === "rows" ||
+      clean === "row" ||
+      clean === "filas" ||
+      clean === "fila" ||
+      clean === "y"
+    ) {
+      return "rows";
+    }
+    if (
+      clean === "columns" ||
+      clean === "column" ||
+      clean === "cols" ||
+      clean === "col" ||
+      clean === "columnas" ||
+      clean === "columna" ||
+      clean === "x"
+    ) {
+      return "columns";
+    }
     return fallback;
   };
 
@@ -99,6 +119,52 @@
     const normalized = normalizeChartType(value, "inherit");
     if (normalized === "inherit") return baseType || "bar";
     return normalized;
+  };
+
+  const normalizeBarDirection = (value, fallback = "inherit") => {
+    if (typeof value !== "string") return fallback;
+    const clean = value.trim().toLowerCase();
+    if (!clean) return fallback;
+    if (clean === "inherit") return "inherit";
+    if (
+      clean === "horizontal" ||
+      clean === "acostadas" ||
+      clean === "acostada" ||
+      clean === "h" ||
+      clean === "y"
+    ) {
+      return "horizontal";
+    }
+    if (
+      clean === "vertical" ||
+      clean === "paradas" ||
+      clean === "parada" ||
+      clean === "v" ||
+      clean === "x"
+    ) {
+      return "vertical";
+    }
+    return fallback;
+  };
+
+  const resolveBarDirection = (override, baseDirection = "vertical") => {
+    const base = normalizeBarDirection(baseDirection, "vertical");
+    const normalized = normalizeBarDirection(override, "inherit");
+    if (normalized === "inherit") return base;
+    return normalized;
+  };
+
+  const barDirectionToIndexAxis = (direction) =>
+    resolveBarDirection(direction, "vertical") === "horizontal" ? "y" : "x";
+
+  const resolveChartIndexAxis = (
+    chartType,
+    barDirection,
+    baseDirection = "vertical"
+  ) => {
+    if (chartType !== "bar") return "x";
+    const resolvedDirection = resolveBarDirection(barDirection, baseDirection);
+    return barDirectionToIndexAxis(resolvedDirection);
   };
 
   const buildSlicePalette = (count, baseColor) => {
@@ -150,16 +216,22 @@
           enabled: true,
           title: "Resultado Operativo por Capitulo",
           subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+          chartType: "inherit",
+          barDirection: "inherit",
         },
         net: {
           enabled: true,
           title: "Resumen Neto por Capitulo",
           subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+          chartType: "inherit",
+          barDirection: "inherit",
         },
         consolidated: {
           enabled: true,
           title: "Consolidados Operativos vs Netos",
           subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+          chartType: "inherit",
+          barDirection: "inherit",
         },
       },
       consolidatedSeries: {
@@ -167,11 +239,13 @@
         net: { label: "CONSOLIDATED NET RESULTS", color: "#94a3b8" },
       },
       legend: { show: true, position: "bottom" },
-      chart: { type: "bar", stacked: false },
+      chart: { type: "bar", stacked: false, barDirection: "vertical" },
       ingreso: {
         enabled: true,
         title: "Ingreso por capitulo",
         subtitle: "Real acumulado por mes",
+        chartType: "inherit",
+        barDirection: "inherit",
         series: {
           mex: { label: "CDMX INCOME", color: "#0d47a1", enabled: true },
           gdl: { label: "GUADALAJARA INCOME", color: "#60a5fa", enabled: true },
@@ -183,6 +257,8 @@
         enabled: true,
         title: "Ingreso nacional",
         subtitle: "Real acumulado por mes",
+        chartType: "inherit",
+        barDirection: "inherit",
         series: {
           committees: { label: "Committees", color: "#0d47a1", enabled: true },
           membership: { label: "Membership", color: "#60a5fa", enabled: true },
@@ -338,6 +414,7 @@
           title: "Resultado Operativo por Capitulo",
           subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
           chartType: "inherit",
+          barDirection: "inherit",
           sourceType: "snapshot",
           seriesMode: "columns",
           enabled: true,
@@ -375,6 +452,7 @@
           title: "Resumen Neto por Capitulo",
           subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
           chartType: "inherit",
+          barDirection: "inherit",
           sourceType: "snapshot",
           seriesMode: "columns",
           enabled: true,
@@ -412,6 +490,7 @@
           title: "Consolidados Operativos vs Netos",
           subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
           chartType: "inherit",
+          barDirection: "inherit",
           sourceType: "snapshot",
           seriesMode: "rows",
           enabled: true,
@@ -437,6 +516,7 @@
           title: "Ingreso por capitulo",
           subtitle: "Real acumulado por mes",
           chartType: "inherit",
+          barDirection: "inherit",
           sourceType: "mensual",
           seriesMode: "rows",
           enabled: true,
@@ -475,6 +555,7 @@
           title: "Ingreso nacional",
           subtitle: "Real acumulado por mes",
           chartType: "inherit",
+          barDirection: "inherit",
           sourceType: "mensual",
           seriesMode: "rows",
           enabled: true,
@@ -1215,8 +1296,60 @@
       graficasConfig.chart?.type || "bar"
     );
     const isPie = isPieType(chartType);
+    const baseBarDirection = normalizeBarDirection(
+      graficasConfig.chart?.barDirection,
+      "vertical"
+    );
+    const dataIndexAxis = String(data?.indexAxis || "")
+      .trim()
+      .toLowerCase();
+    const indexAxis =
+      chartType === "bar"
+        ? dataIndexAxis === "y"
+          ? "y"
+          : dataIndexAxis === "x"
+            ? "x"
+            : resolveChartIndexAxis(
+                chartType,
+                data?.barDirection,
+                baseBarDirection
+              )
+        : "x";
     const shouldStack =
       !isPie && chartType === "bar" && Boolean(graficasConfig.chart?.stacked);
+    const scales = isPie
+      ? {}
+      : indexAxis === "y"
+        ? {
+            x: {
+              beginAtZero: chartType === "bar",
+              stacked: shouldStack,
+              ticks: {
+                callback: (value) => formatNumber(value),
+              },
+            },
+            y: {
+              stacked: shouldStack,
+              ticks: {
+                font: { size: 11 },
+              },
+            },
+          }
+        : {
+            y: {
+              beginAtZero: chartType === "bar",
+              stacked: shouldStack,
+              ticks: {
+                callback: (value) => formatNumber(value),
+              },
+            },
+            x: {
+              stacked: shouldStack,
+              ticks: {
+                font: { size: 11 },
+              },
+            },
+          };
     chartsPanelState.charts[key] = new Chart(ctx, {
       type: chartType,
       data: {
@@ -1226,6 +1359,7 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        indexAxis,
         plugins: {
           legend: {
             display: graficasConfig.legend?.show !== false,
@@ -1246,23 +1380,7 @@
             },
           },
         },
-        scales: isPie
-          ? {}
-          : {
-            y: {
-              beginAtZero: chartType === "bar",
-              stacked: shouldStack,
-              ticks: {
-                callback: (value) => formatNumber(value),
-              },
-            },
-            x: {
-              stacked: shouldStack,
-              ticks: {
-                font: { size: 11 },
-              },
-            },
-          },
+        scales,
       },
     });
   };
@@ -1630,7 +1748,8 @@
     seriesConfig,
     chartType,
     seriesMode = "columns",
-    context = {}
+    context = {},
+    barDirection = "inherit"
   ) => {
     if (!snapshot?.filas || !Array.isArray(seriesConfig) || !seriesConfig.length) {
       return null;
@@ -1671,6 +1790,19 @@
 
     const useRowsAsSeries = seriesMode === "rows";
     const isPie = isPieType(chartType);
+    const baseBarDirection = normalizeBarDirection(
+      context?.baseBarDirection,
+      "vertical"
+    );
+    const resolvedBarDirection = resolveBarDirection(
+      barDirection,
+      baseBarDirection
+    );
+    const indexAxis = resolveChartIndexAxis(
+      chartType,
+      resolvedBarDirection,
+      baseBarDirection
+    );
 
     if (useRowsAsSeries) {
       const labels = seriesConfig.map((serie) => serie.label || serie.key);
@@ -1707,6 +1839,8 @@
         labels,
         datasets,
         type: chartType,
+        barDirection: resolvedBarDirection,
+        indexAxis,
       };
     }
 
@@ -1740,6 +1874,8 @@
       labels: resolvedRows.map((row) => row.label || "-"),
       datasets,
       type: chartType,
+      barDirection: resolvedBarDirection,
+      indexAxis,
     };
   };
 
@@ -1781,12 +1917,26 @@
     seriesConfig,
     chartType,
     seriesMode = "columns",
-    context = {}
+    context = {},
+    barDirection = "inherit"
   ) => {
     if (!Array.isArray(responses) || !responses.length) return null;
     if (!Array.isArray(seriesConfig) || !seriesConfig.length) return null;
     const rows = Array.isArray(chart?.rows) ? chart.rows : [];
     if (!rows.length) return null;
+    const baseBarDirection = normalizeBarDirection(
+      context?.baseBarDirection,
+      "vertical"
+    );
+    const resolvedBarDirection = resolveBarDirection(
+      barDirection,
+      baseBarDirection
+    );
+    const indexAxis = resolveChartIndexAxis(
+      chartType,
+      resolvedBarDirection,
+      baseBarDirection
+    );
 
     const useRowsAsSeries = seriesMode === "rows";
     if (useRowsAsSeries) {
@@ -1861,6 +2011,8 @@
         labels: MESES.map((m) => m.etiqueta),
         datasets,
         type: chartType,
+        barDirection: resolvedBarDirection,
+        indexAxis,
       };
     }
 
@@ -1924,6 +2076,8 @@
       labels: MESES.map((m) => m.etiqueta),
       datasets,
       type: chartType,
+      barDirection: resolvedBarDirection,
+      indexAxis,
     };
   };
 
@@ -1992,6 +2146,10 @@
     let fallbackSnapshot = snapshot?.filas ? snapshot : null;
 
     const baseChartType = graficasConfig.chart?.type || "bar";
+    const baseBarDirection = normalizeBarDirection(
+      graficasConfig.chart?.barDirection,
+      "vertical"
+    );
     const baseSeriesConfig = getSummaryCustomSeriesConfig(graficasConfig);
     if (!baseSeriesConfig.length) return 0;
 
@@ -2008,6 +2166,10 @@
       if (chartModule !== moduleKey) continue;
       if (chart?.cdmxOnly === true && !labelContext.isCdmx) continue;
       const chartType = resolveChartType(chart?.chartType, baseChartType);
+      const chartBarDirection = resolveBarDirection(
+        chart?.barDirection,
+        baseBarDirection
+      );
       const seriesMode = normalizeSeriesMode(chart?.seriesMode, "columns");
       const seriesConfig = applyCustomSeriesOverrides(
         filterSeriesByKeys(baseSeriesConfig, chart?.seriesKeys || []),
@@ -2027,7 +2189,8 @@
           seriesConfig,
           chartType,
           seriesMode,
-          labelContext
+          { ...labelContext, baseBarDirection },
+          chartBarDirection
         );
       } else {
         let chartSnapshot = fallbackSnapshot;
@@ -2047,7 +2210,8 @@
             seriesConfig,
             chartType,
             seriesMode,
-            labelContext
+            { ...labelContext, baseBarDirection },
+            chartBarDirection
           );
         }
       }
@@ -2155,11 +2319,20 @@
     if (ingresoConfig.enabled === false) return null;
 
     const baseChartType = graficasConfig.chart?.type || "bar";
+    const baseBarDirection = normalizeBarDirection(
+      graficasConfig.chart?.barDirection,
+      "vertical"
+    );
     const chartType = resolveChartType(ingresoConfig.chartType, baseChartType);
+    const chartBarDirection = resolveBarDirection(
+      ingresoConfig.barDirection,
+      baseBarDirection
+    );
     const configSignature = JSON.stringify({
       ingreso: ingresoConfig,
       sources: ingresoSources,
       chartType,
+      barDirection: chartBarDirection,
     });
     const cacheKey = buildIngresoCacheKey(empresaId, anio, configSignature);
     if (ingresoCache.has(cacheKey)) return ingresoCache.get(cacheKey);
@@ -2243,6 +2416,12 @@
         return entry;
       }),
       type: chartType,
+      barDirection: chartBarDirection,
+      indexAxis: resolveChartIndexAxis(
+        chartType,
+        chartBarDirection,
+        baseBarDirection
+      ),
     };
 
     ingresoCache.set(cacheKey, payload);
@@ -2266,11 +2445,20 @@
     if (ingresoConfig.enabled === false) return null;
 
     const baseChartType = graficasConfig.chart?.type || "bar";
+    const baseBarDirection = normalizeBarDirection(
+      graficasConfig.chart?.barDirection,
+      "vertical"
+    );
     const chartType = resolveChartType(ingresoConfig.chartType, baseChartType);
+    const chartBarDirection = resolveBarDirection(
+      ingresoConfig.barDirection,
+      baseBarDirection
+    );
     const configSignature = JSON.stringify({
       ingresoNacional: ingresoConfig,
       sources: ingresoSources,
       chartType,
+      barDirection: chartBarDirection,
     });
     const cacheKey = buildIngresoNacionalCacheKey(
       empresaId,
@@ -2364,6 +2552,12 @@
         return entry;
       }),
       type: chartType,
+      barDirection: chartBarDirection,
+      indexAxis: resolveChartIndexAxis(
+        chartType,
+        chartBarDirection,
+        baseBarDirection
+      ),
     };
 
     ingresoNacionalCache.set(cacheKey, payload);
@@ -2371,15 +2565,17 @@
   };
 
   const obtenerGraficasExportacion = async (options = {}) => {
-    const { empresaId, anio } = options;
+    const { empresaId, anio, ignoreManualOnly = false } = options;
     const graficasConfig = getGraficasConfig();
-    const manualOnly = isManualOnly(graficasConfig);
+    const manualOnly = ignoreManualOnly ? false : isManualOnly(graficasConfig);
     console.log("📊 obtenerGraficasExportacion: manualOnly =", manualOnly);
     console.log("📊 obtenerGraficasExportacion: RESUMEN_SNAPSHOT existe =", !!window.RESUMEN_SNAPSHOT);
     console.log("📊 obtenerGraficasExportacion: RESUMEN_SNAPSHOT.filas =", window.RESUMEN_SNAPSHOT?.filas?.length || 0);
     const datos = manualOnly
       ? []
-      : (generarDatosGraficas(graficasConfig) || []).filter(Boolean);
+      : (generarDatosGraficas(graficasConfig, { ignoreManualOnly }) || []).filter(
+          Boolean
+        );
     console.log("📊 obtenerGraficasExportacion: datos generados =", datos.length);
 
     const resolvedEmpresaId =
@@ -2438,6 +2634,10 @@
       document.body?.dataset?.modulo || "RESUMEN"
     );
     const baseChartType = graficasConfig.chart?.type || "bar";
+    const baseBarDirection = normalizeBarDirection(
+      graficasConfig.chart?.barDirection,
+      "vertical"
+    );
     const baseSeriesConfig = getSummaryCustomSeriesConfig(graficasConfig);
 
     if (customCharts.length && baseSeriesConfig.length) {
@@ -2449,6 +2649,10 @@
         if (chartModule !== moduleKey) continue;
         if (chart?.cdmxOnly === true && !labelContext.isCdmx) continue;
         const chartType = resolveChartType(chart?.chartType, baseChartType);
+        const chartBarDirection = resolveBarDirection(
+          chart?.barDirection,
+          baseBarDirection
+        );
         const seriesMode = normalizeSeriesMode(chart?.seriesMode, "columns");
         const seriesConfig = applyCustomSeriesOverrides(
           filterSeriesByKeys(baseSeriesConfig, chart?.seriesKeys || []),
@@ -2473,7 +2677,8 @@
             seriesConfig,
             chartType,
             seriesMode,
-            labelContext
+            { ...labelContext, baseBarDirection },
+            chartBarDirection
           );
         } else if (snapshot?.filas) {
           data = buildCustomChartData(
@@ -2482,7 +2687,8 @@
             seriesConfig,
             chartType,
             seriesMode,
-            labelContext
+            { ...labelContext, baseBarDirection },
+            chartBarDirection
           );
         }
         if (!data) continue;
@@ -2495,6 +2701,27 @@
     }
 
     const tieneDatosExportables = (grafica) => {
+      const toNumeric = (raw) => {
+        if (raw == null) return null;
+        if (typeof raw === "number") {
+          return Number.isFinite(raw) ? raw : null;
+        }
+        if (typeof raw === "string") {
+          const direct = Number(raw.replace(/,/g, "").trim());
+          if (Number.isFinite(direct)) return direct;
+          const compact = raw.replace(/[^0-9.\-]/g, "");
+          const parsed = Number(compact);
+          return Number.isFinite(parsed) ? parsed : null;
+        }
+        if (typeof raw === "object") {
+          const candidates = [raw.y, raw.x, raw.value, raw.v];
+          for (const candidate of candidates) {
+            const parsed = toNumeric(candidate);
+            if (Number.isFinite(parsed)) return parsed;
+          }
+        }
+        return null;
+      };
       if (!grafica || !Array.isArray(grafica.labels) || !grafica.labels.length) {
         return false;
       }
@@ -2505,7 +2732,7 @@
       datasets.forEach((dataset) => {
         const values = Array.isArray(dataset?.data) ? dataset.data : [];
         values.forEach((raw) => {
-          const value = Number(raw);
+          const value = toNumeric(raw);
           if (!Number.isFinite(value)) return;
           hasNumeric = true;
           if (Math.abs(value) > 0.000001) {
@@ -3991,6 +4218,233 @@
       prevYTD: 0,
     });
 
+    const CAMPOS_TOTALES = [
+      "actualMonth",
+      "planMonth",
+      "prevMonth",
+      "actualYTD",
+      "planYTD",
+      "prevYTD",
+    ];
+
+    const leerTotalesFilaTabla = (row) => {
+      const cells = row?.cells;
+      if (!cells || cells.length < 12) return totalesCero();
+      return {
+        actualMonth: parseNumber(cells[1]?.textContent || ""),
+        planMonth: parseNumber(cells[2]?.textContent || ""),
+        prevMonth: parseNumber(cells[3]?.textContent || ""),
+        actualYTD: parseNumber(cells[7]?.textContent || ""),
+        planYTD: parseNumber(cells[8]?.textContent || ""),
+        prevYTD: parseNumber(cells[9]?.textContent || ""),
+      };
+    };
+
+    const asignarTotalesFilaTabla = (row, totals = {}) => {
+      const cells = row?.cells;
+      if (!cells || cells.length < 12) return;
+      const actualMonth = toNumber(totals.actualMonth);
+      const planMonth = toNumber(totals.planMonth);
+      const prevMonth = toNumber(totals.prevMonth);
+      const actualYTD = toNumber(totals.actualYTD);
+      const planYTD = toNumber(totals.planYTD);
+      const prevYTD = toNumber(totals.prevYTD);
+
+      cells[1].textContent = formatNumber(actualMonth);
+      cells[2].textContent = formatNumber(planMonth);
+      cells[3].textContent = formatNumber(prevMonth);
+      cells[4].textContent = formatPercentValue(
+        calculateVar(actualMonth, planMonth)
+      );
+      cells[5].textContent = formatPercentValue(
+        calculateVar(actualMonth, prevMonth)
+      );
+      cells[7].textContent = formatNumber(actualYTD);
+      cells[8].textContent = formatNumber(planYTD);
+      cells[9].textContent = formatNumber(prevYTD);
+      cells[10].textContent = formatPercentValue(
+        calculateVar(actualYTD, planYTD)
+      );
+      cells[11].textContent = formatPercentValue(
+        calculateVar(actualYTD, prevYTD)
+      );
+    };
+
+    const normalizarCuentaKey = (valor = "") => {
+      const digits = (valor || "").toString().replace(/[^0-9]/g, "");
+      if (!digits) return "";
+      if (digits.length >= 21) return digits.slice(0, 21);
+      if (digits.length >= 11) return digits.slice(0, 11).padEnd(21, "0");
+      return digits.padEnd(21, "0");
+    };
+
+    const normalizarTipoLayout = (block = {}) =>
+      (block?.type || block?.tipo || "")
+        .toString()
+        .trim()
+        .toLowerCase();
+
+    const esBloqueCuenta = (block = {}) => {
+      const t = normalizarTipoLayout(block);
+      return t === "cuenta" || t === "account";
+    };
+
+    const esBloqueSecundaria = (block = {}) => {
+      const t = normalizarTipoLayout(block);
+      return (
+        t === "secundaria" ||
+        t === "subsection" ||
+        t === "sum-row" ||
+        t.includes("secundaria")
+      );
+    };
+
+    const esBloquePrincipal = (block = {}) => {
+      const t = normalizarTipoLayout(block);
+      return (
+        t === "principal" ||
+        t === "section" ||
+        t === "title-row" ||
+        t === "sum-row-sumavarios" ||
+        t.includes("principal")
+      );
+    };
+
+    const esBloqueOperacion = (block = {}) => {
+      const t = normalizarTipoLayout(block);
+      return t === "operation" || t === "operacion";
+    };
+
+    const construirContextMapLayout = (layoutArr = []) => {
+      const contextMap = new Map();
+      (Array.isArray(layoutArr) ? layoutArr : []).forEach((block) => {
+        if (!block || typeof block !== "object") return;
+        if (block.label) addContextReference(contextMap, block.label, block);
+        if (block.nombre) addContextReference(contextMap, block.nombre, block);
+        if (block.id) addContextReference(contextMap, block.id, block);
+        if (block.Clase) addContextReference(contextMap, block.Clase, block);
+        if (block.clase) addContextReference(contextMap, block.clase, block);
+        if (block.subseccion)
+          addContextReference(contextMap, block.subseccion, block);
+        if (block.parentSection)
+          addContextReference(contextMap, block.parentSection, block);
+        if (block.parentSubsection)
+          addContextReference(contextMap, block.parentSubsection, block);
+        if (esBloqueCuenta(block) && block.cuenta) {
+          addContextReference(contextMap, block.cuenta, block);
+        }
+      });
+      return contextMap;
+    };
+
+    const recalcularOperacionesLayout = (layoutArr = []) => {
+      const operations = (Array.isArray(layoutArr) ? layoutArr : []).filter(
+        (block) => esBloqueOperacion(block)
+      );
+      if (!operations.length) return;
+
+      const totalsIguales = (a = {}, b = {}) =>
+        CAMPOS_TOTALES.every(
+          (field) =>
+            Math.abs(toNumber(a?.[field]) - toNumber(b?.[field])) < 0.000001
+        );
+
+      const maxPasses = Math.max(2, operations.length);
+      for (let pass = 0; pass < maxPasses; pass += 1) {
+        const contextMap = construirContextMapLayout(layoutArr);
+        let huboCambios = false;
+
+        operations.forEach((block) => {
+          const formula = getFormulaString(block);
+          if (!formula || formula.trim().length < 2) return;
+
+          const nextTotals = {};
+          CAMPOS_TOTALES.forEach((field) => {
+            nextTotals[field] = calculateFormulaValue(
+              formula,
+              contextMap,
+              field,
+              block
+            );
+          });
+          const sign = Number(block?.sign);
+          if (Number.isFinite(sign) && sign !== 1) {
+            CAMPOS_TOTALES.forEach((field) => {
+              nextTotals[field] = toNumber(nextTotals[field]) * sign;
+            });
+          }
+
+          if (!totalsIguales(block?.totals, nextTotals)) {
+            block.totals = nextTotals;
+            block.manualFormula = true;
+            block.__manualFormula = true;
+            huboCambios = true;
+          }
+        });
+
+        if (!huboCambios) break;
+      }
+    };
+
+    const sincronizarJerarquiaDesdeTablaHtml = (
+      layoutArr = [],
+      capituloKey = "",
+      rowBindings = []
+    ) => {
+      if (!Array.isArray(layoutArr) || !layoutArr.length || !tablaBody) return;
+
+      const layoutVisible = [];
+      const clonePairs = [];
+      const renderedSet = new Set(
+        (Array.isArray(rowBindings) ? rowBindings : [])
+          .map((binding) => binding?.block)
+          .filter(Boolean)
+      );
+
+      layoutArr.forEach((block) => {
+        if (renderedSet.size && !renderedSet.has(block)) return;
+        const clone = {
+          ...block,
+          totals: { ...totalesCero(), ...(block.totals || {}) },
+        };
+        layoutVisible.push(clone);
+        clonePairs.push({ original: block, clone });
+      });
+
+      if (!layoutVisible.length) return;
+      const cloneByOriginal = new Map(
+        clonePairs.map(({ original, clone }) => [original, clone])
+      );
+
+      const bindings = Array.isArray(rowBindings)
+        ? rowBindings.filter((binding) => binding?.row && binding?.block)
+        : [];
+
+      bindings.forEach(({ row, block }) => {
+        if (!row || !block || !esBloqueCuenta(block)) return;
+        const clone = cloneByOriginal.get(block);
+        if (!clone) return;
+        clone.totals = leerTotalesFilaTabla(row);
+      });
+
+      recalcularPrincipales(layoutVisible);
+      if (comparativaActiva) {
+        recalcularPrevDesdeHijos(layoutVisible);
+      }
+      recalcularOperacionesLayout(layoutVisible);
+      recalcularConsolidados(layoutVisible, capituloKey, { comparativaActiva });
+
+      clonePairs.forEach(({ original, clone }) => {
+        original.totals = { ...totalesCero(), ...(clone.totals || {}) };
+      });
+      bindings.forEach(({ row, block }) => {
+        if (!row || !block || esBloqueCuenta(block)) return;
+        if (block?.totals) {
+          asignarTotalesFilaTabla(row, block.totals);
+        }
+      });
+    };
+
     // Helper to get formula string from block
     // Nota: `manualFormula` suele ser boolean (flag), no string.
     const getFormulaString = (block) => {
@@ -4015,10 +4469,16 @@
             const valRaw = term.value ?? term.ref ?? term.label ?? "";
             const val = (valRaw || "").toString().trim();
             if (!val) return "";
+            const esNumeroLiteral = /^-?\d+(?:\.\d+)?$/.test(val);
+            const tokenVal = esNumeroLiteral
+              ? val
+              : `"${val.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
             // Siempre incluir el operador para que tokenizarFormulaTexto pueda
             // separar correctamente los términos positivos con "+".
             // Sin esto, "A + B + C" se uniría como "A B C" (un solo token gigante).
-            return `${op} ${val}`;
+            // Encerrar referencias en comillas evita que paréntesis/espacios
+            // dentro de labels (ej. Other (MEXICO)) rompan la tokenización.
+            return `${op} ${tokenVal}`;
           })
           .filter(Boolean)
           .join(" ")
@@ -4609,8 +5069,16 @@
           if (isSecundaria && block.parentSection) {
             const entry = principalAggMap.get(block.parentSection);
             if (entry) {
+              const sign = applySign(block.sign, 1);
               entry.hasSubs = true;
-              sumMetricsLocal(entry.accSubs, block.totals || {});
+              sumMetricsLocal(entry.accSubs, {
+                actualMonth: toNumber(block?.totals?.actualMonth) * sign,
+                planMonth: toNumber(block?.totals?.planMonth) * sign,
+                prevMonth: toNumber(block?.totals?.prevMonth) * sign,
+                actualYTD: toNumber(block?.totals?.actualYTD) * sign,
+                planYTD: toNumber(block?.totals?.planYTD) * sign,
+                prevYTD: toNumber(block?.totals?.prevYTD) * sign,
+              });
             }
           }
         });
@@ -5753,10 +6221,30 @@
         // Track current section context for deriving headers from cuenta transitions
         let currentPrincipal = null;
         let currentSubsection = null;
+        const layoutRowBindings = [];
+        const registrarFilaLayout = (row, block) => {
+          if (!row || !block || typeof block !== "object") return;
+          layoutRowBindings.push({ row, block });
+          const tipo = normalizarTipoLayout(block) || "row";
+          const cuenta = block?.cuenta || block?.id || "";
+          const label = block?.label || block?.nombre || "";
+          const parentSection = block?.parentSection || "";
+          const parentSubsection = block?.parentSubsection || "";
+          row.dataset.layoutBlockKey = [
+            normalizarLabel(capituloName || ""),
+            tipo,
+            normalizarLabel(parentSection),
+            normalizarLabel(parentSubsection),
+            normalizarLabel(label),
+            normalizarCuentaKey(cuenta),
+          ]
+            .filter(Boolean)
+            .join("::");
+        };
 
         // Helper: render a principal header row
-        const renderPrincipalHeader = (label) => {
-          const pBlock = principalTotalsMap.get(label) || {};
+        const renderPrincipalHeader = (label, blockCandidate = null) => {
+          const pBlock = blockCandidate || principalTotalsMap.get(label) || {};
           const principalRow = createResumenTotalsRow(pBlock.totals || {}, {
             label: label,
             rowRole: "principal",
@@ -5776,12 +6264,21 @@
             pCells[6].classList.add("collapse-trigger");
           }
           tablaBody.appendChild(principalRow);
+          registrarFilaLayout(principalRow, pBlock);
         };
 
         // Helper: render a secundaria header row
-        const renderSubsectionHeader = (label, parentSection) => {
+        const renderSubsectionHeader = (
+          label,
+          parentSection,
+          blockCandidate = null
+        ) => {
           const key = (parentSection || "") + "::" + label;
-          const sBlock = subsectionTotalsMap.get(key) || subsectionTotalsMap.get(label) || {};
+          const sBlock =
+            blockCandidate ||
+            subsectionTotalsMap.get(key) ||
+            subsectionTotalsMap.get(label) ||
+            {};
           const secRowClass =
             "subsection-row bg-light fw-semibold text-center collapsible-section";
           const secRow = createResumenTotalsRow(sBlock.totals || {}, {
@@ -5804,6 +6301,7 @@
             secRow.dataset.parentSection = parentSection || "";
           }
           tablaBody.appendChild(secRow);
+          registrarFilaLayout(secRow, sBlock);
         };
 
         // Helper to check if a block has been rendered to avoid duplicates
@@ -5820,7 +6318,7 @@
               currentPrincipal = label;
               currentSubsection = null;
               if (!renderedBlocks.has("P:" + label)) {
-                renderPrincipalHeader(label);
+                renderPrincipalHeader(label, block);
                 renderedBlocks.add("P:" + label);
               }
             }
@@ -5853,7 +6351,7 @@
               currentSubsection = label;
               const key = (currentPrincipal || "") + "::" + label;
               if (!renderedBlocks.has("S:" + key)) {
-                renderSubsectionHeader(label, currentPrincipal);
+                renderSubsectionHeader(label, currentPrincipal, block);
                 renderedBlocks.add("S:" + key);
               }
             }
@@ -5962,6 +6460,7 @@
             })}
             `;
             tablaBody.appendChild(row);
+            registrarFilaLayout(row, block);
           }
           // OPERACION LIBRE: fila calculada desde fórmula manual
           else if (blockType === "operation") {
@@ -5979,6 +6478,7 @@
               },
             });
             tablaBody.appendChild(opRow);
+            registrarFilaLayout(opRow, block);
           }
           // CONSOLIDACIONES: Filas de suma con jerarquía visual
           else if (["group", "result", "net", "final"].includes(blockType)) {
@@ -6035,8 +6535,17 @@
               }
             );
             tablaBody.appendChild(consolidationRow);
+            registrarFilaLayout(consolidationRow, block);
           }
         });
+
+        // Garantiza fidelidad total con la tabla HTML:
+        // cuentas renderizadas -> subsecciones -> secciones -> operaciones.
+        sincronizarJerarquiaDesdeTablaHtml(
+          layout,
+          capituloName,
+          layoutRowBindings
+        );
       }
     });
 
@@ -7114,6 +7623,14 @@
       workbook.creator = "SummaCham";
       workbook.created = new Date();
       const { baseName, empresaTexto, mesNombre } = construirMetadataExportacion();
+      const sanitizeExcelText = (value, fallback = "") => {
+        if (value == null) return fallback;
+        const cleaned = String(value)
+          .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        return cleaned || fallback;
+      };
       const ajustarAnchosWorksheet = (worksheet, options = {}) => {
         if (!worksheet) return;
         const { min = 8, max = 60, padding = 2 } = options;
@@ -7164,7 +7681,7 @@
                 colIndex++;
               }
 
-              const texto = cell.textContent.trim();
+              const texto = sanitizeExcelText(cell.textContent, " ");
               const colspan = parseInt(cell.getAttribute("colspan")) || 1;
               const rowspan = parseInt(cell.getAttribute("rowspan")) || 1;
 
@@ -7219,7 +7736,7 @@
           bodyRows.forEach((row) => {
             const cells = Array.from(row.querySelectorAll("td"));
             const rowData = cells.map((cell, idx) => {
-              const text = cell.textContent.trim();
+              const text = sanitizeExcelText(cell.textContent);
               if (idx !== 0 && idx !== 6) {
                 const hasPercent = /%/.test(text);
                 const cleaned = text
@@ -7236,7 +7753,7 @@
 
             // Formato para porcentajes: mantener tipo numérico y aplicar numFmt correcto
             cells.forEach((cell, idx) => {
-              const text = cell.textContent.trim();
+              const text = sanitizeExcelText(cell.textContent);
               if (idx !== 0 && idx !== 6 && /%/.test(text)) {
                 const excelCell = excelRow.getCell(idx + 1);
                 if (typeof excelCell.value === "number") {
@@ -7329,15 +7846,321 @@
         indeterminate: false,
         percent: 45,
       });
-      const graficaData = await obtenerGraficasExportacion({
+      let graficaData = await obtenerGraficasExportacion({
         empresaId: empresaActual?.id,
         anio,
       });
       console.log("📊 EXPORT: graficaData obtenidos:", graficaData.length);
+      if (!Array.isArray(graficaData) || !graficaData.length) {
+        // Fallback 1: ignorar temporalmente el modo manual para no exportar vacío en RESUMEN.
+        graficaData = await obtenerGraficasExportacion({
+          empresaId: empresaActual?.id,
+          anio,
+          ignoreManualOnly: true,
+        });
+        console.log(
+          "📊 EXPORT: fallback ignoreManualOnly =",
+          Array.isArray(graficaData) ? graficaData.length : 0
+        );
+      }
+      if (!Array.isArray(graficaData) || !graficaData.length) {
+        const resolverTituloDesdeCanvas = (chart, key) => {
+          const canvas = chart?.canvas || null;
+          const fromExportUtils =
+            window.ExportUtils &&
+            typeof window.ExportUtils._resolverTituloGrafica === "function"
+              ? window.ExportUtils._resolverTituloGrafica(canvas, "")
+              : "";
+          if (fromExportUtils) return fromExportUtils;
+          const mappedTitles = {
+            operating:
+              document.getElementById("resumenChartTitleOperating")?.textContent,
+            net: document.getElementById("resumenChartTitleNet")?.textContent,
+            consolidated:
+              document.getElementById("resumenChartTitleConsolidated")?.textContent,
+            ingreso:
+              document.getElementById("resumenChartTitleIngresoCapitulo")
+                ?.textContent,
+            ingresoNacional:
+              document.getElementById("resumenChartTitleIngresoNacional")
+                ?.textContent,
+          };
+          const mapped = mappedTitles[key] || "";
+          if (mapped && mapped.toString().trim()) return mapped.toString().trim();
+          return `Grafica ${key || ""}`.trim();
+        };
+        const collectRenderedCharts = () => {
+          const rendered = [];
+          Object.entries(chartsPanelState?.charts || {}).forEach(([key, chart]) => {
+            if (!chart?.data) return;
+            const labels = Array.isArray(chart.data.labels) ? chart.data.labels : [];
+            const datasets = Array.isArray(chart.data.datasets)
+              ? chart.data.datasets
+              : [];
+            if (!labels.length || !datasets.length) return;
+            const hasUseful = datasets.some((dataset) =>
+              Array.isArray(dataset?.data)
+                ? dataset.data.some((value) => {
+                    const num = Number(
+                      typeof value === "object"
+                        ? value?.y ?? value?.x ?? value?.value ?? value?.v
+                        : value
+                    );
+                    return Number.isFinite(num) && Math.abs(num) > 0.000001;
+                  })
+                : false
+            );
+            if (!hasUseful) return;
+            rendered.push({
+              titulo: resolverTituloDesdeCanvas(chart, key),
+              labels,
+              datasets,
+              type: chart?.config?.type || "bar",
+              indexAxis:
+                (chart?.options?.indexAxis || "")
+                  .toString()
+                  .trim()
+                  .toLowerCase() === "y"
+                  ? "y"
+                  : "x",
+            });
+          });
+          return rendered;
+        };
+
+        let renderedCharts = collectRenderedCharts();
+        if (!renderedCharts.length) {
+          const wasOpen = chartsPanelState.open === true;
+          try {
+            if (!wasOpen) setPanelGraficasOpen(true);
+            if (typeof actualizarPanelGraficas === "function") {
+              await actualizarPanelGraficas();
+              await new Promise((resolve) => window.setTimeout(resolve, 220));
+            }
+            renderedCharts = collectRenderedCharts();
+          } catch (fallbackRenderError) {
+            console.warn(
+              "⚠️ EXPORT: no fue posible forzar render del panel de gráficas",
+              fallbackRenderError
+            );
+          } finally {
+            if (!wasOpen) setPanelGraficasOpen(false);
+          }
+        }
+        if (renderedCharts.length) {
+          graficaData = renderedCharts;
+          console.log(
+            "📊 EXPORT: fallback con charts renderizados =",
+            graficaData.length
+          );
+        }
+      }
 
       const chartsSheetName = "Gráficas";
       const dataSheetName = "GraficasData";
       const tableSheetName = "Resumen";
+      const pickSeriesColor = (value) => {
+        const picker =
+          window.ExportUtils && typeof window.ExportUtils._seleccionarColorSerie === "function"
+            ? window.ExportUtils._seleccionarColorSerie.bind(window.ExportUtils)
+            : null;
+        if (picker) return picker(value);
+        if (Array.isArray(value)) {
+          const firstValido = value.find(
+            (item) => item != null && String(item).trim() !== ""
+          );
+          return firstValido ?? value[0] ?? "";
+        }
+        return value;
+      };
+      const normalizeSeriesKey = (value) => {
+        const normalizer =
+          window.ExportUtils && typeof window.ExportUtils._normalizarClaveSerie === "function"
+            ? window.ExportUtils._normalizarClaveSerie.bind(window.ExportUtils)
+            : null;
+        if (normalizer) return normalizer(value || "");
+        return (value || "")
+          .toString()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/gi, " ")
+          .trim()
+          .toLowerCase();
+      };
+      const normalizeHexColor = (value, fallback = "#4472C4") => {
+        const normalizer =
+          window.ExportUtils && typeof window.ExportUtils._normalizarColorHex === "function"
+            ? window.ExportUtils._normalizarColorHex.bind(window.ExportUtils)
+            : null;
+        if (normalizer) return normalizer(value, fallback);
+        const source = (value ?? "").toString().trim();
+        const hex = source.match(/^#?([0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{4}|[0-9a-f]{3})$/i);
+        if (hex) {
+          let raw = hex[1];
+          if (raw.length === 3 || raw.length === 4) {
+            raw = raw
+              .split("")
+              .map((ch) => `${ch}${ch}`)
+              .join("");
+          }
+          if (raw.length === 8) {
+            const toInt = (segment) => parseInt(segment, 16);
+            const a = toInt(raw.slice(6, 8)) / 255;
+            const blend = (c) => Math.round((Number.isFinite(a) ? a : 1) * c + (1 - (Number.isFinite(a) ? a : 1)) * 255);
+            const toHex = (n) =>
+              Math.max(0, Math.min(255, Number(n) || 0))
+                .toString(16)
+                .padStart(2, "0")
+                .toUpperCase();
+            return `#${toHex(blend(toInt(raw.slice(0, 2))))}${toHex(blend(
+              toInt(raw.slice(2, 4))
+            ))}${toHex(blend(toInt(raw.slice(4, 6))))}`;
+          }
+          return `#${raw.toUpperCase()}`;
+        }
+        const rgb = source.match(
+          /^rgba?\s*\(\s*([0-9]{1,3}%?)\s*[,\s]\s*([0-9]{1,3}%?)\s*[,\s]\s*([0-9]{1,3}%?)(?:\s*[,/]\s*([0-9.]+%?))?/i
+        );
+        if (rgb) {
+          const parseRgbComp = (v) => {
+            const txt = String(v || "").trim();
+            if (txt.endsWith("%")) {
+              return (Math.max(0, Math.min(100, Number(txt.slice(0, -1)) || 0)) / 100) * 255;
+            }
+            return Math.max(0, Math.min(255, Number(txt) || 0));
+          };
+          const parseAlpha = (v) => {
+            const txt = String(v == null ? "1" : v).trim();
+            if (txt.endsWith("%")) {
+              return Math.max(0, Math.min(100, Number(txt.slice(0, -1)) || 0)) / 100;
+            }
+            return Math.max(0, Math.min(1, Number(txt) || 0));
+          };
+          const alpha = rgb[4] == null ? 1 : parseAlpha(rgb[4]);
+          const toHex = (n) =>
+            Math.max(0, Math.min(255, Number(n) || 0))
+              .toString(16)
+              .padStart(2, "0")
+              .toUpperCase();
+          const blend = (c) => Math.round(alpha * parseRgbComp(c) + (1 - alpha) * 255);
+          return `#${toHex(blend(rgb[1]))}${toHex(blend(rgb[2]))}${toHex(blend(rgb[3]))}`;
+        }
+        return fallback;
+      };
+      const normalizeChartLabelForExcel = (rawLabel, idx = 0) => {
+        const fallback = `Item ${idx + 1}`;
+        const cleanText = (value) =>
+          sanitizeExcelText(value)
+            .replace(/^resultado operativo\s*:\s*/i, "")
+            .replace(/^operating results?\s*[:\-]\s*/i, "")
+            .trim();
+        if (Array.isArray(rawLabel)) {
+          const found = rawLabel.map(cleanText).find(Boolean);
+          const normalized = found || fallback;
+          return normalized.length > 52
+            ? `${normalized.slice(0, 51).trimEnd()}...`
+            : normalized;
+        }
+        if (rawLabel && typeof rawLabel === "object") {
+          const candidates = [
+            rawLabel.label,
+            rawLabel.name,
+            rawLabel.category,
+            rawLabel.y,
+            rawLabel.x,
+            rawLabel.key,
+            rawLabel.id,
+          ];
+          const found = candidates.map(cleanText).find(Boolean);
+          const normalized = found || fallback;
+          return normalized.length > 52
+            ? `${normalized.slice(0, 51).trimEnd()}...`
+            : normalized;
+        }
+        const clean = cleanText(rawLabel);
+        const normalized = clean || fallback;
+        return normalized.length > 52
+          ? `${normalized.slice(0, 51).trimEnd()}...`
+          : normalized;
+      };
+      const normalizeChartValueForExcel = (rawValue, indexAxis = "x") => {
+        const parseNumeric = (candidate) => {
+          if (candidate == null) return null;
+          if (typeof candidate === "number") {
+            return Number.isFinite(candidate) ? candidate : null;
+          }
+          const text = String(candidate).trim();
+          if (!text) return null;
+          const direct = Number(text.replace(/,/g, ""));
+          if (Number.isFinite(direct)) return direct;
+          const sanitized = text.replace(/[^0-9.\-]/g, "");
+          if (!sanitized) return null;
+          const parsed = Number(sanitized);
+          return Number.isFinite(parsed) ? parsed : null;
+        };
+        const direct = parseNumeric(rawValue);
+        if (Number.isFinite(direct)) return direct;
+        if (rawValue && typeof rawValue === "object") {
+          const candidates =
+            indexAxis === "y"
+              ? [rawValue.x, rawValue.value, rawValue.v, rawValue.y]
+              : [rawValue.y, rawValue.value, rawValue.v, rawValue.x];
+          for (const candidate of candidates) {
+            const parsed = parseNumeric(candidate);
+            if (Number.isFinite(parsed)) return parsed;
+          }
+        }
+        return 0;
+      };
+      const seriesMetaList = [];
+      graficaData.forEach((grafica, graficaIdx) => {
+        const chartTitle = sanitizeExcelText(
+          grafica?.titulo || `Grafica ${graficaIdx + 1}`,
+          `Grafica ${graficaIdx + 1}`
+        );
+        const chartIndexAxisRaw = String(grafica?.indexAxis || "")
+          .trim()
+          .toLowerCase();
+        const chartIndexAxis = chartIndexAxisRaw === "y" ? "y" : "x";
+        const chartOrientation =
+          chartIndexAxis === "y" ? "horizontal" : "vertical";
+        (grafica?.datasets || []).forEach((dataset, datasetIdx) => {
+          const label = sanitizeExcelText(
+            dataset?.label || `Serie ${datasetIdx + 1}`,
+            `Serie ${datasetIdx + 1}`
+          );
+          if (!label) return;
+          const chartType = (dataset?.type || grafica?.type || "bar")
+            .toString()
+            .trim()
+            .toLowerCase();
+          const rawFill =
+            pickSeriesColor(dataset?.backgroundColor) ||
+            pickSeriesColor(dataset?.pointBackgroundColor) ||
+            pickSeriesColor(dataset?.color) ||
+            "";
+          const rawLine =
+            pickSeriesColor(dataset?.borderColor) ||
+            pickSeriesColor(dataset?.pointBorderColor) ||
+            pickSeriesColor(dataset?.color) ||
+            rawFill;
+          const fillColor = normalizeHexColor(rawFill, "#4472C4");
+          const lineColor = normalizeHexColor(rawLine, fillColor);
+          seriesMetaList.push({
+            label,
+            key: normalizeSeriesKey(label),
+            chartTitle,
+            chartKey: normalizeSeriesKey(chartTitle),
+            chartOrientation,
+            indexAxis: chartIndexAxis,
+            order: datasetIdx,
+            type: chartType,
+            color: chartType === "line" ? lineColor : fillColor,
+            fillColor,
+            lineColor,
+          });
+        });
+      });
 
       if (!workbook.getWorksheet(chartsSheetName)) {
         workbook.addWorksheet(chartsSheetName);
@@ -7354,25 +8177,36 @@
         let rowCursor = 1;
         graficaData.forEach((grafica, idx) => {
           wsData.getCell(rowCursor, 1).value = "CHART";
-          wsData.getCell(rowCursor, 2).value =
-            grafica.titulo || `Grafica ${idx + 1}`;
+          wsData.getCell(rowCursor, 2).value = sanitizeExcelText(
+            grafica.titulo || `Grafica ${idx + 1}`,
+            `Grafica ${idx + 1}`
+          );
           rowCursor += 1;
           wsData.getCell(rowCursor, 1).value = "Categoria";
           (grafica.datasets || []).forEach((dataset, dIdx) => {
-            wsData.getCell(rowCursor, dIdx + 2).value =
-              dataset.label || `Serie ${dIdx + 1}`;
+            wsData.getCell(rowCursor, dIdx + 2).value = sanitizeExcelText(
+              dataset.label || `Serie ${dIdx + 1}`,
+              `Serie ${dIdx + 1}`
+            );
           });
           rowCursor += 1;
           (grafica.labels || []).forEach((label, lIdx) => {
-            wsData.getCell(rowCursor, 1).value = label;
+            wsData.getCell(rowCursor, 1).value = normalizeChartLabelForExcel(
+              label,
+              lIdx
+            );
             (grafica.datasets || []).forEach((dataset, dIdx) => {
               const rawValue = Array.isArray(dataset.data)
                 ? dataset.data[lIdx]
                 : 0;
-              const value =
-                typeof rawValue === "number" && Number.isFinite(rawValue)
-                  ? rawValue
-                  : Number(rawValue) || 0;
+              const chartIndexAxisRaw = String(grafica?.indexAxis || "")
+                .trim()
+                .toLowerCase();
+              const chartIndexAxis = chartIndexAxisRaw === "y" ? "y" : "x";
+              const value = normalizeChartValueForExcel(
+                rawValue,
+                chartIndexAxis
+              );
               wsData.getCell(rowCursor, dIdx + 2).value = value;
             });
             rowCursor += 1;
@@ -7419,6 +8253,9 @@
         chartsSheetName,
         tableSheetName,
       });
+      if (seriesMetaList.length) {
+        params.set("seriesMeta", JSON.stringify(seriesMetaList));
+      }
 
       exportProgressUI.update({
         label: "Generando gráficas nativas en Excel…",
@@ -7476,7 +8313,8 @@
     }
   };
 
-  const generarDatosGraficas = (config) => {
+  const generarDatosGraficas = (config, options = {}) => {
+    const { ignoreManualOnly = false } = options;
     const empresaIdCtx =
       empresaActual?.id || Sesion.obtenerEmpresaActiva?.()?.id || null;
     const anioCtx = leerAnioSeleccionado();
@@ -7500,12 +8338,16 @@
     }
 
     const graficasConfig = config || getGraficasConfig();
-    if (isManualOnly(graficasConfig)) {
+    if (!ignoreManualOnly && isManualOnly(graficasConfig)) {
       console.warn("📊 generarDatosGraficas: Modo manualOnly activo");
       return [];
     }
     const baseConfig = DEFAULT_GRAFICAS_CONFIG || {};
     const baseChartType = graficasConfig.chart?.type || "bar";
+    const baseBarDirection = normalizeBarDirection(
+      graficasConfig.chart?.barDirection,
+      "vertical"
+    );
     const chartsCfg = graficasConfig.charts || {};
     const resolveType = (override) => resolveChartType(override, baseChartType);
 
@@ -7622,6 +8464,10 @@
       }
       if (operating.labels.length) {
         const operatingType = resolveType(chartsCfg.operating?.chartType);
+        const operatingBarDirection = resolveBarDirection(
+          chartsCfg.operating?.barDirection,
+          baseBarDirection
+        );
         const chartTitle =
           chartsCfg.operating?.title ||
           baseConfig.charts?.operating?.title ||
@@ -7633,6 +8479,12 @@
             buildDataset(serie, operating.seriesData[serie.key], operatingType)
           ),
           type: operatingType,
+          barDirection: operatingBarDirection,
+          indexAxis: resolveChartIndexAxis(
+            operatingType,
+            operatingBarDirection,
+            baseBarDirection
+          ),
         };
       }
     }
@@ -7644,6 +8496,10 @@
       }
       if (net.labels.length) {
         const netType = resolveType(chartsCfg.net?.chartType);
+        const netBarDirection = resolveBarDirection(
+          chartsCfg.net?.barDirection,
+          baseBarDirection
+        );
         const chartTitle =
           chartsCfg.net?.title ||
           baseConfig.charts?.net?.title ||
@@ -7655,6 +8511,12 @@
             buildDataset(serie, net.seriesData[serie.key], netType)
           ),
           type: netType,
+          barDirection: netBarDirection,
+          indexAxis: resolveChartIndexAxis(
+            netType,
+            netBarDirection,
+            baseBarDirection
+          ),
         };
       }
     }
@@ -7694,6 +8556,10 @@
 
       if (consolidatedOp && consolidatedNet) {
         const consolidatedType = resolveType(chartsCfg.consolidated?.chartType);
+        const consolidatedBarDirection = resolveBarDirection(
+          chartsCfg.consolidated?.barDirection,
+          baseBarDirection
+        );
         const consolidatedCfg = graficasConfig.consolidatedSeries || {};
         const baseConsolidated = baseConfig.consolidatedSeries || {};
         const operatingCfg =
@@ -7759,6 +8625,12 @@
             ),
           ],
           type: consolidatedType,
+          barDirection: consolidatedBarDirection,
+          indexAxis: resolveChartIndexAxis(
+            consolidatedType,
+            consolidatedBarDirection,
+            baseBarDirection
+          ),
         };
       }
     }

@@ -564,10 +564,10 @@
           );
 
         const chartBlocks = this._resolverBloquesGraficas(charts);
-        const chartMeta = this._resolverMetaGraficaOperativa(charts, chartBlocks);
-        const chartMode =
-          this._resolverModoGraficasExcel() ||
-          (chartBlocks.some((block) => block?.isCombined) ? "combined" : "");
+        const chartMode = this._resolverModoGraficasExcel(chartBlocks);
+        const chartMeta = this._resolverMetaGraficaOperativa(charts, chartBlocks, {
+          preferCombined: chartMode === "combined",
+        });
         const chartBlocksForSheet = chartMode === "combined" ? [] : chartBlocks;
 
         const datos = this._obtenerDatosOperativo(tablaElement);
@@ -634,17 +634,35 @@
           params.set("chartMode", chartMode);
         }
         const seriesMetaList = [];
-        const seriesMetaSeen = new Set();
         chartBlocks.forEach((block) => {
-          (block?.series || []).forEach((serie) => {
+          const chartTitle = (block?.title || "").toString().trim();
+          const chartOrientation =
+            (block?.orientation || "").toString().toLowerCase() === "horizontal"
+              ? "horizontal"
+              : "vertical";
+          const chartIndexAxis = chartOrientation === "horizontal" ? "y" : "x";
+          (block?.series || []).forEach((serie, serieIdx) => {
             const label = (serie?.label || "").toString().trim();
             if (!label) return;
-            const key = label.toLowerCase();
-            if (seriesMetaSeen.has(key)) return;
-            seriesMetaSeen.add(key);
+            const fillColor = this._normalizarColorHex(
+              serie?.fillColor || serie?.color || "",
+              "#4472C4"
+            );
+            const lineColor = this._normalizarColorHex(
+              serie?.lineColor || serie?.color || fillColor,
+              fillColor
+            );
             seriesMetaList.push({
               label,
-              color: this._normalizarColorHex(serie?.color || "", "#4472C4"),
+              key: this._normalizarClaveSerie(label),
+              chartTitle,
+              chartKey: this._normalizarClaveSerie(chartTitle),
+              chartOrientation,
+              indexAxis: chartIndexAxis,
+              order: serieIdx,
+              color: this._normalizarColorHex(serie?.color || fillColor, "#4472C4"),
+              fillColor,
+              lineColor,
               type: (serie?.type || "bar").toString().toLowerCase(),
             });
           });
@@ -2431,9 +2449,7 @@
           }),
         ];
         filas = chartLabels.map((rawLabel, rowIdx) => {
-          const etiqueta = this._limpiarEtiquetaOperativo(
-            (rawLabel || "").toString().trim()
-          );
+          const etiqueta = this._normalizarEtiquetaGrafica(rawLabel, rowIdx);
           const row = [etiqueta];
           chartSeries.forEach((serie) => {
             const valor = Array.isArray(serie.data) ? serie.data[rowIdx] : 0;
@@ -2484,9 +2500,7 @@
             }),
           ]);
           labels.forEach((rawLabel, rowIdx) => {
-            const itemLabel = this._limpiarEtiquetaOperativo(
-              (rawLabel || "").toString().trim()
-            );
+            const itemLabel = this._normalizarEtiquetaGrafica(rawLabel, rowIdx);
             const row = [itemLabel || `Item ${rowIdx + 1}`];
             series.forEach((serie) => {
               const value = Array.isArray(serie?.data) ? serie.data[rowIdx] : 0;
@@ -2519,47 +2533,299 @@
     },
 
     _normalizarColorHex(valor, fallback = "#4472C4") {
-      const source = (valor || "").toString().trim();
-      if (!source) return fallback;
-      const hexMatch = source.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+      const sourceRaw = (valor ?? "").toString().trim();
+      if (!sourceRaw) return fallback;
+      const source = sourceRaw.toLowerCase();
+
+      const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+      const parsePercentOrNumber = (raw, max = 1) => {
+        if (raw == null) return NaN;
+        const txt = String(raw).trim();
+        if (!txt) return NaN;
+        if (txt.endsWith("%")) {
+          const pct = Number(txt.slice(0, -1));
+          if (!Number.isFinite(pct)) return NaN;
+          return (pct / 100) * max;
+        }
+        const n = Number(txt);
+        return Number.isFinite(n) ? n : NaN;
+      };
+      const toHex = (n) =>
+        clamp(Math.round(Number(n) || 0), 0, 255)
+          .toString(16)
+          .padStart(2, "0")
+          .toUpperCase();
+      const toHexFromRgba = (r, g, b, a = 1) => {
+        const alpha = clamp(
+          Number.isFinite(parsePercentOrNumber(a, 1))
+            ? parsePercentOrNumber(a, 1)
+            : 1,
+          0,
+          1
+        );
+        // Excel no soporta alpha en color de serie; mezclamos contra blanco para preservar tono visual.
+        const blend = (c) =>
+          Math.round(alpha * clamp(Number(c) || 0, 0, 255) + (1 - alpha) * 255);
+        return `#${toHex(blend(r))}${toHex(blend(g))}${toHex(blend(b))}`;
+      };
+
+      const cssVarMatch = sourceRaw.match(
+        /^var\(\s*(--[a-z0-9_-]+)\s*(?:,\s*([^)]+))?\)$/i
+      );
+      if (cssVarMatch) {
+        try {
+          if (typeof document !== "undefined" && typeof getComputedStyle === "function") {
+            const resolved = getComputedStyle(document.documentElement)
+              .getPropertyValue(cssVarMatch[1])
+              .trim();
+            if (resolved) {
+              return this._normalizarColorHex(resolved, fallback);
+            }
+          }
+        } catch (_) {
+          // ignore
+        }
+        if (cssVarMatch[2]) {
+          return this._normalizarColorHex(cssVarMatch[2].trim(), fallback);
+        }
+      }
+
+      const hexMatch = source.match(/^#?([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i);
       if (hexMatch) {
         let hex = hexMatch[1];
-        if (hex.length === 3) {
+        if (hex.length === 3 || hex.length === 4) {
           hex = hex
             .split("")
             .map((char) => `${char}${char}`)
             .join("");
         }
-        return `#${hex.toUpperCase()}`;
+        if (hex.length === 6) {
+          return `#${hex.toUpperCase()}`;
+        }
+        if (hex.length === 8) {
+          const r = parseInt(hex.slice(0, 2), 16);
+          const g = parseInt(hex.slice(2, 4), 16);
+          const b = parseInt(hex.slice(4, 6), 16);
+          const a = parseInt(hex.slice(6, 8), 16) / 255;
+          return toHexFromRgba(r, g, b, a);
+        }
       }
+
+      const parseRgbComp = (comp) => {
+        const parsed = parsePercentOrNumber(comp, 255);
+        return Number.isFinite(parsed) ? parsed : NaN;
+      };
       const rgbMatch = source.match(
-        /^rgba?\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})/i
+        /^rgba?\s*\(\s*([0-9]{1,3}%?)\s*[,\s]\s*([0-9]{1,3}%?)\s*[,\s]\s*([0-9]{1,3}%?)(?:\s*[,/]\s*([0-9.]+%?))?\s*\)$/i
       );
       if (rgbMatch) {
-        const toHex = (n) =>
-          Math.max(0, Math.min(255, Number(n) || 0))
-            .toString(16)
-            .padStart(2, "0")
-            .toUpperCase();
-        return `#${toHex(rgbMatch[1])}${toHex(rgbMatch[2])}${toHex(rgbMatch[3])}`;
+        return toHexFromRgba(
+          parseRgbComp(rgbMatch[1]),
+          parseRgbComp(rgbMatch[2]),
+          parseRgbComp(rgbMatch[3]),
+          rgbMatch[4] == null ? 1 : rgbMatch[4]
+        );
+      }
+
+      const hslMatch = source.match(
+        /^hsla?\(\s*([0-9.+-]+)\s*(?:deg)?\s*[,\s]\s*([0-9.+-]+)%\s*[,\s]\s*([0-9.+-]+)%(?:\s*[,/]\s*([0-9.]+%?))?\s*\)$/i
+      );
+      if (hslMatch) {
+        let h = Number(hslMatch[1]);
+        const s = clamp(Number(hslMatch[2]) / 100, 0, 1);
+        const l = clamp(Number(hslMatch[3]) / 100, 0, 1);
+        const a = hslMatch[4] == null ? 1 : hslMatch[4];
+        if (Number.isFinite(h)) {
+          h = ((h % 360) + 360) % 360;
+          const c = (1 - Math.abs(2 * l - 1)) * s;
+          const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+          const m = l - c / 2;
+          let rp = 0;
+          let gp = 0;
+          let bp = 0;
+          if (h < 60) {
+            rp = c;
+            gp = x;
+          } else if (h < 120) {
+            rp = x;
+            gp = c;
+          } else if (h < 180) {
+            gp = c;
+            bp = x;
+          } else if (h < 240) {
+            gp = x;
+            bp = c;
+          } else if (h < 300) {
+            rp = x;
+            bp = c;
+          } else {
+            rp = c;
+            bp = x;
+          }
+          return toHexFromRgba(
+            (rp + m) * 255,
+            (gp + m) * 255,
+            (bp + m) * 255,
+            a
+          );
+        }
+      }
+
+      // Named colors y vars CSS (fallback via computed style/canvas parser).
+      try {
+        if (typeof document !== "undefined") {
+          const helper = document.createElement("canvas");
+          const ctx = helper.getContext?.("2d");
+          if (ctx) {
+            const initial = "#000000";
+            ctx.fillStyle = initial;
+            ctx.fillStyle = sourceRaw;
+            const parsed = (ctx.fillStyle || "").toString();
+            if (parsed) {
+              const looksLikeBlackSource =
+                source === "black" ||
+                source === "#000" ||
+                source === "#000000" ||
+                source.startsWith("rgb(0") ||
+                source.startsWith("rgba(0");
+              if (parsed.toLowerCase() === initial && !looksLikeBlackSource) {
+                return fallback;
+              }
+              const normalized = this._normalizarColorHex(parsed, "");
+              if (normalized) return normalized;
+            }
+          }
+        }
+      } catch (_) {
+        // ignore
       }
       return fallback;
     },
 
-    _resolverColorDataset(dataset, idx = 0) {
+    _normalizarClaveSerie(label = "") {
+      return (label || "")
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/gi, " ")
+        .trim()
+        .toLowerCase();
+    },
+
+    _extraerAlphaColor(valor) {
+      const source = (valor ?? "").toString().trim().toLowerCase();
+      if (!source) return 1;
+      const clampAlpha = (n) => Math.max(0, Math.min(1, n));
+      const parseAlpha = (raw) => {
+        if (raw == null) return 1;
+        const txt = String(raw).trim();
+        if (!txt) return 1;
+        if (txt.endsWith("%")) {
+          const parsed = Number(txt.slice(0, -1));
+          if (!Number.isFinite(parsed)) return 1;
+          return clampAlpha(parsed / 100);
+        }
+        const parsed = Number(txt);
+        return Number.isFinite(parsed) ? clampAlpha(parsed) : 1;
+      };
+
+      const hex = source.match(/^#?([0-9a-f]{4}|[0-9a-f]{8})$/i);
+      if (hex) {
+        let raw = hex[1];
+        if (raw.length === 4) {
+          raw = raw
+            .split("")
+            .map((ch) => `${ch}${ch}`)
+            .join("");
+        }
+        return clampAlpha(parseInt(raw.slice(6, 8), 16) / 255);
+      }
+
+      const rgba = source.match(
+        /^rgba?\s*\(\s*[0-9]{1,3}%?\s*[,\s]\s*[0-9]{1,3}%?\s*[,\s]\s*[0-9]{1,3}%?(?:\s*[,/]\s*([0-9.]+%?))?\s*\)$/
+      );
+      if (rgba) {
+        if (rgba[1] == null) return 1;
+        return parseAlpha(rgba[1]);
+      }
+      const hsla = source.match(
+        /^hsla?\(\s*[0-9.+-]+\s*(?:deg)?\s*[,\s]\s*[0-9.+-]+%\s*[,\s]\s*[0-9.+-]+%(?:\s*[,/]\s*([0-9.]+%?))?\s*\)$/
+      );
+      if (hsla) {
+        if (hsla[1] == null) return 1;
+        return parseAlpha(hsla[1]);
+      }
+      return 1;
+    },
+
+    _seleccionarColorSerie(valor) {
+      if (!Array.isArray(valor)) return valor;
+      const candidates = valor.filter(
+        (item) => item != null && String(item).toString().trim() !== ""
+      );
+      if (!candidates.length) return valor[0];
+
+      const frequency = new Map();
+      let best = "";
+      let bestCount = 0;
+      candidates.forEach((candidate) => {
+        const normalized = this._normalizarColorHex(candidate, "");
+        if (!normalized) return;
+        const count = (frequency.get(normalized) || 0) + 1;
+        frequency.set(normalized, count);
+        if (count > bestCount) {
+          bestCount = count;
+          best = normalized;
+        }
+      });
+
+      if (!best) return candidates[0];
+      const original = candidates.find(
+        (candidate) => this._normalizarColorHex(candidate, "") === best
+      );
+      return original || candidates[0];
+    },
+
+    _resolverColoresDataset(dataset, idx = 0, chartType = "bar") {
       const palette = ["#4472C4", "#7F7F7F", "#2F5597", "#70AD47", "#ED7D31"];
       const fallback = palette[idx % palette.length];
-      const pick = (value) => {
-        if (Array.isArray(value)) return value[0];
-        return value;
-      };
-      const color =
-        pick(dataset?.backgroundColor) ||
-        pick(dataset?.borderColor) ||
-        pick(dataset?.pointBackgroundColor) ||
-        pick(dataset?.pointBorderColor) ||
+
+      const rawFill =
+        this._seleccionarColorSerie(dataset?.backgroundColor) ||
+        this._seleccionarColorSerie(dataset?.pointBackgroundColor) ||
+        this._seleccionarColorSerie(dataset?.color) ||
         "";
-      return this._normalizarColorHex(color, fallback);
+      const rawLine =
+        this._seleccionarColorSerie(dataset?.borderColor) ||
+        this._seleccionarColorSerie(dataset?.pointBorderColor) ||
+        this._seleccionarColorSerie(dataset?.color) ||
+        rawFill;
+
+      const fillColor = this._normalizarColorHex(rawFill, "");
+      const lineColor = this._normalizarColorHex(rawLine, "");
+      const fillAlpha = this._extraerAlphaColor(rawFill);
+
+      const isLine = (chartType || "").toString().toLowerCase() === "line";
+      if (isLine) {
+        const line = lineColor || fillColor || fallback;
+        return {
+          color: line,
+          fillColor: fillColor || line,
+          lineColor: line,
+        };
+      }
+
+      // En barras con alpha bajo, borderColor suele representar mejor el color percibido.
+      const preferredFill =
+        fillColor && fillAlpha > 0.32
+          ? fillColor
+          : lineColor || fillColor || fallback;
+      const preferredLine = lineColor || preferredFill || fallback;
+      return {
+        color: preferredFill || fallback,
+        fillColor: preferredFill || fallback,
+        lineColor: preferredLine,
+      };
     },
 
     _resolverBloquesGraficas(charts = null) {
@@ -2570,22 +2836,46 @@
         const canvas = target?.canvas;
         const chart = window.Chart.getChart(canvas);
         if (!chart?.data) return;
-        const labels = Array.isArray(chart.data.labels)
-          ? chart.data.labels.map((label, idx) => {
-            const clean = this._limpiarEtiquetaOperativo(
-              (label || "").toString().trim()
-            );
-            return clean || `Item ${idx + 1}`;
-          })
+        const indexAxis = (chart?.options?.indexAxis || "x")
+          .toString()
+          .trim()
+          .toLowerCase();
+        const orientation = indexAxis === "y" ? "horizontal" : "vertical";
+        const datasets = Array.isArray(chart.data.datasets) ? chart.data.datasets : [];
+        const maxDataLen = datasets.reduce((maxLen, dataset) => {
+          const dataLen = Array.isArray(dataset?.data) ? dataset.data.length : 0;
+          return Math.max(maxLen, dataLen);
+        }, 0);
+        let labels = Array.isArray(chart.data.labels)
+          ? chart.data.labels.map((label, idx) =>
+            this._normalizarEtiquetaGrafica(label, idx)
+          )
           : [];
+        const inferredLabels = this._inferirEtiquetasGraficaDesdeDatasets(
+          datasets,
+          indexAxis,
+          maxDataLen
+        );
+        const labelsArePlaceholders =
+          labels.length > 0 &&
+          labels.every((label, idx) => this._esEtiquetaPlaceholder(label, idx));
+        if ((!labels.length || labelsArePlaceholders) && inferredLabels.length) {
+          labels = inferredLabels;
+        } else if (inferredLabels.length > labels.length) {
+          for (let idx = labels.length; idx < inferredLabels.length; idx += 1) {
+            labels[idx] = inferredLabels[idx] || `Item ${idx + 1}`;
+          }
+        }
+        if (!labels.length && maxDataLen > 0) {
+          labels = Array.from({ length: maxDataLen }, (_, idx) => `Item ${idx + 1}`);
+        }
         if (!labels.length) return;
 
-        const datasets = Array.isArray(chart.data.datasets) ? chart.data.datasets : [];
         const series = datasets
           .map((dataset, idx) => {
             const rawData = Array.isArray(dataset?.data) ? dataset.data : [];
             const normalizedValues = labels.map((_, labelIdx) =>
-              this._normalizarValorGrafica(rawData[labelIdx])
+              this._normalizarValorGrafica(rawData[labelIdx], indexAxis)
             );
             const hasNumeric = normalizedValues.some((value) =>
               Number.isFinite(value)
@@ -2597,15 +2887,23 @@
             const values = normalizedValues.map((value) =>
               Number.isFinite(value) ? value : 0
             );
+            const resolvedType = (dataset?.type || chart?.config?.type || "bar")
+              .toString()
+              .trim()
+              .toLowerCase();
+            const resolvedColors = this._resolverColoresDataset(
+              dataset,
+              idx,
+              resolvedType
+            );
             return {
               label:
                 (dataset?.label || `Serie ${idx + 1}`).toString().trim() ||
                 `Serie ${idx + 1}`,
-              color: this._resolverColorDataset(dataset, idx),
-              type: (dataset?.type || chart?.config?.type || "bar")
-                .toString()
-                .trim()
-                .toLowerCase(),
+              color: resolvedColors.color,
+              fillColor: resolvedColors.fillColor,
+              lineColor: resolvedColors.lineColor,
+              type: resolvedType,
               data: values,
             };
           })
@@ -2618,21 +2916,36 @@
               .trim() || `Grafica ${targetIndex + 1}`,
           labels,
           series,
+          indexAxis,
+          orientation,
           isCombined: this._esGraficaCombinada(canvas),
         });
       });
       return blocks;
     },
 
-    _resolverMetaGraficaOperativa(charts = null, precomputedBlocks = null) {
+    _resolverMetaGraficaOperativa(
+      charts = null,
+      precomputedBlocks = null,
+      options = {}
+    ) {
       const blocks = Array.isArray(precomputedBlocks)
         ? precomputedBlocks
         : this._resolverBloquesGraficas(charts);
       if (!blocks.length) return null;
-      const preferred =
-        blocks.find((block) => block?.isCombined) ||
-        blocks.find((block) => block?.labels?.length && block?.series?.length) ||
-        null;
+      const preferCombined = options?.preferCombined === true;
+      const combinedBlock = blocks.find(
+        (block) => block?.isCombined && block?.labels?.length && block?.series?.length
+      );
+      const nonCombinedBlock = blocks.find(
+        (block) => !block?.isCombined && block?.labels?.length && block?.series?.length
+      );
+      const anyValid = blocks.find(
+        (block) => block?.labels?.length && block?.series?.length
+      );
+      const preferred = preferCombined
+        ? combinedBlock || nonCombinedBlock || anyValid || null
+        : nonCombinedBlock || combinedBlock || anyValid || null;
       if (!preferred) return null;
       return {
         labels: Array.isArray(preferred.labels) ? preferred.labels : [],
@@ -2677,40 +2990,158 @@
       return Number.isFinite(number) ? number : 0;
     },
 
-    _normalizarValorGrafica(value) {
-      if (value == null) return null;
-      if (typeof value === "number") {
-        return Number.isFinite(value) ? value : null;
+    _esEtiquetaPlaceholder(label, idx = 0) {
+      const normalized = (label || "")
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+      if (!normalized) return true;
+      const expected = `item ${idx + 1}`;
+      return normalized === expected || normalized === expected.replace(" ", "");
+    },
+
+    _normalizarEtiquetaGrafica(rawLabel, idx = 0) {
+      const fallback = `Item ${idx + 1}`;
+      const sanitize = (value) => {
+        if (value == null) return "";
+        const cleanedRaw = String(value).replace(
+          /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g,
+          " "
+        );
+        let text = this._limpiarEtiquetaOperativo(
+          cleanedRaw.replace(/\s+/g, " ").trim()
+        );
+        text = (text || "").toString().trim();
+        text = text
+          .replace(/^resultado operativo\s*:\s*/i, "")
+          .replace(/^operating results?\s*[:\-]\s*/i, "")
+          .trim();
+        if (text.length > 52) {
+          text = `${text.slice(0, 51).trimEnd()}...`;
+        }
+        return text;
+      };
+
+      if (Array.isArray(rawLabel)) {
+        for (const part of rawLabel) {
+          const clean = sanitize(part);
+          if (clean) return clean;
+        }
+        return fallback;
       }
-      if (typeof value === "string") {
-        const trimmed = value.trim();
-        if (!trimmed) return null;
-        const parsed = Number(trimmed.replace(/,/g, ""));
-        return Number.isFinite(parsed) ? parsed : null;
+
+      if (rawLabel && typeof rawLabel === "object") {
+        const candidates = [
+          rawLabel?.label,
+          rawLabel?.name,
+          rawLabel?.category,
+          rawLabel?.y,
+          rawLabel?.x,
+          rawLabel?.key,
+          rawLabel?.id,
+        ];
+        for (const candidate of candidates) {
+          const clean = sanitize(candidate);
+          if (clean) return clean;
+        }
+        return fallback;
       }
-      if (typeof value === "object") {
-        const candidate =
-          value?.y ?? value?.value ?? value?.v ?? value?.x ?? null;
+
+      const clean = sanitize(rawLabel);
+      return clean || fallback;
+    },
+
+    _inferirEtiquetasGraficaDesdeDatasets(datasets = [], indexAxis = "x", maxLen = 0) {
+      const series = Array.isArray(datasets) ? datasets : [];
+      const axisKey = indexAxis === "y" ? "y" : "x";
+      const inferredLen = Math.max(
+        Number.isFinite(maxLen) ? maxLen : 0,
+        ...series.map((dataset) =>
+          Array.isArray(dataset?.data) ? dataset.data.length : 0
+        )
+      );
+      if (!inferredLen) return [];
+
+      const labels = Array.from({ length: inferredLen }, (_, idx) => {
+        for (const dataset of series) {
+          const point = Array.isArray(dataset?.data) ? dataset.data[idx] : null;
+          if (!point || typeof point !== "object" || Array.isArray(point)) continue;
+          const rawLabel =
+            point?.[axisKey] ??
+            point?.label ??
+            point?.name ??
+            point?.category ??
+            null;
+          const normalized = this._normalizarEtiquetaGrafica(rawLabel, idx);
+          if (!this._esEtiquetaPlaceholder(normalized, idx)) {
+            return normalized;
+          }
+        }
+        return `Item ${idx + 1}`;
+      });
+
+      return labels;
+    },
+
+    _normalizarValorGrafica(value, indexAxis = "x") {
+      const parseCandidate = (candidate) => {
         if (candidate == null) return null;
+        if (typeof candidate === "number") {
+          return Number.isFinite(candidate) ? candidate : null;
+        }
+        if (typeof candidate === "string") {
+          const trimmed = candidate.trim();
+          if (!trimmed) return null;
+          const parsedDirect = Number(trimmed.replace(/,/g, ""));
+          if (Number.isFinite(parsedDirect)) return parsedDirect;
+          const sanitized = trimmed.replace(/[^0-9.\-]/g, "");
+          if (!sanitized) return null;
+          const parsedSanitized = Number(sanitized);
+          return Number.isFinite(parsedSanitized) ? parsedSanitized : null;
+        }
         const parsed = Number(candidate);
         return Number.isFinite(parsed) ? parsed : null;
+      };
+
+      if (value == null) return null;
+      const direct = parseCandidate(value);
+      if (Number.isFinite(direct)) return direct;
+      if (typeof value === "object") {
+        const preferredCandidates =
+          indexAxis === "y"
+            ? [value?.x, value?.value, value?.v, value?.y, value?.r]
+            : [value?.y, value?.value, value?.v, value?.x, value?.r];
+        for (const candidate of preferredCandidates) {
+          const parsed = parseCandidate(candidate);
+          if (Number.isFinite(parsed)) return parsed;
+        }
+        return null;
       }
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : null;
+      return null;
     },
 
     _chartTieneDatosExportables(chart) {
       if (!chart?.data) return false;
+      const indexAxis = (chart?.options?.indexAxis || "x")
+        .toString()
+        .trim()
+        .toLowerCase();
       const labels = Array.isArray(chart.data.labels) ? chart.data.labels : [];
       const datasets = Array.isArray(chart.data.datasets) ? chart.data.datasets : [];
-      if (!labels.length || !datasets.length) return false;
+      if (!datasets.length) return false;
+      const labelsCount = labels.length || datasets.reduce((maxLen, dataset) => {
+        const values = Array.isArray(dataset?.data) ? dataset.data : [];
+        return Math.max(maxLen, values.length);
+      }, 0);
+      if (!labelsCount) return false;
 
       let hasNumeric = false;
       let hasUsefulValue = false;
       datasets.forEach((dataset) => {
         const values = Array.isArray(dataset?.data) ? dataset.data : [];
         values.forEach((raw) => {
-          const value = this._normalizarValorGrafica(raw);
+          const value = this._normalizarValorGrafica(raw, indexAxis);
           if (!Number.isFinite(value)) return;
           hasNumeric = true;
           if (Math.abs(value) > 0.000001) {
@@ -2737,12 +3168,29 @@
         const canvas = target?.canvas;
         const chart = window.Chart?.getChart?.(canvas);
         if (!chart?.data) continue;
-        const labels = Array.isArray(chart.data.labels)
-          ? chart.data.labels
-          : [];
+        const indexAxis = (chart?.options?.indexAxis || "x")
+          .toString()
+          .trim()
+          .toLowerCase();
         const datasets = Array.isArray(chart.data.datasets)
           ? chart.data.datasets
           : [];
+        const maxDataLen = datasets.reduce((maxLen, dataset) => {
+          const len = Array.isArray(dataset?.data) ? dataset.data.length : 0;
+          return Math.max(maxLen, len);
+        }, 0);
+        let labels = Array.isArray(chart.data.labels)
+          ? chart.data.labels.map((rawLabel, idx) =>
+              this._normalizarEtiquetaGrafica(rawLabel, idx)
+            )
+          : [];
+        if (!labels.length) {
+          labels = this._inferirEtiquetasGraficaDesdeDatasets(
+            datasets,
+            indexAxis,
+            maxDataLen
+          );
+        }
         if (!labels.length || !datasets.length) continue;
 
         const realDataset =
@@ -2769,20 +3217,27 @@
 
         const rows = labels
           .map((rawLabel, idx) => {
-            const etiqueta = this._limpiarEtiquetaOperativo(
-              (rawLabel || "").toString().trim()
-            );
+            const etiqueta = this._normalizarEtiquetaGrafica(rawLabel, idx);
             if (!etiqueta) return null;
             const presupuesto = this._toNumberSafe(
-              Array.isArray(budgetDataset?.data) ? budgetDataset.data[idx] : 0
+              this._normalizarValorGrafica(
+                Array.isArray(budgetDataset?.data) ? budgetDataset.data[idx] : 0,
+                indexAxis
+              )
             );
             const real = this._toNumberSafe(
-              Array.isArray(realDataset?.data) ? realDataset.data[idx] : 0
+              this._normalizarValorGrafica(
+                Array.isArray(realDataset?.data) ? realDataset.data[idx] : 0,
+                indexAxis
+              )
             );
             const anual = this._toNumberSafe(
-              Array.isArray(annualDataset?.data)
-                ? annualDataset.data[idx]
-                : presupuesto
+              this._normalizarValorGrafica(
+                Array.isArray(annualDataset?.data)
+                  ? annualDataset.data[idx]
+                  : presupuesto,
+                indexAxis
+              )
             );
             return { etiqueta, presupuesto, real, anual };
           })
@@ -2900,7 +3355,11 @@
     },
 
     _normalizeWhitespace(value) {
-      return (value || "").toString().replace(/\s+/g, " ").trim();
+      return (value || "")
+        .toString()
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
     },
 
     _getHeaderCellStartIndex(cell) {
@@ -3773,11 +4232,15 @@
       };
     },
 
-    _resolverModoGraficasExcel() {
-      const combined = document.querySelector(
-        '[data-operativo-chart="combined"] canvas'
-      );
-      return combined ? "combined" : "";
+    _resolverModoGraficasExcel(chartBlocks = []) {
+      const blocks = Array.isArray(chartBlocks) ? chartBlocks : [];
+      if (!blocks.length) return "";
+      const combinedCount = blocks.filter((block) => block?.isCombined).length;
+      const nonCombinedCount = blocks.length - combinedCount;
+      // Modo combinado solo cuando no hay bloques individuales;
+      // si existen ambos, priorizamos split para respetar series personalizadas.
+      if (combinedCount > 0 && nonCombinedCount === 0) return "combined";
+      return "";
     },
 
     _agregarImagenExcel(workbook, dataUrl) {
@@ -3861,20 +4324,12 @@
         while (current && current.nodeType === 1) {
           const style = window.getComputedStyle(current);
           if (style.display === "none" || style.visibility === "hidden") {
-            const isCollapsedContainer =
-              current.classList?.contains("collapse") &&
-              !current.classList?.contains("show");
-            if (isCollapsedContainer) {
-              current = current.parentElement;
-              continue;
-            }
             return true;
           }
           current = current.parentElement;
         }
         const rects = node.getClientRects?.();
-        const hasCollapsedAncestor = Boolean(node.closest?.(".collapse:not(.show)"));
-        if (rects && rects.length === 0 && !hasCollapsedAncestor) return true;
+        if (rects && rects.length === 0) return true;
         return false;
       };
       const isCanvas = (node) => {
@@ -3894,7 +4349,13 @@
       };
       const pushCanvas = (canvas, title, options = {}) => {
         if (!isCanvas(canvas) || seen.has(canvas)) return;
-        if (!options.allowHidden && isHidden(canvas)) return;
+        if (!options.allowHidden && isHidden(canvas)) {
+          const chart =
+            typeof window.Chart?.getChart === "function"
+              ? window.Chart.getChart(canvas)
+              : null;
+          if (!chart || !this._chartTieneDatosExportables(chart)) return;
+        }
         seen.add(canvas);
         targets.push({ canvas, title });
       };
@@ -3942,18 +4403,10 @@
         return targets;
       }
 
-      pushFromSelector("[data-operativo-chart], [data-operativo-chart] canvas", {
-        allowHidden: true,
-      });
-      pushFromSelector("[data-gg-chart], [data-gg-chart] canvas", {
-        allowHidden: true,
-      });
-      pushFromSelector("[data-custom-chart], [data-custom-chart] canvas", {
-        allowHidden: true,
-      });
-      pushFromSelector("#resumenChartsPanel canvas, .charts-panel canvas", {
-        allowHidden: true,
-      });
+      pushFromSelector("[data-operativo-chart], [data-operativo-chart] canvas");
+      pushFromSelector("[data-gg-chart], [data-gg-chart] canvas");
+      pushFromSelector("[data-custom-chart], [data-custom-chart] canvas");
+      pushFromSelector("#resumenChartsPanel canvas, .charts-panel canvas");
       return targets;
     },
 

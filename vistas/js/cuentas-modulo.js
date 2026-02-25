@@ -6475,6 +6475,13 @@
             ) {
               return obtenerCeros();
             }
+            const valoresSeccion = obtenerValoresSeccion(raw);
+            if (Array.isArray(valoresSeccion)) {
+              return valoresSeccion;
+            }
+            if (convertirCuenta21(raw)) {
+              return obtenerValoresCuenta(raw);
+            }
             if (claveOpContexto && valoresPorOperacionContexto.has(claveOpContexto)) {
               return valoresPorOperacionContexto.get(claveOpContexto);
             }
@@ -6487,13 +6494,6 @@
             }
             if (claveOp && valoresPorOperacion.has(claveOp)) {
               return valoresPorOperacion.get(claveOp);
-            }
-            const valoresSeccion = obtenerValoresSeccion(raw);
-            if (Array.isArray(valoresSeccion)) {
-              return valoresSeccion;
-            }
-            if (convertirCuenta21(raw)) {
-              return obtenerValoresCuenta(raw);
             }
             return obtenerCeros();
           }
@@ -7269,6 +7269,13 @@
           }
 
           if (tipoRef === "subsection") {
+            const valoresSeccion = obtenerValoresSeccion(raw);
+            if (Array.isArray(valoresSeccion)) {
+              return valoresSeccion;
+            }
+            if (convertirCuenta21(raw)) {
+              return obtenerValoresCuenta(raw);
+            }
             const opValores = obtenerValoresOperacion(
               raw,
               clavesPropias,
@@ -7276,9 +7283,6 @@
             );
             if (opValores) {
               return opValores;
-            }
-            if (convertirCuenta21(raw)) {
-              return obtenerValoresCuenta(raw);
             }
             return obtenerCeros();
           }

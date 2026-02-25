@@ -414,9 +414,10 @@
               type="button"
               class="btn btn-outline-primary btn-sm"
               data-bs-toggle="collapse"
-              data-bs-target="#gastosGeneralesChartsPanel"
+              data-bs-target="#operativoPanel"
               aria-expanded="false"
-              aria-controls="gastosGeneralesChartsPanel"
+              aria-controls="operativoPanel"
+              data-operativo-toggle="panel"
             >
               <i class="bi bi-bar-chart"></i> Graficas
             </button>
@@ -432,46 +433,35 @@
 
       <div class="row mb-3">
         <div class="col-12">
-          <div class="collapse operativo-panel" id="gastosGeneralesChartsPanel">
+          <div class="collapse operativo-panel" id="operativoPanel" data-operativo-label="GASTOS GENERALES">
             <div class="sidebar-card">
               <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
                 <div>
-                  <h5 class="sidebar-title">Rendimientos y plusvalia</h5>
-                  <div class="sidebar-subtitle" id="gastosGeneralesChartsSubtitle">
-                    Real comparativo
+                  <h5 class="sidebar-title">Graficas manuales</h5>
+                  <div class="sidebar-subtitle" data-operativo-subtitle>
+                    Por GASTOS GENERALES
                   </div>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                  <span class="badge text-bg-light border">Real</span>
+                  <span class="badge text-bg-light border">Manual</span>
                   <button
                     type="button"
                     class="btn-close"
                     data-bs-toggle="collapse"
-                    data-bs-target="#gastosGeneralesChartsPanel"
+                    data-bs-target="#operativoPanel"
                     aria-label="Cerrar"
                   ></button>
                 </div>
               </div>
               <div class="row g-3">
-                <div class="col-12 col-lg-6">
+                <div class="col-12">
                   <div class="chart-block">
-                    <div class="chart-title">Rendimientos de Inversion</div>
-                    <div class="chart-container" data-gg-chart="rendimientos">
-                      <div class="sidebar-empty" data-gg-empty="rendimientos">
-                        Sin datos para graficar.
+                    <div class="chart-title">Ppto. Acumulado vs Real + Presupuesto</div>
+                    <div class="chart-container" data-operativo-chart="combined">
+                      <div class="sidebar-empty" data-operativo-empty="combined">
+                        Sin datos de resultado operativo.
                       </div>
-                      <canvas id="ggChartRendimientos"></canvas>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-12 col-lg-6">
-                  <div class="chart-block">
-                    <div class="chart-title">Plusvalia/Minusvalia</div>
-                    <div class="chart-container" data-gg-chart="plusvalia">
-                      <div class="sidebar-empty" data-gg-empty="plusvalia">
-                        Sin datos para graficar.
-                      </div>
-                      <canvas id="ggChartPlusvalia"></canvas>
+                      <canvas id="operativoChartCombined"></canvas>
                     </div>
                   </div>
                 </div>
@@ -700,7 +690,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="js/graficas-config.js?v=20260218195500"></script>
   <script src="js/operativo-sidebar.js"></script>
-  <script src="js/gastos-generales-graficas.js"></script>
   <script>
     initModuloPlaneacion({ moduloId: 'gastosgenerales', moduloNombre: 'GASTOS GENERALES' });
     // Inicializar toggle de redondeo
@@ -737,6 +726,7 @@
     </script>
 </body>
 </html>
+
 
 
 

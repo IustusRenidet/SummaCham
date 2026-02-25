@@ -1,0 +1,4925 @@
+{
+  "empresaId": "empresa1",
+  "reportKey": "RESUMEN",
+  "anio": 2026,
+  "resumen": [
+    {
+      "label": "CIUDAD DE MEXICO",
+      "children": [
+        {
+          "label": "INCOME",
+          "children": [
+            {
+              "label": "Membership",
+              "cuentas": [
+                {
+                  "cuenta": "401-000-000-00",
+                  "cuentaCanonica": "401000000000000000001",
+                  "orden": 2,
+                  "ordenIndex": 0,
+                  "descripcion": "Cuotas Netas",
+                  "actualMonth": 0,
+                  "planMonth": 3793947.2973056,
+                  "prevMonth": 3865929.6700000004,
+                  "actualYTD": 3448936.7300000004,
+                  "planYTD": 45370058.247891195,
+                  "prevYTD": 41346034.50000001,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "402-000-000-00",
+                  "cuentaCanonica": "402000000000000000001",
+                  "orden": 3,
+                  "ordenIndex": 1,
+                  "descripcion": "Ingresos socios nuevos",
+                  "actualMonth": 0,
+                  "planMonth": 108520.79220192,
+                  "prevMonth": 78166.67,
+                  "actualYTD": 68666.67,
+                  "planYTD": 1502391.38440384,
+                  "prevYTD": 1265283.3299999998,
+                  "factor": 1
+                }
+              ],
+              "orden": 2,
+              "ordenIndex": 0,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 3902468.0895075197,
+              "totalPrevMonth": 3944096.3400000003,
+              "totalActualYTD": 3517603.4000000004,
+              "totalPlanYTD": 46872449.632295035,
+              "totalPrevYTD": 42611317.830000006,
+              "total": 3517603.4000000004,
+              "__manualFormula": true
+            },
+            {
+              "label": "Events",
+              "cuentas": [
+                {
+                  "cuenta": "407-000-000-00",
+                  "cuentaCanonica": "407000000000000000001",
+                  "orden": 5,
+                  "ordenIndex": 2,
+                  "descripcion": "Eventos",
+                  "actualMonth": 0,
+                  "planMonth": 25000,
+                  "prevMonth": 73150,
+                  "actualYTD": 0,
+                  "planYTD": 1460000,
+                  "prevYTD": 1856490.165,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "408-000-000-00",
+                  "cuentaCanonica": "408000000000000000001",
+                  "orden": 6,
+                  "ordenIndex": 3,
+                  "descripcion": "Patrocinios",
+                  "actualMonth": 0,
+                  "planMonth": 525565.3189,
+                  "prevMonth": 1295341.42,
+                  "actualYTD": 317461.29,
+                  "planYTD": 10051191.262799999,
+                  "prevYTD": 11003114.68,
+                  "factor": 1
+                }
+              ],
+              "orden": 5,
+              "ordenIndex": 2,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 550565.3189,
+              "totalPrevMonth": 1368491.42,
+              "totalActualYTD": 317461.29,
+              "totalPlanYTD": 11511191.262799999,
+              "totalPrevYTD": 12859604.844999999,
+              "total": 317461.29,
+              "__manualFormula": true
+            },
+            {
+              "label": "Committees",
+              "cuentas": [
+                {
+                  "cuenta": "417-000-000-00",
+                  "cuentaCanonica": "417000000000000000001",
+                  "orden": 8,
+                  "ordenIndex": 4,
+                  "descripcion": "Comités",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 222140,
+                  "actualYTD": 53225.18,
+                  "planYTD": 8675090,
+                  "prevYTD": 5748342.63,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "412-000-000-00",
+                  "cuentaCanonica": "412000000000000000001",
+                  "orden": 9,
+                  "ordenIndex": 5,
+                  "descripcion": "Economex",
+                  "actualMonth": 0,
+                  "planMonth": 80000,
+                  "prevMonth": 67258.33,
+                  "actualYTD": 80600.9,
+                  "planYTD": 1100000,
+                  "prevYTD": 954648.32,
+                  "factor": 1
+                }
+              ],
+              "orden": 8,
+              "ordenIndex": 4,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 80000,
+              "totalPrevMonth": 289398.33,
+              "totalActualYTD": 133826.08,
+              "totalPlanYTD": 9775090,
+              "totalPrevYTD": 6702990.95,
+              "total": 133826.08,
+              "__manualFormula": true
+            },
+            {
+              "label": "T&IC",
+              "cuentas": [
+                {
+                  "cuenta": "405-000-000-00",
+                  "cuentaCanonica": "405000000000000000001",
+                  "orden": 11,
+                  "ordenIndex": 6,
+                  "descripcion": "Trade & Investment Center",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 840000,
+                  "prevYTD": 0,
+                  "factor": 1
+                }
+              ],
+              "orden": 11,
+              "ordenIndex": 6,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 0,
+              "totalPrevMonth": 0,
+              "totalActualYTD": 0,
+              "totalPlanYTD": 840000,
+              "totalPrevYTD": 0,
+              "total": 0,
+              "__manualFormula": true
+            },
+            {
+              "label": "Services to Members",
+              "cuentas": [
+                {
+                  "cuenta": "406-001-000-00",
+                  "cuentaCanonica": "406001000000000000002",
+                  "orden": 13,
+                  "ordenIndex": 7,
+                  "descripcion": "Venta Publicaciones",
+                  "actualMonth": 0,
+                  "planMonth": 73500,
+                  "prevMonth": 131000,
+                  "actualYTD": 155000,
+                  "planYTD": 1232595,
+                  "prevYTD": 1292600,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "406-002-000-00",
+                  "cuentaCanonica": "406002000000000000002",
+                  "orden": 14,
+                  "ordenIndex": 8,
+                  "descripcion": "Digital Training",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 1452650,
+                  "prevYTD": 1153000,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "409-000-000-00",
+                  "cuentaCanonica": "409000000000000000001",
+                  "orden": 15,
+                  "ordenIndex": 9,
+                  "descripcion": "Visas",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                }
+              ],
+              "orden": 13,
+              "ordenIndex": 7,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 73500,
+              "totalPrevMonth": 131000,
+              "totalActualYTD": 155000,
+              "totalPlanYTD": 2685245,
+              "totalPrevYTD": 2445600,
+              "total": 155000,
+              "__manualFormula": true
+            }
+          ],
+          "actualMonth": 0,
+          "planMonth": 4606533.40840752,
+          "prevMonth": 5732986.09,
+          "actualYTD": 4123890.7700000005,
+          "planYTD": 71683975.89509504,
+          "prevYTD": 64619513.62500001,
+          "total": 4123890.7700000005,
+          "orden": 2,
+          "ordenIndex": 0,
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "operativoConsolidado": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": "",
+          "resultNetRow": "",
+          "sign": 1,
+          "esVirtual": false,
+          "__manualFormula": true,
+          "__formulaTerms": []
+        },
+        {
+          "label": "Guadalajara Income",
+          "children": [
+            {
+              "label": "Guadalajara Income",
+              "cuentas": [],
+              "orden": 17,
+              "ordenIndex": 1,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 1677946.2983333333,
+              "totalPrevMonth": 2055033.73,
+              "totalActualYTD": 1594204.3,
+              "totalPlanYTD": 17961606.129651517,
+              "totalPrevYTD": 14196188.67,
+              "total": 1594204.3,
+              "__manualFormula": true
+            },
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "450-001-000-00",
+                  "cuentaCanonica": "450001000000000000002",
+                  "orden": 17,
+                  "ordenIndex": 10,
+                  "descripcion": "GDL Income",
+                  "actualMonth": 0,
+                  "planMonth": 1677946.2983333333,
+                  "prevMonth": 2055033.73,
+                  "actualYTD": 1594204.3,
+                  "planYTD": 17961606.129651517,
+                  "prevYTD": 14196188.67,
+                  "factor": 1
+                }
+              ],
+              "orden": 17,
+              "ordenIndex": 10,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 1677946.2983333333,
+              "totalPrevMonth": 2055033.73,
+              "totalActualYTD": 1594204.3,
+              "totalPlanYTD": 17961606.129651517,
+              "totalPrevYTD": 14196188.67,
+              "total": 1594204.3
+            }
+          ],
+          "actualMonth": 0,
+          "planMonth": 1677946.2983333333,
+          "prevMonth": 2055033.73,
+          "actualYTD": 1594204.3,
+          "planYTD": 17961606.129651517,
+          "prevYTD": 14196188.67,
+          "total": 1594204.3,
+          "orden": 17,
+          "ordenIndex": 10,
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "operativoConsolidado": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": "",
+          "resultNetRow": "",
+          "sign": 1,
+          "esVirtual": false,
+          "__manualFormula": true,
+          "__formulaTerms": []
+        },
+        {
+          "label": "Monterrey Income",
+          "children": [
+            {
+              "label": "Monterrey Income",
+              "cuentas": [],
+              "orden": 19,
+              "ordenIndex": 1,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 2688028.3499999996,
+              "totalPrevMonth": 2719066.59,
+              "totalActualYTD": 2087870.36,
+              "totalPlanYTD": 36605250.9525,
+              "totalPrevYTD": 32894974.609999996,
+              "total": 2087870.36,
+              "__manualFormula": true
+            },
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "450-002-000-00",
+                  "cuentaCanonica": "450002000000000000002",
+                  "orden": 19,
+                  "ordenIndex": 11,
+                  "descripcion": "MTY Income",
+                  "actualMonth": 0,
+                  "planMonth": 2688028.3499999996,
+                  "prevMonth": 2719066.59,
+                  "actualYTD": 2087870.36,
+                  "planYTD": 36605250.9525,
+                  "prevYTD": 32894974.609999996,
+                  "factor": 1
+                }
+              ],
+              "orden": 19,
+              "ordenIndex": 11,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 2688028.3499999996,
+              "totalPrevMonth": 2719066.59,
+              "totalActualYTD": 2087870.36,
+              "totalPlanYTD": 36605250.9525,
+              "totalPrevYTD": 32894974.609999996,
+              "total": 2087870.36
+            }
+          ],
+          "actualMonth": 0,
+          "planMonth": 2688028.3499999996,
+          "prevMonth": 2719066.59,
+          "actualYTD": 2087870.36,
+          "planYTD": 36605250.9525,
+          "prevYTD": 32894974.609999996,
+          "total": 2087870.36,
+          "orden": 19,
+          "ordenIndex": 11,
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "operativoConsolidado": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": "",
+          "resultNetRow": "",
+          "sign": 1,
+          "esVirtual": false,
+          "__manualFormula": true,
+          "__formulaTerms": []
+        },
+        {
+          "label": "Northwest Income",
+          "children": [
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "450-003-000-00",
+                  "cuentaCanonica": "450003000000000000002",
+                  "orden": 21,
+                  "ordenIndex": 12,
+                  "descripcion": "NO Income",
+                  "actualMonth": 0,
+                  "planMonth": 577812.46,
+                  "prevMonth": 558040.38,
+                  "actualYTD": 495064.61,
+                  "planYTD": 6765685.157000001,
+                  "prevYTD": 5116359.759999999,
+                  "factor": 1
+                }
+              ],
+              "orden": 21,
+              "ordenIndex": 12,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 577812.46,
+              "totalPrevMonth": 558040.38,
+              "totalActualYTD": 495064.61,
+              "totalPlanYTD": 6765685.157000001,
+              "totalPrevYTD": 5116359.759999999,
+              "total": 495064.61
+            }
+          ],
+          "actualMonth": 0,
+          "planMonth": 577812.46,
+          "prevMonth": 558040.38,
+          "actualYTD": 495064.61,
+          "planYTD": 6765685.157000001,
+          "prevYTD": 5116359.759999999,
+          "total": 495064.61,
+          "orden": 21,
+          "ordenIndex": 12,
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "operativoConsolidado": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": "",
+          "resultNetRow": "",
+          "sign": 1,
+          "esVirtual": false,
+          "__manualFormula": true,
+          "__formulaTerms": []
+        },
+        {
+          "label": "EXPENSE",
+          "children": [
+            {
+              "label": "Membership",
+              "cuentas": [
+                {
+                  "cuenta": "705-000-000-00",
+                  "cuentaCanonica": "705000000000000000001",
+                  "orden": 25,
+                  "ordenIndex": 13,
+                  "descripcion": "Gastos Promoción",
+                  "actualMonth": 0,
+                  "planMonth": 372250,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 887380,
+                  "prevYTD": 225000.00000000006,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "520-000-000-00",
+                  "cuentaCanonica": "520000000000000000001",
+                  "orden": 26,
+                  "ordenIndex": 14,
+                  "descripcion": "Comsiones por venta de membresía",
+                  "actualMonth": 0,
+                  "planMonth": 151989.8,
+                  "prevMonth": 127437.23,
+                  "actualYTD": 153759.08,
+                  "planYTD": 2061727.8800000001,
+                  "prevYTD": 1982503.28,
+                  "factor": 1
+                }
+              ],
+              "orden": 25,
+              "ordenIndex": 13,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 524239.8,
+              "totalPrevMonth": 127437.23,
+              "totalActualYTD": 153759.08,
+              "totalPlanYTD": 2949107.88,
+              "totalPrevYTD": 2207503.2800000003,
+              "total": 153759.08,
+              "__manualFormula": true
+            },
+            {
+              "label": "Events",
+              "cuentas": [
+                {
+                  "cuenta": "701-000-000-00",
+                  "cuentaCanonica": "701000000000000000001",
+                  "orden": 28,
+                  "ordenIndex": 15,
+                  "descripcion": "Costo Eventos",
+                  "actualMonth": 0,
+                  "planMonth": 151262.5,
+                  "prevMonth": 931808.4699999997,
+                  "actualYTD": 23034.670000000006,
+                  "planYTD": 6727036.83465,
+                  "prevYTD": 8546422.2,
+                  "factor": 1
+                }
+              ],
+              "orden": 28,
+              "ordenIndex": 15,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 151262.5,
+              "totalPrevMonth": 931808.4699999997,
+              "totalActualYTD": 23034.670000000006,
+              "totalPlanYTD": 6727036.83465,
+              "totalPrevYTD": 8546422.2,
+              "total": 23034.670000000006,
+              "__manualFormula": true
+            },
+            {
+              "label": "Committees",
+              "cuentas": [
+                {
+                  "cuenta": "702-000-000-00",
+                  "cuentaCanonica": "702000000000000000001",
+                  "orden": 30,
+                  "ordenIndex": 16,
+                  "descripcion": "Costo Comités",
+                  "actualMonth": 0,
+                  "planMonth": 250250,
+                  "prevMonth": 74293.83,
+                  "actualYTD": 138769.06999999998,
+                  "planYTD": 5438618.2432,
+                  "prevYTD": 3073058.1399999997,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "704-000-000-00",
+                  "cuentaCanonica": "704000000000000000001",
+                  "orden": 31,
+                  "ordenIndex": 17,
+                  "descripcion": "Costo Economex",
+                  "actualMonth": 0,
+                  "planMonth": 134040,
+                  "prevMonth": 80000,
+                  "actualYTD": 80780.36,
+                  "planYTD": 1299254,
+                  "prevYTD": 1050317.16,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "521-000-000-00",
+                  "cuentaCanonica": "521000000000000000001",
+                  "orden": 32,
+                  "ordenIndex": 18,
+                  "descripcion": "Comisiones EWDP y Economex",
+                  "actualMonth": 0,
+                  "planMonth": 89600,
+                  "prevMonth": 104928.85,
+                  "actualYTD": 7374.47,
+                  "planYTD": 202619.2,
+                  "prevYTD": 135380.03,
+                  "factor": 1
+                }
+              ],
+              "orden": 30,
+              "ordenIndex": 16,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 473890,
+              "totalPrevMonth": 259222.68,
+              "totalActualYTD": 226923.89999999997,
+              "totalPlanYTD": 6940491.443200001,
+              "totalPrevYTD": 4258755.329999999,
+              "total": 226923.89999999997,
+              "__manualFormula": true
+            },
+            {
+              "label": "T&IC",
+              "cuentas": [
+                {
+                  "cuenta": "703-000-000-00",
+                  "cuentaCanonica": "703000000000000000001",
+                  "orden": 34,
+                  "ordenIndex": 19,
+                  "descripcion": "Costo Trade & Investment Center",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 340000,
+                  "prevYTD": 0,
+                  "factor": 1
+                }
+              ],
+              "orden": 34,
+              "ordenIndex": 19,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 0,
+              "totalPrevMonth": 0,
+              "totalActualYTD": 0,
+              "totalPlanYTD": 340000,
+              "totalPrevYTD": 0,
+              "total": 0,
+              "__manualFormula": true
+            },
+            {
+              "label": "Services to Members",
+              "cuentas": [
+                {
+                  "cuenta": "601-002-003-00",
+                  "cuentaCanonica": "601002003000000000003",
+                  "orden": 36,
+                  "ordenIndex": 20,
+                  "descripcion": "Costo Venta Publicaciones",
+                  "actualMonth": 0,
+                  "planMonth": 32340,
+                  "prevMonth": 46500,
+                  "actualYTD": 79581,
+                  "planYTD": 542341.8,
+                  "prevYTD": 574300,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "601-003-001-00",
+                  "cuentaCanonica": "601003001000000000003",
+                  "orden": 37,
+                  "ordenIndex": 21,
+                  "descripcion": "Costo Digital Training",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 726325,
+                  "prevYTD": 577000.27,
+                  "factor": 1
+                }
+              ],
+              "orden": 36,
+              "ordenIndex": 20,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 32340,
+              "totalPrevMonth": 46500,
+              "totalActualYTD": 79581,
+              "totalPlanYTD": 1268666.8,
+              "totalPrevYTD": 1151300.27,
+              "total": 79581,
+              "__manualFormula": true
+            },
+            {
+              "label": "Gastos Administrativos",
+              "cuentas": [
+                {
+                  "cuenta": "801-001-000-00",
+                  "cuentaCanonica": "801001000000000000002",
+                  "orden": 39,
+                  "ordenIndex": 22,
+                  "descripcion": "Desarrollo de Negocios",
+                  "actualMonth": 0,
+                  "planMonth": 41040,
+                  "prevMonth": 32550.03,
+                  "actualYTD": 37520.14,
+                  "planYTD": 656495.113,
+                  "prevYTD": 448434.14,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-002-000-00",
+                  "cuentaCanonica": "801002000000000000002",
+                  "orden": 40,
+                  "ordenIndex": 23,
+                  "descripcion": "Relaciones Externas",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-003-000-00",
+                  "cuentaCanonica": "801003000000000000002",
+                  "orden": 41,
+                  "ordenIndex": 24,
+                  "descripcion": "Servicios a las membresia",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-004-000-00",
+                  "cuentaCanonica": "801004000000000000002",
+                  "orden": 42,
+                  "ordenIndex": 25,
+                  "descripcion": "Vicepresidencia",
+                  "actualMonth": 0,
+                  "planMonth": 43867.9334,
+                  "prevMonth": 34274.799999999996,
+                  "actualYTD": 24166.93,
+                  "planYTD": 924190.848,
+                  "prevYTD": 705009.9800000001,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-005-000-00",
+                  "cuentaCanonica": "801005000000000000002",
+                  "orden": 43,
+                  "ordenIndex": 26,
+                  "descripcion": "Finanzas",
+                  "actualMonth": 0,
+                  "planMonth": 28043.372199999998,
+                  "prevMonth": 32442.949999999997,
+                  "actualYTD": 27137.420000000002,
+                  "planYTD": 467017.58400000003,
+                  "prevYTD": 351191.16,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-006-000-00",
+                  "cuentaCanonica": "801006000000000000002",
+                  "orden": 44,
+                  "ordenIndex": 27,
+                  "descripcion": "Administración",
+                  "actualMonth": 0,
+                  "planMonth": 25367.88,
+                  "prevMonth": 1685.8700000000001,
+                  "actualYTD": 13620.140000000001,
+                  "planYTD": 395072.91,
+                  "prevYTD": 150603.25999999998,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-007-000-00",
+                  "cuentaCanonica": "801007000000000000002",
+                  "orden": 45,
+                  "ordenIndex": 28,
+                  "descripcion": "Sistemas",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-008-000-00",
+                  "cuentaCanonica": "801008000000000000002",
+                  "orden": 46,
+                  "ordenIndex": 29,
+                  "descripcion": "Empleos",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-009-000-00",
+                  "cuentaCanonica": "801009000000000000002",
+                  "orden": 47,
+                  "ordenIndex": 30,
+                  "descripcion": "Servicios Generales (Almacén)",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-010-000-00",
+                  "cuentaCanonica": "801010000000000000002",
+                  "orden": 48,
+                  "ordenIndex": 31,
+                  "descripcion": "Eventos",
+                  "actualMonth": 0,
+                  "planMonth": 41984,
+                  "prevMonth": 38326,
+                  "actualYTD": 38352.83,
+                  "planYTD": 625945.1843999999,
+                  "prevYTD": 404903.39,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-011-000-00",
+                  "cuentaCanonica": "801011000000000000002",
+                  "orden": 49,
+                  "ordenIndex": 32,
+                  "descripcion": "Comites",
+                  "actualMonth": 0,
+                  "planMonth": 65176,
+                  "prevMonth": 58861.49,
+                  "actualYTD": 34339.5,
+                  "planYTD": 781454.958,
+                  "prevYTD": 618233.6399999999,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-012-000-00",
+                  "cuentaCanonica": "801012000000000000002",
+                  "orden": 50,
+                  "ordenIndex": 33,
+                  "descripcion": "Renta de Salas",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-013-000-00",
+                  "cuentaCanonica": "801013000000000000002",
+                  "orden": 51,
+                  "ordenIndex": 34,
+                  "descripcion": "Comunicación",
+                  "actualMonth": 0,
+                  "planMonth": 71265.1184,
+                  "prevMonth": 222705.63,
+                  "actualYTD": 5921.009999999995,
+                  "planYTD": 855181.4208000003,
+                  "prevYTD": 1482493.0700000003,
+                  "factor": 1
+                }
+              ],
+              "orden": 39,
+              "ordenIndex": 22,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 316744.304,
+              "totalPrevMonth": 420846.76999999996,
+              "totalActualYTD": 181057.97000000003,
+              "totalPlanYTD": 4705358.0182,
+              "totalPrevYTD": 4160868.6400000006,
+              "total": 181057.97000000003,
+              "__manualFormula": true
+            },
+            {
+              "label": "Gastos Generales",
+              "cuentas": [
+                {
+                  "cuenta": "901-000-000-00",
+                  "cuentaCanonica": "901000000000000000001",
+                  "orden": 53,
+                  "ordenIndex": 35,
+                  "descripcion": "Gastos Generales",
+                  "actualMonth": 0,
+                  "planMonth": 748254.2297899999,
+                  "prevMonth": 813752.6400000005,
+                  "actualYTD": 561844.2699999999,
+                  "planYTD": 8506216.360569999,
+                  "prevYTD": 7969192.418,
+                  "factor": 1
+                }
+              ],
+              "orden": 53,
+              "ordenIndex": 35,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 748254.2297899999,
+              "totalPrevMonth": 813752.6400000005,
+              "totalActualYTD": 561844.2699999999,
+              "totalPlanYTD": 8506216.360569999,
+              "totalPrevYTD": 7969192.418,
+              "total": 561844.2699999999,
+              "__manualFormula": true
+            },
+            {
+              "label": "Nómina",
+              "cuentas": [
+                {
+                  "cuenta": "513-000-000-00",
+                  "cuentaCanonica": "513000000000000000001",
+                  "orden": 55,
+                  "ordenIndex": 36,
+                  "descripcion": "Nomina Vicepresidencia",
+                  "actualMonth": 0,
+                  "planMonth": 45203.19,
+                  "prevMonth": 83887.80999999988,
+                  "actualYTD": 65397.28999999999,
+                  "planYTD": 542438.28,
+                  "prevYTD": 601991.8900000001,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "517-000-000-00",
+                  "cuentaCanonica": "517000000000000000001",
+                  "orden": 56,
+                  "ordenIndex": 37,
+                  "descripcion": "Nomina Desarrollo de Negocios",
+                  "actualMonth": 0,
+                  "planMonth": 406932.44,
+                  "prevMonth": 450008.52,
+                  "actualYTD": 337919.0800000001,
+                  "planYTD": 4883189.28,
+                  "prevYTD": 4517285.550000001,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "516-000-000-00",
+                  "cuentaCanonica": "516000000000000000001",
+                  "orden": 57,
+                  "ordenIndex": 38,
+                  "descripcion": "Nomina Comites y Relaciones Externas",
+                  "actualMonth": 0,
+                  "planMonth": 434457.71,
+                  "prevMonth": 497927.56000000006,
+                  "actualYTD": 347166.45999999996,
+                  "planYTD": 5213492.5200000005,
+                  "prevYTD": 5327063.110000001,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "519-000-000-00",
+                  "cuentaCanonica": "519000000000000000001",
+                  "orden": 58,
+                  "ordenIndex": 39,
+                  "descripcion": "Nomina Comunicación",
+                  "actualMonth": 0,
+                  "planMonth": 120736.84,
+                  "prevMonth": 108281.69,
+                  "actualYTD": 90816.13000000005,
+                  "planYTD": 1448842.08,
+                  "prevYTD": 1285252.1900000002,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "515-000-000-00",
+                  "cuentaCanonica": "515000000000000000001",
+                  "orden": 59,
+                  "ordenIndex": 40,
+                  "descripcion": "Nomina Servicios a la Membresia",
+                  "actualMonth": 0,
+                  "planMonth": 160450.34,
+                  "prevMonth": 147157.22999999998,
+                  "actualYTD": 160582.37000000002,
+                  "planYTD": 1925404.0800000003,
+                  "prevYTD": 1798050.7099999997,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "518-000-000-00",
+                  "cuentaCanonica": "518000000000000000001",
+                  "orden": 60,
+                  "ordenIndex": 41,
+                  "descripcion": "Nomina Eventos y Mercadotecnia",
+                  "actualMonth": 0,
+                  "planMonth": 47222.03,
+                  "prevMonth": 79254.48999999996,
+                  "actualYTD": 47190.08,
+                  "planYTD": 566664.3600000001,
+                  "prevYTD": 876357.7999999998,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "514-000-000-00",
+                  "cuentaCanonica": "514000000000000000001",
+                  "orden": 61,
+                  "ordenIndex": 42,
+                  "descripcion": "Nomina Administración y Finanzas",
+                  "actualMonth": 0,
+                  "planMonth": 326148.21,
+                  "prevMonth": 350941.20999999996,
+                  "actualYTD": 237188.5199999998,
+                  "planYTD": 3913778.52,
+                  "prevYTD": 3553244.7000000016,
+                  "factor": 1
+                }
+              ],
+              "orden": 55,
+              "ordenIndex": 36,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 1541150.76,
+              "totalPrevMonth": 1717458.5099999998,
+              "totalActualYTD": 1286259.93,
+              "totalPlanYTD": 18493809.119999997,
+              "totalPrevYTD": 17959245.950000007,
+              "total": 1286259.93,
+              "__manualFormula": true
+            },
+            {
+              "label": "Gastos Corporativos",
+              "cuentas": [
+                {
+                  "cuenta": "903-000-000-00",
+                  "cuentaCanonica": "903000000000000000001",
+                  "orden": 63,
+                  "ordenIndex": 43,
+                  "descripcion": "Gastos Corporativos",
+                  "actualMonth": 0,
+                  "planMonth": 1599109.9723543301,
+                  "prevMonth": 1462221.9699999997,
+                  "actualYTD": 1539759.33,
+                  "planYTD": 19189319.66825196,
+                  "prevYTD": 14993997.2,
+                  "factor": 1
+                }
+              ],
+              "orden": 63,
+              "ordenIndex": 43,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 1599109.9723543301,
+              "totalPrevMonth": 1462221.9699999997,
+              "totalActualYTD": 1539759.33,
+              "totalPlanYTD": 19189319.66825196,
+              "totalPrevYTD": 14993997.2,
+              "total": 1539759.33,
+              "__manualFormula": true
+            }
+          ],
+          "actualMonth": 0,
+          "planMonth": 5386991.56614433,
+          "prevMonth": 5779248.27,
+          "actualYTD": 4052220.1500000004,
+          "planYTD": 69120006.12487197,
+          "prevYTD": 61247285.288,
+          "total": 4052220.1500000004,
+          "orden": 25,
+          "ordenIndex": 13,
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "operativoConsolidado": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": "",
+          "resultNetRow": "",
+          "sign": 1,
+          "esVirtual": false,
+          "__manualFormula": true,
+          "__formulaTerms": []
+        },
+        {
+          "label": "Guadalajara Expense",
+          "children": [
+            {
+              "label": "Guadalajara Expense",
+              "cuentas": [],
+              "orden": 65,
+              "ordenIndex": 1,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 1663015.5181347,
+              "totalPrevMonth": 1308133.81,
+              "totalActualYTD": 1600261.36,
+              "totalPlanYTD": 17851584.5628764,
+              "totalPrevYTD": 14658996.46,
+              "total": 1600261.36,
+              "__manualFormula": true
+            },
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "950-001-000-00",
+                  "cuentaCanonica": "950001000000000000002",
+                  "orden": 65,
+                  "ordenIndex": 44,
+                  "descripcion": "GDL Expense",
+                  "actualMonth": 0,
+                  "planMonth": 1663015.5181347,
+                  "prevMonth": 1308133.81,
+                  "actualYTD": 1600261.36,
+                  "planYTD": 17851584.5628764,
+                  "prevYTD": 14658996.46,
+                  "factor": 1
+                }
+              ],
+              "orden": 65,
+              "ordenIndex": 44,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 1663015.5181347,
+              "totalPrevMonth": 1308133.81,
+              "totalActualYTD": 1600261.36,
+              "totalPlanYTD": 17851584.5628764,
+              "totalPrevYTD": 14658996.46,
+              "total": 1600261.36
+            }
+          ],
+          "actualMonth": 0,
+          "planMonth": 1663015.5181347,
+          "prevMonth": 1308133.81,
+          "actualYTD": 1600261.36,
+          "planYTD": 17851584.5628764,
+          "prevYTD": 14658996.46,
+          "total": 1600261.36,
+          "orden": 65,
+          "ordenIndex": 44,
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "operativoConsolidado": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": "",
+          "resultNetRow": "",
+          "sign": 1,
+          "esVirtual": false,
+          "__manualFormula": true,
+          "__formulaTerms": []
+        },
+        {
+          "label": "Monterrey Expense",
+          "children": [
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "950-002-000-00",
+                  "cuentaCanonica": "950002000000000000002",
+                  "orden": 67,
+                  "ordenIndex": 45,
+                  "descripcion": "MTY Expense",
+                  "actualMonth": 0,
+                  "planMonth": 3038260.1750393,
+                  "prevMonth": 2198725.56,
+                  "actualYTD": 2247696.66,
+                  "planYTD": 35744173.5156516,
+                  "prevYTD": 32320734.450000003,
+                  "factor": 1
+                }
+              ],
+              "orden": 67,
+              "ordenIndex": 45,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 3038260.1750393,
+              "totalPrevMonth": 2198725.56,
+              "totalActualYTD": 2247696.66,
+              "totalPlanYTD": 35744173.5156516,
+              "totalPrevYTD": 32320734.450000003,
+              "total": 2247696.66
+            }
+          ],
+          "actualMonth": 0,
+          "planMonth": 3038260.1750393,
+          "prevMonth": 2198725.56,
+          "actualYTD": 2247696.66,
+          "planYTD": 35744173.5156516,
+          "prevYTD": 32320734.450000003,
+          "total": 2247696.66,
+          "orden": 67,
+          "ordenIndex": 45,
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "operativoConsolidado": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": "",
+          "resultNetRow": "",
+          "sign": 1,
+          "esVirtual": false,
+          "__manualFormula": true,
+          "__formulaTerms": []
+        },
+        {
+          "label": "Northwest Expense",
+          "children": [
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "950-003-000-00",
+                  "cuentaCanonica": "950003000000000000002",
+                  "orden": 69,
+                  "ordenIndex": 46,
+                  "descripcion": "NO Expense",
+                  "actualMonth": 0,
+                  "planMonth": 567563.0244053,
+                  "prevMonth": 641937.59,
+                  "actualYTD": 445345.56,
+                  "planYTD": 6026890.015863598,
+                  "prevYTD": 4574611.739999999,
+                  "factor": 1
+                }
+              ],
+              "orden": 69,
+              "ordenIndex": 46,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 567563.0244053,
+              "totalPrevMonth": 641937.59,
+              "totalActualYTD": 445345.56,
+              "totalPlanYTD": 6026890.015863598,
+              "totalPrevYTD": 4574611.739999999,
+              "total": 445345.56
+            }
+          ],
+          "actualMonth": 0,
+          "planMonth": 567563.0244053,
+          "prevMonth": 641937.59,
+          "actualYTD": 445345.56,
+          "planYTD": 6026890.015863598,
+          "prevYTD": 4574611.739999999,
+          "total": 445345.56,
+          "orden": 69,
+          "ordenIndex": 46,
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "operativoConsolidado": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": "",
+          "resultNetRow": "",
+          "sign": 1,
+          "esVirtual": false,
+          "__manualFormula": true,
+          "__formulaTerms": []
+        },
+        {
+          "label": "Member Centricity",
+          "children": [
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "902-000-000-00",
+                  "cuentaCanonica": "902000000000000000001",
+                  "orden": 77,
+                  "ordenIndex": 47,
+                  "descripcion": "Member Centricity",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": -2131803.48,
+                  "actualYTD": 6.821210263296962E-13,
+                  "planYTD": 0,
+                  "prevYTD": -4.656612873077393E-10,
+                  "factor": 1
+                }
+              ],
+              "orden": 77,
+              "ordenIndex": 47,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 0,
+              "totalPrevMonth": -2131803.48,
+              "totalActualYTD": 6.821210263296962E-13,
+              "totalPlanYTD": 0,
+              "totalPrevYTD": -4.656612873077393E-10,
+              "total": 6.821210263296962E-13
+            }
+          ],
+          "actualMonth": 0,
+          "planMonth": 0,
+          "prevMonth": -2131803.48,
+          "actualYTD": 6.821210263296962E-13,
+          "planYTD": 0,
+          "prevYTD": -4.656612873077393E-10,
+          "total": 6.821210263296962E-13,
+          "orden": 77,
+          "ordenIndex": 47,
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "operativoConsolidado": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": "",
+          "resultNetRow": "",
+          "sign": 1,
+          "esVirtual": false,
+          "__manualFormula": true,
+          "__formulaTerms": []
+        },
+        {
+          "label": "Other (MEXICO)",
+          "children": [
+            {
+              "label": "Other",
+              "cuentas": [
+                {
+                  "cuenta": "413-000-000-00",
+                  "cuentaCanonica": "413000000000000000001",
+                  "orden": 80,
+                  "ordenIndex": 48,
+                  "descripcion": "Otros Ingresos",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 144.5,
+                  "actualYTD": 24087.769999999997,
+                  "planYTD": 0,
+                  "prevYTD": 53815.52999999999,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "414-000-000-00",
+                  "cuentaCanonica": "414000000000000000001",
+                  "orden": 81,
+                  "ordenIndex": 49,
+                  "descripcion": "Intereses Bancos",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 556476.7599999999,
+                  "actualYTD": 527893.85,
+                  "planYTD": 0,
+                  "prevYTD": 7263697.369999999,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "416-000-000-00",
+                  "cuentaCanonica": "416000000000000000001",
+                  "orden": 82,
+                  "ordenIndex": 50,
+                  "descripcion": "Utilidad Cambiaria Inversiones",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": -1177806.27,
+                  "actualYTD": -2592443.46,
+                  "planYTD": 0,
+                  "prevYTD": -9880326.38,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "418-000-000-00",
+                  "cuentaCanonica": "418000000000000000001",
+                  "orden": 83,
+                  "ordenIndex": 51,
+                  "descripcion": "Plusvalia/Minusvalia Portafolio Inversiones",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 412113.53,
+                  "actualYTD": 1119252.96,
+                  "planYTD": 0,
+                  "prevYTD": 8568327.530000001,
+                  "factor": 1
+                }
+              ],
+              "orden": 80,
+              "ordenIndex": 48,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 0,
+              "totalPrevMonth": -209071.4800000001,
+              "totalActualYTD": -921208.8799999999,
+              "totalPlanYTD": 0,
+              "totalPrevYTD": 6005514.05,
+              "total": -921208.8799999999
+            }
+          ],
+          "actualMonth": 0,
+          "planMonth": 0,
+          "prevMonth": -209071.4800000001,
+          "actualYTD": -921208.8799999999,
+          "planYTD": 0,
+          "prevYTD": 6005514.05,
+          "total": -921208.8799999999,
+          "orden": 80,
+          "ordenIndex": 48,
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "operativoConsolidado": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": "",
+          "resultNetRow": "",
+          "sign": 1,
+          "esVirtual": false,
+          "__manualFormula": true,
+          "__formulaTerms": []
+        }
+      ],
+      "layout": [
+        {
+          "type": "principal",
+          "label": "INCOME",
+          "order": 2,
+          "orderIndex": 0,
+          "manualFormula": true,
+          "formula_terms": [],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 4606533.40840752,
+            "prevMonth": 5732986.09,
+            "actualYTD": 4123890.7700000005,
+            "planYTD": 71683975.89509504,
+            "prevYTD": 64619513.62500001
+          },
+          "children": [
+            {
+              "label": "Membership",
+              "cuentas": [
+                {
+                  "cuenta": "401-000-000-00",
+                  "cuentaCanonica": "401000000000000000001",
+                  "orden": 2,
+                  "ordenIndex": 0,
+                  "descripcion": "Cuotas Netas",
+                  "actualMonth": 0,
+                  "planMonth": 3793947.2973056,
+                  "prevMonth": 3865929.6700000004,
+                  "actualYTD": 3448936.7300000004,
+                  "planYTD": 45370058.247891195,
+                  "prevYTD": 41346034.50000001,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "402-000-000-00",
+                  "cuentaCanonica": "402000000000000000001",
+                  "orden": 3,
+                  "ordenIndex": 1,
+                  "descripcion": "Ingresos socios nuevos",
+                  "actualMonth": 0,
+                  "planMonth": 108520.79220192,
+                  "prevMonth": 78166.67,
+                  "actualYTD": 68666.67,
+                  "planYTD": 1502391.38440384,
+                  "prevYTD": 1265283.3299999998,
+                  "factor": 1
+                }
+              ],
+              "orden": 2,
+              "ordenIndex": 0,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 3902468.0895075197,
+              "totalPrevMonth": 3944096.3400000003,
+              "totalActualYTD": 3517603.4000000004,
+              "totalPlanYTD": 46872449.632295035,
+              "totalPrevYTD": 42611317.830000006,
+              "total": 3517603.4000000004,
+              "__manualFormula": true
+            },
+            {
+              "label": "Events",
+              "cuentas": [
+                {
+                  "cuenta": "407-000-000-00",
+                  "cuentaCanonica": "407000000000000000001",
+                  "orden": 5,
+                  "ordenIndex": 2,
+                  "descripcion": "Eventos",
+                  "actualMonth": 0,
+                  "planMonth": 25000,
+                  "prevMonth": 73150,
+                  "actualYTD": 0,
+                  "planYTD": 1460000,
+                  "prevYTD": 1856490.165,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "408-000-000-00",
+                  "cuentaCanonica": "408000000000000000001",
+                  "orden": 6,
+                  "ordenIndex": 3,
+                  "descripcion": "Patrocinios",
+                  "actualMonth": 0,
+                  "planMonth": 525565.3189,
+                  "prevMonth": 1295341.42,
+                  "actualYTD": 317461.29,
+                  "planYTD": 10051191.262799999,
+                  "prevYTD": 11003114.68,
+                  "factor": 1
+                }
+              ],
+              "orden": 5,
+              "ordenIndex": 2,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 550565.3189,
+              "totalPrevMonth": 1368491.42,
+              "totalActualYTD": 317461.29,
+              "totalPlanYTD": 11511191.262799999,
+              "totalPrevYTD": 12859604.844999999,
+              "total": 317461.29,
+              "__manualFormula": true
+            },
+            {
+              "label": "Committees",
+              "cuentas": [
+                {
+                  "cuenta": "417-000-000-00",
+                  "cuentaCanonica": "417000000000000000001",
+                  "orden": 8,
+                  "ordenIndex": 4,
+                  "descripcion": "Comités",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 222140,
+                  "actualYTD": 53225.18,
+                  "planYTD": 8675090,
+                  "prevYTD": 5748342.63,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "412-000-000-00",
+                  "cuentaCanonica": "412000000000000000001",
+                  "orden": 9,
+                  "ordenIndex": 5,
+                  "descripcion": "Economex",
+                  "actualMonth": 0,
+                  "planMonth": 80000,
+                  "prevMonth": 67258.33,
+                  "actualYTD": 80600.9,
+                  "planYTD": 1100000,
+                  "prevYTD": 954648.32,
+                  "factor": 1
+                }
+              ],
+              "orden": 8,
+              "ordenIndex": 4,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 80000,
+              "totalPrevMonth": 289398.33,
+              "totalActualYTD": 133826.08,
+              "totalPlanYTD": 9775090,
+              "totalPrevYTD": 6702990.95,
+              "total": 133826.08,
+              "__manualFormula": true
+            },
+            {
+              "label": "T&IC",
+              "cuentas": [
+                {
+                  "cuenta": "405-000-000-00",
+                  "cuentaCanonica": "405000000000000000001",
+                  "orden": 11,
+                  "ordenIndex": 6,
+                  "descripcion": "Trade & Investment Center",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 840000,
+                  "prevYTD": 0,
+                  "factor": 1
+                }
+              ],
+              "orden": 11,
+              "ordenIndex": 6,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 0,
+              "totalPrevMonth": 0,
+              "totalActualYTD": 0,
+              "totalPlanYTD": 840000,
+              "totalPrevYTD": 0,
+              "total": 0,
+              "__manualFormula": true
+            },
+            {
+              "label": "Services to Members",
+              "cuentas": [
+                {
+                  "cuenta": "406-001-000-00",
+                  "cuentaCanonica": "406001000000000000002",
+                  "orden": 13,
+                  "ordenIndex": 7,
+                  "descripcion": "Venta Publicaciones",
+                  "actualMonth": 0,
+                  "planMonth": 73500,
+                  "prevMonth": 131000,
+                  "actualYTD": 155000,
+                  "planYTD": 1232595,
+                  "prevYTD": 1292600,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "406-002-000-00",
+                  "cuentaCanonica": "406002000000000000002",
+                  "orden": 14,
+                  "ordenIndex": 8,
+                  "descripcion": "Digital Training",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 1452650,
+                  "prevYTD": 1153000,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "409-000-000-00",
+                  "cuentaCanonica": "409000000000000000001",
+                  "orden": 15,
+                  "ordenIndex": 9,
+                  "descripcion": "Visas",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                }
+              ],
+              "orden": 13,
+              "ordenIndex": 7,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 73500,
+              "totalPrevMonth": 131000,
+              "totalActualYTD": 155000,
+              "totalPlanYTD": 2685245,
+              "totalPrevYTD": 2445600,
+              "total": 155000,
+              "__manualFormula": true
+            }
+          ],
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": ""
+        },
+        {
+          "type": "secundaria",
+          "label": "Membership",
+          "parentSection": "INCOME",
+          "order": 2,
+          "orderIndex": 0,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 3902468.0895075197,
+            "prevMonth": 3944096.3400000003,
+            "actualYTD": 3517603.4000000004,
+            "planYTD": 46872449.632295035,
+            "prevYTD": 42611317.830000006
+          },
+          "cuentas": [
+            {
+              "cuenta": "401-000-000-00",
+              "cuentaCanonica": "401000000000000000001",
+              "orden": 2,
+              "ordenIndex": 0,
+              "descripcion": "Cuotas Netas",
+              "actualMonth": 0,
+              "planMonth": 3793947.2973056,
+              "prevMonth": 3865929.6700000004,
+              "actualYTD": 3448936.7300000004,
+              "planYTD": 45370058.247891195,
+              "prevYTD": 41346034.50000001,
+              "factor": 1
+            },
+            {
+              "cuenta": "402-000-000-00",
+              "cuentaCanonica": "402000000000000000001",
+              "orden": 3,
+              "ordenIndex": 1,
+              "descripcion": "Ingresos socios nuevos",
+              "actualMonth": 0,
+              "planMonth": 108520.79220192,
+              "prevMonth": 78166.67,
+              "actualYTD": 68666.67,
+              "planYTD": 1502391.38440384,
+              "prevYTD": 1265283.3299999998,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Cuotas Netas",
+          "cuenta": "401-000-000-00",
+          "order": 2,
+          "orderIndex": 0,
+          "parentSection": "INCOME",
+          "parentSubsection": "Membership",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 3793947.2973056,
+            "prevMonth": 3865929.6700000004,
+            "actualYTD": 3448936.7300000004,
+            "planYTD": 45370058.247891195,
+            "prevYTD": 41346034.50000001
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Ingresos socios nuevos",
+          "cuenta": "402-000-000-00",
+          "order": 3,
+          "orderIndex": 1,
+          "parentSection": "INCOME",
+          "parentSubsection": "Membership",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 108520.79220192,
+            "prevMonth": 78166.67,
+            "actualYTD": 68666.67,
+            "planYTD": 1502391.38440384,
+            "prevYTD": 1265283.3299999998
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "Events",
+          "parentSection": "INCOME",
+          "order": 5,
+          "orderIndex": 2,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 550565.3189,
+            "prevMonth": 1368491.42,
+            "actualYTD": 317461.29,
+            "planYTD": 11511191.262799999,
+            "prevYTD": 12859604.844999999
+          },
+          "cuentas": [
+            {
+              "cuenta": "407-000-000-00",
+              "cuentaCanonica": "407000000000000000001",
+              "orden": 5,
+              "ordenIndex": 2,
+              "descripcion": "Eventos",
+              "actualMonth": 0,
+              "planMonth": 25000,
+              "prevMonth": 73150,
+              "actualYTD": 0,
+              "planYTD": 1460000,
+              "prevYTD": 1856490.165,
+              "factor": 1
+            },
+            {
+              "cuenta": "408-000-000-00",
+              "cuentaCanonica": "408000000000000000001",
+              "orden": 6,
+              "ordenIndex": 3,
+              "descripcion": "Patrocinios",
+              "actualMonth": 0,
+              "planMonth": 525565.3189,
+              "prevMonth": 1295341.42,
+              "actualYTD": 317461.29,
+              "planYTD": 10051191.262799999,
+              "prevYTD": 11003114.68,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Eventos",
+          "cuenta": "407-000-000-00",
+          "order": 5,
+          "orderIndex": 2,
+          "parentSection": "INCOME",
+          "parentSubsection": "Events",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 25000,
+            "prevMonth": 73150,
+            "actualYTD": 0,
+            "planYTD": 1460000,
+            "prevYTD": 1856490.165
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Patrocinios",
+          "cuenta": "408-000-000-00",
+          "order": 6,
+          "orderIndex": 3,
+          "parentSection": "INCOME",
+          "parentSubsection": "Events",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 525565.3189,
+            "prevMonth": 1295341.42,
+            "actualYTD": 317461.29,
+            "planYTD": 10051191.262799999,
+            "prevYTD": 11003114.68
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "Committees",
+          "parentSection": "INCOME",
+          "order": 8,
+          "orderIndex": 4,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 80000,
+            "prevMonth": 289398.33,
+            "actualYTD": 133826.08,
+            "planYTD": 9775090,
+            "prevYTD": 6702990.95
+          },
+          "cuentas": [
+            {
+              "cuenta": "417-000-000-00",
+              "cuentaCanonica": "417000000000000000001",
+              "orden": 8,
+              "ordenIndex": 4,
+              "descripcion": "Comités",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 222140,
+              "actualYTD": 53225.18,
+              "planYTD": 8675090,
+              "prevYTD": 5748342.63,
+              "factor": 1
+            },
+            {
+              "cuenta": "412-000-000-00",
+              "cuentaCanonica": "412000000000000000001",
+              "orden": 9,
+              "ordenIndex": 5,
+              "descripcion": "Economex",
+              "actualMonth": 0,
+              "planMonth": 80000,
+              "prevMonth": 67258.33,
+              "actualYTD": 80600.9,
+              "planYTD": 1100000,
+              "prevYTD": 954648.32,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Comités",
+          "cuenta": "417-000-000-00",
+          "order": 8,
+          "orderIndex": 4,
+          "parentSection": "INCOME",
+          "parentSubsection": "Committees",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 222140,
+            "actualYTD": 53225.18,
+            "planYTD": 8675090,
+            "prevYTD": 5748342.63
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Economex",
+          "cuenta": "412-000-000-00",
+          "order": 9,
+          "orderIndex": 5,
+          "parentSection": "INCOME",
+          "parentSubsection": "Committees",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 80000,
+            "prevMonth": 67258.33,
+            "actualYTD": 80600.9,
+            "planYTD": 1100000,
+            "prevYTD": 954648.32
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "T&IC",
+          "parentSection": "INCOME",
+          "order": 11,
+          "orderIndex": 6,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 840000,
+            "prevYTD": 0
+          },
+          "cuentas": [
+            {
+              "cuenta": "405-000-000-00",
+              "cuentaCanonica": "405000000000000000001",
+              "orden": 11,
+              "ordenIndex": 6,
+              "descripcion": "Trade & Investment Center",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 0,
+              "actualYTD": 0,
+              "planYTD": 840000,
+              "prevYTD": 0,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Trade & Investment Center",
+          "cuenta": "405-000-000-00",
+          "order": 11,
+          "orderIndex": 6,
+          "parentSection": "INCOME",
+          "parentSubsection": "T&IC",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 840000,
+            "prevYTD": 0
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "Services to Members",
+          "parentSection": "INCOME",
+          "order": 13,
+          "orderIndex": 7,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 73500,
+            "prevMonth": 131000,
+            "actualYTD": 155000,
+            "planYTD": 2685245,
+            "prevYTD": 2445600
+          },
+          "cuentas": [
+            {
+              "cuenta": "406-001-000-00",
+              "cuentaCanonica": "406001000000000000002",
+              "orden": 13,
+              "ordenIndex": 7,
+              "descripcion": "Venta Publicaciones",
+              "actualMonth": 0,
+              "planMonth": 73500,
+              "prevMonth": 131000,
+              "actualYTD": 155000,
+              "planYTD": 1232595,
+              "prevYTD": 1292600,
+              "factor": 1
+            },
+            {
+              "cuenta": "406-002-000-00",
+              "cuentaCanonica": "406002000000000000002",
+              "orden": 14,
+              "ordenIndex": 8,
+              "descripcion": "Digital Training",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 0,
+              "actualYTD": 0,
+              "planYTD": 1452650,
+              "prevYTD": 1153000,
+              "factor": 1
+            },
+            {
+              "cuenta": "409-000-000-00",
+              "cuentaCanonica": "409000000000000000001",
+              "orden": 15,
+              "ordenIndex": 9,
+              "descripcion": "Visas",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 0,
+              "actualYTD": 0,
+              "planYTD": 0,
+              "prevYTD": 0,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Venta Publicaciones",
+          "cuenta": "406-001-000-00",
+          "order": 13,
+          "orderIndex": 7,
+          "parentSection": "INCOME",
+          "parentSubsection": "Services to Members",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 73500,
+            "prevMonth": 131000,
+            "actualYTD": 155000,
+            "planYTD": 1232595,
+            "prevYTD": 1292600
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Digital Training",
+          "cuenta": "406-002-000-00",
+          "order": 14,
+          "orderIndex": 8,
+          "parentSection": "INCOME",
+          "parentSubsection": "Services to Members",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 1452650,
+            "prevYTD": 1153000
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Visas",
+          "cuenta": "409-000-000-00",
+          "order": 15,
+          "orderIndex": 9,
+          "parentSection": "INCOME",
+          "parentSubsection": "Services to Members",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 0,
+            "prevYTD": 0
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "Guadalajara Income",
+          "parentSection": "Guadalajara Income",
+          "order": 17,
+          "orderIndex": 1,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 1677946.2983333333,
+            "prevMonth": 2055033.73,
+            "actualYTD": 1594204.3,
+            "planYTD": 17961606.129651517,
+            "prevYTD": 14196188.67
+          },
+          "cuentas": []
+        },
+        {
+          "type": "principal",
+          "label": "Guadalajara Income",
+          "order": 17,
+          "orderIndex": 10,
+          "manualFormula": true,
+          "formula_terms": [],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 1677946.2983333333,
+            "prevMonth": 2055033.73,
+            "actualYTD": 1594204.3,
+            "planYTD": 17961606.129651517,
+            "prevYTD": 14196188.67
+          },
+          "children": [
+            {
+              "label": "Guadalajara Income",
+              "cuentas": [],
+              "orden": 17,
+              "ordenIndex": 1,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 1677946.2983333333,
+              "totalPrevMonth": 2055033.73,
+              "totalActualYTD": 1594204.3,
+              "totalPlanYTD": 17961606.129651517,
+              "totalPrevYTD": 14196188.67,
+              "total": 1594204.3,
+              "__manualFormula": true
+            },
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "450-001-000-00",
+                  "cuentaCanonica": "450001000000000000002",
+                  "orden": 17,
+                  "ordenIndex": 10,
+                  "descripcion": "GDL Income",
+                  "actualMonth": 0,
+                  "planMonth": 1677946.2983333333,
+                  "prevMonth": 2055033.73,
+                  "actualYTD": 1594204.3,
+                  "planYTD": 17961606.129651517,
+                  "prevYTD": 14196188.67,
+                  "factor": 1
+                }
+              ],
+              "orden": 17,
+              "ordenIndex": 10,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 1677946.2983333333,
+              "totalPrevMonth": 2055033.73,
+              "totalActualYTD": 1594204.3,
+              "totalPlanYTD": 17961606.129651517,
+              "totalPrevYTD": 14196188.67,
+              "total": 1594204.3
+            }
+          ],
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": ""
+        },
+        {
+          "type": "cuenta",
+          "nombre": "GDL Income",
+          "cuenta": "450-001-000-00",
+          "order": 17,
+          "orderIndex": 10,
+          "parentSection": "Guadalajara Income",
+          "parentSubsection": "",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 1677946.2983333333,
+            "prevMonth": 2055033.73,
+            "actualYTD": 1594204.3,
+            "planYTD": 17961606.129651517,
+            "prevYTD": 14196188.67
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "Monterrey Income",
+          "parentSection": "Monterrey Income",
+          "order": 19,
+          "orderIndex": 1,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 2688028.3499999996,
+            "prevMonth": 2719066.59,
+            "actualYTD": 2087870.36,
+            "planYTD": 36605250.9525,
+            "prevYTD": 32894974.609999996
+          },
+          "cuentas": []
+        },
+        {
+          "type": "principal",
+          "label": "Monterrey Income",
+          "order": 19,
+          "orderIndex": 11,
+          "manualFormula": true,
+          "formula_terms": [],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 2688028.3499999996,
+            "prevMonth": 2719066.59,
+            "actualYTD": 2087870.36,
+            "planYTD": 36605250.9525,
+            "prevYTD": 32894974.609999996
+          },
+          "children": [
+            {
+              "label": "Monterrey Income",
+              "cuentas": [],
+              "orden": 19,
+              "ordenIndex": 1,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 2688028.3499999996,
+              "totalPrevMonth": 2719066.59,
+              "totalActualYTD": 2087870.36,
+              "totalPlanYTD": 36605250.9525,
+              "totalPrevYTD": 32894974.609999996,
+              "total": 2087870.36,
+              "__manualFormula": true
+            },
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "450-002-000-00",
+                  "cuentaCanonica": "450002000000000000002",
+                  "orden": 19,
+                  "ordenIndex": 11,
+                  "descripcion": "MTY Income",
+                  "actualMonth": 0,
+                  "planMonth": 2688028.3499999996,
+                  "prevMonth": 2719066.59,
+                  "actualYTD": 2087870.36,
+                  "planYTD": 36605250.9525,
+                  "prevYTD": 32894974.609999996,
+                  "factor": 1
+                }
+              ],
+              "orden": 19,
+              "ordenIndex": 11,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 2688028.3499999996,
+              "totalPrevMonth": 2719066.59,
+              "totalActualYTD": 2087870.36,
+              "totalPlanYTD": 36605250.9525,
+              "totalPrevYTD": 32894974.609999996,
+              "total": 2087870.36
+            }
+          ],
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": ""
+        },
+        {
+          "type": "cuenta",
+          "nombre": "MTY Income",
+          "cuenta": "450-002-000-00",
+          "order": 19,
+          "orderIndex": 11,
+          "parentSection": "Monterrey Income",
+          "parentSubsection": "",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 2688028.3499999996,
+            "prevMonth": 2719066.59,
+            "actualYTD": 2087870.36,
+            "planYTD": 36605250.9525,
+            "prevYTD": 32894974.609999996
+          }
+        },
+        {
+          "type": "principal",
+          "label": "Northwest Income",
+          "order": 21,
+          "orderIndex": 12,
+          "manualFormula": true,
+          "formula_terms": [],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 577812.46,
+            "prevMonth": 558040.38,
+            "actualYTD": 495064.61,
+            "planYTD": 6765685.157000001,
+            "prevYTD": 5116359.759999999
+          },
+          "children": [
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "450-003-000-00",
+                  "cuentaCanonica": "450003000000000000002",
+                  "orden": 21,
+                  "ordenIndex": 12,
+                  "descripcion": "NO Income",
+                  "actualMonth": 0,
+                  "planMonth": 577812.46,
+                  "prevMonth": 558040.38,
+                  "actualYTD": 495064.61,
+                  "planYTD": 6765685.157000001,
+                  "prevYTD": 5116359.759999999,
+                  "factor": 1
+                }
+              ],
+              "orden": 21,
+              "ordenIndex": 12,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 577812.46,
+              "totalPrevMonth": 558040.38,
+              "totalActualYTD": 495064.61,
+              "totalPlanYTD": 6765685.157000001,
+              "totalPrevYTD": 5116359.759999999,
+              "total": 495064.61
+            }
+          ],
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": ""
+        },
+        {
+          "type": "cuenta",
+          "nombre": "NO Income",
+          "cuenta": "450-003-000-00",
+          "order": 21,
+          "orderIndex": 12,
+          "parentSection": "Northwest Income",
+          "parentSubsection": "",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 577812.46,
+            "prevMonth": 558040.38,
+            "actualYTD": 495064.61,
+            "planYTD": 6765685.157000001,
+            "prevYTD": 5116359.759999999
+          }
+        },
+        {
+          "type": "operation",
+          "label": "CONSOLIDATED INCOME",
+          "order": 22,
+          "orderIndex": 0,
+          "manualFormula": true,
+          "formula": "",
+          "formula_terms": [
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "INCOME"
+            },
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "Guadalajara Income"
+            },
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "Monterrey Income"
+            },
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "Northwest Income"
+            }
+          ],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 9550320.516740851,
+            "prevMonth": 11065126.790000001,
+            "actualYTD": 8301030.040000001,
+            "planYTD": 133016518.13424656,
+            "prevYTD": 116827036.665
+          },
+          "rowStyle": "highlight-primary",
+          "estilo_fila": "highlight-primary"
+        },
+        {
+          "type": "principal",
+          "label": "EXPENSE",
+          "order": 25,
+          "orderIndex": 13,
+          "manualFormula": true,
+          "formula_terms": [],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 5386991.56614433,
+            "prevMonth": 5779248.27,
+            "actualYTD": 4052220.1500000004,
+            "planYTD": 69120006.12487197,
+            "prevYTD": 61247285.288
+          },
+          "children": [
+            {
+              "label": "Membership",
+              "cuentas": [
+                {
+                  "cuenta": "705-000-000-00",
+                  "cuentaCanonica": "705000000000000000001",
+                  "orden": 25,
+                  "ordenIndex": 13,
+                  "descripcion": "Gastos Promoción",
+                  "actualMonth": 0,
+                  "planMonth": 372250,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 887380,
+                  "prevYTD": 225000.00000000006,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "520-000-000-00",
+                  "cuentaCanonica": "520000000000000000001",
+                  "orden": 26,
+                  "ordenIndex": 14,
+                  "descripcion": "Comsiones por venta de membresía",
+                  "actualMonth": 0,
+                  "planMonth": 151989.8,
+                  "prevMonth": 127437.23,
+                  "actualYTD": 153759.08,
+                  "planYTD": 2061727.8800000001,
+                  "prevYTD": 1982503.28,
+                  "factor": 1
+                }
+              ],
+              "orden": 25,
+              "ordenIndex": 13,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 524239.8,
+              "totalPrevMonth": 127437.23,
+              "totalActualYTD": 153759.08,
+              "totalPlanYTD": 2949107.88,
+              "totalPrevYTD": 2207503.2800000003,
+              "total": 153759.08,
+              "__manualFormula": true
+            },
+            {
+              "label": "Events",
+              "cuentas": [
+                {
+                  "cuenta": "701-000-000-00",
+                  "cuentaCanonica": "701000000000000000001",
+                  "orden": 28,
+                  "ordenIndex": 15,
+                  "descripcion": "Costo Eventos",
+                  "actualMonth": 0,
+                  "planMonth": 151262.5,
+                  "prevMonth": 931808.4699999997,
+                  "actualYTD": 23034.670000000006,
+                  "planYTD": 6727036.83465,
+                  "prevYTD": 8546422.2,
+                  "factor": 1
+                }
+              ],
+              "orden": 28,
+              "ordenIndex": 15,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 151262.5,
+              "totalPrevMonth": 931808.4699999997,
+              "totalActualYTD": 23034.670000000006,
+              "totalPlanYTD": 6727036.83465,
+              "totalPrevYTD": 8546422.2,
+              "total": 23034.670000000006,
+              "__manualFormula": true
+            },
+            {
+              "label": "Committees",
+              "cuentas": [
+                {
+                  "cuenta": "702-000-000-00",
+                  "cuentaCanonica": "702000000000000000001",
+                  "orden": 30,
+                  "ordenIndex": 16,
+                  "descripcion": "Costo Comités",
+                  "actualMonth": 0,
+                  "planMonth": 250250,
+                  "prevMonth": 74293.83,
+                  "actualYTD": 138769.06999999998,
+                  "planYTD": 5438618.2432,
+                  "prevYTD": 3073058.1399999997,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "704-000-000-00",
+                  "cuentaCanonica": "704000000000000000001",
+                  "orden": 31,
+                  "ordenIndex": 17,
+                  "descripcion": "Costo Economex",
+                  "actualMonth": 0,
+                  "planMonth": 134040,
+                  "prevMonth": 80000,
+                  "actualYTD": 80780.36,
+                  "planYTD": 1299254,
+                  "prevYTD": 1050317.16,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "521-000-000-00",
+                  "cuentaCanonica": "521000000000000000001",
+                  "orden": 32,
+                  "ordenIndex": 18,
+                  "descripcion": "Comisiones EWDP y Economex",
+                  "actualMonth": 0,
+                  "planMonth": 89600,
+                  "prevMonth": 104928.85,
+                  "actualYTD": 7374.47,
+                  "planYTD": 202619.2,
+                  "prevYTD": 135380.03,
+                  "factor": 1
+                }
+              ],
+              "orden": 30,
+              "ordenIndex": 16,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 473890,
+              "totalPrevMonth": 259222.68,
+              "totalActualYTD": 226923.89999999997,
+              "totalPlanYTD": 6940491.443200001,
+              "totalPrevYTD": 4258755.329999999,
+              "total": 226923.89999999997,
+              "__manualFormula": true
+            },
+            {
+              "label": "T&IC",
+              "cuentas": [
+                {
+                  "cuenta": "703-000-000-00",
+                  "cuentaCanonica": "703000000000000000001",
+                  "orden": 34,
+                  "ordenIndex": 19,
+                  "descripcion": "Costo Trade & Investment Center",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 340000,
+                  "prevYTD": 0,
+                  "factor": 1
+                }
+              ],
+              "orden": 34,
+              "ordenIndex": 19,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 0,
+              "totalPrevMonth": 0,
+              "totalActualYTD": 0,
+              "totalPlanYTD": 340000,
+              "totalPrevYTD": 0,
+              "total": 0,
+              "__manualFormula": true
+            },
+            {
+              "label": "Services to Members",
+              "cuentas": [
+                {
+                  "cuenta": "601-002-003-00",
+                  "cuentaCanonica": "601002003000000000003",
+                  "orden": 36,
+                  "ordenIndex": 20,
+                  "descripcion": "Costo Venta Publicaciones",
+                  "actualMonth": 0,
+                  "planMonth": 32340,
+                  "prevMonth": 46500,
+                  "actualYTD": 79581,
+                  "planYTD": 542341.8,
+                  "prevYTD": 574300,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "601-003-001-00",
+                  "cuentaCanonica": "601003001000000000003",
+                  "orden": 37,
+                  "ordenIndex": 21,
+                  "descripcion": "Costo Digital Training",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 726325,
+                  "prevYTD": 577000.27,
+                  "factor": 1
+                }
+              ],
+              "orden": 36,
+              "ordenIndex": 20,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 32340,
+              "totalPrevMonth": 46500,
+              "totalActualYTD": 79581,
+              "totalPlanYTD": 1268666.8,
+              "totalPrevYTD": 1151300.27,
+              "total": 79581,
+              "__manualFormula": true
+            },
+            {
+              "label": "Gastos Administrativos",
+              "cuentas": [
+                {
+                  "cuenta": "801-001-000-00",
+                  "cuentaCanonica": "801001000000000000002",
+                  "orden": 39,
+                  "ordenIndex": 22,
+                  "descripcion": "Desarrollo de Negocios",
+                  "actualMonth": 0,
+                  "planMonth": 41040,
+                  "prevMonth": 32550.03,
+                  "actualYTD": 37520.14,
+                  "planYTD": 656495.113,
+                  "prevYTD": 448434.14,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-002-000-00",
+                  "cuentaCanonica": "801002000000000000002",
+                  "orden": 40,
+                  "ordenIndex": 23,
+                  "descripcion": "Relaciones Externas",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-003-000-00",
+                  "cuentaCanonica": "801003000000000000002",
+                  "orden": 41,
+                  "ordenIndex": 24,
+                  "descripcion": "Servicios a las membresia",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-004-000-00",
+                  "cuentaCanonica": "801004000000000000002",
+                  "orden": 42,
+                  "ordenIndex": 25,
+                  "descripcion": "Vicepresidencia",
+                  "actualMonth": 0,
+                  "planMonth": 43867.9334,
+                  "prevMonth": 34274.799999999996,
+                  "actualYTD": 24166.93,
+                  "planYTD": 924190.848,
+                  "prevYTD": 705009.9800000001,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-005-000-00",
+                  "cuentaCanonica": "801005000000000000002",
+                  "orden": 43,
+                  "ordenIndex": 26,
+                  "descripcion": "Finanzas",
+                  "actualMonth": 0,
+                  "planMonth": 28043.372199999998,
+                  "prevMonth": 32442.949999999997,
+                  "actualYTD": 27137.420000000002,
+                  "planYTD": 467017.58400000003,
+                  "prevYTD": 351191.16,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-006-000-00",
+                  "cuentaCanonica": "801006000000000000002",
+                  "orden": 44,
+                  "ordenIndex": 27,
+                  "descripcion": "Administración",
+                  "actualMonth": 0,
+                  "planMonth": 25367.88,
+                  "prevMonth": 1685.8700000000001,
+                  "actualYTD": 13620.140000000001,
+                  "planYTD": 395072.91,
+                  "prevYTD": 150603.25999999998,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-007-000-00",
+                  "cuentaCanonica": "801007000000000000002",
+                  "orden": 45,
+                  "ordenIndex": 28,
+                  "descripcion": "Sistemas",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-008-000-00",
+                  "cuentaCanonica": "801008000000000000002",
+                  "orden": 46,
+                  "ordenIndex": 29,
+                  "descripcion": "Empleos",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-009-000-00",
+                  "cuentaCanonica": "801009000000000000002",
+                  "orden": 47,
+                  "ordenIndex": 30,
+                  "descripcion": "Servicios Generales (Almacén)",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-010-000-00",
+                  "cuentaCanonica": "801010000000000000002",
+                  "orden": 48,
+                  "ordenIndex": 31,
+                  "descripcion": "Eventos",
+                  "actualMonth": 0,
+                  "planMonth": 41984,
+                  "prevMonth": 38326,
+                  "actualYTD": 38352.83,
+                  "planYTD": 625945.1843999999,
+                  "prevYTD": 404903.39,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-011-000-00",
+                  "cuentaCanonica": "801011000000000000002",
+                  "orden": 49,
+                  "ordenIndex": 32,
+                  "descripcion": "Comites",
+                  "actualMonth": 0,
+                  "planMonth": 65176,
+                  "prevMonth": 58861.49,
+                  "actualYTD": 34339.5,
+                  "planYTD": 781454.958,
+                  "prevYTD": 618233.6399999999,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-012-000-00",
+                  "cuentaCanonica": "801012000000000000002",
+                  "orden": 50,
+                  "ordenIndex": 33,
+                  "descripcion": "Renta de Salas",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 0,
+                  "actualYTD": 0,
+                  "planYTD": 0,
+                  "prevYTD": 0,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "801-013-000-00",
+                  "cuentaCanonica": "801013000000000000002",
+                  "orden": 51,
+                  "ordenIndex": 34,
+                  "descripcion": "Comunicación",
+                  "actualMonth": 0,
+                  "planMonth": 71265.1184,
+                  "prevMonth": 222705.63,
+                  "actualYTD": 5921.009999999995,
+                  "planYTD": 855181.4208000003,
+                  "prevYTD": 1482493.0700000003,
+                  "factor": 1
+                }
+              ],
+              "orden": 39,
+              "ordenIndex": 22,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 316744.304,
+              "totalPrevMonth": 420846.76999999996,
+              "totalActualYTD": 181057.97000000003,
+              "totalPlanYTD": 4705358.0182,
+              "totalPrevYTD": 4160868.6400000006,
+              "total": 181057.97000000003,
+              "__manualFormula": true
+            },
+            {
+              "label": "Gastos Generales",
+              "cuentas": [
+                {
+                  "cuenta": "901-000-000-00",
+                  "cuentaCanonica": "901000000000000000001",
+                  "orden": 53,
+                  "ordenIndex": 35,
+                  "descripcion": "Gastos Generales",
+                  "actualMonth": 0,
+                  "planMonth": 748254.2297899999,
+                  "prevMonth": 813752.6400000005,
+                  "actualYTD": 561844.2699999999,
+                  "planYTD": 8506216.360569999,
+                  "prevYTD": 7969192.418,
+                  "factor": 1
+                }
+              ],
+              "orden": 53,
+              "ordenIndex": 35,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 748254.2297899999,
+              "totalPrevMonth": 813752.6400000005,
+              "totalActualYTD": 561844.2699999999,
+              "totalPlanYTD": 8506216.360569999,
+              "totalPrevYTD": 7969192.418,
+              "total": 561844.2699999999,
+              "__manualFormula": true
+            },
+            {
+              "label": "Nómina",
+              "cuentas": [
+                {
+                  "cuenta": "513-000-000-00",
+                  "cuentaCanonica": "513000000000000000001",
+                  "orden": 55,
+                  "ordenIndex": 36,
+                  "descripcion": "Nomina Vicepresidencia",
+                  "actualMonth": 0,
+                  "planMonth": 45203.19,
+                  "prevMonth": 83887.80999999988,
+                  "actualYTD": 65397.28999999999,
+                  "planYTD": 542438.28,
+                  "prevYTD": 601991.8900000001,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "517-000-000-00",
+                  "cuentaCanonica": "517000000000000000001",
+                  "orden": 56,
+                  "ordenIndex": 37,
+                  "descripcion": "Nomina Desarrollo de Negocios",
+                  "actualMonth": 0,
+                  "planMonth": 406932.44,
+                  "prevMonth": 450008.52,
+                  "actualYTD": 337919.0800000001,
+                  "planYTD": 4883189.28,
+                  "prevYTD": 4517285.550000001,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "516-000-000-00",
+                  "cuentaCanonica": "516000000000000000001",
+                  "orden": 57,
+                  "ordenIndex": 38,
+                  "descripcion": "Nomina Comites y Relaciones Externas",
+                  "actualMonth": 0,
+                  "planMonth": 434457.71,
+                  "prevMonth": 497927.56000000006,
+                  "actualYTD": 347166.45999999996,
+                  "planYTD": 5213492.5200000005,
+                  "prevYTD": 5327063.110000001,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "519-000-000-00",
+                  "cuentaCanonica": "519000000000000000001",
+                  "orden": 58,
+                  "ordenIndex": 39,
+                  "descripcion": "Nomina Comunicación",
+                  "actualMonth": 0,
+                  "planMonth": 120736.84,
+                  "prevMonth": 108281.69,
+                  "actualYTD": 90816.13000000005,
+                  "planYTD": 1448842.08,
+                  "prevYTD": 1285252.1900000002,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "515-000-000-00",
+                  "cuentaCanonica": "515000000000000000001",
+                  "orden": 59,
+                  "ordenIndex": 40,
+                  "descripcion": "Nomina Servicios a la Membresia",
+                  "actualMonth": 0,
+                  "planMonth": 160450.34,
+                  "prevMonth": 147157.22999999998,
+                  "actualYTD": 160582.37000000002,
+                  "planYTD": 1925404.0800000003,
+                  "prevYTD": 1798050.7099999997,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "518-000-000-00",
+                  "cuentaCanonica": "518000000000000000001",
+                  "orden": 60,
+                  "ordenIndex": 41,
+                  "descripcion": "Nomina Eventos y Mercadotecnia",
+                  "actualMonth": 0,
+                  "planMonth": 47222.03,
+                  "prevMonth": 79254.48999999996,
+                  "actualYTD": 47190.08,
+                  "planYTD": 566664.3600000001,
+                  "prevYTD": 876357.7999999998,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "514-000-000-00",
+                  "cuentaCanonica": "514000000000000000001",
+                  "orden": 61,
+                  "ordenIndex": 42,
+                  "descripcion": "Nomina Administración y Finanzas",
+                  "actualMonth": 0,
+                  "planMonth": 326148.21,
+                  "prevMonth": 350941.20999999996,
+                  "actualYTD": 237188.5199999998,
+                  "planYTD": 3913778.52,
+                  "prevYTD": 3553244.7000000016,
+                  "factor": 1
+                }
+              ],
+              "orden": 55,
+              "ordenIndex": 36,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 1541150.76,
+              "totalPrevMonth": 1717458.5099999998,
+              "totalActualYTD": 1286259.93,
+              "totalPlanYTD": 18493809.119999997,
+              "totalPrevYTD": 17959245.950000007,
+              "total": 1286259.93,
+              "__manualFormula": true
+            },
+            {
+              "label": "Gastos Corporativos",
+              "cuentas": [
+                {
+                  "cuenta": "903-000-000-00",
+                  "cuentaCanonica": "903000000000000000001",
+                  "orden": 63,
+                  "ordenIndex": 43,
+                  "descripcion": "Gastos Corporativos",
+                  "actualMonth": 0,
+                  "planMonth": 1599109.9723543301,
+                  "prevMonth": 1462221.9699999997,
+                  "actualYTD": 1539759.33,
+                  "planYTD": 19189319.66825196,
+                  "prevYTD": 14993997.2,
+                  "factor": 1
+                }
+              ],
+              "orden": 63,
+              "ordenIndex": 43,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 1599109.9723543301,
+              "totalPrevMonth": 1462221.9699999997,
+              "totalActualYTD": 1539759.33,
+              "totalPlanYTD": 19189319.66825196,
+              "totalPrevYTD": 14993997.2,
+              "total": 1539759.33,
+              "__manualFormula": true
+            }
+          ],
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": ""
+        },
+        {
+          "type": "secundaria",
+          "label": "Membership",
+          "parentSection": "EXPENSE",
+          "order": 25,
+          "orderIndex": 13,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 524239.8,
+            "prevMonth": 127437.23,
+            "actualYTD": 153759.08,
+            "planYTD": 2949107.88,
+            "prevYTD": 2207503.2800000003
+          },
+          "cuentas": [
+            {
+              "cuenta": "705-000-000-00",
+              "cuentaCanonica": "705000000000000000001",
+              "orden": 25,
+              "ordenIndex": 13,
+              "descripcion": "Gastos Promoción",
+              "actualMonth": 0,
+              "planMonth": 372250,
+              "prevMonth": 0,
+              "actualYTD": 0,
+              "planYTD": 887380,
+              "prevYTD": 225000.00000000006,
+              "factor": 1
+            },
+            {
+              "cuenta": "520-000-000-00",
+              "cuentaCanonica": "520000000000000000001",
+              "orden": 26,
+              "ordenIndex": 14,
+              "descripcion": "Comsiones por venta de membresía",
+              "actualMonth": 0,
+              "planMonth": 151989.8,
+              "prevMonth": 127437.23,
+              "actualYTD": 153759.08,
+              "planYTD": 2061727.8800000001,
+              "prevYTD": 1982503.28,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Gastos Promoción",
+          "cuenta": "705-000-000-00",
+          "order": 25,
+          "orderIndex": 13,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Membership",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 372250,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 887380,
+            "prevYTD": 225000.00000000006
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Comsiones por venta de membresía",
+          "cuenta": "520-000-000-00",
+          "order": 26,
+          "orderIndex": 14,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Membership",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 151989.8,
+            "prevMonth": 127437.23,
+            "actualYTD": 153759.08,
+            "planYTD": 2061727.8800000001,
+            "prevYTD": 1982503.28
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "Events",
+          "parentSection": "EXPENSE",
+          "order": 28,
+          "orderIndex": 15,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 151262.5,
+            "prevMonth": 931808.4699999997,
+            "actualYTD": 23034.670000000006,
+            "planYTD": 6727036.83465,
+            "prevYTD": 8546422.2
+          },
+          "cuentas": [
+            {
+              "cuenta": "701-000-000-00",
+              "cuentaCanonica": "701000000000000000001",
+              "orden": 28,
+              "ordenIndex": 15,
+              "descripcion": "Costo Eventos",
+              "actualMonth": 0,
+              "planMonth": 151262.5,
+              "prevMonth": 931808.4699999997,
+              "actualYTD": 23034.670000000006,
+              "planYTD": 6727036.83465,
+              "prevYTD": 8546422.2,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Costo Eventos",
+          "cuenta": "701-000-000-00",
+          "order": 28,
+          "orderIndex": 15,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Events",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 151262.5,
+            "prevMonth": 931808.4699999997,
+            "actualYTD": 23034.670000000006,
+            "planYTD": 6727036.83465,
+            "prevYTD": 8546422.2
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "Committees",
+          "parentSection": "EXPENSE",
+          "order": 30,
+          "orderIndex": 16,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 473890,
+            "prevMonth": 259222.68,
+            "actualYTD": 226923.89999999997,
+            "planYTD": 6940491.443200001,
+            "prevYTD": 4258755.329999999
+          },
+          "cuentas": [
+            {
+              "cuenta": "702-000-000-00",
+              "cuentaCanonica": "702000000000000000001",
+              "orden": 30,
+              "ordenIndex": 16,
+              "descripcion": "Costo Comités",
+              "actualMonth": 0,
+              "planMonth": 250250,
+              "prevMonth": 74293.83,
+              "actualYTD": 138769.06999999998,
+              "planYTD": 5438618.2432,
+              "prevYTD": 3073058.1399999997,
+              "factor": 1
+            },
+            {
+              "cuenta": "704-000-000-00",
+              "cuentaCanonica": "704000000000000000001",
+              "orden": 31,
+              "ordenIndex": 17,
+              "descripcion": "Costo Economex",
+              "actualMonth": 0,
+              "planMonth": 134040,
+              "prevMonth": 80000,
+              "actualYTD": 80780.36,
+              "planYTD": 1299254,
+              "prevYTD": 1050317.16,
+              "factor": 1
+            },
+            {
+              "cuenta": "521-000-000-00",
+              "cuentaCanonica": "521000000000000000001",
+              "orden": 32,
+              "ordenIndex": 18,
+              "descripcion": "Comisiones EWDP y Economex",
+              "actualMonth": 0,
+              "planMonth": 89600,
+              "prevMonth": 104928.85,
+              "actualYTD": 7374.47,
+              "planYTD": 202619.2,
+              "prevYTD": 135380.03,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Costo Comités",
+          "cuenta": "702-000-000-00",
+          "order": 30,
+          "orderIndex": 16,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Committees",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 250250,
+            "prevMonth": 74293.83,
+            "actualYTD": 138769.06999999998,
+            "planYTD": 5438618.2432,
+            "prevYTD": 3073058.1399999997
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Costo Economex",
+          "cuenta": "704-000-000-00",
+          "order": 31,
+          "orderIndex": 17,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Committees",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 134040,
+            "prevMonth": 80000,
+            "actualYTD": 80780.36,
+            "planYTD": 1299254,
+            "prevYTD": 1050317.16
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Comisiones EWDP y Economex",
+          "cuenta": "521-000-000-00",
+          "order": 32,
+          "orderIndex": 18,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Committees",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 89600,
+            "prevMonth": 104928.85,
+            "actualYTD": 7374.47,
+            "planYTD": 202619.2,
+            "prevYTD": 135380.03
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "T&IC",
+          "parentSection": "EXPENSE",
+          "order": 34,
+          "orderIndex": 19,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 340000,
+            "prevYTD": 0
+          },
+          "cuentas": [
+            {
+              "cuenta": "703-000-000-00",
+              "cuentaCanonica": "703000000000000000001",
+              "orden": 34,
+              "ordenIndex": 19,
+              "descripcion": "Costo Trade & Investment Center",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 0,
+              "actualYTD": 0,
+              "planYTD": 340000,
+              "prevYTD": 0,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Costo Trade & Investment Center",
+          "cuenta": "703-000-000-00",
+          "order": 34,
+          "orderIndex": 19,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "T&IC",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 340000,
+            "prevYTD": 0
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "Services to Members",
+          "parentSection": "EXPENSE",
+          "order": 36,
+          "orderIndex": 20,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 32340,
+            "prevMonth": 46500,
+            "actualYTD": 79581,
+            "planYTD": 1268666.8,
+            "prevYTD": 1151300.27
+          },
+          "cuentas": [
+            {
+              "cuenta": "601-002-003-00",
+              "cuentaCanonica": "601002003000000000003",
+              "orden": 36,
+              "ordenIndex": 20,
+              "descripcion": "Costo Venta Publicaciones",
+              "actualMonth": 0,
+              "planMonth": 32340,
+              "prevMonth": 46500,
+              "actualYTD": 79581,
+              "planYTD": 542341.8,
+              "prevYTD": 574300,
+              "factor": 1
+            },
+            {
+              "cuenta": "601-003-001-00",
+              "cuentaCanonica": "601003001000000000003",
+              "orden": 37,
+              "ordenIndex": 21,
+              "descripcion": "Costo Digital Training",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 0,
+              "actualYTD": 0,
+              "planYTD": 726325,
+              "prevYTD": 577000.27,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Costo Venta Publicaciones",
+          "cuenta": "601-002-003-00",
+          "order": 36,
+          "orderIndex": 20,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Services to Members",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 32340,
+            "prevMonth": 46500,
+            "actualYTD": 79581,
+            "planYTD": 542341.8,
+            "prevYTD": 574300
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Costo Digital Training",
+          "cuenta": "601-003-001-00",
+          "order": 37,
+          "orderIndex": 21,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Services to Members",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 726325,
+            "prevYTD": 577000.27
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "Gastos Administrativos",
+          "parentSection": "EXPENSE",
+          "order": 39,
+          "orderIndex": 22,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 316744.304,
+            "prevMonth": 420846.76999999996,
+            "actualYTD": 181057.97000000003,
+            "planYTD": 4705358.0182,
+            "prevYTD": 4160868.6400000006
+          },
+          "cuentas": [
+            {
+              "cuenta": "801-001-000-00",
+              "cuentaCanonica": "801001000000000000002",
+              "orden": 39,
+              "ordenIndex": 22,
+              "descripcion": "Desarrollo de Negocios",
+              "actualMonth": 0,
+              "planMonth": 41040,
+              "prevMonth": 32550.03,
+              "actualYTD": 37520.14,
+              "planYTD": 656495.113,
+              "prevYTD": 448434.14,
+              "factor": 1
+            },
+            {
+              "cuenta": "801-002-000-00",
+              "cuentaCanonica": "801002000000000000002",
+              "orden": 40,
+              "ordenIndex": 23,
+              "descripcion": "Relaciones Externas",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 0,
+              "actualYTD": 0,
+              "planYTD": 0,
+              "prevYTD": 0,
+              "factor": 1
+            },
+            {
+              "cuenta": "801-003-000-00",
+              "cuentaCanonica": "801003000000000000002",
+              "orden": 41,
+              "ordenIndex": 24,
+              "descripcion": "Servicios a las membresia",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 0,
+              "actualYTD": 0,
+              "planYTD": 0,
+              "prevYTD": 0,
+              "factor": 1
+            },
+            {
+              "cuenta": "801-004-000-00",
+              "cuentaCanonica": "801004000000000000002",
+              "orden": 42,
+              "ordenIndex": 25,
+              "descripcion": "Vicepresidencia",
+              "actualMonth": 0,
+              "planMonth": 43867.9334,
+              "prevMonth": 34274.799999999996,
+              "actualYTD": 24166.93,
+              "planYTD": 924190.848,
+              "prevYTD": 705009.9800000001,
+              "factor": 1
+            },
+            {
+              "cuenta": "801-005-000-00",
+              "cuentaCanonica": "801005000000000000002",
+              "orden": 43,
+              "ordenIndex": 26,
+              "descripcion": "Finanzas",
+              "actualMonth": 0,
+              "planMonth": 28043.372199999998,
+              "prevMonth": 32442.949999999997,
+              "actualYTD": 27137.420000000002,
+              "planYTD": 467017.58400000003,
+              "prevYTD": 351191.16,
+              "factor": 1
+            },
+            {
+              "cuenta": "801-006-000-00",
+              "cuentaCanonica": "801006000000000000002",
+              "orden": 44,
+              "ordenIndex": 27,
+              "descripcion": "Administración",
+              "actualMonth": 0,
+              "planMonth": 25367.88,
+              "prevMonth": 1685.8700000000001,
+              "actualYTD": 13620.140000000001,
+              "planYTD": 395072.91,
+              "prevYTD": 150603.25999999998,
+              "factor": 1
+            },
+            {
+              "cuenta": "801-007-000-00",
+              "cuentaCanonica": "801007000000000000002",
+              "orden": 45,
+              "ordenIndex": 28,
+              "descripcion": "Sistemas",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 0,
+              "actualYTD": 0,
+              "planYTD": 0,
+              "prevYTD": 0,
+              "factor": 1
+            },
+            {
+              "cuenta": "801-008-000-00",
+              "cuentaCanonica": "801008000000000000002",
+              "orden": 46,
+              "ordenIndex": 29,
+              "descripcion": "Empleos",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 0,
+              "actualYTD": 0,
+              "planYTD": 0,
+              "prevYTD": 0,
+              "factor": 1
+            },
+            {
+              "cuenta": "801-009-000-00",
+              "cuentaCanonica": "801009000000000000002",
+              "orden": 47,
+              "ordenIndex": 30,
+              "descripcion": "Servicios Generales (Almacén)",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 0,
+              "actualYTD": 0,
+              "planYTD": 0,
+              "prevYTD": 0,
+              "factor": 1
+            },
+            {
+              "cuenta": "801-010-000-00",
+              "cuentaCanonica": "801010000000000000002",
+              "orden": 48,
+              "ordenIndex": 31,
+              "descripcion": "Eventos",
+              "actualMonth": 0,
+              "planMonth": 41984,
+              "prevMonth": 38326,
+              "actualYTD": 38352.83,
+              "planYTD": 625945.1843999999,
+              "prevYTD": 404903.39,
+              "factor": 1
+            },
+            {
+              "cuenta": "801-011-000-00",
+              "cuentaCanonica": "801011000000000000002",
+              "orden": 49,
+              "ordenIndex": 32,
+              "descripcion": "Comites",
+              "actualMonth": 0,
+              "planMonth": 65176,
+              "prevMonth": 58861.49,
+              "actualYTD": 34339.5,
+              "planYTD": 781454.958,
+              "prevYTD": 618233.6399999999,
+              "factor": 1
+            },
+            {
+              "cuenta": "801-012-000-00",
+              "cuentaCanonica": "801012000000000000002",
+              "orden": 50,
+              "ordenIndex": 33,
+              "descripcion": "Renta de Salas",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 0,
+              "actualYTD": 0,
+              "planYTD": 0,
+              "prevYTD": 0,
+              "factor": 1
+            },
+            {
+              "cuenta": "801-013-000-00",
+              "cuentaCanonica": "801013000000000000002",
+              "orden": 51,
+              "ordenIndex": 34,
+              "descripcion": "Comunicación",
+              "actualMonth": 0,
+              "planMonth": 71265.1184,
+              "prevMonth": 222705.63,
+              "actualYTD": 5921.009999999995,
+              "planYTD": 855181.4208000003,
+              "prevYTD": 1482493.0700000003,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Desarrollo de Negocios",
+          "cuenta": "801-001-000-00",
+          "order": 39,
+          "orderIndex": 22,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Administrativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 41040,
+            "prevMonth": 32550.03,
+            "actualYTD": 37520.14,
+            "planYTD": 656495.113,
+            "prevYTD": 448434.14
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Relaciones Externas",
+          "cuenta": "801-002-000-00",
+          "order": 40,
+          "orderIndex": 23,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Administrativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 0,
+            "prevYTD": 0
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Servicios a las membresia",
+          "cuenta": "801-003-000-00",
+          "order": 41,
+          "orderIndex": 24,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Administrativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 0,
+            "prevYTD": 0
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Vicepresidencia",
+          "cuenta": "801-004-000-00",
+          "order": 42,
+          "orderIndex": 25,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Administrativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 43867.9334,
+            "prevMonth": 34274.799999999996,
+            "actualYTD": 24166.93,
+            "planYTD": 924190.848,
+            "prevYTD": 705009.9800000001
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Finanzas",
+          "cuenta": "801-005-000-00",
+          "order": 43,
+          "orderIndex": 26,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Administrativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 28043.372199999998,
+            "prevMonth": 32442.949999999997,
+            "actualYTD": 27137.420000000002,
+            "planYTD": 467017.58400000003,
+            "prevYTD": 351191.16
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Administración",
+          "cuenta": "801-006-000-00",
+          "order": 44,
+          "orderIndex": 27,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Administrativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 25367.88,
+            "prevMonth": 1685.8700000000001,
+            "actualYTD": 13620.140000000001,
+            "planYTD": 395072.91,
+            "prevYTD": 150603.25999999998
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Sistemas",
+          "cuenta": "801-007-000-00",
+          "order": 45,
+          "orderIndex": 28,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Administrativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 0,
+            "prevYTD": 0
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Empleos",
+          "cuenta": "801-008-000-00",
+          "order": 46,
+          "orderIndex": 29,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Administrativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 0,
+            "prevYTD": 0
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Servicios Generales (Almacén)",
+          "cuenta": "801-009-000-00",
+          "order": 47,
+          "orderIndex": 30,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Administrativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 0,
+            "prevYTD": 0
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Eventos",
+          "cuenta": "801-010-000-00",
+          "order": 48,
+          "orderIndex": 31,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Administrativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 41984,
+            "prevMonth": 38326,
+            "actualYTD": 38352.83,
+            "planYTD": 625945.1843999999,
+            "prevYTD": 404903.39
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Comites",
+          "cuenta": "801-011-000-00",
+          "order": 49,
+          "orderIndex": 32,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Administrativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 65176,
+            "prevMonth": 58861.49,
+            "actualYTD": 34339.5,
+            "planYTD": 781454.958,
+            "prevYTD": 618233.6399999999
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Renta de Salas",
+          "cuenta": "801-012-000-00",
+          "order": 50,
+          "orderIndex": 33,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Administrativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 0,
+            "actualYTD": 0,
+            "planYTD": 0,
+            "prevYTD": 0
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Comunicación",
+          "cuenta": "801-013-000-00",
+          "order": 51,
+          "orderIndex": 34,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Administrativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 71265.1184,
+            "prevMonth": 222705.63,
+            "actualYTD": 5921.009999999995,
+            "planYTD": 855181.4208000003,
+            "prevYTD": 1482493.0700000003
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "Gastos Generales",
+          "parentSection": "EXPENSE",
+          "order": 53,
+          "orderIndex": 35,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 748254.2297899999,
+            "prevMonth": 813752.6400000005,
+            "actualYTD": 561844.2699999999,
+            "planYTD": 8506216.360569999,
+            "prevYTD": 7969192.418
+          },
+          "cuentas": [
+            {
+              "cuenta": "901-000-000-00",
+              "cuentaCanonica": "901000000000000000001",
+              "orden": 53,
+              "ordenIndex": 35,
+              "descripcion": "Gastos Generales",
+              "actualMonth": 0,
+              "planMonth": 748254.2297899999,
+              "prevMonth": 813752.6400000005,
+              "actualYTD": 561844.2699999999,
+              "planYTD": 8506216.360569999,
+              "prevYTD": 7969192.418,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Gastos Generales",
+          "cuenta": "901-000-000-00",
+          "order": 53,
+          "orderIndex": 35,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Generales",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 748254.2297899999,
+            "prevMonth": 813752.6400000005,
+            "actualYTD": 561844.2699999999,
+            "planYTD": 8506216.360569999,
+            "prevYTD": 7969192.418
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "Nómina",
+          "parentSection": "EXPENSE",
+          "order": 55,
+          "orderIndex": 36,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 1541150.76,
+            "prevMonth": 1717458.5099999998,
+            "actualYTD": 1286259.93,
+            "planYTD": 18493809.119999997,
+            "prevYTD": 17959245.950000007
+          },
+          "cuentas": [
+            {
+              "cuenta": "513-000-000-00",
+              "cuentaCanonica": "513000000000000000001",
+              "orden": 55,
+              "ordenIndex": 36,
+              "descripcion": "Nomina Vicepresidencia",
+              "actualMonth": 0,
+              "planMonth": 45203.19,
+              "prevMonth": 83887.80999999988,
+              "actualYTD": 65397.28999999999,
+              "planYTD": 542438.28,
+              "prevYTD": 601991.8900000001,
+              "factor": 1
+            },
+            {
+              "cuenta": "517-000-000-00",
+              "cuentaCanonica": "517000000000000000001",
+              "orden": 56,
+              "ordenIndex": 37,
+              "descripcion": "Nomina Desarrollo de Negocios",
+              "actualMonth": 0,
+              "planMonth": 406932.44,
+              "prevMonth": 450008.52,
+              "actualYTD": 337919.0800000001,
+              "planYTD": 4883189.28,
+              "prevYTD": 4517285.550000001,
+              "factor": 1
+            },
+            {
+              "cuenta": "516-000-000-00",
+              "cuentaCanonica": "516000000000000000001",
+              "orden": 57,
+              "ordenIndex": 38,
+              "descripcion": "Nomina Comites y Relaciones Externas",
+              "actualMonth": 0,
+              "planMonth": 434457.71,
+              "prevMonth": 497927.56000000006,
+              "actualYTD": 347166.45999999996,
+              "planYTD": 5213492.5200000005,
+              "prevYTD": 5327063.110000001,
+              "factor": 1
+            },
+            {
+              "cuenta": "519-000-000-00",
+              "cuentaCanonica": "519000000000000000001",
+              "orden": 58,
+              "ordenIndex": 39,
+              "descripcion": "Nomina Comunicación",
+              "actualMonth": 0,
+              "planMonth": 120736.84,
+              "prevMonth": 108281.69,
+              "actualYTD": 90816.13000000005,
+              "planYTD": 1448842.08,
+              "prevYTD": 1285252.1900000002,
+              "factor": 1
+            },
+            {
+              "cuenta": "515-000-000-00",
+              "cuentaCanonica": "515000000000000000001",
+              "orden": 59,
+              "ordenIndex": 40,
+              "descripcion": "Nomina Servicios a la Membresia",
+              "actualMonth": 0,
+              "planMonth": 160450.34,
+              "prevMonth": 147157.22999999998,
+              "actualYTD": 160582.37000000002,
+              "planYTD": 1925404.0800000003,
+              "prevYTD": 1798050.7099999997,
+              "factor": 1
+            },
+            {
+              "cuenta": "518-000-000-00",
+              "cuentaCanonica": "518000000000000000001",
+              "orden": 60,
+              "ordenIndex": 41,
+              "descripcion": "Nomina Eventos y Mercadotecnia",
+              "actualMonth": 0,
+              "planMonth": 47222.03,
+              "prevMonth": 79254.48999999996,
+              "actualYTD": 47190.08,
+              "planYTD": 566664.3600000001,
+              "prevYTD": 876357.7999999998,
+              "factor": 1
+            },
+            {
+              "cuenta": "514-000-000-00",
+              "cuentaCanonica": "514000000000000000001",
+              "orden": 61,
+              "ordenIndex": 42,
+              "descripcion": "Nomina Administración y Finanzas",
+              "actualMonth": 0,
+              "planMonth": 326148.21,
+              "prevMonth": 350941.20999999996,
+              "actualYTD": 237188.5199999998,
+              "planYTD": 3913778.52,
+              "prevYTD": 3553244.7000000016,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Nomina Vicepresidencia",
+          "cuenta": "513-000-000-00",
+          "order": 55,
+          "orderIndex": 36,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Nómina",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 45203.19,
+            "prevMonth": 83887.80999999988,
+            "actualYTD": 65397.28999999999,
+            "planYTD": 542438.28,
+            "prevYTD": 601991.8900000001
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Nomina Desarrollo de Negocios",
+          "cuenta": "517-000-000-00",
+          "order": 56,
+          "orderIndex": 37,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Nómina",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 406932.44,
+            "prevMonth": 450008.52,
+            "actualYTD": 337919.0800000001,
+            "planYTD": 4883189.28,
+            "prevYTD": 4517285.550000001
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Nomina Comites y Relaciones Externas",
+          "cuenta": "516-000-000-00",
+          "order": 57,
+          "orderIndex": 38,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Nómina",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 434457.71,
+            "prevMonth": 497927.56000000006,
+            "actualYTD": 347166.45999999996,
+            "planYTD": 5213492.5200000005,
+            "prevYTD": 5327063.110000001
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Nomina Comunicación",
+          "cuenta": "519-000-000-00",
+          "order": 58,
+          "orderIndex": 39,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Nómina",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 120736.84,
+            "prevMonth": 108281.69,
+            "actualYTD": 90816.13000000005,
+            "planYTD": 1448842.08,
+            "prevYTD": 1285252.1900000002
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Nomina Servicios a la Membresia",
+          "cuenta": "515-000-000-00",
+          "order": 59,
+          "orderIndex": 40,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Nómina",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 160450.34,
+            "prevMonth": 147157.22999999998,
+            "actualYTD": 160582.37000000002,
+            "planYTD": 1925404.0800000003,
+            "prevYTD": 1798050.7099999997
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Nomina Eventos y Mercadotecnia",
+          "cuenta": "518-000-000-00",
+          "order": 60,
+          "orderIndex": 41,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Nómina",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 47222.03,
+            "prevMonth": 79254.48999999996,
+            "actualYTD": 47190.08,
+            "planYTD": 566664.3600000001,
+            "prevYTD": 876357.7999999998
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Nomina Administración y Finanzas",
+          "cuenta": "514-000-000-00",
+          "order": 61,
+          "orderIndex": 42,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Nómina",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 326148.21,
+            "prevMonth": 350941.20999999996,
+            "actualYTD": 237188.5199999998,
+            "planYTD": 3913778.52,
+            "prevYTD": 3553244.7000000016
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "Gastos Corporativos",
+          "parentSection": "EXPENSE",
+          "order": 63,
+          "orderIndex": 43,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 1599109.9723543301,
+            "prevMonth": 1462221.9699999997,
+            "actualYTD": 1539759.33,
+            "planYTD": 19189319.66825196,
+            "prevYTD": 14993997.2
+          },
+          "cuentas": [
+            {
+              "cuenta": "903-000-000-00",
+              "cuentaCanonica": "903000000000000000001",
+              "orden": 63,
+              "ordenIndex": 43,
+              "descripcion": "Gastos Corporativos",
+              "actualMonth": 0,
+              "planMonth": 1599109.9723543301,
+              "prevMonth": 1462221.9699999997,
+              "actualYTD": 1539759.33,
+              "planYTD": 19189319.66825196,
+              "prevYTD": 14993997.2,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Gastos Corporativos",
+          "cuenta": "903-000-000-00",
+          "order": 63,
+          "orderIndex": 43,
+          "parentSection": "EXPENSE",
+          "parentSubsection": "Gastos Corporativos",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 1599109.9723543301,
+            "prevMonth": 1462221.9699999997,
+            "actualYTD": 1539759.33,
+            "planYTD": 19189319.66825196,
+            "prevYTD": 14993997.2
+          }
+        },
+        {
+          "type": "secundaria",
+          "label": "Guadalajara Expense",
+          "parentSection": "Guadalajara Expense",
+          "order": 65,
+          "orderIndex": 1,
+          "manualFormula": true,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 1663015.5181347,
+            "prevMonth": 1308133.81,
+            "actualYTD": 1600261.36,
+            "planYTD": 17851584.5628764,
+            "prevYTD": 14658996.46
+          },
+          "cuentas": []
+        },
+        {
+          "type": "principal",
+          "label": "Guadalajara Expense",
+          "order": 65,
+          "orderIndex": 44,
+          "manualFormula": true,
+          "formula_terms": [],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 1663015.5181347,
+            "prevMonth": 1308133.81,
+            "actualYTD": 1600261.36,
+            "planYTD": 17851584.5628764,
+            "prevYTD": 14658996.46
+          },
+          "children": [
+            {
+              "label": "Guadalajara Expense",
+              "cuentas": [],
+              "orden": 65,
+              "ordenIndex": 1,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 1663015.5181347,
+              "totalPrevMonth": 1308133.81,
+              "totalActualYTD": 1600261.36,
+              "totalPlanYTD": 17851584.5628764,
+              "totalPrevYTD": 14658996.46,
+              "total": 1600261.36,
+              "__manualFormula": true
+            },
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "950-001-000-00",
+                  "cuentaCanonica": "950001000000000000002",
+                  "orden": 65,
+                  "ordenIndex": 44,
+                  "descripcion": "GDL Expense",
+                  "actualMonth": 0,
+                  "planMonth": 1663015.5181347,
+                  "prevMonth": 1308133.81,
+                  "actualYTD": 1600261.36,
+                  "planYTD": 17851584.5628764,
+                  "prevYTD": 14658996.46,
+                  "factor": 1
+                }
+              ],
+              "orden": 65,
+              "ordenIndex": 44,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 1663015.5181347,
+              "totalPrevMonth": 1308133.81,
+              "totalActualYTD": 1600261.36,
+              "totalPlanYTD": 17851584.5628764,
+              "totalPrevYTD": 14658996.46,
+              "total": 1600261.36
+            }
+          ],
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": ""
+        },
+        {
+          "type": "cuenta",
+          "nombre": "GDL Expense",
+          "cuenta": "950-001-000-00",
+          "order": 65,
+          "orderIndex": 44,
+          "parentSection": "Guadalajara Expense",
+          "parentSubsection": "",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 1663015.5181347,
+            "prevMonth": 1308133.81,
+            "actualYTD": 1600261.36,
+            "planYTD": 17851584.5628764,
+            "prevYTD": 14658996.46
+          }
+        },
+        {
+          "type": "principal",
+          "label": "Monterrey Expense",
+          "order": 67,
+          "orderIndex": 45,
+          "manualFormula": true,
+          "formula_terms": [],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 3038260.1750393,
+            "prevMonth": 2198725.56,
+            "actualYTD": 2247696.66,
+            "planYTD": 35744173.5156516,
+            "prevYTD": 32320734.450000003
+          },
+          "children": [
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "950-002-000-00",
+                  "cuentaCanonica": "950002000000000000002",
+                  "orden": 67,
+                  "ordenIndex": 45,
+                  "descripcion": "MTY Expense",
+                  "actualMonth": 0,
+                  "planMonth": 3038260.1750393,
+                  "prevMonth": 2198725.56,
+                  "actualYTD": 2247696.66,
+                  "planYTD": 35744173.5156516,
+                  "prevYTD": 32320734.450000003,
+                  "factor": 1
+                }
+              ],
+              "orden": 67,
+              "ordenIndex": 45,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 3038260.1750393,
+              "totalPrevMonth": 2198725.56,
+              "totalActualYTD": 2247696.66,
+              "totalPlanYTD": 35744173.5156516,
+              "totalPrevYTD": 32320734.450000003,
+              "total": 2247696.66
+            }
+          ],
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": ""
+        },
+        {
+          "type": "cuenta",
+          "nombre": "MTY Expense",
+          "cuenta": "950-002-000-00",
+          "order": 67,
+          "orderIndex": 45,
+          "parentSection": "Monterrey Expense",
+          "parentSubsection": "",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 3038260.1750393,
+            "prevMonth": 2198725.56,
+            "actualYTD": 2247696.66,
+            "planYTD": 35744173.5156516,
+            "prevYTD": 32320734.450000003
+          }
+        },
+        {
+          "type": "principal",
+          "label": "Northwest Expense",
+          "order": 69,
+          "orderIndex": 46,
+          "manualFormula": true,
+          "formula_terms": [],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 567563.0244053,
+            "prevMonth": 641937.59,
+            "actualYTD": 445345.56,
+            "planYTD": 6026890.015863598,
+            "prevYTD": 4574611.739999999
+          },
+          "children": [
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "950-003-000-00",
+                  "cuentaCanonica": "950003000000000000002",
+                  "orden": 69,
+                  "ordenIndex": 46,
+                  "descripcion": "NO Expense",
+                  "actualMonth": 0,
+                  "planMonth": 567563.0244053,
+                  "prevMonth": 641937.59,
+                  "actualYTD": 445345.56,
+                  "planYTD": 6026890.015863598,
+                  "prevYTD": 4574611.739999999,
+                  "factor": 1
+                }
+              ],
+              "orden": 69,
+              "ordenIndex": 46,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 567563.0244053,
+              "totalPrevMonth": 641937.59,
+              "totalActualYTD": 445345.56,
+              "totalPlanYTD": 6026890.015863598,
+              "totalPrevYTD": 4574611.739999999,
+              "total": 445345.56
+            }
+          ],
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": ""
+        },
+        {
+          "type": "cuenta",
+          "nombre": "NO Expense",
+          "cuenta": "950-003-000-00",
+          "order": 69,
+          "orderIndex": 46,
+          "parentSection": "Northwest Expense",
+          "parentSubsection": "",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 567563.0244053,
+            "prevMonth": 641937.59,
+            "actualYTD": 445345.56,
+            "planYTD": 6026890.015863598,
+            "prevYTD": 4574611.739999999
+          }
+        },
+        {
+          "type": "operation",
+          "label": "CONSOLIDATED EXPENSES",
+          "order": 70,
+          "orderIndex": 1,
+          "manualFormula": true,
+          "formula": "",
+          "formula_terms": [
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "EXPENSE"
+            },
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "Guadalajara Expense"
+            },
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "Monterrey Expense"
+            },
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "Northwest Expense"
+            }
+          ],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 10655830.283723632,
+            "prevMonth": 9928045.23,
+            "actualYTD": 8345523.73,
+            "planYTD": 128742654.21926357,
+            "prevYTD": 112801627.938
+          },
+          "rowStyle": "highlight-primary",
+          "estilo_fila": "highlight-primary"
+        },
+        {
+          "type": "operation",
+          "label": "OPERATING RESULTS MEXICO",
+          "order": 71,
+          "orderIndex": 2,
+          "manualFormula": true,
+          "formula": "",
+          "formula_terms": [
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "INCOME"
+            },
+            {
+              "operator": "-",
+              "type": "operation",
+              "value": "EXPENSE"
+            }
+          ],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": -780458.1577368109,
+            "prevMonth": -46262.1799999997,
+            "actualYTD": 71670.62000000011,
+            "planYTD": 2563969.770223066,
+            "prevYTD": 3372228.337000005
+          },
+          "rowStyle": "highlight-secondary",
+          "estilo_fila": "highlight-secondary"
+        },
+        {
+          "type": "operation",
+          "label": "OPERATING RESULTS GUADALAJARA",
+          "order": 72,
+          "orderIndex": 3,
+          "manualFormula": true,
+          "formula": "",
+          "formula_terms": [
+            {
+              "operator": "+",
+              "type": "section",
+              "value": "Guadalajara Income"
+            },
+            {
+              "operator": "-",
+              "type": "section",
+              "value": "Guadalajara Expense"
+            }
+          ],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 14930.780198633438,
+            "prevMonth": 746899.9199999999,
+            "actualYTD": -6057.060000000056,
+            "planYTD": 110021.56677511707,
+            "prevYTD": -462807.79000000097
+          },
+          "rowStyle": "highlight-secondary",
+          "estilo_fila": "highlight-secondary"
+        },
+        {
+          "type": "operation",
+          "label": "OPERATING RESULTS NORTHEAS",
+          "order": 73,
+          "orderIndex": 4,
+          "manualFormula": true,
+          "formula": "",
+          "formula_terms": [
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "Monterrey Income"
+            },
+            {
+              "operator": "-",
+              "type": "operation",
+              "value": "Monterrey Expense"
+            }
+          ],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": -350231.8250393006,
+            "prevMonth": 520341.0299999998,
+            "actualYTD": -159826.30000000005,
+            "planYTD": 861077.436848402,
+            "prevYTD": 574240.1599999927
+          },
+          "rowStyle": "highlight-secondary",
+          "estilo_fila": "highlight-secondary"
+        },
+        {
+          "type": "operation",
+          "label": "OPERATING RESULTS NORTHWEST",
+          "order": 74,
+          "orderIndex": 5,
+          "manualFormula": true,
+          "formula": "",
+          "formula_terms": [
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "Northwest Income"
+            },
+            {
+              "operator": "-",
+              "type": "operation",
+              "value": "Northwest Expense"
+            }
+          ],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 10249.435594699928,
+            "prevMonth": -83897.20999999996,
+            "actualYTD": 49719.04999999999,
+            "planYTD": 738795.1411364023,
+            "prevYTD": 541748.0199999996
+          },
+          "rowStyle": "highlight-secondary",
+          "estilo_fila": "highlight-secondary"
+        },
+        {
+          "type": "operation",
+          "label": "CONSOLIDATED OPERATING RESULTS",
+          "order": 75,
+          "orderIndex": 6,
+          "manualFormula": true,
+          "formula": "",
+          "formula_terms": [
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "OPERATING_RESULTS_MEXICO"
+            },
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "OPERATING_RESULTS_GUADALAJARA"
+            },
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "OPERATING_RESULTS_NORTHEAS"
+            },
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "OPERATING_RESULTS_NORTHWEST"
+            }
+          ],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": -1105509.766982778,
+            "prevMonth": 1137081.56,
+            "actualYTD": -44493.69,
+            "planYTD": 4273863.914982988,
+            "prevYTD": 4025408.726999996
+          },
+          "rowStyle": "highlight-secondary",
+          "estilo_fila": "highlight-secondary"
+        },
+        {
+          "type": "principal",
+          "label": "Member Centricity",
+          "order": 77,
+          "orderIndex": 47,
+          "manualFormula": true,
+          "formula_terms": [],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": -2131803.48,
+            "actualYTD": 6.821210263296962E-13,
+            "planYTD": 0,
+            "prevYTD": -4.656612873077393E-10
+          },
+          "children": [
+            {
+              "label": "",
+              "cuentas": [
+                {
+                  "cuenta": "902-000-000-00",
+                  "cuentaCanonica": "902000000000000000001",
+                  "orden": 77,
+                  "ordenIndex": 47,
+                  "descripcion": "Member Centricity",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": -2131803.48,
+                  "actualYTD": 6.821210263296962E-13,
+                  "planYTD": 0,
+                  "prevYTD": -4.656612873077393E-10,
+                  "factor": 1
+                }
+              ],
+              "orden": 77,
+              "ordenIndex": 47,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 0,
+              "totalPrevMonth": -2131803.48,
+              "totalActualYTD": 6.821210263296962E-13,
+              "totalPlanYTD": 0,
+              "totalPrevYTD": -4.656612873077393E-10,
+              "total": 6.821210263296962E-13
+            }
+          ],
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": ""
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Member Centricity",
+          "cuenta": "902-000-000-00",
+          "order": 77,
+          "orderIndex": 47,
+          "parentSection": "Member Centricity",
+          "parentSubsection": "",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": -2131803.48,
+            "actualYTD": 6.821210263296962E-13,
+            "planYTD": 0,
+            "prevYTD": -4.656612873077393E-10
+          }
+        },
+        {
+          "type": "principal",
+          "label": "Other (MEXICO)",
+          "order": 80,
+          "orderIndex": 48,
+          "manualFormula": true,
+          "formula_terms": [],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": -209071.4800000001,
+            "actualYTD": -921208.8799999999,
+            "planYTD": 0,
+            "prevYTD": 6005514.05
+          },
+          "children": [
+            {
+              "label": "Other",
+              "cuentas": [
+                {
+                  "cuenta": "413-000-000-00",
+                  "cuentaCanonica": "413000000000000000001",
+                  "orden": 80,
+                  "ordenIndex": 48,
+                  "descripcion": "Otros Ingresos",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 144.5,
+                  "actualYTD": 24087.769999999997,
+                  "planYTD": 0,
+                  "prevYTD": 53815.52999999999,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "414-000-000-00",
+                  "cuentaCanonica": "414000000000000000001",
+                  "orden": 81,
+                  "ordenIndex": 49,
+                  "descripcion": "Intereses Bancos",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 556476.7599999999,
+                  "actualYTD": 527893.85,
+                  "planYTD": 0,
+                  "prevYTD": 7263697.369999999,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "416-000-000-00",
+                  "cuentaCanonica": "416000000000000000001",
+                  "orden": 82,
+                  "ordenIndex": 50,
+                  "descripcion": "Utilidad Cambiaria Inversiones",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": -1177806.27,
+                  "actualYTD": -2592443.46,
+                  "planYTD": 0,
+                  "prevYTD": -9880326.38,
+                  "factor": 1
+                },
+                {
+                  "cuenta": "418-000-000-00",
+                  "cuentaCanonica": "418000000000000000001",
+                  "orden": 83,
+                  "ordenIndex": 51,
+                  "descripcion": "Plusvalia/Minusvalia Portafolio Inversiones",
+                  "actualMonth": 0,
+                  "planMonth": 0,
+                  "prevMonth": 412113.53,
+                  "actualYTD": 1119252.96,
+                  "planYTD": 0,
+                  "prevYTD": 8568327.530000001,
+                  "factor": 1
+                }
+              ],
+              "orden": 80,
+              "ordenIndex": 48,
+              "totalActualMonth": 0,
+              "totalPlanMonth": 0,
+              "totalPrevMonth": -209071.4800000001,
+              "totalActualYTD": -921208.8799999999,
+              "totalPlanYTD": 0,
+              "totalPrevYTD": 6005514.05,
+              "total": -921208.8799999999
+            }
+          ],
+          "consolidadoLabel": "",
+          "operativoLabel": "",
+          "resultRow": "",
+          "netRow": "",
+          "netRowAdicional": ""
+        },
+        {
+          "type": "secundaria",
+          "label": "Other",
+          "parentSection": "Other (MEXICO)",
+          "order": 80,
+          "orderIndex": 48,
+          "manualFormula": false,
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": -209071.4800000001,
+            "actualYTD": -921208.8799999999,
+            "planYTD": 0,
+            "prevYTD": 6005514.05
+          },
+          "cuentas": [
+            {
+              "cuenta": "413-000-000-00",
+              "cuentaCanonica": "413000000000000000001",
+              "orden": 80,
+              "ordenIndex": 48,
+              "descripcion": "Otros Ingresos",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 144.5,
+              "actualYTD": 24087.769999999997,
+              "planYTD": 0,
+              "prevYTD": 53815.52999999999,
+              "factor": 1
+            },
+            {
+              "cuenta": "414-000-000-00",
+              "cuentaCanonica": "414000000000000000001",
+              "orden": 81,
+              "ordenIndex": 49,
+              "descripcion": "Intereses Bancos",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 556476.7599999999,
+              "actualYTD": 527893.85,
+              "planYTD": 0,
+              "prevYTD": 7263697.369999999,
+              "factor": 1
+            },
+            {
+              "cuenta": "416-000-000-00",
+              "cuentaCanonica": "416000000000000000001",
+              "orden": 82,
+              "ordenIndex": 50,
+              "descripcion": "Utilidad Cambiaria Inversiones",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": -1177806.27,
+              "actualYTD": -2592443.46,
+              "planYTD": 0,
+              "prevYTD": -9880326.38,
+              "factor": 1
+            },
+            {
+              "cuenta": "418-000-000-00",
+              "cuentaCanonica": "418000000000000000001",
+              "orden": 83,
+              "ordenIndex": 51,
+              "descripcion": "Plusvalia/Minusvalia Portafolio Inversiones",
+              "actualMonth": 0,
+              "planMonth": 0,
+              "prevMonth": 412113.53,
+              "actualYTD": 1119252.96,
+              "planYTD": 0,
+              "prevYTD": 8568327.530000001,
+              "factor": 1
+            }
+          ]
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Otros Ingresos",
+          "cuenta": "413-000-000-00",
+          "order": 80,
+          "orderIndex": 48,
+          "parentSection": "Other (MEXICO)",
+          "parentSubsection": "Other",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 144.5,
+            "actualYTD": 24087.769999999997,
+            "planYTD": 0,
+            "prevYTD": 53815.52999999999
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Intereses Bancos",
+          "cuenta": "414-000-000-00",
+          "order": 81,
+          "orderIndex": 49,
+          "parentSection": "Other (MEXICO)",
+          "parentSubsection": "Other",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 556476.7599999999,
+            "actualYTD": 527893.85,
+            "planYTD": 0,
+            "prevYTD": 7263697.369999999
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Utilidad Cambiaria Inversiones",
+          "cuenta": "416-000-000-00",
+          "order": 82,
+          "orderIndex": 50,
+          "parentSection": "Other (MEXICO)",
+          "parentSubsection": "Other",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": -1177806.27,
+            "actualYTD": -2592443.46,
+            "planYTD": 0,
+            "prevYTD": -9880326.38
+          }
+        },
+        {
+          "type": "cuenta",
+          "nombre": "Plusvalia/Minusvalia Portafolio Inversiones",
+          "cuenta": "418-000-000-00",
+          "order": 83,
+          "orderIndex": 51,
+          "parentSection": "Other (MEXICO)",
+          "parentSubsection": "Other",
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 0,
+            "prevMonth": 412113.53,
+            "actualYTD": 1119252.96,
+            "planYTD": 0,
+            "prevYTD": 8568327.530000001
+          }
+        },
+        {
+          "type": "operation",
+          "label": "NET RESULTS MEXICO",
+          "order": 84,
+          "orderIndex": 7,
+          "manualFormula": true,
+          "formula": "",
+          "formula_terms": [
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "OPERATING_RESULTS_MEXICO"
+            },
+            {
+              "operator": "-",
+              "type": "section",
+              "value": "Member Centricity"
+            },
+            {
+              "operator": "+",
+              "type": "section",
+              "value": "Other (MEXICO)"
+            }
+          ],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": -780458.1577368109,
+            "prevMonth": 1876469.8200000003,
+            "actualYTD": -849538.2599999998,
+            "planYTD": 2563969.770223066,
+            "prevYTD": 9377742.387000006
+          },
+          "rowStyle": "highlight-primary",
+          "estilo_fila": "highlight-primary"
+        },
+        {
+          "type": "operation",
+          "label": "NET RESULTS GUADALAJARA",
+          "order": 85,
+          "orderIndex": 8,
+          "manualFormula": true,
+          "formula": "",
+          "formula_terms": [
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "OPERATING_RESULTS_GUADALAJARA"
+            }
+          ],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 14930.780198633438,
+            "prevMonth": 746899.9199999999,
+            "actualYTD": -6057.060000000056,
+            "planYTD": 110021.56677511707,
+            "prevYTD": -462807.79000000097
+          },
+          "rowStyle": "highlight-bright",
+          "estilo_fila": "highlight-bright"
+        },
+        {
+          "type": "operation",
+          "label": "NET RESULTS MONTERREY",
+          "order": 86,
+          "orderIndex": 9,
+          "manualFormula": true,
+          "formula": "",
+          "formula_terms": [
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "OPERATING_RESULTS_NORTHEAS"
+            }
+          ],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": -350231.8250393006,
+            "prevMonth": 520341.0299999998,
+            "actualYTD": -159826.30000000005,
+            "planYTD": 861077.436848402,
+            "prevYTD": 574240.1599999927
+          },
+          "rowStyle": "highlight-bright",
+          "estilo_fila": "highlight-bright"
+        },
+        {
+          "type": "operation",
+          "label": "NET RESULTS NORTHWEST",
+          "order": 87,
+          "orderIndex": 10,
+          "manualFormula": true,
+          "formula": "",
+          "formula_terms": [
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "OPERATING_RESULTS_NORTHWEST"
+            }
+          ],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": 10249.435594699928,
+            "prevMonth": -83897.20999999996,
+            "actualYTD": 49719.04999999999,
+            "planYTD": 738795.1411364023,
+            "prevYTD": 541748.0199999996
+          },
+          "rowStyle": "highlight-bright",
+          "estilo_fila": "highlight-bright"
+        },
+        {
+          "type": "operation",
+          "label": "CONSOLIDATED NET RESULTS",
+          "order": 88,
+          "orderIndex": 11,
+          "manualFormula": true,
+          "formula": "",
+          "formula_terms": [
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "NET_RESULTS_MEXICO"
+            },
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "NET_RESULTS_GUADALAJARA"
+            },
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "NET_RESULTS_MONTERREY"
+            },
+            {
+              "operator": "+",
+              "type": "operation",
+              "value": "NET_RESULTS_NORTHWEST"
+            }
+          ],
+          "totals": {
+            "actualMonth": 0,
+            "planMonth": -1105509.766982778,
+            "prevMonth": 3059813.56,
+            "actualYTD": -965702.5699999998,
+            "planYTD": 4273863.914982988,
+            "prevYTD": 10030922.776999997
+          },
+          "rowStyle": "highlight-bright",
+          "estilo_fila": "highlight-bright"
+        }
+      ],
+      "config": {
+        "mostrarSubsecciones": true
+      }
+    }
+  ],
+  "capituloSeleccionado": "CIUDAD DE MEXICO",
+  "capitulosDisponibles": [
+    {
+      "clave": "CIUDAD DE MEXICO",
+      "etiqueta": "CIUDAD DE MEXICO"
+    },
+    {
+      "clave": "GUADALAJARA",
+      "etiqueta": "GUADALAJARA"
+    },
+    {
+      "clave": "NORESTE",
+      "etiqueta": "NORESTE"
+    },
+    {
+      "clave": "NOROESTE",
+      "etiqueta": "NOROESTE"
+    }
+  ]
+}

@@ -239,6 +239,7 @@ const generarResumenExcel = async ({
   dataSheetName,
   chartsSheetName,
   tableSheetName,
+  seriesMeta,
   timeoutMs,
 }) => {
   const nativeTimeoutMs = normalizarTimeoutMs(timeoutMs, EXCEL_NATIVE_TIMEOUT_MS);
@@ -276,6 +277,7 @@ const generarResumenExcel = async ({
           dataSheetName: hojaDatos,
           chartsSheetName: hojaGraficas,
           tableSheetName: hojaTabla,
+          seriesMeta,
           timeoutMs: nativeTimeoutMs,
         });
         const outputBuffer = fs.readFileSync(outputPath);

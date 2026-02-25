@@ -1,19 +1,5 @@
 (() => {
   "use strict";
-  const currentModuleIdRaw =
-    document.body?.dataset?.moduloId ||
-    document.body?.dataset?.modulo ||
-    "";
-  const currentModuleId = (currentModuleIdRaw || "")
-    .toString()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "");
-  if (currentModuleId === "gastosgenerales") {
-    window.__OperativoSidebarReady = true;
-    return;
-  }
   if (window.__OperativoSidebarInitialized) {
     window.__OperativoSidebarReady = true;
     return;
@@ -175,6 +161,77 @@
     return normalized;
   };
 
+  const normalizeManualSeriesMode = (value, fallback = "columns") => {
+    if (typeof value === "boolean") return value ? "rows" : "columns";
+    const clean = (value || "").toString().trim().toLowerCase();
+    if (!clean) return fallback;
+    if (
+      clean === "rows" ||
+      clean === "row" ||
+      clean === "filas" ||
+      clean === "fila" ||
+      clean === "y"
+    ) {
+      return "rows";
+    }
+    if (
+      clean === "columns" ||
+      clean === "column" ||
+      clean === "cols" ||
+      clean === "col" ||
+      clean === "columnas" ||
+      clean === "columna" ||
+      clean === "x"
+    ) {
+      return "columns";
+    }
+    return fallback;
+  };
+
+  const normalizeBarDirection = (value, fallback = "vertical") => {
+    const clean = (value || "").toString().trim().toLowerCase();
+    if (!clean) return fallback;
+    if (
+      clean === "horizontal" ||
+      clean === "acostadas" ||
+      clean === "acostada" ||
+      clean === "h" ||
+      clean === "y"
+    ) {
+      return "horizontal";
+    }
+    if (
+      clean === "vertical" ||
+      clean === "paradas" ||
+      clean === "parada" ||
+      clean === "v" ||
+      clean === "x"
+    ) {
+      return "vertical";
+    }
+    if (clean === "inherit") return "inherit";
+    return fallback;
+  };
+
+  const resolveBarDirection = (value, base = "vertical") => {
+    const normalized = normalizeBarDirection(value, "inherit");
+    if (normalized === "inherit") {
+      return normalizeBarDirection(base, "vertical");
+    }
+    return normalized;
+  };
+
+  const barDirectionToIndexAxis = (direction) =>
+    resolveBarDirection(direction, "vertical") === "horizontal" ? "y" : "x";
+
+  const truncateLabel = (value, max = 52) => {
+    const text = normalizeWhitespace(value);
+    if (!text) return "";
+    const limit = Math.max(8, Number(max) || 52);
+    if (text.length <= limit) return text;
+    return `${text.slice(0, Math.max(0, limit - 1)).trimEnd()}…`;
+  };
+
   const filterSeriesByKeys = (seriesList = [], keys = []) => {
     if (!Array.isArray(keys) || keys.length === 0) return seriesList;
     const keySet = new Set(
@@ -216,6 +273,15 @@
             : serie.color,
       };
     });
+  };
+
+  const resolveSeriesValue = (row, datasetDef = {}) => {
+    if (!row || !datasetDef) return 0;
+    const valueKey = datasetDef.valueKey || datasetDef.key;
+    if (!valueKey) return 0;
+    const raw = row.values?.[valueKey];
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : 0;
   };
 
   const buildSlicePalette = (count, baseColor) => {
@@ -1086,10 +1152,15 @@
     labelsConfig,
     enabledConfig,
     chartType,
+    barDirection,
   }) => {
     const gridColor = "rgba(47, 84, 150, 0.08)";
     const axisColor = "rgba(47, 84, 150, 0.55)";
     const resolvedType = chartType || "bar";
+    const isPie = isPieType(resolvedType);
+    const resolvedDirection = resolveBarDirection(barDirection, "vertical");
+    const indexAxis =
+      resolvedType === "bar" ? barDirectionToIndexAxis(resolvedDirection) : "x";
     const chart = new Chart(ctx, {
       type: resolvedType,
       data: {
@@ -1108,7 +1179,7 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        indexAxis: resolvedType === "bar" ? "y" : "x",
+        indexAxis,
         layout: {
           padding: { left: 6, right: 16, top: 8, bottom: 8 },
         },
@@ -1141,40 +1212,78 @@
             },
           },
         },
-        scales: {
-          x: {
-            ...(resolvedType === "bar" ? { beginAtZero: true } : {}),
-            grid: {
-              color: gridColor,
-              drawBorder: false,
-            },
-            ticks: {
-              color: axisColor,
-              font: { size: 10, weight: "500" },
-              callback: function (valor) {
-                if (this.type === "category") {
-                  return this.getLabelForValue(valor);
-                }
-                return formatearNumero(valor);
+        scales: isPie
+          ? {}
+          : indexAxis === "y"
+            ? {
+                x: {
+                  ...(resolvedType === "bar" ? { beginAtZero: true } : {}),
+                  grid: {
+                    color: gridColor,
+                    drawBorder: false,
+                  },
+                  ticks: {
+                    color: axisColor,
+                    font: { size: 10, weight: "500" },
+                    callback: function (valor) {
+                      if (this.type === "category") {
+                        return this.getLabelForValue(valor);
+                      }
+                      return formatearNumero(valor);
+                    },
+                  },
+                },
+                y: {
+                  grid: { display: false },
+                  ticks: {
+                    autoSkip: false,
+                    color: "#1f2937",
+                    font: { size: 9, weight: "500" },
+                    padding: 4,
+                    callback: function (valor) {
+                      if (this.type === "category") {
+                        return truncateLabel(this.getLabelForValue(valor), 42);
+                      }
+                      return formatearNumero(valor);
+                    },
+                  },
+                },
+              }
+            : {
+                x: {
+                  grid: {
+                    color: gridColor,
+                    drawBorder: false,
+                  },
+                  ticks: {
+                    autoSkip: true,
+                    maxRotation: 0,
+                    minRotation: 0,
+                    color: "#1f2937",
+                    font: { size: 9, weight: "500" },
+                    callback: function (valor) {
+                      if (this.type === "category") {
+                        return truncateLabel(this.getLabelForValue(valor), 24);
+                      }
+                      return formatearNumero(valor);
+                    },
+                  },
+                },
+                y: {
+                  ...(resolvedType === "bar" ? { beginAtZero: true } : {}),
+                  grid: { color: gridColor, drawBorder: false },
+                  ticks: {
+                    color: axisColor,
+                    font: { size: 10, weight: "500" },
+                    callback: function (valor) {
+                      if (this.type === "category") {
+                        return this.getLabelForValue(valor);
+                      }
+                      return formatearNumero(valor);
+                    },
+                  },
+                },
               },
-            },
-          },
-          y: {
-            grid: { display: false },
-            ticks: {
-              autoSkip: false,
-              color: "#1f2937",
-              font: { size: 9, weight: "500" },
-              padding: 4,
-              callback: function (valor) {
-                if (this.type === "category") {
-                  return this.getLabelForValue(valor);
-                }
-                return formatearNumero(valor);
-              },
-            },
-          },
-        },
       },
     });
     chart.$baseLabels = Array.isArray(baseLabels) ? baseLabels : [];
@@ -1191,6 +1300,7 @@
     labelsConfig,
     enabledConfig,
     chartType,
+    barDirection,
   }) => {
     const canvas = document.getElementById(CANVAS_COMBINED_ID);
     const empty = document.querySelector('[data-operativo-empty="combined"]');
@@ -1210,10 +1320,22 @@
     canvas.style.display = "block";
     const ctx = canvas.getContext("2d");
     const resolvedType = chartType || "bar";
-    if (charts.combined && charts.combinedType !== resolvedType) {
-      charts.combined.destroy();
-      charts.combined = null;
-      charts.combinedType = null;
+    const resolvedIndexAxis =
+      resolvedType === "bar"
+        ? barDirectionToIndexAxis(resolveBarDirection(barDirection, "vertical"))
+        : "x";
+    if (charts.combined) {
+      const currentIndexAxis = (
+        charts.combined?.options?.indexAxis || "x"
+      ).toString();
+      if (
+        charts.combinedType !== resolvedType ||
+        currentIndexAxis !== resolvedIndexAxis
+      ) {
+        charts.combined.destroy();
+        charts.combined = null;
+        charts.combinedType = null;
+      }
     }
 
     const datasets = buildCombinedDatasets({
@@ -1239,6 +1361,7 @@
         labelsConfig,
         enabledConfig,
         chartType: resolvedType,
+        barDirection,
       });
       charts.combinedType = resolvedType;
       return;
@@ -1246,8 +1369,7 @@
 
     charts.combined.data.labels = labels;
     charts.combined.data.datasets = datasets;
-    charts.combined.options.indexAxis =
-      resolvedType === "bar" ? "y" : "x";
+    charts.combined.options.indexAxis = resolvedIndexAxis;
     charts.combined.$baseLabels = Array.isArray(baseLabels) ? baseLabels : [];
     charts.combined.update();
   };
@@ -1310,6 +1432,10 @@
     if (!baseDatasetDefs.length) return 0;
 
     const baseChartType = graficasConfig.chart?.type || "bar";
+    const baseBarDirection = normalizeBarDirection(
+      graficasConfig.chart?.barDirection,
+      "vertical"
+    );
     let rendered = 0;
 
     customChartsList.forEach((chart, index) => {
@@ -1321,30 +1447,40 @@
 
       const chartType = resolveChartType(chart?.chartType, baseChartType);
       const isPie = isPieType(chartType);
+      const chartBarDirection = resolveBarDirection(
+        chart?.barDirection,
+        baseBarDirection
+      );
+      const indexAxis = chartType === "bar" ? barDirectionToIndexAxis(chartBarDirection) : "x";
+      const seriesMode = normalizeManualSeriesMode(
+        chart?.seriesMode ??
+          chart?.plotBy ??
+          chart?.seriesBy ??
+          chart?.rowsAsSeries,
+        "columns"
+      );
+
       const requestedSeriesKeys =
         Array.isArray(chart?.seriesKeys) && chart.seriesKeys.length
           ? chart.seriesKeys
-          : ["totalBudget", "totalReal", "budgetAnnual"];
-      const datasetDefs = applyCustomSeriesOverrides(
-        filterSeriesByKeys(baseDatasetDefs, requestedSeriesKeys),
-        chart
-      ).map((def) => {
-        const resolvedLabel = applyTemplate(def.label, templateValues || {}).trim();
-        return {
-          ...def,
-          label: resolvedLabel || def.label || "",
-        };
-      });
+          : Array.isArray(chart?.columns) && chart.columns.length
+            ? chart.columns
+            : [];
+      const filteredDatasetDefs = requestedSeriesKeys.length
+        ? filterSeriesByKeys(baseDatasetDefs, requestedSeriesKeys)
+        : baseDatasetDefs;
+      const datasetDefs = applyCustomSeriesOverrides(filteredDatasetDefs, chart)
+        .map((def) => {
+          const resolvedLabel = applyTemplate(def.label, templateValues || {}).trim();
+          return {
+            ...def,
+            label: resolvedLabel || def.label || "",
+          };
+        })
+        .filter((def) => def?.enabled !== false);
       if (!datasetDefs.length) return;
 
-      const labels = [];
-      const baseLabels = [];
-      const seriesData = datasetDefs.reduce((acc, def) => {
-        acc[def.key] = [];
-        return acc;
-      }, {});
-
-      rows.forEach((row, rowIndex) => {
+      const resolvedRows = rows.map((row, rowIndex) => {
         const variants =
           Array.isArray(row?.variants) && row.variants.length
             ? row.variants
@@ -1353,57 +1489,93 @@
               : row?.alias
                 ? [row.alias]
                 : [];
-        const label =
+        const labelBase =
           row?.alias || row?.label || variants[0] || `Fila ${rowIndex + 1}`;
         const match = matchRowByVariants(rowsData, variants);
-        baseLabels.push(label);
-        labels.push(match ? formatLabelWithId(label, match.identifier) : label);
-        datasetDefs.forEach((def) => {
-          const value = match ? Number(match.values?.[def.valueKey]) || 0 : 0;
-          seriesData[def.key].push(value);
-        });
-      });
-
-      const datasets = datasetDefs.map((def) => {
-        const rawValues = seriesData[def.key] || [];
-        const data = rawValues;
-        const dataset = {
-          label: def.label,
-          data,
-          borderWidth: isPie ? 1 : chartType === "line" ? 2 : 1,
+        const fullLabel = match
+          ? formatLabelWithId(labelBase, match.identifier)
+          : labelBase;
+        return {
+          baseLabel: labelBase,
+          fullLabel,
+          values: match?.values || {},
+          color:
+            typeof row?.color === "string" && row.color.trim()
+              ? row.color.trim()
+              : "",
+          hasMatch: Boolean(match),
         };
-        if (isPie) {
-          dataset.backgroundColor = buildSlicePalette(data.length, def.color);
-          dataset.borderColor = "#ffffff";
-          return dataset;
-        }
-        dataset.backgroundColor = def.color;
-        dataset.borderColor = def.color;
-        if (chartType === "line") {
-          dataset.fill = false;
-          dataset.tension = 0.3;
-          dataset.pointRadius = POINT_RADIUS;
-          dataset.pointHoverRadius = POINT_HOVER_RADIUS;
-          dataset.pointBackgroundColor = def.color;
-        } else if (chartType === "bar") {
-          dataset.borderRadius = 10;
-          dataset.maxBarThickness = 26;
-          dataset.minBarLength = MIN_BAR_LENGTH;
-        }
-        return dataset;
       });
+      if (!resolvedRows.length) return;
 
-      const hasData = rows.some((row) => {
-        const variants =
-          Array.isArray(row?.variants) && row.variants.length
-            ? row.variants
-            : row?.label
-              ? [row.label]
-              : row?.alias
-                ? [row.alias]
-                : [];
-        return Boolean(matchRowByVariants(rowsData, variants));
-      });
+      let labels = [];
+      let baseLabels = [];
+      let datasets = [];
+      if (seriesMode === "rows" && !isPie) {
+        labels = datasetDefs.map((def) => truncateLabel(def?.label || def?.key || "", 40));
+        baseLabels = datasetDefs.map((def) => def?.label || def?.key || "");
+        datasets = resolvedRows.map((row, rowIdx) => {
+          const color = row.color || CHART_PALETTE[rowIdx % CHART_PALETTE.length];
+          const data = datasetDefs.map((def) => resolveSeriesValue(row, def));
+          const dataset = {
+            label: row.fullLabel || row.baseLabel || `Fila ${rowIdx + 1}`,
+            data,
+            borderWidth: chartType === "line" ? 2 : 1,
+            backgroundColor: color,
+            borderColor: color,
+          };
+          if (chartType === "line") {
+            dataset.fill = false;
+            dataset.tension = 0.3;
+            dataset.pointRadius = 3;
+            dataset.pointHoverRadius = 4;
+            dataset.pointBackgroundColor = color;
+          } else if (chartType === "bar") {
+            dataset.borderRadius = 8;
+            dataset.maxBarThickness = 28;
+            dataset.minBarLength = MIN_BAR_LENGTH;
+          }
+          return dataset;
+        });
+      } else {
+        labels = resolvedRows.map((row) =>
+          truncateLabel(
+            row.fullLabel || row.baseLabel || "",
+            indexAxis === "y" ? 42 : 24
+          )
+        );
+        baseLabels = resolvedRows.map((row) => row.fullLabel || row.baseLabel || "");
+        datasets = datasetDefs.map((def) => {
+          const data = resolvedRows.map((row) => resolveSeriesValue(row, def));
+          const dataset = {
+            label: def.label,
+            data,
+            borderWidth: isPie ? 1 : chartType === "line" ? 2 : 1,
+          };
+          if (isPie) {
+            dataset.backgroundColor = buildSlicePalette(data.length, def.color);
+            dataset.borderColor = "#ffffff";
+            return dataset;
+          }
+          dataset.backgroundColor = def.color;
+          dataset.borderColor = def.color;
+          if (chartType === "line") {
+            dataset.fill = false;
+            dataset.tension = 0.3;
+            dataset.pointRadius = POINT_RADIUS;
+            dataset.pointHoverRadius = POINT_HOVER_RADIUS;
+            dataset.pointBackgroundColor = def.color;
+          } else if (chartType === "bar") {
+            dataset.borderRadius = 10;
+            dataset.maxBarThickness = 26;
+            dataset.minBarLength = MIN_BAR_LENGTH;
+          }
+          return dataset;
+        });
+      }
+
+      const hasData = resolvedRows.some((row) => row.hasMatch);
+      if (!labels.length || !datasets.length) return;
 
       const safeId = (chart?.id || `custom-${index + 1}`)
         .toString()
@@ -1471,7 +1643,9 @@
         if (isPie) {
           chartContainer.style.height = "320px";
         } else {
-          ajustarAltura(chartContainer, labels.length);
+          const sizeRef =
+            indexAxis === "y" ? labels.length : Math.max(labels.length, datasets.length);
+          ajustarAltura(chartContainer, sizeRef);
         }
       }
 
@@ -1486,6 +1660,8 @@
       canvas.style.display = "block";
 
       const ctx = canvas.getContext("2d");
+      const legendPosition = datasets.length > 8 ? "right" : "bottom";
+      const hideLegend = datasets.length > 24;
       const customChart = new Chart(ctx, {
         type: chartType,
         data: {
@@ -1495,11 +1671,11 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          indexAxis: chartType === "bar" ? "y" : "x",
+          indexAxis,
           plugins: {
             legend: {
-              display: true,
-              position: "bottom",
+              display: !hideLegend,
+              position: legendPosition,
               labels: { color: "#1f2937", font: { size: 10, weight: "600" } },
             },
             tooltip: {
@@ -1527,40 +1703,76 @@
           },
           scales: isPie
             ? {}
-            : {
-              x: {
-                ...(chartType === "bar" ? { beginAtZero: true } : {}),
-                grid: { color: "rgba(47, 84, 150, 0.08)", drawBorder: false },
-                ticks: {
-                  color: "rgba(47, 84, 150, 0.55)",
-                  font: { size: 10, weight: "500" },
-                  callback: function (valor) {
-                    if (this.type === "category") {
-                      return this.getLabelForValue(valor);
-                    }
-                    return formatearNumero(valor);
+            : indexAxis === "y"
+              ? {
+                  x: {
+                    ...(chartType === "bar" ? { beginAtZero: true } : {}),
+                    grid: { color: "rgba(47, 84, 150, 0.08)", drawBorder: false },
+                    ticks: {
+                      color: "rgba(47, 84, 150, 0.55)",
+                      font: { size: 10, weight: "500" },
+                      callback: function (valor) {
+                        if (this.type === "category") {
+                          return this.getLabelForValue(valor);
+                        }
+                        return formatearNumero(valor);
+                      },
+                    },
+                  },
+                  y: {
+                    grid: { display: false },
+                    ticks: {
+                      autoSkip: false,
+                      color: "#1f2937",
+                      font: { size: 9, weight: "500" },
+                      padding: 4,
+                      callback: function (valor) {
+                        if (this.type === "category") {
+                          return truncateLabel(this.getLabelForValue(valor), 42);
+                        }
+                        return formatearNumero(valor);
+                      },
+                    },
+                  },
+                }
+              : {
+                  y: {
+                    ...(chartType === "bar" ? { beginAtZero: true } : {}),
+                    grid: { color: "rgba(47, 84, 150, 0.08)", drawBorder: false },
+                    ticks: {
+                      color: "rgba(47, 84, 150, 0.55)",
+                      font: { size: 10, weight: "500" },
+                      callback: function (valor) {
+                        if (this.type === "category") {
+                          return this.getLabelForValue(valor);
+                        }
+                        return formatearNumero(valor);
+                      },
+                    },
+                  },
+                  x: {
+                    grid: { display: false },
+                    ticks: {
+                      autoSkip: true,
+                      maxRotation: 0,
+                      minRotation: 0,
+                      color: "#1f2937",
+                      font: { size: 9, weight: "500" },
+                      padding: 4,
+                      callback: function (valor) {
+                        if (this.type === "category") {
+                          return truncateLabel(this.getLabelForValue(valor), 28);
+                        }
+                        return formatearNumero(valor);
+                      },
+                    },
                   },
                 },
-              },
-              y: {
-                grid: { display: false },
-                ticks: {
-                  autoSkip: false,
-                  color: "#1f2937",
-                  font: { size: 9, weight: "500" },
-                  padding: 4,
-                  callback: function (valor) {
-                    if (this.type === "category") {
-                      return this.getLabelForValue(valor);
-                    }
-                    return formatearNumero(valor);
-                  },
-                },
-              },
-            },
         },
       });
       customChart.$baseLabels = baseLabels;
+      customChart.$seriesMode = seriesMode;
+      customChart.$barDirection = chartBarDirection;
       charts.custom[canvasId] = customChart;
     });
     return rendered;
@@ -1582,6 +1794,10 @@
     const showOperativo = operativoConfig.enabled !== false;
     const shouldShowPanel = showOperativo || hasCustomCharts;
     const baseChartType = graficasConfig.chart?.type || "bar";
+    const baseBarDirection = normalizeBarDirection(
+      graficasConfig.chart?.barDirection,
+      "vertical"
+    );
     const resolvedChartType = resolveChartType(
       operativoConfig.chartType,
       baseChartType
@@ -1706,6 +1922,7 @@
         },
         enabledConfig,
         chartType: resolvedChartType,
+        barDirection: baseBarDirection,
       });
     } else {
       if (combinedBlock) combinedBlock.style.display = "none";

@@ -181,6 +181,27 @@
     return fallback;
   };
 
+  const normalizeBarDirection = (value, fallback = "inherit") => {
+    if (typeof value !== "string") return fallback;
+    const clean = value.trim().toLowerCase();
+    if (!clean) return fallback;
+    if (clean === "inherit") return "inherit";
+    if (clean === "horizontal" || clean === "vertical") return clean;
+    return fallback;
+  };
+
+  const resolveBarDirection = (overrideValue, baseValue = "vertical") => {
+    const override = normalizeBarDirection(overrideValue, "inherit");
+    if (override === "inherit") {
+      const base = normalizeBarDirection(baseValue, "vertical");
+      return base === "horizontal" ? "horizontal" : "vertical";
+    }
+    return override;
+  };
+
+  const barDirectionToIndexAxis = (direction) =>
+    resolveBarDirection(direction, "vertical") === "horizontal" ? "y" : "x";
+
   const normalizeSourceType = (value, fallback = "snapshot") => {
     if (typeof value !== "string") return fallback;
     const clean = value.trim().toLowerCase();
@@ -944,16 +965,22 @@
         enabled: true,
         title: "Resultado Operativo por Capítulo",
         subtitle: "Real Acum · Ppto. Acum · Real Acum AA",
+        chartType: "inherit",
+        barDirection: "inherit",
       },
       net: {
         enabled: true,
         title: "Resumen Neto por Capítulo",
         subtitle: "Real Acum · Ppto. Acum · Real Acum AA",
+        chartType: "inherit",
+        barDirection: "inherit",
       },
       consolidated: {
         enabled: true,
         title: "Consolidados Operativos vs Netos",
         subtitle: "Real Acum · Ppto. Acum · Real Acum AA",
+        chartType: "inherit",
+        barDirection: "inherit",
       },
     },
     consolidatedSeries: {
@@ -973,11 +1000,14 @@
     chart: {
       type: "bar",
       stacked: false,
+      barDirection: "vertical",
     },
     ingreso: {
       enabled: true,
       title: "Ingreso por capitulo",
       subtitle: "Real acumulado por mes",
+      chartType: "inherit",
+      barDirection: "inherit",
       series: {
         mex: { label: "CDMX INCOME", color: "#0d47a1", enabled: true },
         gdl: { label: "GUADALAJARA INCOME", color: "#60a5fa", enabled: true },
@@ -989,6 +1019,8 @@
       enabled: true,
       title: "Ingreso nacional",
       subtitle: "Real acumulado por mes",
+      chartType: "inherit",
+      barDirection: "inherit",
       series: {
         committees: { label: "Committees", color: "#0d47a1", enabled: true },
         membership: { label: "Membership", color: "#60a5fa", enabled: true },
@@ -1474,6 +1506,7 @@
       const subtitle =
         typeof chart?.subtitle === "string" ? chart.subtitle.trim() : "";
       const chartType = normalizeChartType(chart?.chartType, "inherit");
+      const barDirection = normalizeBarDirection(chart?.barDirection, "inherit");
       const enabled = typeof chart?.enabled === "boolean" ? chart.enabled : true;
       const seriesMode = normalizeSeriesMode(chart?.seriesMode, "columns");
       const cdmxOnly = chart?.cdmxOnly === true;
@@ -1539,6 +1572,7 @@
         title,
         subtitle,
         chartType,
+        barDirection,
         enabled,
         seriesMode,
         cdmxOnly,
@@ -1606,6 +1640,14 @@
         if (typeof override.subtitle === "string" && override.subtitle.trim()) {
           base.charts[key].subtitle = override.subtitle.trim();
         }
+        base.charts[key].chartType = normalizeChartType(
+          override.chartType,
+          base.charts[key].chartType || "inherit"
+        );
+        base.charts[key].barDirection = normalizeBarDirection(
+          override.barDirection,
+          base.charts[key].barDirection || "inherit"
+        );
       });
     }
 
@@ -1643,6 +1685,10 @@
       if (typeof config.chart.stacked === "boolean") {
         base.chart.stacked = config.chart.stacked;
       }
+      base.chart.barDirection = normalizeBarDirection(
+        config.chart.barDirection,
+        base.chart.barDirection || "vertical"
+      );
     }
 
     if (config.ingreso && typeof config.ingreso === "object") {
@@ -1656,6 +1702,14 @@
       if (typeof override.subtitle === "string" && override.subtitle.trim()) {
         base.ingreso.subtitle = override.subtitle.trim();
       }
+      base.ingreso.chartType = normalizeChartType(
+        override.chartType,
+        base.ingreso.chartType || "inherit"
+      );
+      base.ingreso.barDirection = normalizeBarDirection(
+        override.barDirection,
+        base.ingreso.barDirection || "inherit"
+      );
       base.ingreso.series = normalizeSeriesMap(base.ingreso.series, override.series);
     }
 
@@ -1670,6 +1724,14 @@
       if (typeof override.subtitle === "string" && override.subtitle.trim()) {
         base.ingresoNacional.subtitle = override.subtitle.trim();
       }
+      base.ingresoNacional.chartType = normalizeChartType(
+        override.chartType,
+        base.ingresoNacional.chartType || "inherit"
+      );
+      base.ingresoNacional.barDirection = normalizeBarDirection(
+        override.barDirection,
+        base.ingresoNacional.barDirection || "inherit"
+      );
       base.ingresoNacional.series = normalizeSeriesMap(
         base.ingresoNacional.series,
         override.series
@@ -1926,20 +1988,44 @@
     ].forEach((id) => clearChart(id));
   };
 
-  const applyCommonChartOptions = (options = {}, config, chartTypeOverride) => {
+  const applyCommonChartOptions = (
+    options = {},
+    config,
+    chartTypeOverride,
+    barDirectionOverride = "inherit"
+  ) => {
     const legend = options.plugins?.legend || {};
     legend.display = Boolean(config.legend?.show);
     legend.position = config.legend?.position || "bottom";
     options.plugins = { ...(options.plugins || {}), legend };
 
     options.scales = options.scales || {};
-    options.scales.x = options.scales.x || {};
-    options.scales.y = options.scales.y || {};
+    const rawX = options.scales.x || {};
+    const rawY = options.scales.y || {};
 
     const resolvedType = chartTypeOverride || config.chart?.type;
     const shouldStack = resolvedType === "bar" && Boolean(config.chart?.stacked);
-    options.scales.x.stacked = shouldStack;
-    options.scales.y.stacked = shouldStack;
+    if (resolvedType === "bar") {
+      const baseDirection = config?.chart?.barDirection || "vertical";
+      const resolvedDirection = resolveBarDirection(
+        barDirectionOverride,
+        baseDirection
+      );
+      const indexAxis = barDirectionToIndexAxis(resolvedDirection);
+      options.indexAxis = indexAxis;
+      if (indexAxis === "y") {
+        options.scales.x = { ...rawY, stacked: shouldStack };
+        options.scales.y = { ...rawX, stacked: shouldStack };
+      } else {
+        options.scales.x = { ...rawX, stacked: shouldStack };
+        options.scales.y = { ...rawY, stacked: shouldStack };
+      }
+      return options;
+    }
+
+    options.indexAxis = "x";
+    options.scales.x = { ...rawX, stacked: shouldStack };
+    options.scales.y = { ...rawY, stacked: shouldStack };
 
     return options;
   };
@@ -2342,7 +2428,7 @@
       }
     };
 
-    const renderChart = (canvasEl, emptyEl, data, chartType) => {
+    const renderChart = (canvasEl, emptyEl, data, chartType, barDirection = "inherit") => {
       if (!canvasEl || !data) return;
       if (emptyEl) emptyEl.style.display = "none";
       canvasEl.style.display = "block";
@@ -2402,7 +2488,8 @@
             },
           },
           config,
-          chartType
+          chartType,
+          barDirection
         ),
       };
       if (dataLabelsPlugin) {
@@ -2422,6 +2509,10 @@
         chart?.chartType && chart.chartType !== "inherit"
           ? chart.chartType
           : baseChartType;
+      const chartBarDirection = resolveBarDirection(
+        chart?.barDirection,
+        config?.chart?.barDirection || "vertical"
+      );
       const sourceType = (chart?.sourceType || "snapshot")
         .toString()
         .toLowerCase();
@@ -2443,6 +2534,13 @@
       // Only add chart to DOM after data is confirmed — prevents blank loading cards
       const appendAndRender = (data) => {
         if (isStale() || !data) return;
+        data.type = chartType;
+        data.barDirection = chartBarDirection;
+        if (chartType === "bar") {
+          data.indexAxis = barDirectionToIndexAxis(chartBarDirection);
+        } else {
+          data.indexAxis = "x";
+        }
         const wrapper = document.createElement("div");
         wrapper.className = "col-12";
         wrapper.innerHTML = `
@@ -2459,7 +2557,7 @@
         customChartsRow.appendChild(wrapper);
         const canvas = wrapper.querySelector("canvas");
         if (!canvas) return;
-        renderChart(canvas, null, data, chartType);
+        renderChart(canvas, null, data, chartType, chartBarDirection);
       };
 
       if (sourceType === "mensual") {
@@ -2797,7 +2895,8 @@
             },
           },
           graficasConfig,
-          consolidatedType
+          consolidatedType,
+          graficasConfig.charts?.consolidated?.barDirection
         ),
       });
     }
@@ -2934,7 +3033,8 @@
               },
             },
             graficasConfig,
-            operatingType
+            operatingType,
+            graficasConfig.charts?.operating?.barDirection
           ),
         });
       } else {
@@ -3011,7 +3111,8 @@
               },
             },
             graficasConfig,
-            netType
+            netType,
+            graficasConfig.charts?.net?.barDirection
           ),
         });
       } else {
@@ -3105,7 +3206,8 @@
               },
             },
             graficasConfig,
-            operatingType
+            operatingType,
+            graficasConfig.charts?.operating?.barDirection
           ),
         });
       } else {
@@ -3185,7 +3287,8 @@
               },
             },
             graficasConfig,
-            netType
+            netType,
+            graficasConfig.charts?.net?.barDirection
           ),
         });
       } else {
@@ -3269,7 +3372,8 @@
             },
           },
           graficasConfig,
-          chartType
+          chartType,
+          ingresoConfig?.barDirection
         ),
       });
     } catch (err) {
@@ -3359,7 +3463,8 @@
             },
           },
           graficasConfig,
-          chartType
+          chartType,
+          ingresoConfig?.barDirection
         ),
       });
     } catch (err) {
@@ -3897,6 +4002,10 @@
     };
 
     const baseChartType = graficasConfig?.chart?.type || 'bar';
+    const baseBarDirection = normalizeBarDirection(
+      graficasConfig?.chart?.barDirection,
+      "vertical"
+    );
     let mensualResponses = null;
     const out = [];
 
@@ -3919,6 +4028,10 @@
         chartCfg?.chartType && chartCfg.chartType !== 'inherit'
           ? chartCfg.chartType
           : baseChartType;
+      const chartBarDirection = resolveBarDirection(
+        chartCfg?.barDirection,
+        baseBarDirection
+      );
       const seriesMode = normalizeSeriesMode(chartCfg?.seriesMode, "columns");
       const sourceType = (chartCfg?.sourceType || 'snapshot').toString().toLowerCase();
 
@@ -3948,6 +4061,10 @@
       }
 
       if (!hasExportableSeriesData(data)) continue;
+      data.type = chartType;
+      data.barDirection = chartBarDirection;
+      data.indexAxis =
+        chartType === "bar" ? barDirectionToIndexAxis(chartBarDirection) : "x";
 
       const safeId = sanitizeChartId(chartCfg?.id) || `customChart-${index + 1}`;
       const canvasId = `customChart-${safeId}`;
@@ -4148,6 +4265,143 @@
             ? buffer
             : buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
 
+        const normalizeSeriesKey = (value) => {
+          const normalizer =
+            window.ExportUtils && typeof window.ExportUtils._normalizarClaveSerie === "function"
+              ? window.ExportUtils._normalizarClaveSerie.bind(window.ExportUtils)
+              : null;
+          if (normalizer) return normalizer(value || "");
+          return (value || "")
+            .toString()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]+/gi, " ")
+            .trim()
+            .toLowerCase();
+        };
+        const normalizeHexColor = (value, fallback = "#4472C4") => {
+          const normalizer =
+            window.ExportUtils && typeof window.ExportUtils._normalizarColorHex === "function"
+              ? window.ExportUtils._normalizarColorHex.bind(window.ExportUtils)
+              : null;
+          if (normalizer) return normalizer(value, fallback);
+          const source = (value ?? "").toString().trim();
+          const hex = source.match(/^#?([0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{4}|[0-9a-f]{3})$/i);
+          if (hex) {
+            let raw = hex[1];
+            if (raw.length === 3 || raw.length === 4) {
+              raw = raw
+                .split("")
+                .map((ch) => `${ch}${ch}`)
+                .join("");
+            }
+            if (raw.length === 8) {
+              const toInt = (segment) => parseInt(segment, 16);
+              const a = toInt(raw.slice(6, 8)) / 255;
+              const blend = (c) => Math.round((Number.isFinite(a) ? a : 1) * c + (1 - (Number.isFinite(a) ? a : 1)) * 255);
+              const toHex = (n) =>
+                Math.max(0, Math.min(255, Number(n) || 0))
+                  .toString(16)
+                  .padStart(2, "0")
+                  .toUpperCase();
+              return `#${toHex(blend(toInt(raw.slice(0, 2))))}${toHex(blend(
+                toInt(raw.slice(2, 4))
+              ))}${toHex(blend(toInt(raw.slice(4, 6))))}`;
+            }
+            return `#${raw.toUpperCase()}`;
+          }
+          const rgb = source.match(
+            /^rgba?\s*\(\s*([0-9]{1,3}%?)\s*[,\s]\s*([0-9]{1,3}%?)\s*[,\s]\s*([0-9]{1,3}%?)(?:\s*[,/]\s*([0-9.]+%?))?/i
+          );
+          if (rgb) {
+            const parseRgbComp = (v) => {
+              const txt = String(v || "").trim();
+              if (txt.endsWith("%")) {
+                return (Math.max(0, Math.min(100, Number(txt.slice(0, -1)) || 0)) / 100) * 255;
+              }
+              return Math.max(0, Math.min(255, Number(txt) || 0));
+            };
+            const parseAlpha = (v) => {
+              const txt = String(v == null ? "1" : v).trim();
+              if (txt.endsWith("%")) {
+                return Math.max(0, Math.min(100, Number(txt.slice(0, -1)) || 0)) / 100;
+              }
+              return Math.max(0, Math.min(1, Number(txt) || 0));
+            };
+            const alpha = rgb[4] == null ? 1 : parseAlpha(rgb[4]);
+            const toHex = (n) =>
+              Math.max(0, Math.min(255, Number(n) || 0))
+                .toString(16)
+                .padStart(2, "0")
+                .toUpperCase();
+            const blend = (c) => Math.round(alpha * parseRgbComp(c) + (1 - alpha) * 255);
+            return `#${toHex(blend(rgb[1]))}${toHex(blend(rgb[2]))}${toHex(blend(rgb[3]))}`;
+          }
+          return fallback;
+        };
+        const pickColor = (value) => {
+          const picker =
+            window.ExportUtils && typeof window.ExportUtils._seleccionarColorSerie === "function"
+              ? window.ExportUtils._seleccionarColorSerie.bind(window.ExportUtils)
+              : null;
+          if (picker) return picker(value);
+          if (!Array.isArray(value)) return value;
+          const firstValido = value.find(
+            (item) => item != null && String(item).trim() !== ""
+          );
+          return firstValido ?? value[0];
+        };
+        const seriesMetaList = [];
+        charts.forEach((chartDef, chartIdx) => {
+          const data = chartDef?.data || chartDef || {};
+          const chartTitle = (chartDef?.title || chartDef?.titulo || `Grafica ${chartIdx + 1}`)
+            .toString()
+            .trim();
+          const chartIndexAxisRaw = (data?.indexAxis || chartDef?.indexAxis || "x")
+            .toString()
+            .trim()
+            .toLowerCase();
+          const chartIndexAxis = chartIndexAxisRaw === "y" ? "y" : "x";
+          const chartOrientation =
+            chartIndexAxis === "y" ? "horizontal" : "vertical";
+          const datasets = Array.isArray(data.datasets) ? data.datasets : [];
+          datasets.forEach((dataset, datasetIdx) => {
+            const label = (dataset?.label || `Serie ${datasetIdx + 1}`).toString().trim();
+            if (!label) return;
+            const type = (dataset?.type || data?.type || chartDef?.type || "bar")
+              .toString()
+              .trim()
+              .toLowerCase();
+            const fillColor = normalizeHexColor(
+              pickColor(dataset?.backgroundColor) ||
+                pickColor(dataset?.pointBackgroundColor) ||
+                pickColor(dataset?.color) ||
+                "",
+              "#4472C4"
+            );
+            const lineColor = normalizeHexColor(
+              pickColor(dataset?.borderColor) ||
+                pickColor(dataset?.pointBorderColor) ||
+                pickColor(dataset?.color) ||
+                fillColor,
+              fillColor
+            );
+            seriesMetaList.push({
+              label,
+              key: normalizeSeriesKey(label),
+              chartTitle,
+              chartKey: normalizeSeriesKey(chartTitle),
+              chartOrientation,
+              indexAxis: chartIndexAxis,
+              order: datasetIdx,
+              type,
+              color: type === "line" ? lineColor : fillColor,
+              fillColor,
+              lineColor,
+            });
+          });
+        });
+
         const params = new URLSearchParams({
           nombreArchivo: 'GRAFICAS_RESUMEN',
           empresa: datos.empresa || '',
@@ -4157,6 +4411,9 @@
           chartsSheetName,
           tableSheetName: '',
         });
+        if (seriesMetaList.length) {
+          params.set("seriesMeta", JSON.stringify(seriesMetaList));
+        }
         if (
           !window.ExportUtils ||
           typeof window.ExportUtils._crearTrabajoExportNativo !== "function"
@@ -4188,7 +4445,7 @@
         }
       };
 
-      const toNativeChartData = (source) => {
+      const toNativeChartData = (source, extras = {}) => {
         if (!source || typeof source !== 'object') return null;
         const labelsRaw = Array.isArray(source.labels) ? source.labels : [];
         const datasetsRaw = Array.isArray(source.datasets) ? source.datasets : [];
@@ -4206,7 +4463,35 @@
           };
         });
 
+        const chartType = (
+          extras?.type ||
+          source?.type ||
+          source?.chartType ||
+          ""
+        )
+          .toString()
+          .trim()
+          .toLowerCase();
+        const indexAxisRaw = (
+          extras?.indexAxis ||
+          source?.indexAxis ||
+          ""
+        )
+          .toString()
+          .trim()
+          .toLowerCase();
+        const barDirection = (extras?.barDirection || source?.barDirection || "")
+          .toString()
+          .trim()
+          .toLowerCase();
         const normalized = { labels, datasets };
+        if (chartType) normalized.type = chartType;
+        if (indexAxisRaw === "x" || indexAxisRaw === "y") {
+          normalized.indexAxis = indexAxisRaw;
+        }
+        if (barDirection === "horizontal" || barDirection === "vertical") {
+          normalized.barDirection = barDirection;
+        }
         return hasExportableSeriesData(normalized) ? normalized : null;
       };
 
@@ -4214,12 +4499,25 @@
       const addNativeChart = ({ title, canvas, fallbackData }) => {
         const chart = getChartByCanvas(canvas);
         let sourceData = null;
+        let sourceType = "";
+        let sourceIndexAxis = "";
+        let sourceBarDirection = "";
         if (chartHasExportableData(chart)) {
           sourceData = chart.data;
+          sourceType = (chart?.config?.type || "").toString().trim().toLowerCase();
+          sourceIndexAxis = (chart?.options?.indexAxis || "").toString().trim().toLowerCase();
+          sourceBarDirection = sourceIndexAxis === "y" ? "horizontal" : "vertical";
         } else if (hasExportableSeriesData(fallbackData)) {
           sourceData = fallbackData;
+          sourceType = (fallbackData?.type || "").toString().trim().toLowerCase();
+          sourceIndexAxis = (fallbackData?.indexAxis || "").toString().trim().toLowerCase();
+          sourceBarDirection = (fallbackData?.barDirection || "").toString().trim().toLowerCase();
         }
-        const normalizedData = toNativeChartData(sourceData);
+        const normalizedData = toNativeChartData(sourceData, {
+          type: sourceType,
+          indexAxis: sourceIndexAxis,
+          barDirection: sourceBarDirection,
+        });
         if (!normalizedData) return;
         chartsForNative.push({
           title: title || resolveCanvasTitle(canvas, 'Grafica'),

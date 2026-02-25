@@ -1,0 +1,110 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e8]:
+      - heading "Resumen" [level=1] [ref=e9]
+      - paragraph [ref=e10]: Capítulo CIUDAD DE MÉXICO · Periodo FEBRERO 2026
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - generic [ref=e13]: Ejercicio
+        - combobox "Ejercicio" [ref=e14] [cursor=pointer]:
+          - option "2026" [selected]
+          - option "2025"
+          - option "2024"
+          - option "2023"
+          - option "2022"
+          - option "2021"
+          - option "2020"
+          - option "2019"
+          - option "2018"
+          - option "2017"
+          - option "2016"
+          - option "2015"
+          - option "2014"
+          - option "2013"
+          - option "2012"
+          - option "2011"
+          - option "2010"
+          - option "2009"
+          - option "2008"
+          - option "2007"
+          - option "2006"
+          - option "2005"
+      - generic [ref=e15]:
+        - generic [ref=e16]: Periodo
+        - combobox "Periodo" [ref=e17] [cursor=pointer]:
+          - option "Enero"
+          - option "Febrero" [selected]
+          - option "Marzo"
+          - option "Abril"
+          - option "Mayo"
+          - option "Junio"
+          - option "Julio"
+          - option "Agosto"
+          - option "Septiembre"
+          - option "Octubre"
+          - option "Noviembre"
+          - option "Diciembre"
+      - generic [ref=e18]:
+        - generic [ref=e19]: Comparar con
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - checkbox "Comparar con" [checked]
+          - generic [ref=e25]: Empresa 9
+    - generic:
+      - button "" [ref=e26] [cursor=pointer]:
+        - generic [ref=e27]: 
+      - text:  
+    - generic [ref=e30]:
+      - textbox "Buscar cuenta o descripción..." [ref=e33] [cursor=pointer]
+      - generic [ref=e34]:
+        - group "Colapsar/Expandir secciones" [ref=e35]:
+          - button " Colapsar" [ref=e36] [cursor=pointer]:
+            - generic [ref=e37]: 
+            - generic [ref=e38]: Colapsar
+          - button " Expandir" [ref=e39] [cursor=pointer]:
+            - generic [ref=e40]: 
+            - generic [ref=e41]: Expandir
+        - button " Graficas" [ref=e42] [cursor=pointer]:
+          - generic [ref=e43]: 
+          - generic [ref=e44]: Graficas
+        - button " Imprimir PDF" [ref=e45] [cursor=pointer]:
+          - generic [ref=e46]: 
+          - generic [ref=e47]: Imprimir PDF
+        - button " Exportar XLSX" [ref=e48] [cursor=pointer]:
+          - generic [ref=e49]: 
+          - generic [ref=e50]: Exportar XLSX
+    - generic:
+      - generic:  
+    - table [ref=e56]:
+      - rowgroup [ref=e62]:
+        - row "Cuenta FEB Descripción YTD" [ref=e63]:
+          - columnheader "Cuenta" [ref=e64] [cursor=pointer]
+          - columnheader "FEB" [ref=e65] [cursor=pointer]: FEB
+          - columnheader "Descripción" [ref=e66] [cursor=pointer]
+          - columnheader "YTD" [ref=e67] [cursor=pointer]: YTD
+        - row "Real Ppto. Real FEB B/(W)% vs. Ppto. B/(W)% vs. Real FEB Real acumulado Ppto. acumulado Real acumulado B/(W)% vs. Ppto. acumulado B/(W)% vs. Real acumulado" [ref=e68]:
+          - columnheader "Real" [ref=e69] [cursor=pointer]
+          - columnheader "Ppto." [ref=e70] [cursor=pointer]
+          - columnheader "Real FEB" [ref=e71] [cursor=pointer]: Real FEB
+          - columnheader "B/(W)% vs. Ppto." [ref=e72] [cursor=pointer]
+          - columnheader "B/(W)% vs. Real FEB" [ref=e73] [cursor=pointer]: B/(W)% vs. Real FEB
+          - columnheader "Real acumulado" [ref=e74] [cursor=pointer]
+          - columnheader "Ppto. acumulado" [ref=e75] [cursor=pointer]
+          - columnheader "Real acumulado" [ref=e76] [cursor=pointer]: Real acumulado
+          - columnheader "B/(W)% vs. Ppto. acumulado" [ref=e77] [cursor=pointer]
+          - columnheader "B/(W)% vs. Real acumulado" [ref=e78] [cursor=pointer]: B/(W)% vs. Real acumulado
+      - rowgroup [ref=e79]:
+        - row "Cargando resumen financiero..." [ref=e80]:
+          - cell "Cargando resumen financiero..." [ref=e81] [cursor=pointer]
+  - button " Descargas" [ref=e83] [cursor=pointer]:
+    - generic [ref=e84]: 
+    - text: Descargas
+  - text:     
+  - generic:
+    - button " Ver globos" [ref=e85] [cursor=pointer]:
+      - generic [ref=e86]: 
+      - text: Ver globos
+    - button " Comentarios" [ref=e87] [cursor=pointer]:
+      - generic [ref=e88]: 
+      - text: Comentarios
+  - button "Tour resumen" [ref=e89] [cursor=pointer]

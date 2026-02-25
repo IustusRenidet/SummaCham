@@ -304,7 +304,50 @@
     return normalized;
   };
 
-  const filterSeriesByKeys = (seriesList = [], keys = []) => {
+  const normalizeManualSeriesMode = (value, fallback = "columns") => {
+    if (typeof value === "boolean") return value ? "rows" : "columns";
+    const clean = (value || "").toString().trim().toLowerCase();
+    if (!clean) return fallback;
+    if (
+      clean === "rows" ||
+      clean === "row" ||
+      clean === "filas" ||
+      clean === "fila" ||
+      clean === "y"
+    ) {
+      return "rows";
+    }
+    if (
+      clean === "columns" ||
+      clean === "column" ||
+      clean === "cols" ||
+      clean === "col" ||
+      clean === "columnas" ||
+      clean === "columna" ||
+      clean === "x"
+    ) {
+      return "columns";
+    }
+    return fallback;
+  };
+
+  const extractSeriesKeys = (value) => {
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => String(item || "").trim())
+        .filter(Boolean);
+    }
+    if (typeof value === "string") {
+      return value
+        .split(/[|,]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+    return [];
+  };
+
+  const filterSeriesByKeys = (seriesList = [], keys = [], options = {}) => {
+    const { fallbackToOriginal = true } = options || {};
     if (!Array.isArray(keys) || !keys.length) return seriesList;
     const keySet = new Set(
       keys.map((key) => String(key || "").trim()).filter(Boolean)
@@ -313,7 +356,8 @@
     const filtered = (seriesList || []).filter((serie) =>
       keySet.has(String(serie?.key || "").trim())
     );
-    return filtered.length ? filtered : seriesList;
+    if (filtered.length || !fallbackToOriginal) return filtered;
+    return seriesList;
   };
 
   const applyCustomSeriesOverrides = (seriesList = [], chart = {}) => {
@@ -341,6 +385,35 @@
           typeof override.color === "string" && override.color.trim()
             ? override.color.trim()
             : serie.color,
+      };
+    });
+  };
+
+  const buildSeriesDefsFromKeys = (keys = [], chart = {}) => {
+    const requestedKeys = extractSeriesKeys(keys);
+    if (!requestedKeys.length) return [];
+    const overridesMap = new Map(
+      (Array.isArray(chart?.series) ? chart.series : [])
+        .map((item) => {
+          const key = String(item?.key || "").trim();
+          if (!key) return null;
+          return [key, item];
+        })
+        .filter(Boolean)
+    );
+    return requestedKeys.map((key, idx) => {
+      const override = overridesMap.get(key) || {};
+      return {
+        key,
+        label:
+          typeof override?.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : key,
+        color:
+          typeof override?.color === "string" && override.color.trim()
+            ? override.color.trim()
+            : CHART_PALETTE[idx % CHART_PALETTE.length],
+        enabled: override?.enabled !== false,
       };
     });
   };
@@ -377,6 +450,49 @@
       if (Number.isFinite(rawX)) return rawX;
     }
     return 0;
+  };
+
+  const normalizeBarDirection = (value, fallback = "vertical") => {
+    const clean = (value || "").toString().trim().toLowerCase();
+    if (
+      clean === "horizontal" ||
+      clean === "acostadas" ||
+      clean === "acostada" ||
+      clean === "h" ||
+      clean === "y"
+    ) {
+      return "horizontal";
+    }
+    if (
+      clean === "vertical" ||
+      clean === "paradas" ||
+      clean === "parada" ||
+      clean === "v" ||
+      clean === "x"
+    ) {
+      return "vertical";
+    }
+    if (clean === "inherit") return "inherit";
+    return fallback;
+  };
+
+  const resolveBarDirection = (value, base = "vertical") => {
+    const normalized = normalizeBarDirection(value, "inherit");
+    if (normalized === "inherit") {
+      return normalizeBarDirection(base, "vertical");
+    }
+    return normalized;
+  };
+
+  const barDirectionToIndexAxis = (direction) =>
+    resolveBarDirection(direction, "vertical") === "horizontal" ? "y" : "x";
+
+  const truncateLabel = (value, max = 56) => {
+    const text = normalizeWhitespace(value);
+    if (!text) return "";
+    const limit = Math.max(8, Number(max) || 56);
+    if (text.length <= limit) return text;
+    return `${text.slice(0, Math.max(0, limit - 1)).trimEnd()}…`;
   };
 
   const obtenerAnioSeleccionado = () => {
@@ -879,36 +995,198 @@
     }
   };
 
+  const computeHeaderPositions = (headerRows = []) => {
+    const grid = [];
+    const positions = [];
+    headerRows.forEach((row, rowIdx) => {
+      if (!grid[rowIdx]) grid[rowIdx] = [];
+      let colIdx = 0;
+      const cells = Array.from(row?.cells || []);
+      cells.forEach((cell) => {
+        while (grid[rowIdx][colIdx]) colIdx += 1;
+        const rowSpan = Math.max(1, Number(cell?.rowSpan) || 1);
+        const colSpan = Math.max(1, Number(cell?.colSpan) || 1);
+        positions.push({
+          cell,
+          row: rowIdx,
+          start: colIdx,
+          end: colIdx + colSpan - 1,
+        });
+        for (let r = rowIdx; r < rowIdx + rowSpan; r += 1) {
+          if (!grid[r]) grid[r] = [];
+          for (let c = colIdx; c < colIdx + colSpan; c += 1) {
+            grid[r][c] = cell;
+          }
+        }
+        colIdx += colSpan;
+      });
+    });
+    return positions;
+  };
+
   const getGastosTableIndices = (tabla) => {
     const headerRows = Array.from(tabla?.querySelectorAll("thead tr") || []);
     if (!headerRows.length) {
-      return { annualIndex: -1, budgetMonthIndices: [], realMonthIndices: [] };
+      return {
+        annualIndex: -1,
+        totalBudgetIndex: -1,
+        totalRealIndex: -1,
+        budgetMonthIndices: [],
+        realMonthIndices: [],
+      };
     }
-    const leafCells = Array.from(headerRows[headerRows.length - 1].cells || []);
-
+    const positions = computeHeaderPositions(headerRows);
     let annualIndex = -1;
+    let totalBudgetIndex = -1;
+    let totalRealIndex = -1;
     const budgetMonthIndices = [];
     const realMonthIndices = [];
-    let colIndex = 0;
-    leafCells.forEach((th) => {
-      const idx = colIndex;
-      colIndex += Number(th?.colSpan) || 1;
-      if (th.classList.contains("month-budget")) {
-        budgetMonthIndices.push(idx);
-      } else if (th.classList.contains("month-real")) {
-        realMonthIndices.push(idx);
-      } else if (annualIndex < 0 && th.classList.contains("budget-annual-column")) {
-        annualIndex = idx;
+    positions.forEach(({ cell, start }) => {
+      if (!cell?.classList) return;
+      if (cell.classList.contains("month-budget")) {
+        budgetMonthIndices.push(start);
+        return;
+      }
+      if (cell.classList.contains("month-real")) {
+        realMonthIndices.push(start);
+        return;
+      }
+      if (annualIndex < 0 && cell.classList.contains("budget-annual-column")) {
+        annualIndex = start;
+        return;
+      }
+      if (
+        totalBudgetIndex < 0 &&
+        cell.classList.contains("total-budget-column")
+      ) {
+        totalBudgetIndex = start;
+        return;
+      }
+      if (totalRealIndex < 0 && cell.classList.contains("total-real-column")) {
+        totalRealIndex = start;
       }
     });
-    return { annualIndex, budgetMonthIndices, realMonthIndices };
+    budgetMonthIndices.sort((a, b) => a - b);
+    realMonthIndices.sort((a, b) => a - b);
+    return {
+      annualIndex,
+      totalBudgetIndex,
+      totalRealIndex,
+      budgetMonthIndices,
+      realMonthIndices,
+    };
   };
 
-  const getSeriesValue = (row, key) => {
-    const clean = String(key || "").trim().toLowerCase();
-    if (clean === "budget") return Number(row?.budget) || 0;
-    if (clean === "annual") return Number(row?.annual) || 0;
-    return Number(row?.real) || 0;
+  const normalizeSeriesToken = (value) =>
+    (value || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "");
+
+  const MONTH_TOKEN_REGEX = [
+    /ene|jan/,
+    /feb/,
+    /mar/,
+    /abr|apr/,
+    /may/,
+    /jun/,
+    /jul/,
+    /ago|aug/,
+    /sep/,
+    /oct/,
+    /nov/,
+    /dic|dec/,
+  ];
+
+  const detectMonthIndexFromToken = (token) => {
+    const clean = normalizeSeriesToken(token);
+    if (!clean) return -1;
+    for (let idx = 0; idx < MONTH_TOKEN_REGEX.length; idx += 1) {
+      if (MONTH_TOKEN_REGEX[idx].test(clean)) return idx;
+    }
+    return -1;
+  };
+
+  const resolveSeriesRoleFromToken = (token) => {
+    const clean = normalizeSeriesToken(token);
+    if (!clean) return "real";
+    if (
+      /(presupuesto|budget|plan|ppto|ppto|pptoacum|planacum|budgetacum)/.test(
+        clean
+      )
+    ) {
+      return "budget";
+    }
+    if (/(anual|annual|prev|anterior|comparativo|aa)/.test(clean)) {
+      return "annual";
+    }
+    if (/(real|actual|acumulado)/.test(clean)) {
+      return "real";
+    }
+    return "real";
+  };
+
+  const tokenMatches = (token, patterns = []) =>
+    patterns.some((pattern) => pattern.test(token));
+
+  const resolveSeriesValue = (row, datasetDef = {}) => {
+    const keyToken = normalizeSeriesToken(datasetDef?.key || "");
+    const labelToken = normalizeSeriesToken(datasetDef?.label || "");
+    const merged = `${keyToken}${labelToken}`;
+    const role = resolveSeriesRoleFromToken(merged);
+    const monthIndex = detectMonthIndexFromToken(merged);
+    const prefersTotalBudget = tokenMatches(merged, [
+      /totalbudget/,
+      /pptoacum/,
+      /presupuestoacum/,
+      /planacum/,
+      /budgetacum/,
+      /planytd/,
+      /budgetytd/,
+    ]);
+    const prefersTotalReal = tokenMatches(merged, [
+      /totalreal/,
+      /realacum/,
+      /actualacum/,
+      /actualytd/,
+      /realytd/,
+    ]);
+    const prefersAnnual = tokenMatches(merged, [
+      /budgetannual/,
+      /presupuestoanual/,
+      /presupuesto(19|20)\d{2}/,
+      /budget(19|20)\d{2}/,
+      /annualbudget/,
+      /prevytd/,
+      /anual/,
+      /annual/,
+      /anterior/,
+      /comparativo/,
+      /aa/,
+    ]);
+
+    if (monthIndex >= 0) {
+      if (role === "budget") {
+        return Number(row?.monthBudget?.[monthIndex]) || 0;
+      }
+      if (role === "real") {
+        return Number(row?.monthReal?.[monthIndex]) || 0;
+      }
+      if (role === "annual") {
+        return Number(row?.annual) || 0;
+      }
+    }
+
+    if (prefersAnnual || role === "annual") return Number(row?.annual) || 0;
+    if (prefersTotalBudget || role === "budget") {
+      return Number(row?.totalBudget ?? row?.budget) || 0;
+    }
+    if (prefersTotalReal || role === "real") {
+      return Number(row?.totalReal ?? row?.real) || 0;
+    }
+    return Number(row?.totalReal ?? row?.real) || 0;
   };
 
   const getRowsDataFromTable = (tabla) => {
@@ -917,7 +1195,9 @@
     if (
       !indices.budgetMonthIndices.length &&
       !indices.realMonthIndices.length &&
-      indices.annualIndex < 0
+      indices.annualIndex < 0 &&
+      indices.totalBudgetIndex < 0 &&
+      indices.totalRealIndex < 0
     ) {
       return [];
     }
@@ -934,32 +1214,120 @@
         const identifier = resolverIdentificadorFila(row);
         const accountRaw = identifier || getCellText(cells[0]);
         if (!labelRaw && !accountRaw) return null;
-        const budget = indices.budgetMonthIndices.reduce(
-          (sum, idx) => sum + parseNumero(getCellText(cells[idx])),
-          0
-        );
-        const real = indices.realMonthIndices.reduce(
-          (sum, idx) => sum + parseNumero(getCellText(cells[idx])),
-          0
-        );
+        const monthBudget = MESES.map((_, monthIdx) => {
+          const cellIdx = indices.budgetMonthIndices[monthIdx];
+          if (!Number.isInteger(cellIdx)) return 0;
+          return parseNumero(getCellText(cells[cellIdx]));
+        });
+        const monthReal = MESES.map((_, monthIdx) => {
+          const cellIdx = indices.realMonthIndices[monthIdx];
+          if (!Number.isInteger(cellIdx)) return 0;
+          return parseNumero(getCellText(cells[cellIdx]));
+        });
+        const totalBudget =
+          indices.totalBudgetIndex >= 0
+            ? parseNumero(getCellText(cells[indices.totalBudgetIndex]))
+            : monthBudget.reduce((sum, value) => sum + value, 0);
+        const totalReal =
+          indices.totalRealIndex >= 0
+            ? parseNumero(getCellText(cells[indices.totalRealIndex]))
+            : monthReal.reduce((sum, value) => sum + value, 0);
+        const budget = totalBudget;
+        const real = totalReal;
         const annual =
           indices.annualIndex >= 0
             ? parseNumero(getCellText(cells[indices.annualIndex]))
-            : budget;
+            : totalBudget;
         const label = labelRaw || accountRaw;
         const displayLabel = formatLabelWithId(label, accountRaw);
+        const fullLabel = displayLabel || label;
         return {
           label,
-          displayLabel,
+          displayLabel: truncateLabel(fullLabel, 54),
+          fullLabel,
           key: normalizarTexto(label),
           accountKey: normalizarTexto(accountRaw),
           budget,
           real,
           annual,
+          totalBudget,
+          totalReal,
+          monthBudget,
+          monthReal,
           identifier: accountRaw,
         };
       })
       .filter(Boolean);
+  };
+
+  const inferGastosChartKey = (chart = {}) => {
+    const byKey = normalizeSeriesToken(chart?.chartKey || "");
+    if (byKey.includes("plus")) return "plusvalia";
+    if (byKey.includes("rend")) return "rendimientos";
+    const byId = normalizeSeriesToken(chart?.id || "");
+    if (byId.includes("plus")) return "plusvalia";
+    if (byId.includes("rend")) return "rendimientos";
+    const byTitle = normalizeSeriesToken(chart?.title || "");
+    if (/(plus|minu|minus)/.test(byTitle)) return "plusvalia";
+    if (/(rend|inversion)/.test(byTitle)) return "rendimientos";
+    return "rendimientos";
+  };
+
+  const seriesListFromMap = (seriesMap = {}, anio = null) =>
+    Object.keys(seriesMap || {})
+      .map((key) => {
+        const serie = seriesMap[key] || {};
+        const labelTemplate = serie.label || key;
+        return {
+          key,
+          label: applyTemplate(labelTemplate, {
+            year: anio,
+            prev: Number.isInteger(anio) ? anio - 1 : "",
+            annual: Number.isInteger(anio) ? anio : "",
+          }),
+          color: serie.color || "#2f5496",
+          enabled: serie.enabled !== false,
+        };
+      })
+      .filter((serie) => serie.enabled !== false);
+
+  const resolveManualSeriesDefs = ({
+    chart,
+    graficasConfig,
+    anio,
+    fallbackSeries = [],
+  }) => {
+    const customSeries = Array.isArray(chart?.series)
+      ? chart.series
+          .map((serie) => {
+            const key = String(serie?.key || "").trim();
+            if (!key) return null;
+            return {
+              key,
+              label:
+                (typeof serie?.label === "string" && serie.label.trim()
+                  ? serie.label.trim()
+                  : key),
+              color:
+                (typeof serie?.color === "string" && serie.color.trim()
+                  ? serie.color.trim()
+                  : "#2f5496"),
+              enabled: serie?.enabled !== false,
+            };
+          })
+          .filter(Boolean)
+      : [];
+    if (customSeries.length) return customSeries;
+
+    const gastosKey = inferGastosChartKey(chart);
+    const gastosSeriesMap =
+      graficasConfig?.gastosGenerales?.charts?.[gastosKey]?.series ||
+      DEFAULT_GASTOS_CONFIG.charts?.[gastosKey]?.series ||
+      {};
+    const gastosSeries = seriesListFromMap(gastosSeriesMap, anio);
+    if (gastosSeries.length) return gastosSeries;
+
+    return Array.isArray(fallbackSeries) ? fallbackSeries : [];
   };
 
   const matchRowByVariants = (rowsData = [], variants = []) => {
@@ -985,20 +1353,18 @@
   const buildManualDatasets = ({
     labels,
     rows,
-    chart,
     chartType,
     datasetDefs,
   }) => {
     if (!Array.isArray(labels) || !labels.length) return [];
-    const selected = applyCustomSeriesOverrides(
-      filterSeriesByKeys(datasetDefs, chart?.seriesKeys || []),
-      chart
-    );
+    const selected = Array.isArray(datasetDefs)
+      ? datasetDefs.filter((dataset) => dataset?.enabled !== false)
+      : [];
     if (!selected.length) return [];
     const pie = isPieType(chartType);
     const defs = pie ? [selected[0]] : selected;
     return defs.map((datasetDef) => {
-      const data = rows.map((row) => getSeriesValue(row, datasetDef.key));
+      const data = rows.map((row) => resolveSeriesValue(row, datasetDef));
       const dataset = {
         label: datasetDef.label || datasetDef.key,
         data,
@@ -1056,56 +1422,135 @@
 
     const rowsData = getRowsDataFromTable(tabla);
     const chartTypeBase = graficasConfig?.chart?.type || "bar";
-    const operativoDatasets =
-      graficasConfig?.operativo?.datasets || DEFAULT_OPERATIVO_CONFIG.datasets;
+    const baseBarDirection = normalizeBarDirection(
+      graficasConfig?.chart?.barDirection,
+      "vertical"
+    );
+    const operativoDatasets = graficasConfig?.operativo?.datasets || {};
     const anio = obtenerAnioSeleccionado();
-    const datasetDefs = Object.keys(operativoDatasets || {})
-      .map((key) => {
-        const serie = operativoDatasets[key] || {};
-        const labelTemplate = serie.label || key;
-        return {
-          key,
-          label: applyTemplate(labelTemplate, {
-            year: anio,
-            annual: Number.isInteger(anio) ? anio : "",
-          }),
-          color: serie.color || "#2f5496",
-          enabled: serie.enabled !== false,
-        };
-      })
-      .filter((serie) => serie.enabled !== false);
+    const fallbackSeriesDefs = seriesListFromMap(operativoDatasets, anio);
 
     let rendered = 0;
-      moduleCharts.forEach((chart, index) => {
-        const rowsCfg = Array.isArray(chart?.rows) ? chart.rows : [];
-        if (!rowsCfg.length) return;
-        const resolvedRows = rowsCfg.map((row) => {
-          const variants = Array.isArray(row?.variants) ? row.variants : [];
-          const match = matchRowByVariants(rowsData, variants);
-          const labelBase =
-            (typeof row?.alias === "string" && row.alias.trim()
-              ? row.alias.trim()
-              : (variants[0] || "").toString().trim()) ||
-            `Fila ${index + 1}`;
-          return {
-            baseLabel: labelBase,
-            label: match ? formatLabelWithId(labelBase, match.identifier) : labelBase,
-            budget: match ? match.budget : 0,
-            real: match ? match.real : 0,
-            annual: match ? match.annual : 0,
+    moduleCharts.forEach((chart, index) => {
+      const rowsCfg = Array.isArray(chart?.rows) ? chart.rows : [];
+      if (!rowsCfg.length) return;
+      const resolvedRows = rowsCfg.map((row) => {
+        const variants = Array.isArray(row?.variants) ? row.variants : [];
+        const match = matchRowByVariants(rowsData, variants);
+        const labelBase =
+          (typeof row?.alias === "string" && row.alias.trim()
+            ? row.alias.trim()
+            : (variants[0] || "").toString().trim()) ||
+          `Fila ${index + 1}`;
+        const fullLabel = match
+          ? formatLabelWithId(labelBase, match.identifier)
+          : labelBase;
+        return {
+          baseLabel: labelBase,
+          fullLabel,
+          label: truncateLabel(fullLabel, 52),
+          budget: match ? match.budget : 0,
+          real: match ? match.real : 0,
+          annual: match ? match.annual : 0,
+          totalBudget: match ? match.totalBudget : 0,
+          totalReal: match ? match.totalReal : 0,
+          monthBudget: match ? match.monthBudget : [],
+          monthReal: match ? match.monthReal : [],
+          color:
+            (typeof row?.color === "string" && row.color.trim()
+              ? row.color.trim()
+              : ""),
+        };
+      });
+      const chartType = resolveChartType(chart?.chartType, chartTypeBase);
+      const chartBarDirection = resolveBarDirection(
+        chart?.barDirection,
+        baseBarDirection
+      );
+      const indexAxis = chartType === "bar" ? barDirectionToIndexAxis(chartBarDirection) : "x";
+      const seriesMode = normalizeManualSeriesMode(
+        chart?.seriesMode ??
+          chart?.plotBy ??
+          chart?.seriesBy ??
+          chart?.rowsAsSeries,
+        "columns"
+      );
+      const seriesDefsRaw = resolveManualSeriesDefs({
+        chart,
+        graficasConfig,
+        anio,
+        fallbackSeries: fallbackSeriesDefs,
+      });
+      const requestedSeriesKeys = Array.from(
+        new Set([
+          ...extractSeriesKeys(chart?.seriesKeys),
+          ...extractSeriesKeys(chart?.columns),
+        ])
+      );
+      const selectedSeries = requestedSeriesKeys.length
+        ? filterSeriesByKeys(seriesDefsRaw, requestedSeriesKeys, {
+            fallbackToOriginal: false,
+          })
+        : seriesDefsRaw;
+      const baseSeriesDefs =
+        requestedSeriesKeys.length && !selectedSeries.length
+          ? buildSeriesDefsFromKeys(requestedSeriesKeys, chart)
+          : selectedSeries;
+      const seriesDefs = applyCustomSeriesOverrides(
+        baseSeriesDefs,
+        chart
+      ).filter((serie) => serie?.enabled !== false);
+      if (!seriesDefs.length) return;
+
+      let labels = [];
+      let baseLabels = [];
+      let datasets = [];
+      if (seriesMode === "rows" && !isPieType(chartType)) {
+        labels = seriesDefs.map((serie) =>
+          truncateLabel(serie?.label || serie?.key || "", 42)
+        );
+        baseLabels = seriesDefs.map((serie) => serie?.label || serie?.key || "");
+        datasets = resolvedRows.map((row, rowIdx) => {
+          const color = row.color || CHART_PALETTE[rowIdx % CHART_PALETTE.length];
+          const data = seriesDefs.map((serie) => resolveSeriesValue(row, serie));
+          const dataset = {
+            label: row.fullLabel || row.baseLabel || `Fila ${rowIdx + 1}`,
+            data,
+            backgroundColor: color,
+            borderColor: color,
+            borderWidth: chartType === "line" ? 2 : 1,
+            borderRadius: chartType === "bar" ? 8 : 0,
+            maxBarThickness: chartType === "bar" ? 28 : undefined,
           };
+          if (chartType === "line") {
+            dataset.pointBackgroundColor = color;
+            dataset.pointBorderColor = color;
+            dataset.pointRadius = 3;
+            dataset.pointHoverRadius = 4;
+            dataset.tension = 0.3;
+            dataset.fill = false;
+          }
+          return dataset;
         });
-        const labels = resolvedRows.map((row) => row.label);
-        const baseLabels = resolvedRows.map((row) => row.baseLabel || row.label);
-        const chartType = resolveChartType(chart?.chartType, chartTypeBase);
-        const datasets = buildManualDatasets({
+      } else {
+        labels = resolvedRows.map((row) => row.label);
+        baseLabels = resolvedRows.map(
+          (row) => row.fullLabel || row.baseLabel || row.label
+        );
+        datasets = buildManualDatasets({
           labels,
           rows: resolvedRows,
-          chart,
-        chartType,
-        datasetDefs,
-      });
-      if (!datasets.length) return;
+          chartType,
+          datasetDefs: seriesDefs,
+        });
+      }
+      if (!labels.length || !datasets.length) return;
+      const hasUsefulData = datasets.some((dataset) =>
+        Array.isArray(dataset?.data)
+          ? dataset.data.some((value) => Math.abs(Number(value) || 0) > 0.000001)
+          : false
+      );
+      if (!hasUsefulData) return;
 
       const chartId = (chart?.id || `custom-${index + 1}`)
         .toString()
@@ -1139,6 +1584,48 @@
       const canvas = col.querySelector("canvas");
       const ctx = canvas?.getContext("2d");
       if (!ctx) return;
+      const legendPosition = datasets.length > 8 ? "right" : "bottom";
+      const hideLegend = datasets.length > 20;
+      const scales = isPieType(chartType)
+        ? {}
+        : indexAxis === "y"
+          ? {
+              x: {
+                beginAtZero: chartType === "bar",
+                ticks: {
+                  callback: (value) => formatearNumero(value),
+                },
+              },
+              y: {
+                ticks: {
+                  autoSkip: false,
+                  font: { size: 10 },
+                  callback: (_value, idx) => {
+                    const source = Array.isArray(labels) ? labels[idx] : "";
+                    return truncateLabel(source, 42);
+                  },
+                },
+              },
+            }
+          : {
+              y: {
+                beginAtZero: chartType === "bar",
+                ticks: {
+                  callback: (value) => formatearNumero(value),
+                },
+              },
+              x: {
+                ticks: {
+                  autoSkip: true,
+                  maxRotation: 0,
+                  minRotation: 0,
+                  callback: (_value, idx) => {
+                    const source = Array.isArray(labels) ? labels[idx] : "";
+                    return truncateLabel(source, 28);
+                  },
+                },
+              },
+            };
       const customChart = new Chart(ctx, {
         type: chartType,
         data: {
@@ -1148,13 +1635,15 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          indexAxis,
           interaction: {
             mode: isPieType(chartType) ? "nearest" : "index",
             intersect: isPieType(chartType),
           },
           plugins: {
             legend: {
-              position: "bottom",
+              display: !hideLegend,
+              position: legendPosition,
               labels: {
                 boxWidth: 12,
                 boxHeight: 12,
@@ -1180,19 +1669,11 @@
               },
             },
           },
-          scales: isPieType(chartType)
-            ? {}
-            : {
-                y: {
-                  beginAtZero: true,
-                  ticks: {
-                    callback: (value) => formatearNumero(value),
-                  },
-                },
-              },
+          scales,
         },
       });
       customChart.$baseLabels = baseLabels;
+      customChart.$seriesMode = seriesMode;
       customCharts[canvasId] = customChart;
       rendered += 1;
     });

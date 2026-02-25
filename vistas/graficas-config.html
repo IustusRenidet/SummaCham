@@ -165,6 +165,13 @@
                       </select>
                     </div>
                     <div class="col-12 col-md-4">
+                      <label class="form-label small fw-semibold">Direccion barras</label>
+                      <select class="form-select form-select-sm" id="chartBarDirectionSelect">
+                        <option value="vertical">Paradas (vertical)</option>
+                        <option value="horizontal">Acostadas (horizontal)</option>
+                      </select>
+                    </div>
+                    <div class="col-12 col-md-4">
                       <label class="form-label small fw-semibold">Leyenda</label>
                       <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="legendShowToggle" />
@@ -330,7 +337,7 @@
         });
       })();
     </script>
-    <script src="js/graficas-config.js?v=20260218195500"></script>
+    <script src="js/graficas-config.js?v=20260226.9"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         if (!window.GuidedTour) return;

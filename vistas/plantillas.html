@@ -491,13 +491,6 @@
                             Preferencias locales
                           </span>
                           <button
-                            type="button"
-                            class="btn btn-outline-secondary btn-sm"
-                            id="plantillasGraficasReset"
-                          >
-                            Restaurar
-                          </button>
-                          <button
                             type="submit"
                             class="btn btn-primary btn-sm"
                             id="plantillasGraficasSave"
@@ -721,7 +714,7 @@
                             </div>
 
                             <div
-                              class="plantillas-graficas-config"
+                              class="plantillas-graficas-config d-none"
                               id="plantillasGraficasConfig"
                             >
                               <div
@@ -3484,6 +3477,16 @@
                 <option value="doughnut">Dona</option>
               </select>
             </div>
+            <div class="mb-3" id="chartEditorBarDirectionGroup">
+              <label for="chartEditorBarDirection" class="form-label"
+                >Direccion de barras</label
+              >
+              <select class="form-select" id="chartEditorBarDirection">
+                <option value="inherit">Global (heredado)</option>
+                <option value="vertical">Paradas</option>
+                <option value="horizontal">Acostadas</option>
+              </select>
+            </div>
             <div class="mb-3">
               <label for="chartEditorSourceType" class="form-label">Fuente de datos</label>
               <select class="form-select" id="chartEditorSourceType">
@@ -3644,7 +3647,7 @@
     <script src="js/importar-estructura-resumen.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="js/graficas-config.js?v=20260218195500"></script>
+    <script src="js/graficas-config.js?v=20260226.9"></script>
 
     <!-- Editor de Graficas Inline -->
     <script>
@@ -3660,6 +3663,12 @@
           "chartEditorModuleSelect",
         );
         const typeSelect = document.getElementById("chartEditorTypeSelect");
+        const barDirectionGroup = document.getElementById(
+          "chartEditorBarDirectionGroup",
+        );
+        const barDirectionSelect = document.getElementById(
+          "chartEditorBarDirection",
+        );
         const sourceTypeSelect = document.getElementById("chartEditorSourceType");
         const seriesModeSelect = document.getElementById("chartEditorSeriesMode");
         const enabledCheck = document.getElementById("chartEditorEnabledCheck");
@@ -3715,6 +3724,8 @@
         let currentModule = null;
         let availableSeries = [];
         let seriesOverrides = new Map();
+        let rowPickerRetryTimer = null;
+        const moduleRowsCache = new Map();
 
         // Obtener snapshot de RESUMEN
         // Importante: el snapshot se guarda por empresa/anio/mes en `resumen-view.js`.
@@ -3996,6 +4007,27 @@
           return Array.from(new Set(labels));
         };
 
+        const cacheRowsForModule = (moduleValue, rows = []) => {
+          const moduleKey = normalizeModuleKey(moduleValue || currentModule || "");
+          if (!moduleKey) return;
+          const unique = Array.from(
+            new Set(
+              (Array.isArray(rows) ? rows : [])
+                .map((value) => (value || "").toString().trim())
+                .filter(Boolean),
+            ),
+          ).sort((a, b) => a.localeCompare(b));
+          if (!unique.length) return;
+          moduleRowsCache.set(moduleKey, unique);
+        };
+
+        const getCachedRowsForModule = (moduleValue) => {
+          const moduleKey = normalizeModuleKey(moduleValue || currentModule || "");
+          if (!moduleKey) return [];
+          const cached = moduleRowsCache.get(moduleKey);
+          return Array.isArray(cached) ? [...cached] : [];
+        };
+
         const getModuleRowOptions = (moduleValue) => {
           const moduleKey = normalizeModuleKey(
             moduleValue || currentModule || "RESUMEN",
@@ -4005,27 +4037,32 @@
               document.getElementById("moduloSelect")?.value ||
               "",
           );
+          const stateRows = collectRowsFromState();
+          const domRows = collectRowsFromLayoutDom();
+          const snapshotRows = getSnapshotLabels(moduleValue);
+          const combinedLive = isSummaryModuleKey(moduleKey)
+            ? [...snapshotRows, ...stateRows, ...domRows]
+            : [...stateRows, ...domRows];
+          const uniqueLive = Array.from(
+            new Set(
+              combinedLive
+                .map((value) => (value || "").toString().trim())
+                .filter(Boolean),
+            ),
+          ).sort((a, b) => a.localeCompare(b));
+          if (uniqueLive.length) {
+            cacheRowsForModule(moduleKey, uniqueLive);
+            return uniqueLive;
+          }
+          // Si el modulo superior aun no cambia, usar cache en lugar de bloquear el editor.
           if (
             !isSummaryModuleKey(moduleKey) &&
             activeModuleKey &&
             activeModuleKey !== moduleKey
           ) {
-            return [];
+            return getCachedRowsForModule(moduleKey);
           }
-          const stateRows = collectRowsFromState();
-          const domRows = collectRowsFromLayoutDom();
-          const snapshotRows = getSnapshotLabels(moduleValue);
-          const combined = isSummaryModuleKey(moduleKey)
-            ? [...snapshotRows, ...stateRows, ...domRows]
-            : [...stateRows, ...domRows];
-          const unique = Array.from(
-            new Set(
-              combined
-                .map((value) => (value || "").toString().trim())
-                .filter(Boolean),
-            ),
-          );
-          return unique.sort((a, b) => a.localeCompare(b));
+          return getCachedRowsForModule(moduleKey);
         };
 
         const normalizeRowLabel = (value) => (value || "").toString().trim();
@@ -4043,6 +4080,9 @@
 
         const isSummaryModuleKey = (moduleKey) =>
           moduleKey === "RESUMEN" || moduleKey === "SUMMARY";
+
+        const isGastosModuleKey = (moduleKey) =>
+          moduleKey === "GASTOSGENERALES";
 
         const getModuleFallbackOptions = () => [
           "RESUMEN",
@@ -4275,17 +4315,144 @@
 
         const toRowEntry = (row) => {
           if (!row) return null;
+          if (typeof row === "string" || typeof row === "number") {
+            const raw = row.toString().trim();
+            return raw ? buildRowEntry(raw, [raw]) : null;
+          }
+          if (Array.isArray(row)) {
+            const first = normalizeRowLabel(row[0]);
+            const alias = first || normalizeRowLabel(row.find(Boolean));
+            return alias ? buildRowEntry(alias, row) : null;
+          }
+          const aliasCandidates = [
+            row.alias,
+            row.label,
+            row.title,
+            row.name,
+            row.row,
+            row.value,
+            Array.isArray(row.variants) ? row.variants[0] : "",
+          ];
           const alias =
-            normalizeRowLabel(row.alias) ||
-            normalizeRowLabel(row.label) ||
-            normalizeRowLabel((row.variants || [])[0]);
-          const variants =
-            Array.isArray(row.variants) && row.variants.length
-              ? row.variants
+            aliasCandidates
+              .map((value) => normalizeRowLabel(value))
+              .find(Boolean) || "";
+          const variants = Array.isArray(row.variants)
+            ? row.variants
+            : Array.isArray(row.alternatives)
+              ? row.alternatives
               : alias
                 ? [alias]
                 : [];
-          return buildRowEntry(alias, variants, row.color);
+          const color =
+            (typeof row.color === "string" && row.color.trim()
+              ? row.color
+              : null) ||
+            (typeof row.seriesColor === "string" && row.seriesColor.trim()
+              ? row.seriesColor
+              : null) ||
+            undefined;
+          return buildRowEntry(alias, variants, color);
+        };
+
+        const normalizeBarDirectionValue = (value, fallback = "inherit") => {
+          const clean = (value || "").toString().trim().toLowerCase();
+          if (clean === "vertical" || clean === "horizontal" || clean === "inherit") {
+            return clean;
+          }
+          return fallback;
+        };
+
+        const normalizeSeriesOverridesInput = (rawSeries, rawSeriesKeys = []) => {
+          const entries = [];
+          if (Array.isArray(rawSeries)) {
+            rawSeries.forEach((item) => {
+              const key = (item?.key || "").toString().trim();
+              if (!key) return;
+              entries.push([key, item || {}]);
+            });
+          } else if (rawSeries && typeof rawSeries === "object") {
+            Object.entries(rawSeries).forEach(([key, value]) => {
+              const cleanKey = (key || "").toString().trim();
+              if (!cleanKey) return;
+              entries.push([cleanKey, value || {}]);
+            });
+          }
+          if (Array.isArray(rawSeriesKeys)) {
+            rawSeriesKeys.forEach((key) => {
+              const cleanKey = (key || "").toString().trim();
+              if (!cleanKey) return;
+              entries.push([cleanKey, {}]);
+            });
+          }
+          const normalized = new Map();
+          entries.forEach(([key, value]) => {
+            const existing = normalized.get(key) || {};
+            normalized.set(key, {
+              key,
+              label:
+                (typeof value?.label === "string" && value.label.trim()
+                  ? value.label.trim()
+                  : null) ||
+                existing.label ||
+                key,
+              color:
+                (typeof value?.color === "string" && value.color.trim()
+                  ? value.color.trim()
+                  : null) ||
+                existing.color ||
+                "#0d47a1",
+              enabled:
+                typeof value?.enabled === "boolean"
+                  ? value.enabled
+                  : typeof existing.enabled === "boolean"
+                    ? existing.enabled
+                    : true,
+            });
+          });
+          return Array.from(normalized.values());
+        };
+
+        const mergeSeriesForEditor = (baseSeries, chartSeries, chartSeriesKeys) => {
+          const merged = new Map(
+            (Array.isArray(baseSeries) ? baseSeries : [])
+              .map((serie) => {
+                const key = (serie?.key || "").toString().trim();
+                if (!key) return null;
+                return [key, { ...serie, key }];
+              })
+              .filter(Boolean),
+          );
+          const normalizedSeries = normalizeSeriesOverridesInput(
+            chartSeries,
+            chartSeriesKeys,
+          );
+          normalizedSeries.forEach((serie) => {
+            const key = (serie?.key || "").toString().trim();
+            if (!key) return;
+            const current = merged.get(key) || {
+              key,
+              label: key,
+              color: "#0d47a1",
+              enabled: true,
+            };
+            merged.set(key, {
+              ...current,
+              label:
+                typeof serie.label === "string" && serie.label.trim()
+                  ? serie.label.trim()
+                  : current.label,
+              color:
+                typeof serie.color === "string" && serie.color.trim()
+                  ? serie.color.trim()
+                  : current.color,
+              enabled:
+                typeof serie.enabled === "boolean"
+                  ? serie.enabled
+                  : current.enabled !== false,
+            });
+          });
+          return Array.from(merged.values());
         };
 
         // Obtener series disponibles desde GraficasConfig
@@ -4336,7 +4503,7 @@
           const operativoDatasets =
             config.operativo?.datasets || defaults.operativo?.datasets || {};
           const overrides = mapOperativoDatasetOverride(operativoDatasets);
-          return OPERATIVO_TABLE_SERIES.map((base) => {
+          const operativoSeries = OPERATIVO_TABLE_SERIES.map((base) => {
             const override = overrides[base.key] || {};
             return {
               key: base.key,
@@ -4352,10 +4519,16 @@
                   : null) || base.color,
               enabled:
                 typeof override.enabled === "boolean"
-                  ? override.enabled
-                  : base.enabled !== false,
+                    ? override.enabled
+                    : base.enabled !== false,
             };
           });
+          if (isGastosModuleKey(moduleKey)) {
+            // En Gastos Generales, las graficas manuales se construyen
+            // con columnas reales de la tabla (mensuales + acumulados).
+            return operativoSeries;
+          }
+          return operativoSeries;
         };
 
         // Renderizar checkboxes de series
@@ -4625,11 +4798,12 @@
           }
           // Evitar loops si todavía no terminó de cargar el layout del módulo.
           if (lastModuleSyncKey === desiredKey) return true;
-          lastModuleSyncKey = desiredKey;
           const option = Array.from(topSelect.options || []).find(
             (opt) => normalizeModuleKey(opt?.value || "") === desiredKey,
           );
-          topSelect.value = option ? option.value : desiredModule;
+          if (!option) return false;
+          lastModuleSyncKey = desiredKey;
+          topSelect.value = option.value;
           topSelect.dispatchEvent(new Event("change", { bubbles: true }));
           return true;
         };
@@ -4703,7 +4877,11 @@
         };
 
         const refreshSeriesForCurrentModule = (preferredKeys = []) => {
-          availableSeries = getAvailableSeries(currentModule);
+          availableSeries = mergeSeriesForEditor(
+            getAvailableSeries(currentModule),
+            currentChart?.series,
+            currentChart?.seriesKeys,
+          );
           const fallbackKeys =
             Array.isArray(preferredKeys) && preferredKeys.length
               ? preferredKeys
@@ -4716,15 +4894,76 @@
           updateExtractionSummary();
         };
 
+        const clearRowPickerRetry = () => {
+          if (rowPickerRetryTimer) {
+            clearTimeout(rowPickerRetryTimer);
+            rowPickerRetryTimer = null;
+          }
+        };
+
+        const setRowPickerOptions = (
+          labels = [],
+          emptyText = "No hay filas disponibles en el modulo actual",
+        ) => {
+          if (!rowPicker) return;
+          rowPicker.innerHTML = "";
+          const first = document.createElement("option");
+          first.value = "";
+          first.textContent = labels.length
+            ? "Selecciona una fila del modulo..."
+            : emptyText;
+          rowPicker.appendChild(first);
+          labels.forEach((label) => {
+            const option = document.createElement("option");
+            option.value = label;
+            option.textContent = label;
+            rowPicker.appendChild(option);
+          });
+        };
+
+        const scheduleRowPickerReload = (moduleValue, attempt = 1) => {
+          clearRowPickerRetry();
+          const maxAttempts = 24;
+          if (attempt > maxAttempts) {
+            if (rowsHelpEl) {
+              rowsHelpEl.textContent =
+                "No se encontraron filas automaticamente. Puedes escribir la fila manualmente con el botón +.";
+            }
+            setRowPickerOptions([], "No se detectaron filas en este modulo");
+            updateExtractionSummary();
+            return;
+          }
+          rowPickerRetryTimer = setTimeout(() => {
+            if (!panel.classList.contains("show")) return;
+            const retryLabels = getModuleRowOptions(moduleValue);
+            if (retryLabels.length) {
+              cacheRowsForModule(moduleValue, retryLabels);
+              setRowPickerOptions(retryLabels);
+              if (rowsHelpEl) {
+                rowsHelpEl.textContent = `Filas detectadas en este modulo: ${retryLabels.length}`;
+              }
+              updateExtractionSummary();
+              return;
+            }
+            scheduleRowPickerReload(moduleValue, attempt + 1);
+          }, 400);
+        };
+
         // Cargar picker de filas
         const loadRowPicker = () => {
           if (!rowPicker) return;
+          clearRowPickerRetry();
           const labels = getModuleRowOptions(currentModule);
-          rowPicker.innerHTML =
-            '<option value="">Selecciona una fila del modulo...</option>';
+          setRowPickerOptions(labels);
           if (rowsHelpEl) {
             rowsHelpEl.textContent = `Filas detectadas en este modulo: ${labels.length}`;
           }
+          if (labels.length) {
+            cacheRowsForModule(currentModule, labels);
+            updateExtractionSummary();
+            return;
+          }
+
           if (!labels.length) {
             const moduleKey = normalizeModuleKey(currentModule || "RESUMEN");
             const activeModuleKey = normalizeModuleKey(
@@ -4739,56 +4978,29 @@
             ) {
               const didSync = syncModuloSuperior(currentModule);
               if (didSync) {
-                rowPicker.innerHTML =
-                  '<option value="">Sincronizando modulo superior...</option>';
+                setRowPickerOptions([], "Sincronizando modulo superior...");
                 if (rowsHelpEl) {
                   rowsHelpEl.textContent =
                     "Cargando filas del modulo de la grafica...";
                 }
-                // Reintentar después de que se cargue el módulo
-                setTimeout(() => {
-                  const retryLabels = getModuleRowOptions(currentModule);
-                  if (retryLabels.length > 0) {
-                    rowPicker.innerHTML =
-                      '<option value="">Selecciona una fila del modulo...</option>';
-                    retryLabels.forEach((label) => {
-                      const option = document.createElement("option");
-                      option.value = label;
-                      option.textContent = label;
-                      rowPicker.appendChild(option);
-                    });
-                    if (rowsHelpEl) {
-                      rowsHelpEl.textContent = `Filas detectadas en este modulo: ${retryLabels.length}`;
-                    }
-                    updateExtractionSummary();
-                  }
-                }, 500);
+                scheduleRowPickerReload(currentModule, 1);
               } else {
-                rowPicker.innerHTML =
-                  '<option value="">No hay filas disponibles en el modulo actual</option>';
+                setRowPickerOptions([], "No hay filas disponibles en el modulo actual");
                 if (rowsHelpEl) {
                   rowsHelpEl.textContent =
-                    "No se encontraron filas en la tabla/layout actual.";
+                    "No se detectaron filas en este modulo. Puedes agregarla manualmente.";
                 }
               }
             } else {
-              rowPicker.innerHTML =
-                '<option value="">No hay filas disponibles en el modulo actual</option>';
+              setRowPickerOptions([], "No hay filas disponibles en el modulo actual");
               if (rowsHelpEl) {
                 rowsHelpEl.textContent =
-                  "No se encontraron filas en la tabla/layout actual.";
+                  "No se detectaron filas en este modulo. Puedes agregarla manualmente.";
               }
             }
             updateExtractionSummary();
             return;
           }
-          labels.forEach((label) => {
-            const option = document.createElement("option");
-            option.value = label;
-            option.textContent = label;
-            rowPicker.appendChild(option);
-          });
-          updateExtractionSummary();
         };
 
         // Agregar fila seleccionada
@@ -4831,6 +5043,28 @@
           const checksSection = document.getElementById("chartEditorSeriesChecks")?.closest(".mb-3");
           if (colSection) colSection.style.display = rowsMode ? "none" : "";
           if (checksSection) checksSection.style.display = rowsMode ? "none" : "";
+        };
+
+        const syncBarDirectionVisibility = () => {
+          if (!barDirectionGroup) return;
+          const chartType = (typeSelect?.value || "inherit").toLowerCase();
+          const isBarLike = chartType === "bar" || chartType === "inherit";
+          barDirectionGroup.classList.remove("d-none");
+          barDirectionGroup.hidden = false;
+          barDirectionGroup.style.removeProperty("display");
+          if (barDirectionSelect) {
+            barDirectionSelect.disabled = !isBarLike;
+          }
+        };
+
+        const resolvePreviewBarDirection = (value) => {
+          const explicitDirection = normalizeBarDirectionValue(value, "inherit");
+          if (explicitDirection !== "inherit") return explicitDirection;
+          const configDirection = normalizeBarDirectionValue(
+            window.GraficasConfig?.load?.()?.chart?.barDirection,
+            "vertical",
+          );
+          return configDirection === "horizontal" ? "horizontal" : "vertical";
         };
 
         const renderSelectedRows = () => {
@@ -5060,21 +5294,32 @@
             typeSelect?.value === "inherit"
               ? "bar"
               : typeSelect?.value || "bar";
+          const previewBarDirection = resolvePreviewBarDirection(
+            barDirectionSelect?.value || currentChart?.barDirection || "inherit",
+          );
+          const isHorizontalBar =
+            chartType === "bar" && previewBarDirection === "horizontal";
+          const indexAxis = isHorizontalBar ? "y" : "x";
           previewChartInstance = new window.Chart(previewCanvas, {
             type: chartType,
             data: { labels, datasets },
             options: {
               responsive: true,
               maintainAspectRatio: false,
+              indexAxis: chartType === "bar" ? indexAxis : "x",
               plugins: {
                 legend: { display: true, position: "bottom" },
               },
               scales:
                 chartType === "pie" || chartType === "doughnut"
                   ? {}
-                  : {
-                      y: { beginAtZero: true },
-                    },
+                  : isHorizontalBar
+                    ? {
+                        x: { beginAtZero: true },
+                      }
+                    : {
+                        y: { beginAtZero: true },
+                      },
             },
           });
         };
@@ -5117,6 +5362,11 @@
               currentChart.chartType,
               "inherit",
             );
+          if (barDirectionSelect)
+            barDirectionSelect.value = normalizeBarDirectionValue(
+              currentChart.barDirection,
+              "inherit",
+            );
           if (sourceTypeSelect)
             sourceTypeSelect.value = normalizeSourceTypeValue(
               currentChart.sourceType,
@@ -5129,47 +5379,38 @@
             );
           if (enabledCheck)
             enabledCheck.checked = currentChart.enabled !== false;
+          syncBarDirectionVisibility();
           clearValidationState();
 
           // Cargar filas seleccionadas
           selectedRows = [];
-          if (Array.isArray(currentChart.rows)) {
-            selectedRows = currentChart.rows.map(toRowEntry).filter(Boolean);
+          const inputRows = Array.isArray(currentChart.rows)
+            ? currentChart.rows
+            : Array.isArray(currentChart.rowLabels)
+              ? currentChart.rowLabels
+              : [];
+          selectedRows = inputRows.map(toRowEntry).filter(Boolean);
+          if (!selectedRows.length && typeof currentChart.row === "string") {
+            const singleEntry = toRowEntry(currentChart.row);
+            if (singleEntry) selectedRows = [singleEntry];
           }
-          seriesOverrides = new Map(
-            (Array.isArray(currentChart.series) ? currentChart.series : [])
-              .map((serie) => {
-                const key = (serie?.key || "").toString().trim();
-                if (!key) return null;
-                return [
-                  key,
-                  {
-                    key,
-                    label:
-                      typeof serie?.label === "string" && serie.label.trim()
-                        ? serie.label.trim()
-                        : key,
-                    color:
-                      typeof serie?.color === "string" && serie.color.trim()
-                        ? serie.color.trim()
-                        : "#0d47a1",
-                    enabled:
-                      typeof serie?.enabled === "boolean"
-                        ? serie.enabled
-                        : true,
-                  },
-                ];
-              })
-              .filter(Boolean),
-          );
-
-          // Renderizar UI
-          loadRowPicker();
-          refreshSeriesForCurrentModule(
+          const normalizedSeries = normalizeSeriesOverridesInput(
+            currentChart.series,
             Array.isArray(currentChart.seriesKeys)
               ? currentChart.seriesKeys
               : [],
           );
+          seriesOverrides = new Map(
+            normalizedSeries.map((serie) => [serie.key, serie]),
+          );
+          const initialSeriesKeys =
+            Array.isArray(currentChart.seriesKeys) && currentChart.seriesKeys.length
+              ? currentChart.seriesKeys
+              : normalizedSeries.map((serie) => serie.key);
+
+          // Renderizar UI
+          loadRowPicker();
+          refreshSeriesForCurrentModule(initialSeriesKeys);
           renderSelectedRows();
           updateExtractionSummary();
 
@@ -5204,7 +5445,14 @@
         }
 
         if (typeSelect) {
-          typeSelect.addEventListener("change", updatePreview);
+          typeSelect.addEventListener("change", () => {
+            syncBarDirectionVisibility();
+            updatePreview();
+          });
+        }
+
+        if (barDirectionSelect) {
+          barDirectionSelect.addEventListener("change", updatePreview);
         }
 
         if (seriesModeSelect) {
@@ -5319,6 +5567,10 @@
               title: title,
               subtitle: subtitleInput?.value?.trim() || "",
               chartType: typeSelect?.value || "inherit",
+              barDirection:
+                barDirectionSelect?.value ||
+                currentChart?.barDirection ||
+                "inherit",
               enabled: enabledCheck?.checked !== false,
               sourceType: sourceTypeSelect?.value || currentChart?.sourceType || "snapshot",
               seriesMode: seriesModeSelect?.value || currentChart?.seriesMode || "columns",
@@ -5465,8 +5717,11 @@
           });
         }
 
+        syncBarDirectionVisibility();
+
         // Limpiar al cerrar
         panel.addEventListener("hidden.bs.offcanvas", () => {
+          clearRowPickerRetry();
           if (previewChartInstance) {
             previewChartInstance.destroy();
             previewChartInstance = null;
@@ -5480,7 +5735,7 @@
     <input type="file" id="fileImportInput" accept=".json,.xlsx,.xls" style="display: none;" />
 
     <script src="js/guided-tour.js"></script>
-    <script src="js/plantillas-graficas.js?v=20260218202000"></script>
+    <script src="js/plantillas-graficas.js?v=20260226.5"></script>
     <script src="js/drag-and-drop-reorder.js?v=20260212193000"></script>
     <script src="js/plantillas.js?v=20260219130000"></script>
     <script>

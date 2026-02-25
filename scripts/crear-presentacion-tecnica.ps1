@@ -126,7 +126,6 @@ $ColorSecondary = [System.Drawing.ColorTranslator]::ToOle([System.Drawing.Color]
 $ColorAccent = [System.Drawing.ColorTranslator]::ToOle([System.Drawing.Color]::FromArgb(46, 204, 113))   # Verde
 $ColorWarning = [System.Drawing.ColorTranslator]::ToOle([System.Drawing.Color]::FromArgb(230, 126, 34))  # Naranja
 $ColorDanger = [System.Drawing.ColorTranslator]::ToOle([System.Drawing.Color]::FromArgb(231, 76, 60))    # Rojo
-$ColorLight = [System.Drawing.ColorTranslator]::ToOle([System.Drawing.Color]::FromArgb(236, 240, 241))   # Gris claro
 
 Write-Host "📄 Creando slides..." -ForegroundColor Yellow
 

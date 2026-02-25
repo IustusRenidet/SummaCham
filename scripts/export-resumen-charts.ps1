@@ -158,7 +158,7 @@ function Get-ColumnLetter {
   return $columnName
 }
 
-function Pick-SeriesColor {
+function Get-SeriesColor {
   param(
     [string]$Name,
     [int]$Index
@@ -318,9 +318,9 @@ try {
             Invoke-ComRetry { $series.Name = $name }
           }
 
-          $hex = Pick-SeriesColor $name ($c - 2)
+          $hex = Get-SeriesColor $name ($c - 2)
           $color = Convert-HexToOle $hex
-          if ($color -ne $null) {
+          if ($null -ne $color) {
             try { Invoke-ComRetry { $series.Format.Fill.Visible = $true } } catch {}
             try { Invoke-ComRetry { $series.Format.Fill.Solid() } } catch {}
             try { Invoke-ComRetry { $series.Format.Fill.ForeColor.RGB = $color } } catch {}

@@ -10,6 +10,7 @@
   const warningEl = document.getElementById("plantillasGraficasWarning");
   const saveBtn = document.getElementById("plantillasGraficasSave");
   const resetBtn = document.getElementById("plantillasGraficasReset");
+  if (resetBtn) resetBtn.classList.add("d-none");
   const legendShowToggle = document.getElementById("plantillasLegendShowToggle");
   const legendPositionSelect = document.getElementById(
     "plantillasLegendPosition"
@@ -761,6 +762,12 @@
     if (chart.sourceType) {
       node.dataset.customSourceType = chart.sourceType;
     }
+    if (chart.barDirection) {
+      node.dataset.customBarDirection = chart.barDirection;
+    }
+    if (chart.seriesMode) {
+      node.dataset.customSeriesMode = chart.seriesMode;
+    }
     if (Array.isArray(chart.seriesKeys) && chart.seriesKeys.length) {
       node.dataset.customSeriesKeys = chart.seriesKeys.join("|");
     }
@@ -1413,45 +1420,12 @@
       };
     });
 
-    const summarySeriesMap = new Map(
-      (Array.isArray(baseConfig.series)
-        ? baseConfig.series
-        : Array.isArray(defaults.series)
-        ? defaults.series
-        : []
-      )
-        .map((serie) => [String(serie?.key || "").trim(), serie])
-        .filter(([key]) => Boolean(key))
-    );
-    const summarySeriesDefs = SUMMARY_TABLE_SERIES.map((base) => {
-      const override = summarySeriesMap.get(base.key) || {};
-      return {
-        ...base,
-        label:
-          (typeof override.label === "string" && override.label.trim()
-            ? override.label.trim()
-            : null) || base.label,
-        color:
-          (typeof override.color === "string" && override.color.trim()
-            ? override.color.trim()
-            : null) || base.color,
-        enabled:
-          typeof override.enabled === "boolean"
-            ? override.enabled
-            : base.enabled !== false,
-      };
-    });
-    const operativoSeriesSource =
-      baseConfig.operativo?.datasets || defaults.operativo?.datasets || {};
-    const operativoSeriesDefs = Object.keys(operativoSeriesSource).map((key) => ({
-      key,
-      ...(operativoSeriesSource[key] || {}),
-    }));
     const resolveSeriesFallback = (moduleValue, key) => {
-      const moduleKey = normalizeModuleKey(moduleValue || "RESUMEN");
-      const source = isSummaryModuleKey(moduleKey)
-        ? summarySeriesDefs
-        : operativoSeriesDefs;
+      const source = resolveSeriesListForModule(
+        baseConfig,
+        defaults,
+        moduleValue || "RESUMEN"
+      );
       return (
         source.find((item) => String(item?.key || "").trim() === String(key).trim()) ||
         {}
@@ -1495,6 +1469,12 @@
           typeof rawSourceType === "string" && rawSourceType.trim()
             ? rawSourceType.trim()
             : "snapshot";
+        const rawBarDirection =
+          item.dataset.customBarDirection || existing.barDirection || "inherit";
+        const barDirection = normalizeBarDirection(rawBarDirection, "inherit");
+        const rawSeriesMode =
+          item.dataset.customSeriesMode || existing.seriesMode || "columns";
+        const seriesMode = normalizeSeriesMode(rawSeriesMode, "columns");
         const rawSeriesKeys =
           item.dataset.customSeriesKeys ||
           (Array.isArray(existing.seriesKeys)
@@ -1552,6 +1532,8 @@
           chartType,
           enabled,
           sourceType,
+          barDirection,
+          seriesMode,
           seriesKeys,
           series,
           rows,
@@ -1669,6 +1651,58 @@
     if (!clean) return fallback;
     if (clean === "inherit") return "inherit";
     if (["bar", "line", "pie", "doughnut"].includes(clean)) return clean;
+    return fallback;
+  };
+
+  const normalizeSeriesMode = (value, fallback = "columns") => {
+    if (typeof value === "boolean") return value ? "rows" : "columns";
+    const clean = (value || "").toString().trim().toLowerCase();
+    if (!clean) return fallback;
+    if (
+      clean === "rows" ||
+      clean === "row" ||
+      clean === "filas" ||
+      clean === "fila" ||
+      clean === "y"
+    ) {
+      return "rows";
+    }
+    if (
+      clean === "columns" ||
+      clean === "column" ||
+      clean === "cols" ||
+      clean === "col" ||
+      clean === "columnas" ||
+      clean === "columna" ||
+      clean === "x"
+    ) {
+      return "columns";
+    }
+    return fallback;
+  };
+
+  const normalizeBarDirection = (value, fallback = "inherit") => {
+    const clean = (value || "").toString().trim().toLowerCase();
+    if (!clean) return fallback;
+    if (clean === "inherit") return "inherit";
+    if (
+      clean === "horizontal" ||
+      clean === "acostadas" ||
+      clean === "acostada" ||
+      clean === "h" ||
+      clean === "y"
+    ) {
+      return "horizontal";
+    }
+    if (
+      clean === "vertical" ||
+      clean === "paradas" ||
+      clean === "parada" ||
+      clean === "v" ||
+      clean === "x"
+    ) {
+      return "vertical";
+    }
     return fallback;
   };
 
@@ -1914,6 +1948,143 @@
         enabled: serie.enabled !== false,
       }))
       .filter((serie) => serie.key);
+
+  const isGastosModuleKey = (moduleKey = "") => moduleKey === "GASTOSGENERALES";
+
+  const normalizeSeriesOverridesList = (seriesOverrides = []) => {
+    if (Array.isArray(seriesOverrides)) {
+      return seriesOverrides
+        .map((item) => {
+          const key = (item?.key || "").toString().trim();
+          if (!key) return null;
+          return {
+            key,
+            label: (item?.label || "").toString().trim() || key,
+            color:
+              (item?.color || "").toString().trim() || "#0d47a1",
+            enabled:
+              typeof item?.enabled === "boolean" ? item.enabled : true,
+          };
+        })
+        .filter(Boolean);
+    }
+    if (seriesOverrides && typeof seriesOverrides === "object") {
+      return Object.entries(seriesOverrides)
+        .map(([key, value]) => {
+          const cleanKey = (key || "").toString().trim();
+          if (!cleanKey) return null;
+          return {
+            key: cleanKey,
+            label:
+              (value?.label || "").toString().trim() || cleanKey,
+            color:
+              (value?.color || "").toString().trim() || "#0d47a1",
+            enabled:
+              typeof value?.enabled === "boolean" ? value.enabled : true,
+          };
+        })
+        .filter(Boolean);
+    }
+    return [];
+  };
+
+  const mergeSeriesListsByKey = (...lists) => {
+    const merged = new Map();
+    lists.flat().forEach((item) => {
+      const key = (item?.key || "").toString().trim();
+      if (!key) return;
+      const current = merged.get(key) || {
+        key,
+        label: key,
+        color: "#0d47a1",
+        enabled: true,
+      };
+      merged.set(key, {
+        ...current,
+        key,
+        label:
+          (item?.label || "").toString().trim() || current.label || key,
+        color:
+          (item?.color || "").toString().trim() || current.color || "#0d47a1",
+        enabled:
+          typeof item?.enabled === "boolean"
+            ? item.enabled
+            : current.enabled !== false,
+      });
+    });
+    return Array.from(merged.values());
+  };
+
+  const mergeSeriesListWithOverrides = (
+    baseSeries = [],
+    seriesKeys = [],
+    seriesOverrides = []
+  ) => {
+    const mergedBase = mergeSeriesListsByKey(baseSeries);
+    const overrideList = normalizeSeriesOverridesList(seriesOverrides);
+    const merged = new Map(
+      mergedBase
+        .map((serie) => {
+          const key = (serie?.key || "").toString().trim();
+          if (!key) return null;
+          return [key, serie];
+        })
+        .filter(Boolean)
+    );
+    overrideList.forEach((serie) => {
+      const key = (serie?.key || "").toString().trim();
+      if (!key) return;
+      const current = merged.get(key) || {
+        key,
+        label: key,
+        color: "#0d47a1",
+        enabled: true,
+      };
+      merged.set(key, {
+        ...current,
+        ...serie,
+      });
+    });
+    (Array.isArray(seriesKeys) ? seriesKeys : [])
+      .map((key) => (key || "").toString().trim())
+      .filter(Boolean)
+      .forEach((key) => {
+        if (merged.has(key)) return;
+        const override = overrideList.find((serie) => serie.key === key) || {};
+        merged.set(key, {
+          key,
+          label:
+            (override?.label || "").toString().trim() || key,
+          color:
+            (override?.color || "").toString().trim() || "#0d47a1",
+          enabled:
+            typeof override?.enabled === "boolean" ? override.enabled : true,
+        });
+      });
+    return Array.from(merged.values());
+  };
+
+  const resolveSeriesListForModule = (
+    config,
+    defaults,
+    moduleValue = "RESUMEN",
+    chartKey = ""
+  ) => {
+    const moduleKey = normalizeModuleKey(moduleValue || "RESUMEN");
+    if (isSummaryModuleKey(moduleKey)) {
+      return buildSummarySeriesList(config, defaults);
+    }
+    if (isGastosModuleKey(moduleKey)) {
+      if (chartKey) {
+        return buildGastosSeriesList(config, defaults, chartKey);
+      }
+      return mergeSeriesListsByKey(
+        buildGastosSeriesList(config, defaults, "rendimientos"),
+        buildGastosSeriesList(config, defaults, "plusvalia")
+      );
+    }
+    return buildOperativoSeriesList(config, defaults);
+  };
 
   const getSummarySourceVariants = (summarySources, key, type) => {
     const rows = summarySources?.[key]?.[type] || [];
@@ -2730,24 +2901,24 @@
       definition?.module || getCurrentModuleValue() || "RESUMEN"
     );
     const customIsSummaryModule = isSummaryModuleKey(customModuleKey);
-    const operativoSeriesList = listFromMap(
-      config.operativo?.datasets || defaults.operativo?.datasets || {}
-    ).map((dataset) => ({
-      key: dataset.key,
-      label: dataset.label || dataset.key || "",
-      color: dataset.color || "#0d47a1",
-      enabled: dataset.enabled !== false,
-    }));
     const seriesList =
       Array.isArray(config.series) && config.series.length
         ? config.series
         : defaults.series || [];
-    const customSeriesBase = customIsSummaryModule
-      ? summarySeriesList
-      : operativoSeriesList;
+    const customSeriesBase =
+      resolveSeriesListForModule(
+        config,
+        defaults,
+        definition?.module || getCurrentModuleValue() || "RESUMEN",
+        definition?.chartKey || ""
+      ) || [];
     const customSeriesList = filterSeriesByKeys(
-      customSeriesBase,
-      definition.seriesKeys
+      mergeSeriesListWithOverrides(
+        customSeriesBase,
+        definition?.seriesKeys,
+        definition?.series
+      ),
+      definition?.seriesKeys
     );
 
     const pickLayoutFromResponses = (responses) => {
@@ -3387,23 +3558,26 @@
       columns: gastosPlusvaliaColumns,
       tableLabel: `${gastosFile} (resumen mensual Ene-Dic)`,
     });
-    const enabledSummarySeries = summarySeriesList.filter(
-      (serie) => serie?.enabled !== false
-    );
-    const enabledOperativoSeries = Object.keys(operativoDatasets)
-      .map((key) => ({ key, ...(operativoDatasets[key] || {}) }))
-      .filter((dataset) => dataset.enabled !== false);
     const resolveCustomColumns = (
       moduleValue,
       seriesKeys = [],
       seriesOverrides = []
     ) => {
-      const moduleKey = normalizeModuleKey(moduleValue || "RESUMEN");
-      const baseSeries = isSummaryModuleKey(moduleKey)
-        ? enabledSummarySeries
-        : enabledOperativoSeries;
+      const baseSeries = resolveSeriesListForModule(
+        config,
+        defaults,
+        moduleValue || "RESUMEN"
+      );
+      const normalizedOverrides = Array.isArray(seriesOverrides)
+        ? seriesOverrides
+        : seriesOverrides && typeof seriesOverrides === "object"
+        ? Object.entries(seriesOverrides).map(([key, value]) => ({
+            key,
+            ...(value || {}),
+          }))
+        : [];
       const overrideMap = new Map(
-        (Array.isArray(seriesOverrides) ? seriesOverrides : [])
+        normalizedOverrides
           .map((item) => {
             const key = (item?.key || "").toString().trim();
             if (!key) return null;
@@ -3411,13 +3585,40 @@
           })
           .filter(Boolean)
       );
-      return filterSeriesByKeys(baseSeries, seriesKeys).map((serie) => {
-        const override = overrideMap.get((serie?.key || "").toString().trim());
-        if (typeof override?.label === "string" && override.label.trim()) {
-          return override.label.trim();
-        }
-        return serie?.label || serie?.key;
-      });
+      const baseMap = new Map(
+        (Array.isArray(baseSeries) ? baseSeries : [])
+          .map((serie) => {
+            const key = (serie?.key || "").toString().trim();
+            if (!key) return null;
+            return [key, serie];
+          })
+          .filter(Boolean)
+      );
+      const orderedKeys = Array.from(
+        new Set(
+          (Array.isArray(seriesKeys) ? seriesKeys : [])
+            .concat(
+              normalizedOverrides.map((item) =>
+                (item?.key || "").toString().trim()
+              )
+            )
+            .map((key) => (key || "").toString().trim())
+            .filter(Boolean)
+        )
+      );
+      return orderedKeys
+        .map((key) => {
+          const override = overrideMap.get(key);
+          if (typeof override?.label === "string" && override.label.trim()) {
+            return override.label.trim();
+          }
+          const base = baseMap.get(key);
+          if (typeof base?.label === "string" && base.label.trim()) {
+            return base.label.trim();
+          }
+          return key;
+        })
+        .filter(Boolean);
     };
     const defs = [];
     defs.push(
@@ -3635,10 +3836,24 @@
         chartType,
         enabled: chart?.enabled !== false,
         previewKind: "custom",
+        barDirection: normalizeBarDirection(chart?.barDirection, "inherit"),
         sourceType: chart?.sourceType || "snapshot",
-        seriesKeys: Array.isArray(chart?.seriesKeys) ? chart.seriesKeys : [],
-        series: Array.isArray(chart?.series) ? chart.series : [],
-        rows: Array.isArray(chart?.rows) ? chart.rows : [],
+        seriesMode: normalizeSeriesMode(chart?.seriesMode, "columns"),
+        seriesKeys: Array.isArray(chart?.seriesKeys)
+          ? chart.seriesKeys
+          : Array.isArray(chart?.series)
+          ? chart.series
+              .map((serie) => (serie?.key || "").toString().trim())
+              .filter(Boolean)
+          : chart?.series && typeof chart.series === "object"
+          ? Object.keys(chart.series)
+          : [],
+        series: chart?.series || [],
+        rows: Array.isArray(chart?.rows)
+          ? chart.rows
+          : chart?.rows
+          ? [chart.rows]
+          : [],
         ...customInfo,
         target: {
           collapseId: "plantillasGraficasCustomCollapse",
@@ -3650,7 +3865,16 @@
     const deletedIds = new Set(
       normalizeDeletedChartIds(config?.deletedChartIds || [])
     );
-    return defs.filter((definition) => {
+    const manualDefs = defs.filter((definition) => {
+      const kind = (definition?.previewKind || "")
+        .toString()
+        .trim()
+        .toLowerCase();
+      if (kind === "custom") return true;
+      const id = canonicalizeChartId(definition?.chartId || definition?.id);
+      return id.startsWith("custom-");
+    });
+    return manualDefs.filter((definition) => {
       const defId = canonicalizeChartId(definition?.chartId || definition?.id);
       if (!defId) return true;
       return !deletedIds.has(defId);
@@ -3663,17 +3887,37 @@
       openConfigSection(definition);
       return false;
     }
+    const derivedSeriesKeys = Array.isArray(definition.seriesKeys)
+      ? definition.seriesKeys
+      : typeof definition.seriesKeys === "string"
+      ? definition.seriesKeys
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean)
+      : Array.isArray(definition.series)
+      ? definition.series
+          .map((serie) => (serie?.key || "").toString().trim())
+          .filter(Boolean)
+      : definition.series && typeof definition.series === "object"
+      ? Object.keys(definition.series)
+      : [];
     const chartData = {
       id: definition.chartId || definition.id,
       module: definition.module || "RESUMEN",
       title: definition.title,
       subtitle: definition.subtitle,
       chartType: definition.chartType,
+      barDirection: normalizeBarDirection(definition.barDirection, "inherit"),
       enabled: definition.enabled,
       sourceType: definition.sourceType || "snapshot",
-      seriesKeys: Array.isArray(definition.seriesKeys) ? definition.seriesKeys : [],
-      series: Array.isArray(definition.series) ? definition.series : [],
-      rows: definition.rows || [],
+      seriesMode: normalizeSeriesMode(definition.seriesMode, "columns"),
+      seriesKeys: derivedSeriesKeys,
+      series: definition.series || [],
+      rows: Array.isArray(definition.rows)
+        ? definition.rows
+        : definition.rows
+        ? [definition.rows]
+        : [],
     };
     window.openChartEditor(definition.chartId || definition.id, chartData);
     return true;
@@ -3861,10 +4105,16 @@
       columnSelected = ["actualYTD"];
       columnsDisabled = true;
     } else if (kind === "custom") {
-      const moduleKey = normalizeModuleKey(definition.module || "RESUMEN");
-      const seriesList = isSummaryModuleKey(moduleKey)
-        ? buildSummarySeriesList(config, defaults)
-        : buildOperativoSeriesList(config, defaults);
+      const seriesList = mergeSeriesListWithOverrides(
+        resolveSeriesListForModule(
+          config,
+          defaults,
+          definition.module || "RESUMEN",
+          definition.chartKey || ""
+        ),
+        definition.seriesKeys,
+        definition.series
+      );
       columnOptions = seriesList.map((serie) => ({
         value: serie.key,
         label: formatKeyLabel(serie.key, serie.label),
@@ -4092,9 +4342,19 @@
     if (infoEl) {
       const tableLabel = definition.tableLabel || definition.moduleFile;
       const tableText = tableLabel ? ` · Tabla: ${tableLabel}` : "";
+      const barDirectionRaw = (definition?.barDirection || "")
+        .toString()
+        .trim()
+        .toLowerCase();
+      const barDirectionText =
+        barDirectionRaw === "horizontal"
+          ? " · Barras: acostadas"
+          : barDirectionRaw === "vertical"
+          ? " · Barras: paradas"
+          : "";
       infoEl.textContent = `Vista: ${resolveViewLabel(
         definition
-      )} · ${formatChartTypeLabel(definition.chartType)}${tableText}${
+      )} · ${formatChartTypeLabel(definition.chartType)}${barDirectionText}${tableText}${
         definition.enabled === false ? " · Inactiva" : ""
       }`;
     }
@@ -4826,7 +5086,7 @@
       const confirmed = window.confirm(
         customChart
           ? `Eliminar la grafica "${title}"? Esta accion no se puede deshacer.`
-          : `Eliminar la grafica "${title}" del gestor? Quedara oculta en panel/exportaciones. Puedes restaurarla con "Restaurar".`
+          : `Eliminar la grafica "${title}" del gestor? Quedara oculta en panel/exportaciones.`
       );
       if (!confirmed) return;
       const removed = deleteChartDefinition(item.definition);

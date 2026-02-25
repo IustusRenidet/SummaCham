@@ -166,7 +166,7 @@ function Convert-HexToOle {
   return [System.Drawing.ColorTranslator]::ToOle([System.Drawing.Color]::FromArgb($r, $g, $b))
 }
 
-function Normalize-Text {
+function ConvertTo-NormalizedText {
   param([string]$Text)
   if (-not $Text) { return "" }
   $normalized = $Text.Normalize([Text.NormalizationForm]::FormD)
@@ -199,7 +199,7 @@ function Find-SeriesMetaEntry {
     [int]$SeriesIndex
   )
   if (-not $MetaList) { return $null }
-  $normalizedSeries = Normalize-Text $SeriesName
+  $normalizedSeries = ConvertTo-NormalizedText $SeriesName
 
   foreach ($entry in $MetaList) {
     if (-not $entry) { continue }
@@ -211,7 +211,7 @@ function Find-SeriesMetaEntry {
       $entryLabel = [string]$entry.name
     }
     if (-not $entryLabel) { continue }
-    if ((Normalize-Text $entryLabel) -eq $normalizedSeries) {
+    if ((ConvertTo-NormalizedText $entryLabel) -eq $normalizedSeries) {
       return $entry
     }
   }
@@ -240,7 +240,7 @@ function Resolve-SeriesColorHex {
     }
   }
 
-  $name = Normalize-Text $SeriesName
+  $name = ConvertTo-NormalizedText $SeriesName
   if ($name -match "PRESUPUESTO" -and $name -notmatch "ACUM") { return "#2F5597" }
   if (($name -match "PPTO" -or $name -match "PRESUPUESTO") -and $name -match "ACUM") { return "#4472C4" }
   if ($name -match "REAL") { return "#7F7F7F" }
@@ -270,7 +270,7 @@ function Resolve-SeriesType {
   return "bar"
 }
 
-function Apply-SeriesStyle {
+function Set-SeriesStyle {
   param(
     $Series,
     [string]$HexColor,
@@ -288,7 +288,7 @@ function Apply-SeriesStyle {
   }
 
   $oleColor = Convert-HexToOle $HexColor
-  if ($oleColor -eq $null) { return }
+  if ($null -eq $oleColor) { return }
 
   try {
     $Series.Format.Fill.Visible = $true
@@ -431,7 +431,7 @@ function Get-ChartBlocks {
         $dataStart++
         continue
       }
-      if ((Normalize-Text $candidateLabel) -eq "CHART") {
+      if ((ConvertTo-NormalizedText $candidateLabel) -eq "CHART") {
         break
       }
       break
@@ -442,7 +442,7 @@ function Get-ChartBlocks {
     while ($dataEnd -le $SheetLastRow) {
       $currentLabel = ([string]$Values[$dataEnd, 1]).Trim()
       if (-not $currentLabel) { break }
-      if ((Normalize-Text $currentLabel) -eq "CHART") { break }
+      if ((ConvertTo-NormalizedText $currentLabel) -eq "CHART") { break }
       $dataEnd++
     }
     $dataEnd -= 1
@@ -504,7 +504,7 @@ if ($seriesColumns.Count -eq 0) {
   for ($candidate = 1; $candidate -le $maxHeaderScan; $candidate++) {
     $candidateSeries = Get-SeriesColumnsForHeaderRow -Values $values -RowNumber $candidate -MaxCol $maxCol
     if ($candidateSeries.Count -eq 0) { continue }
-    $firstCellNorm = Normalize-Text ([string]$values[$candidate, 1])
+    $firstCellNorm = ConvertTo-NormalizedText ([string]$values[$candidate, 1])
     if (-not $firstCellNorm) { continue }
     if ($metadataRows -contains $firstCellNorm) { continue }
 
@@ -513,7 +513,7 @@ if ($seriesColumns.Count -eq 0) {
       $txt = [string]$values[$candidate, $c]
       if ($txt) { $parts += $txt }
     }
-    $candidateText = Normalize-Text ($parts -join " ")
+    $candidateText = ConvertTo-NormalizedText ($parts -join " ")
     $looksLikeHeader = $candidateText -match "PPTO|PRESUPUESTO|REAL|ACUM|BUDGET|ACTUAL|YTD|20[0-9]{2}"
     $nextLabel = ([string]$values[$candidate + 1, 1]).Trim()
     if (-not $looksLikeHeader -and -not $nextLabel) { continue }
@@ -605,7 +605,7 @@ if ($chartModeNormalized -eq "combined") {
 
     $seriesType = Resolve-SeriesType -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx
     $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx
-    Apply-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType
+    Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType
   }
 
   Set-ChartBarLayout -ChartObject $chart
@@ -648,7 +648,7 @@ elseif ($chartBlocks.Count -gt 0) {
 
       $seriesType = Resolve-SeriesType -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx
       $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx
-      Apply-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType
+      Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType
     }
 
     Set-ChartBarLayout -ChartObject $chart
@@ -686,7 +686,7 @@ else {
     $chart.Chart.ChartTitle.Text = $seriesInfo.Name
 
     $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $idx
-    Apply-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType "bar"
+    Set-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType "bar"
     Set-ChartBarLayout -ChartObject $chart
     try {
       $valueAxis = $chart.Chart.Axes($xlAxisTypeValue)

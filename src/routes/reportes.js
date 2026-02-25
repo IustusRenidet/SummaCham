@@ -272,6 +272,7 @@ router.post('/resumen-excel-native', rawExcelParser, async (req, res) => {
       dataSheetName: leerQuery(req.query.dataSheetName),
       chartsSheetName: leerQuery(req.query.chartsSheetName),
       tableSheetName: leerQuery(req.query.tableSheetName),
+      seriesMeta: leerQuery(req.query.seriesMeta),
     });
     res.setHeader(
       'Content-Type',
