@@ -1,0 +1,107 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    timeout-minutes: 90
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build installer and portable artifacts
+        run: npm run build:all
+
+      - name: Show dist files
+        shell: pwsh
+        run: Get-ChildItem dist | Select-Object Name, Length
+
+      - name: Upload dist artifact for deploy job
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dist-${{ github.ref_name }}
+          path: dist/*
+          retention-days: 7
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/*.exe
+            dist/*.yml
+            dist/*.blockmap
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-self-hosted:
+    needs: build-and-publish
+    if: ${{ vars.DEPLOY_ENABLED != 'false' }}
+    timeout-minutes: 45
+    runs-on:
+      - self-hosted
+      - windows
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 1
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dist-${{ github.ref_name }}
+          path: dist
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Deploy on self-hosted server
+        shell: pwsh
+        env:
+          DEPLOY_MODE: ${{ vars.DEPLOY_MODE }}
+          DEPLOY_APP_DIR: ${{ vars.DEPLOY_APP_DIR }}
+          DEPLOY_WINDOWS_SERVICE_NAME: ${{ vars.DEPLOY_WINDOWS_SERVICE_NAME }}
+          DEPLOY_PROCESS_NAME: ${{ vars.DEPLOY_PROCESS_NAME }}
+          DEPLOY_APP_EXE_PATH: ${{ vars.DEPLOY_APP_EXE_PATH }}
+          DEPLOY_MIGRATION_COMMAND: ${{ vars.DEPLOY_MIGRATION_COMMAND }}
+          DEPLOY_HEALTHCHECK_URL: ${{ vars.DEPLOY_HEALTHCHECK_URL }}
+          DEPLOY_HEALTHCHECK_RETRIES: ${{ vars.DEPLOY_HEALTHCHECK_RETRIES }}
+          DEPLOY_HEALTHCHECK_DELAY_SECONDS: ${{ vars.DEPLOY_HEALTHCHECK_DELAY_SECONDS }}
+          DEPLOY_INSTALLER_ARGS: ${{ vars.DEPLOY_INSTALLER_ARGS }}
+          DEPLOY_PRE_COMMAND: ${{ secrets.DEPLOY_PRE_COMMAND }}
+          DEPLOY_RESTART_COMMAND: ${{ secrets.DEPLOY_RESTART_COMMAND }}
+          DEPLOY_POST_COMMAND: ${{ secrets.DEPLOY_POST_COMMAND }}
+        run: |
+          $artifactDir = Join-Path $PWD "dist"
+          ./scripts/deploy-self-hosted.ps1 -Tag "${{ github.ref_name }}" -ArtifactDir $artifactDir

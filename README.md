@@ -8,6 +8,7 @@ Documentación consolidada en 5 archivos Markdown para reducir dispersión y man
 - `DOCS_ARQUITECTURA_SISTEMAS.md` — arquitectura, sistemas y módulos principales.
 - `DOCS_OPERACIONES_RESUMEN.md` — operaciones, resumen, fórmulas, mapeos y reportes.
 - `DOCS_FLUJOS_IMPLEMENTACION_FIXES.md` — flujos, autorizaciones, implementaciones, migraciones y fixes.
+- `DEPLOY_SELF_HOSTED.md` — guía de deploy automático con GitHub Actions en servidor Windows self-hosted.
 
 ## Uso rápido
 
