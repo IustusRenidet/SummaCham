@@ -1,0 +1,2046 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RESUMEN</title>
+
+    <!-- Bootstrap & Fonts -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="icon" type="image/x-icon" href="icono/icono.ico" />
+
+    <style>
+      :root {
+        --color-primary: #2f5496;
+        --color-secondary: #8497b0;
+        --color-background: #f2f2f2;
+        --color-text: #2f5496;
+        --bs-primary: #2f5496;
+        --bs-primary-rgb: 47, 84, 150;
+        --bs-success: #2f5496;
+        --bs-success-rgb: 47, 84, 150;
+        --bs-success-bg-subtle: rgba(47, 84, 150, 0.16);
+        --bs-success-border-subtle: rgba(47, 84, 150, 0.35);
+        --color-primary-blue: #2f5496;
+        --color-bright-blue: #8497b0;
+        --color-secondary-white: #d9d9d9;
+        --color-neutral-row: #d9d9d9;
+        --color-selected: #8497b0;
+        --zoom-level: 1;
+      }
+
+      body {
+        background: var(--color-background);
+        color: var(--color-text);
+        font-family: "Manrope", "Segoe UI", Tahoma, Verdana, sans-serif;
+        min-height: 100vh;
+        padding-top: 70px;
+      }
+
+      .header-card {
+        background: var(--color-primary);
+        color: #fff;
+        border-radius: 16px;
+        border: 1px solid rgba(47, 84, 150, 0.1);
+        box-shadow: 0 12px 30px rgba(47, 84, 150, 0.18);
+      }
+      .summary-meta span {
+        font-weight: 600;
+        color: #fff;
+      }
+
+      .filter-card {
+        border-radius: 16px;
+        border: 1px solid rgba(47, 84, 150, 0.08);
+        background: #ffffff;
+        box-shadow: 0 10px 24px rgba(47, 84, 150, 0.12);
+      }
+
+      .filter-card label {
+        font-weight: 600;
+        color: var(--color-text);
+      }
+
+      .comparativa-toggle {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: linear-gradient(
+          135deg,
+          rgba(47, 84, 150, 0.08),
+          rgba(132, 151, 176, 0.2)
+        );
+        border: 1px solid rgba(47, 84, 150, 0.18);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7),
+          0 6px 16px rgba(47, 84, 150, 0.14);
+      }
+
+      .comparativa-switch {
+        position: relative;
+        display: inline-block;
+        width: 54px;
+        height: 30px;
+        flex: 0 0 auto;
+      }
+
+      .comparativa-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .comparativa-track {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: #cbd5f5;
+        box-shadow: inset 0 0 0 1px rgba(47, 84, 150, 0.2);
+        transition:
+          background 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+
+      .comparativa-thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease;
+      }
+
+      .comparativa-switch input:checked + .comparativa-track {
+        background: linear-gradient(135deg, #2f5496, #1f3b6b);
+        box-shadow: 0 8px 18px rgba(47, 84, 150, 0.35);
+      }
+
+      .comparativa-switch
+        input:checked
+        + .comparativa-track
+        .comparativa-thumb {
+        transform: translateX(24px);
+      }
+
+      .comparativa-switch input:focus + .comparativa-track {
+        box-shadow: 0 0 0 4px rgba(47, 84, 150, 0.25);
+      }
+
+      .comparativa-switch input:disabled + .comparativa-track {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .comparativa-text {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .comparativa-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #1f3b6b;
+      }
+
+      .comparativa-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        background: rgba(47, 84, 150, 0.12);
+        color: #1f3b6b;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .comparativa-badge:empty {
+        display: none;
+      }
+
+      .summary-card {
+        border-radius: 18px;
+        border: 1px solid rgba(47, 84, 150, 0.08);
+        background: linear-gradient(
+          145deg,
+          #ffffff 0%,
+          #f2f2f2 50%,
+          #d9d9d9 100%
+        );
+        box-shadow: 0 14px 36px rgba(47, 84, 150, 0.14);
+      }
+
+      .summary-card .card-title {
+        font-weight: 700;
+        color: var(--color-primary);
+        letter-spacing: 0.02em;
+      }
+
+      .summary-card .metric-label {
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-secondary);
+      }
+
+      .summary-card .metric-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--color-text);
+      }
+
+      .summary-card .metric-value.small {
+        font-size: 1.5rem;
+      }
+
+      .charts-toggle-btn {
+        background: #ffffff;
+        color: var(--color-primary);
+        border: 1px solid rgba(47, 84, 150, 0.35);
+        border-radius: 10px;
+        padding: 8px 14px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        box-shadow: none;
+        transition:
+          background 0.2s ease,
+          color 0.2s ease,
+          border-color 0.2s ease;
+      }
+
+      .charts-toggle-btn:hover {
+        background: rgba(47, 84, 150, 0.08);
+        color: var(--color-primary);
+        border-color: rgba(47, 84, 150, 0.6);
+      }
+
+      .charts-toggle-btn.active {
+        background: var(--color-primary);
+        color: #ffffff;
+        border-color: var(--color-primary);
+      }
+
+      .charts-panel {
+        display: none;
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid rgba(47, 84, 150, 0.1);
+        box-shadow: 0 16px 34px rgba(47, 84, 150, 0.18);
+        background: #fff;
+      }
+
+      .charts-panel.open {
+        display: block;
+        animation: panelReveal 0.25s ease;
+      }
+
+      .charts-panel-header {
+        background: linear-gradient(120deg, #2f5496 0%, #1f3b6b 100%);
+        color: #fff;
+        padding: 16px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .charts-panel-title {
+        font-weight: 700;
+        margin: 0 0 6px;
+        letter-spacing: 0.02em;
+      }
+
+      .charts-panel-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .charts-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: #fff;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .charts-panel-actions .btn {
+        border-radius: 999px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .charts-panel-body {
+        padding: 16px;
+        background: #f7f9fc;
+      }
+
+      .charts-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid rgba(47, 84, 150, 0.08);
+        box-shadow: 0 8px 20px rgba(47, 84, 150, 0.12);
+        padding: 12px 14px;
+        height: 100%;
+      }
+
+      .charts-card h6 {
+        font-weight: 700;
+        color: #2f5496;
+        margin-bottom: 6px;
+      }
+
+      .charts-card .charts-canvas {
+        position: relative;
+        width: 100%;
+        height: 320px;
+      }
+
+      .charts-card canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+      }
+
+      .charts-empty {
+        text-align: center;
+        padding: 30px 16px;
+        color: #6b7280;
+        font-weight: 600;
+        background: #fff;
+        border-radius: 14px;
+        border: 1px dashed rgba(47, 84, 150, 0.2);
+      }
+
+      @keyframes panelReveal {
+        from {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .table-card {
+        background: #fff;
+        border-radius: 18px;
+        border: 1px solid rgba(47, 84, 150, 0.05);
+        box-shadow: 0 18px 40px rgba(47, 84, 150, 0.16);
+        overflow: hidden;
+        width: 100%;
+        position: relative;
+      }
+
+      .zoom-menu {
+        position: sticky;
+        top: 78px;
+        z-index: 1100;
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-start;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+        pointer-events: none;
+      }
+
+      .zoom-toggle {
+        background: var(--color-primary);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        width: 46px;
+        height: 46px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+        cursor: pointer;
+        pointer-events: auto;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease,
+          background 0.2s ease;
+      }
+
+      .zoom-toggle:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+        background: var(--color-secondary);
+      }
+
+      .zoom-menu.open .zoom-toggle {
+        background: #0f1f3d;
+      }
+
+      .zoom-controls {
+        display: none;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        width: 100%;
+        max-width: 100%;
+        padding: 12px;
+        margin-left: 0;
+        background: #ffffff;
+        border: 1px solid rgba(47, 84, 150, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 14px 30px rgba(47, 84, 150, 0.2);
+        pointer-events: auto;
+        flex: 1 1 100%;
+        min-width: 0;
+      }
+
+      .zoom-menu.open .zoom-controls {
+        display: grid;
+      }
+
+      .zoom-controls .zoom-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        grid-column: 1 / -1;
+      }
+
+      .zoom-controls .btn-group {
+        grid-column: 1 / -1;
+      }
+
+      .zoom-btn {
+        background: var(--color-primary);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 14px;
+        cursor: pointer;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        transition: all 0.2s ease;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+        pointer-events: auto;
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .zoom-btn:hover {
+        background: var(--color-secondary);
+        transform: translateY(-1px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.24);
+      }
+
+      .zoom-level-display {
+        background: #f8fafc;
+        padding: 8px 12px;
+        border-radius: 10px;
+        font-weight: 700;
+        box-shadow: inset 0 0 0 1px rgba(47, 84, 150, 0.08);
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.95rem;
+        color: var(--color-text);
+      }
+
+      @media (max-width: 768px) {
+        .charts-card .charts-canvas {
+          height: 260px;
+        }
+      }
+
+      .table-wrapper {
+        transform-origin: top left;
+        transition: transform 0.3s ease;
+        width: 100%;
+      }
+
+      .table-card .card-body,
+      .table-responsive,
+      .table-wrapper {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      #tablaComparacion {
+        width: 100%;
+        max-width: 100%;
+        table-layout: auto;
+      }
+
+      #tablaComparacion col.col-cuenta {
+        width: 10%;
+      }
+
+      #tablaComparacion col.col-descripcion {
+        width: 20%;
+      }
+
+      #tablaComparacion col.col-valor {
+        width: 7%;
+      }
+
+      #tablaComparacion th,
+      #tablaComparacion td {
+        min-width: 0;
+      }
+
+      #tablaComparacion tbody td:nth-child(7) {
+        white-space: normal !important;
+      }
+
+      .table {
+        table-layout: auto;
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.75rem;
+      }
+
+      .table thead {
+        background: #ffffff;
+      }
+
+      .table thead th {
+        border: 1px solid #999;
+        background-color: #ffffff;
+        color: #000;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 0.4rem 0.3rem;
+        text-align: center;
+        white-space: normal;
+        word-break: break-word;
+        vertical-align: middle;
+        min-width: 70px;
+      }
+
+      .table thead tr:first-child th {
+        position: sticky;
+        top: 70px;
+        z-index: 100;
+      }
+
+      .table thead tr:nth-child(2) th {
+        position: sticky;
+        top: calc(70px + 2.2rem);
+        z-index: 100;
+      }
+
+      /* Columnas fijas de cuenta y descripción con fondo sólido */
+      #tablaComparacion thead tr.encabezados th {
+        left: auto;
+      }
+
+      #tablaComparacion thead tr.encabezados-sub th {
+        left: auto;
+      }
+
+      #tablaComparacion thead tr.encabezados th.account-column-header {
+        background-color: #ffffff !important;
+        z-index: 150 !important;
+      }
+
+      .table td,
+      .table th {
+        border: 1px solid #ccc;
+        vertical-align: middle;
+        font-size: 0.75rem;
+        padding: 0.3rem 0.4rem;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+      }
+      .table td.text-start {
+        white-space: normal;
+      }
+
+      .table td.account-column {
+        white-space: nowrap !important;
+        word-break: keep-all;
+        overflow-wrap: normal;
+        hyphens: none;
+      }
+
+      .table tbody tr {
+        background-color: #fff;
+      }
+
+      .table tbody tr:hover td {
+        background-color: #f2f2f2 !important;
+      }
+
+      .table td.selected,
+      .table th.selected {
+        background-color: var(--color-selected) !important;
+        outline: 2px solid #8497b0;
+      }
+
+      .label-cell {
+        font-weight: 600;
+        color: #000;
+        text-align: left;
+        background-color: #fff !important;
+        font-size: 0.7rem;
+        padding-left: calc(16px + (var(--depth, 0) * 18px));
+      }
+
+      .label-cell strong {
+        color: var(--color-secondary);
+        font-weight: 800;
+      }
+
+      .category-cell {
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-align: left;
+        background: #d9d9d9;
+        color: #000;
+        border: 1px solid #999 !important;
+        padding-left: calc(12px + (var(--depth, 0) * 18px));
+      }
+
+      .category-cell::before,
+      .label-cell::before {
+        content: "";
+        display: inline-block;
+        width: calc(var(--depth, 0) * 18px);
+      }
+
+      .code-cell {
+        font-size: 0.65rem;
+        color: #333;
+        font-family: monospace;
+        text-align: left;
+        background-color: #f2f2f2 !important;
+        font-weight: 400;
+      }
+
+      .account-column-header {
+        text-align: left;
+        white-space: nowrap;
+      }
+
+      .account-column {
+        text-align: left;
+        font-family: "Courier New", monospace;
+        font-size: 0.65rem;
+        color: #333;
+        background-color: #f2f2f2 !important;
+        font-weight: 400;
+        white-space: nowrap;
+        word-break: keep-all;
+        overflow-wrap: normal;
+        hyphens: none;
+        font-variant-numeric: tabular-nums;
+      }
+
+      body.ocultar-cuentas .account-column,
+      body.ocultar-cuentas .account-column-header,
+      body.ocultar-cuentas .col-cuenta {
+        display: none;
+      }
+
+      .mono {
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum";
+        text-align: right;
+        white-space: nowrap;
+        font-family: "Courier New", monospace;
+        color: #000;
+        font-weight: 500;
+        font-size: 0.7rem;
+      }
+
+      .amarillo th,
+      .amarillo td {
+        background-color: #ffff00;
+        font-weight: 700;
+        color: #000;
+      }
+
+      .verde th,
+      .verde td {
+        background-color: #375623;
+        font-weight: 800;
+        color: #1f2d0c;
+      }
+
+      .important {
+        font-weight: 800 !important;
+        color: #000 !important;
+      }
+
+      .fade-in {
+        animation: fadeIn 0.5s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* Encabezados "Y T D" por bloque */
+      .ytd-head {
+        background: #8497b0 !important;
+        font-weight: 900 !important;
+        letter-spacing: 0.15em;
+        color: #000 !important;
+        text-align: center;
+        border: 1px solid #999 !important;
+      }
+
+      .subhdr {
+        font-weight: 700 !important;
+        background: #d9d9d9;
+        border: 1px solid #999 !important;
+        font-size: 0.7rem;
+      }
+
+      .spacer {
+        height: 0.5rem;
+        background: transparent !important;
+        border: none !important;
+      }
+
+      .spacer td {
+        border: none !important;
+        padding: 0.25rem 0 !important;
+        background: transparent !important;
+      }
+
+      /*scroll horizontal cuidadoso */
+      .table-responsive {
+        overflow-y: visible;
+        overflow-x: auto;
+        border-radius: 12px;
+        width: 100%;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .table-responsive table {
+        margin-bottom: 0;
+        width: 100%;
+      }
+
+      .col-descripcion {
+        white-space: normal !important;
+      }
+
+      /* Centrar texto en columna descripción */
+      #tablaComparacion th.col-descripcion,
+      #tablaComparacion td[data-role="descripcion"] {
+        text-align: center;
+      }
+
+      /* Secciones que están excluidas de expenses */
+      .excluded-expense {
+        background: rgba(0, 128, 128, 0.06); /* light cyan */
+        border-left: 4px solid rgba(0, 128, 128, 0.2);
+      }
+
+      .percent-cell {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        white-space: nowrap !important;
+      }
+
+      /* para el pie */
+      .footer-row th,
+      .footer-row td {
+        border: 2px solid #000 !important;
+        font-weight: 700;
+      }
+
+      /* === TIPOS DE SUMAS - JERARQUÍA VISUAL === */
+      /* Nivel 1: sum-row - Suma de cuentas de una sección */
+      .sum-row {
+        background: linear-gradient(
+          to right,
+          #fef3c7 0%,
+          #fde68a 100%
+        ) !important;
+        color: #78350f !important;
+        font-weight: 600 !important;
+        border-left: 4px solid #f59e0b !important;
+      }
+      .sum-row td {
+        padding: 0.6rem !important;
+        border: 1px solid #fbbf24 !important;
+        font-size: 0.92rem !important;
+      }
+      .sum-row td:first-child {
+        padding-left: 1.5rem !important;
+      }
+
+      /* Nivel 2: sum-row-principal - Principal (INCOME, EXPENSE) */
+      .sum-row-principal {
+        background: linear-gradient(
+          135deg,
+          #a78bfa 0%,
+          #8b5cf6 100%
+        ) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        font-size: 1.05rem !important;
+        text-transform: uppercase;
+        box-shadow: 0 2px 6px rgba(139, 92, 246, 0.3);
+      }
+      .sum-row-principal td {
+        padding: 0.75rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        letter-spacing: 0.5px;
+      }
+
+      /* Nivel 3: highlight-primary - CONSOLIDATED (Income/Expense consolidado) */
+      .highlight-primary {
+        background: linear-gradient(
+          135deg,
+          #10b981 0%,
+          #059669 100%
+        ) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        font-size: 1.08rem !important;
+        text-transform: uppercase;
+        box-shadow: 0 3px 8px rgba(16, 185, 129, 0.4);
+      }
+      .highlight-primary td {
+        padding: 0.8rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        letter-spacing: 0.75px;
+      }
+
+      /* Nivel 4: highlight-secondary - OPERATING RESULTS */
+      .highlight-secondary {
+        background: linear-gradient(
+          135deg,
+          #0891b2 0%,
+          #0e7490 100%
+        ) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
+        text-transform: uppercase;
+        box-shadow: 0 4px 10px rgba(8, 145, 178, 0.4);
+      }
+      .highlight-secondary td {
+        padding: 0.85rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        letter-spacing: 1px;
+      }
+
+      /* Nivel 5: highlight-bright - NET RESULTS - Máxima jerarquía */
+      .highlight-bright {
+        background: linear-gradient(
+          135deg,
+          #dc2626 0%,
+          #b91c1c 100%
+        ) !important;
+        color: white !important;
+        font-weight: 800 !important;
+        font-size: 1.15rem !important;
+        text-transform: uppercase;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.5);
+        border-top: 3px solid #991b1b !important;
+        border-bottom: 3px solid #991b1b !important;
+      }
+      .highlight-bright td {
+        padding: 1rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.35) !important;
+        letter-spacing: 1.5px;
+      }
+      .highlight-bright:hover {
+        background: linear-gradient(
+          135deg,
+          #ef4444 0%,
+          #dc2626 100%
+        ) !important;
+        box-shadow: 0 5px 15px rgba(220, 38, 38, 0.6);
+      }
+
+      /* Ajustes responsivos para una lectura cómoda en móvil */
+      @media (max-width: 992px) {
+        body {
+          padding-top: 60px;
+        }
+        .container-fluid {
+          padding-left: 14px;
+          padding-right: 14px;
+        }
+        .zoom-menu {
+          top: 70px;
+        }
+        .table-card .card-body {
+          padding: 0.85rem;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .header-card h1 {
+          font-size: 1.6rem;
+        }
+        .header-card p {
+          font-size: 0.95rem;
+        }
+        .zoom-menu {
+          top: 62px;
+        }
+        .zoom-controls {
+          width: 100%;
+        }
+        .workflow-toolbar {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+        .toolbar-actions {
+          width: 100%;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .table-card {
+          box-shadow: 0 12px 28px rgba(47, 84, 150, 0.16);
+        }
+        .table {
+          font-size: 0.7rem;
+        }
+        .table thead th {
+          font-size: 0.64rem;
+          padding: 0.35rem 0.25rem;
+        }
+
+        .table thead tr:first-child th {
+          position: sticky;
+          top: 70px;
+          z-index: 100;
+        }
+
+        .table thead tr:nth-child(2) th {
+          position: sticky;
+          top: calc(70px + 2rem);
+          z-index: 100;
+        }
+        .table td {
+          padding: 0.3rem 0.35rem;
+        }
+        #tablaComparacion {
+          min-width: 1050px;
+        }
+        .table-responsive {
+          border-radius: 14px;
+          padding-bottom: 6px;
+        }
+        .search-container .search-input {
+          padding: 0.9rem 1rem;
+          font-size: 1rem;
+          border-radius: 12px;
+        }
+        .row.mb-3 > .col-12.col-sm-6 {
+          margin-bottom: 12px;
+        }
+      }
+
+      @media (max-width: 576px) {
+        body {
+          padding-top: 52px;
+        }
+        .zoom-menu {
+          top: 58px;
+        }
+        .zoom-controls {
+          width: 100%;
+          margin-left: 0;
+        }
+        .header-card {
+          border-radius: 14px;
+        }
+        .header-card h1 {
+          font-size: 1.4rem;
+        }
+        .table td,
+        .table th {
+          font-size: 0.66rem;
+        }
+      }
+
+      /* Editable vs Read-only indicators */
+      .editable-real {
+        background-color: #e8f4f8 !important;
+        cursor: text;
+        position: relative;
+      }
+      .editable-real:hover {
+        background-color: #d0e8f0 !important;
+        box-shadow: inset 0 0 3px rgba(0, 100, 200, 0.12);
+      }
+      .editable-real::before {
+        content: "✎";
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.8rem;
+        color: #0064c8;
+        opacity: 0;
+        transition: opacity 0.18s;
+      }
+      .editable-real:hover::before {
+        opacity: 0.7;
+      }
+
+      .read-only-cell {
+        background-color: #f5f5f5 !important;
+        cursor: not-allowed;
+        color: #666;
+      }
+      .read-only-cell:hover {
+        background-color: #eeeeee !important;
+      }
+
+      /* === PALETA DE COLORES MODERNA === */
+      :root {
+        --color-primary: #1e3a8a;
+        --color-primary-light: #3b82f6;
+        --color-secondary: #059669;
+        --color-accent: #7c3aed;
+        --color-warning: #d97706;
+        --color-danger: #dc2626;
+        --color-info: #0891b2;
+        --gradient-blue: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --gradient-green: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        --gradient-purple: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+        --gradient-orange: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      }
+
+      /* === ESTILOS JERÁRQUICOS RESUMEN === */
+      /* Principal: Header de sección principal (INCOME, EXPENSE, etc.) */
+      .section-header-row {
+        background: linear-gradient(
+          135deg,
+          #1e3a8a 0%,
+          #3b82f6 100%
+        ) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .section-header-row td {
+        padding: 0.85rem 0.75rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      }
+
+      /* Secundaria: Subsección (Membership, Events, etc.) */
+      .subsection-row {
+        background: linear-gradient(
+          to right,
+          #dbeafe 0%,
+          #bfdbfe 100%
+        ) !important;
+        color: #1e3a8a !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        border-left: 4px solid #3b82f6 !important;
+      }
+      .subsection-row td {
+        padding: 0.65rem 0.6rem !important;
+        border: 1px solid #93c5fd !important;
+      }
+      .subsection-row td:first-child,
+      .subsection-row td:nth-child(2) {
+        padding-left: 1.5rem !important;
+        font-style: italic;
+        font-weight: 600;
+      }
+
+      /* Cuenta: Fila de datos individual */
+      .account-row {
+        background-color: white !important;
+        transition: all 0.2s ease;
+        border-left: 3px solid transparent !important;
+      }
+      .account-row:hover {
+        background-color: #e0f2fe !important;
+        border-left-color: #0ea5e9 !important;
+        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15);
+        transform: translateX(2px);
+      }
+      .account-row:hover td {
+        color: #0c4a6e !important;
+      }
+      .account-row td {
+        padding: 0.5rem 0.6rem !important;
+        border: 1px solid #e5e7eb !important;
+        font-size: 0.9rem;
+      }
+      .account-row td:first-child {
+        padding-left: 2.5rem !important;
+        font-family: "Courier New", monospace;
+        font-size: 0.85rem;
+        color: #6b7280;
+        font-weight: 500;
+      }
+      .account-row td:nth-child(2) {
+        padding-left: 2rem !important;
+        color: #374151;
+      }
+
+      /* === TIPOS DE SUMAS - JERARQUÍA VISUAL === */
+      /* Nivel 1: sum-row - Suma de cuentas de una sección */
+      .sum-row {
+        background: linear-gradient(
+          to right,
+          #fef3c7 0%,
+          #fde68a 100%
+        ) !important;
+        color: #78350f !important;
+        font-weight: 600 !important;
+        border-left: 4px solid #f59e0b !important;
+      }
+      .sum-row td {
+        padding: 0.6rem !important;
+        border: 1px solid #fbbf24 !important;
+        font-size: 0.92rem !important;
+      }
+      .sum-row td:first-child {
+        padding-left: 1.5rem !important;
+      }
+
+      /* Nivel 2: sum-row-sumavarios - Principal (INCOME, EXPENSE) */
+      .sum-row-principal {
+        background: linear-gradient(
+          135deg,
+          #a78bfa 0%,
+          #8b5cf6 100%
+        ) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        font-size: 1.05rem !important;
+        text-transform: uppercase;
+        box-shadow: 0 2px 6px rgba(139, 92, 246, 0.3);
+      }
+      .sum-row-principal td {
+        padding: 0.75rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        letter-spacing: 0.5px;
+      }
+
+      /* Nivel 3: CONSOLIDATED (Income/Expense consolidado) */
+      .highlight-primary {
+        background: linear-gradient(
+          135deg,
+          #10b981 0%,
+          #059669 100%
+        ) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        font-size: 1.08rem !important;
+        text-transform: uppercase;
+        box-shadow: 0 3px 8px rgba(16, 185, 129, 0.4);
+      }
+      .highlight-primary td {
+        padding: 0.8rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        letter-spacing: 0.75px;
+      }
+
+      /* Nivel 4: OPERATING RESULTS */
+      .highlight-secondary {
+        background: linear-gradient(
+          135deg,
+          #0891b2 0%,
+          #0e7490 100%
+        ) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
+        text-transform: uppercase;
+        box-shadow: 0 4px 10px rgba(8, 145, 178, 0.4);
+      }
+      .highlight-secondary td {
+        padding: 0.85rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        letter-spacing: 1px;
+      }
+
+      /* Nivel 5: NET RESULTS - Máxima jerarquía */
+      .highlight-bright {
+        background: linear-gradient(
+          135deg,
+          #dc2626 0%,
+          #b91c1c 100%
+        ) !important;
+        color: white !important;
+        font-weight: 800 !important;
+        font-size: 1.15rem !important;
+        text-transform: uppercase;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.5);
+        border-top: 3px solid #991b1b !important;
+        border-bottom: 3px solid #991b1b !important;
+      }
+      .highlight-bright td {
+        padding: 1rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.35) !important;
+        letter-spacing: 1.5px;
+      }
+      .highlight-bright:hover {
+        background: linear-gradient(
+          135deg,
+          #ef4444 0%,
+          #dc2626 100%
+        ) !important;
+        box-shadow: 0 5px 15px rgba(220, 38, 38, 0.6);
+      }
+    </style>
+  </head>
+
+  <body
+    data-modulo="RESUMEN"
+    data-modulo-alias="Resumen"
+    data-modulo-id="RESUMEN"
+  >
+    <div class="container-fluid py-4 py-lg-5">
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card header-card fade-in">
+            <div class="card-body text-center text-lg-start">
+              <div
+                class="d-flex flex-column flex-lg-row align-items-center justify-content-between gap-3"
+              >
+                <div>
+                  <h1 class="fw-bold display-6 mb-2">Resumen</h1>
+                  <p class="mb-0 text-white-50 summary-meta">
+                    Capítulo <span id="empresaLabel">-</span> · Periodo
+                    <span class="anio text-light" id="periodLabel">-</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+          <label
+            for="resumenYearSelect"
+            class="form-label fw-semibold text-muted small mb-2"
+            >Ejercicio</label
+          >
+          <select id="resumenYearSelect" class="form-select">
+            <option value="">Cargando ejercicios...</option>
+          </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+          <label
+            for="resumenMonthSelect"
+            class="form-label fw-semibold text-muted small mb-2"
+            >Periodo</label
+          >
+          <select id="resumenMonthSelect" class="form-select select-scroll">
+            <option value="1">Enero</option>
+            <option value="2">Febrero</option>
+            <option value="3">Marzo</option>
+            <option value="4">Abril</option>
+            <option value="5">Mayo</option>
+            <option value="6">Junio</option>
+            <option value="7">Julio</option>
+            <option value="8">Agosto</option>
+            <option value="9">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+          <label
+            for="resumenEmpresaComparativaToggle"
+            class="form-label fw-semibold text-muted small mb-2"
+            >Comparar con</label
+          >
+          <div class="comparativa-toggle">
+            <label class="comparativa-switch mb-0">
+              <input type="checkbox" id="resumenEmpresaComparativaToggle" />
+              <span class="comparativa-track">
+                <span class="comparativa-thumb"></span>
+              </span>
+            </label>
+            <div class="comparativa-text">
+              <span
+                class="comparativa-badge"
+                id="resumenEmpresaComparativaLabel"
+              ></span>
+            </div>
+            <div
+              id="resumenComparativaStatus"
+              class="comparativa-status text-danger small mt-1 w-100 d-none"
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controles de Zoom -->
+      <div class="zoom-menu" id="zoomMenu">
+        <button
+          type="button"
+          class="zoom-toggle"
+          id="zoomMenuToggle"
+          aria-expanded="false"
+          aria-controls="zoomControls"
+        >
+          <i class="bi bi-sliders"></i>
+        </button>
+        <div class="zoom-controls" id="zoomControls">
+          <div class="zoom-header">
+            <div class="round-toggle-container">
+              <label for="roundToggle" class="mb-0">Redondear</label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="roundToggle" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="zoom-level-display">
+              Zoom: <span id="zoomDisplay">100%</span>
+            </div>
+          </div>
+          <div
+            class="btn-group w-100"
+            role="group"
+            aria-label="Controles de colapso"
+          >
+            <button
+              type="button"
+              class="zoom-btn btn btn-outline-secondary w-50 d-flex align-items-center justify-content-center gap-2"
+              id="collapseAllBtn"
+            >
+              <i class="bi bi-chevron-bar-contract"></i>
+              <span>Colapsar</span>
+            </button>
+            <button
+              type="button"
+              class="zoom-btn btn btn-outline-secondary w-50 d-flex align-items-center justify-content-center gap-2"
+              id="expandAllBtn"
+            >
+              <i class="bi bi-chevron-bar-expand"></i>
+              <span>Expandir</span>
+            </button>
+          </div>
+          <button class="zoom-btn" id="zoomOut">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="8" y1="11" x2="14" y2="11"></line>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            Alejar
+          </button>
+          <button class="zoom-btn" id="zoomIn">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="11" y1="8" x2="11" y2="14"></line>
+              <line x1="8" y1="11" x2="14" y2="11"></line>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            Acercar
+          </button>
+          <button class="zoom-btn" id="zoomReset">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <path d="M1 4v6h6"></path>
+              <path d="M23 20v-6h-6"></path>
+              <path
+                d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"
+              ></path>
+            </svg>
+            Restablecer
+          </button>
+          <button class="zoom-btn" id="toggleAccountColumnBtn">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+            <span class="toggle-account-label">Ocultar cuentas</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sección de Toolbar simplificada -->
+      <div class="row mb-3 d-none">
+        <div class="col-12">
+          <!-- Toolbar eliminado -->
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-12">
+          <div
+            class="d-flex flex-column flex-md-row gap-2 align-items-stretch align-items-md-center"
+          >
+            <div class="flex-grow-1">
+              <div class="search-container">
+                <input
+                  type="text"
+                  id="accountSearch"
+                  class="search-input"
+                  placeholder="Buscar cuenta o descripción..."
+                />
+              </div>
+            </div>
+            <div class="d-flex flex-row align-items-center gap-2 flex-wrap">
+              <div
+                class="btn-group"
+                role="group"
+                aria-label="Colapsar/Expandir secciones"
+              >
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary d-flex align-items-center gap-1"
+                  id="collapseAllBtnSecondary"
+                >
+                  <i class="bi bi-chevron-bar-contract"></i>
+                  <span>Colapsar</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary d-flex align-items-center gap-1"
+                  id="expandAllBtnSecondary"
+                >
+                  <i class="bi bi-chevron-bar-expand"></i>
+                  <span>Expandir</span>
+                </button>
+              </div>
+              <button
+                type="button"
+                class="btn charts-toggle-btn d-flex align-items-center gap-2"
+                id="resumenChartsToggleBtn"
+                aria-expanded="false"
+                aria-controls="resumenChartsPanel"
+              >
+                <i class="bi bi-graph-up"></i>
+                <span>Graficas</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-primary d-flex align-items-center gap-1"
+                id="printResumenBtn"
+              >
+                <i class="bi bi-printer"></i>
+                <span>Imprimir PDF</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn-success d-flex align-items-center gap-1"
+                id="exportResumenBtn"
+              >
+                <i class="bi bi-file-earmark-excel"></i>
+                <span>Exportar XLSX</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-12">
+          <div class="charts-panel" id="resumenChartsPanel" aria-hidden="true">
+            <div class="charts-panel-header">
+              <div>
+                <h5 class="charts-panel-title">Graficas de Resumen</h5>
+                <div class="charts-panel-meta">
+                  <span class="charts-pill"
+                    >Capitulo
+                    <span id="resumenChartsEmpresaLabel">-</span></span
+                  >
+                  <span class="charts-pill"
+                    >Periodo <span id="resumenChartsPeriodoLabel">-</span></span
+                  >
+                </div>
+              </div>
+              <div class="charts-panel-actions d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-light btn-sm"
+                  id="resumenChartsRefreshBtn"
+                >
+                  <i class="bi bi-arrow-clockwise"></i>
+                  <span>Actualizar</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-light btn-sm"
+                  id="resumenChartsCloseBtn"
+                >
+                  <i class="bi bi-x-lg"></i>
+                  <span>Cerrar</span>
+                </button>
+              </div>
+            </div>
+            <div class="charts-panel-body">
+              <div class="charts-empty" id="resumenChartsEmpty">
+                No hay datos de graficas disponibles. Carga el resumen primero.
+              </div>
+              <div class="row g-3 d-none" id="resumenChartsGrid">
+                <div class="col-12 col-lg-6" id="resumenChartCardOperating">
+                  <div class="charts-card">
+                    <div
+                      class="d-flex justify-content-between align-items-center mb-2"
+                    >
+                      <h6 class="mb-0">Resultado Operativo por Capitulo</h6>
+                      <small class="text-muted"
+                        >Real Acum / Ppto. Acum / Real Acum AA</small
+                      >
+                    </div>
+                    <div class="charts-canvas">
+                      <canvas id="resumenChartOperating"></canvas>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-lg-6" id="resumenChartCardNet">
+                  <div class="charts-card">
+                    <div
+                      class="d-flex justify-content-between align-items-center mb-2"
+                    >
+                      <h6 class="mb-0">Resumen Neto por Capitulo</h6>
+                      <small class="text-muted"
+                        >Real Acum / Ppto. Acum / Real Acum AA</small
+                      >
+                    </div>
+                    <div class="charts-canvas">
+                      <canvas id="resumenChartNet"></canvas>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12" id="resumenChartCardConsolidated">
+                  <div class="charts-card">
+                    <div
+                      class="d-flex justify-content-between align-items-center mb-2"
+                    >
+                      <h6 class="mb-0">Consolidados Operativos vs Netos</h6>
+                      <small class="text-muted"
+                        >Real Acum / Ppto. Acum / Real Acum AA</small
+                      >
+                    </div>
+                    <div class="charts-canvas">
+                      <canvas id="resumenChartConsolidated"></canvas>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12" id="resumenChartCardIngresoNacional">
+                  <div class="charts-card">
+                    <div
+                      class="d-flex justify-content-between align-items-center mb-2"
+                    >
+                      <h6 class="mb-0">Ingreso nacional</h6>
+                      <small class="text-muted">Real acumulado por mes</small>
+                    </div>
+                    <div class="charts-canvas">
+                      <canvas id="resumenChartIngresoNacional"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row gy-4 gx-0 align-items-start">
+        <div class="col-12 px-0">
+          <div class="table-card fade-in">
+            <div class="table-responsive">
+              <div class="table-wrapper" id="tableWrapper">
+                <table
+                  class="table align-middle mb-0 table-comparison"
+                  id="tablaComparacion"
+                  data-sticky-columns="0"
+                >
+                  <colgroup>
+                    <col class="col-cuenta" />
+                    <col class="col-valor" span="5" />
+                    <col class="col-descripcion" />
+                    <col class="col-valor" span="5" />
+                  </colgroup>
+                  <thead>
+                    <tr class="encabezados">
+                      <th scope="col" class="account-column-header" rowspan="2">
+                        Cuenta
+                      </th>
+                      <th scope="col" colspan="5">
+                        <span class="mes-actual">DICIEMBRE</span>
+                        <span class="year-act"></span>
+                      </th>
+                      <th scope="col" class="col-descripcion" rowspan="2">
+                        Descripción
+                      </th>
+                      <th scope="col" colspan="5">
+                        YTD <span class="year-act"></span>
+                      </th>
+                    </tr>
+                    <tr class="encabezados-sub">
+                      <th scope="col" class="month-real">Real</th>
+                      <th scope="col" class="month-budget">Ppto.</th>
+                      <th scope="col" class="month-real">
+                        Real <span class="mes-actual">DIC</span>
+                        <span class="year-prev"></span>
+                      </th>
+                      <th scope="col" class="total-budget-column">
+                        B/(W)% vs. Ppto.
+                      </th>
+                      <th scope="col" class="total-real-column">
+                        B/(W)% vs. Real <span class="mes-actual">DIC</span>
+                        <span class="year-prev"></span>
+                      </th>
+                      <th scope="col" class="month-real">Real acumulado</th>
+                      <th scope="col" class="month-budget">Ppto. acumulado</th>
+                      <th scope="col" class="month-real">
+                        Real acumulado <span class="year-prev"></span>
+                      </th>
+                      <th scope="col" class="total-budget-column">
+                        B/(W)% vs. Ppto. acumulado
+                      </th>
+                      <th scope="col" class="total-real-column">
+                        B/(W)% vs. Real acumulado
+                        <span class="year-prev"></span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="tablaCuentasBody">
+                    <tr class="estado-tabla">
+                      <td colspan="12">
+                        Construyendo el resumen financiero, espera un momento...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+      <div
+        id="actionToast"
+        class="toast align-items-center text-bg-success border-0"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <div class="d-flex">
+          <div class="toast-body" id="actionToastBody">
+            Acción realizada correctamente.
+          </div>
+          <button
+            type="button"
+            class="btn-close btn-close-white me-2 m-auto"
+            data-bs-dismiss="toast"
+            aria-label="Cerrar"
+          ></button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/sesion.js"></script>
+    <script src="js/verificar-sesion.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+    <script src="js/capitulos-modulos.js"></script>
+    <script src="js/insertion-wizard.js"></script>
+    <script src="js/context-menu-wizard.js"></script>
+    <script src="js/modo-edicion-presupuesto.js"></script>
+    <script src="js/init-modulo-planeacion.js"></script>
+
+    <!-- Librerías para exportación con gráficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script src="js/export-utils.js?v=20260226.9"></script>
+    <script src="js/guided-tour.js"></script>
+    <script src="js/graficas-config.js?v=20260226.9"></script>
+    <script src="js/resumen-view.js?v=20260226.10"></script>
+    <script>
+      // Inicialización de RESUMEN con FlujoAutorizacion
+      document.addEventListener("DOMContentLoaded", () => {
+        const selectorTabla = "#tablaComparacion";
+
+        // Escuchar evento de actualización de contexto (cuando se carga año/empresa)
+        document.addEventListener("planeacion:contexto-actualizado", (evt) => {
+          const { anio } = evt.detail || {};
+          // Inicializar solo si tenemos año válido y no se ha inicializado correctamente antes
+          if (anio && typeof ModoEdicionPresupuesto !== "undefined") {
+            // Re-inicializamos para capturar el año correcto en el estado interno del editor
+            ModoEdicionPresupuesto.inicializar(selectorTabla, {
+              soloLayout: true,
+              mostrarDiagnosticoCuentas: false,
+            });
+          }
+        });
+
+        // Toggle del menú de controles de zoom
+        const zoomMenu = document.getElementById("zoomMenu");
+        const zoomMenuToggle = document.getElementById("zoomMenuToggle");
+
+        const cerrarZoomMenu = () => {
+          if (!zoomMenu) return;
+          zoomMenu.classList.remove("open");
+          if (zoomMenuToggle) {
+            zoomMenuToggle.setAttribute("aria-expanded", "false");
+          }
+        };
+
+        const alternarZoomMenu = () => {
+          if (!zoomMenu || !zoomMenuToggle) return;
+          const abierto = zoomMenu.classList.toggle("open");
+          zoomMenuToggle.setAttribute(
+            "aria-expanded",
+            abierto ? "true" : "false",
+          );
+        };
+
+        if (zoomMenuToggle) {
+          zoomMenuToggle.addEventListener("click", (e) => {
+            e.stopPropagation();
+            alternarZoomMenu();
+          });
+        }
+
+        document.addEventListener("click", (e) => {
+          if (!zoomMenu) return;
+          if (!zoomMenu.contains(e.target)) {
+            cerrarZoomMenu();
+          }
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            cerrarZoomMenu();
+          }
+        });
+
+        // Toggle para redondear números
+        const roundToggle = document.getElementById("roundToggle");
+        const ROUND_STORAGE_KEY = "resumen_redondear_numeros";
+
+        const formatConSeparador = (valor, redondear) =>
+          new Intl.NumberFormat("en-US", {
+            minimumFractionDigits: redondear ? 0 : 2,
+            maximumFractionDigits: redondear ? 0 : 2,
+          }).format(valor);
+
+        const aplicarRedondeo = (redondear) => {
+          const tabla = document.querySelector("#tablaComparacion tbody");
+          if (!tabla) return;
+
+          const celdas = tabla.querySelectorAll(
+            "td:not(.text-start):not(.cuenta-col)",
+          );
+          celdas.forEach((celda) => {
+            const texto = celda.textContent.trim();
+            if (!texto || texto === "-") return;
+
+            let valorOriginal = celda.dataset.originalValue;
+            if (typeof valorOriginal === "undefined") {
+              const numerico = parseFloat(texto.replace(/[^0-9.-]/g, ""));
+              if (Number.isNaN(numerico)) {
+                return;
+              }
+              celda.dataset.originalValue = numerico;
+              valorOriginal = numerico;
+            } else {
+              valorOriginal = parseFloat(valorOriginal);
+            }
+
+            if (Number.isNaN(valorOriginal)) return;
+
+            const valorMostrar = redondear
+              ? Math.round(valorOriginal)
+              : valorOriginal;
+            const contenido = formatConSeparador(valorMostrar, redondear);
+            if (celda.classList.contains("percent-cell")) {
+              celda.textContent = `${contenido} %`;
+            } else {
+              celda.textContent = contenido;
+            }
+          });
+        };
+
+        if (roundToggle) {
+          // Restaurar estado del toggle
+          const savedRoundState = localStorage.getItem(ROUND_STORAGE_KEY);
+          if (savedRoundState === "true") {
+            roundToggle.checked = true;
+            // Aplicar redondeo cuando la tabla esté cargada
+            setTimeout(() => aplicarRedondeo(true), 500);
+          }
+
+          roundToggle.addEventListener("change", function () {
+            const redondear = this.checked;
+            localStorage.setItem(ROUND_STORAGE_KEY, redondear);
+            aplicarRedondeo(redondear);
+          });
+        }
+      });
+    </script>
+
+    <!-- Menú Contextual -->
+    <div
+      id="contextMenu"
+      class="context-menu"
+      style="
+        display: none;
+        position: absolute;
+        z-index: 10000;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        min-width: 220px;
+      "
+    >
+      <div class="context-menu-item" data-action="add-row">
+        <i class="bi bi-plus-circle me-2"></i>
+        <span>Agregar cuenta</span>
+      </div>
+      <div class="context-menu-item" data-action="add-operation">
+        <i class="bi bi-calculator me-2"></i>
+        <span>Crear operación</span>
+      </div>
+      <div class="context-menu-item" data-action="add-section">
+        <i class="bi bi-folder-plus me-2"></i>
+        <span>Agregar sección</span>
+      </div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" data-action="edit-row">
+        <i class="bi bi-pencil me-2"></i>
+        <span>Editar</span>
+      </div>
+      <div
+        class="context-menu-item context-menu-danger"
+        data-action="delete-row"
+      >
+        <i class="bi bi-trash me-2"></i>
+        <span>Eliminar</span>
+      </div>
+    </div>
+
+    <style>
+      .context-menu-item {
+        padding: 10px 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        font-size: 0.9rem;
+        transition: background 0.15s;
+        color: #333;
+      }
+      .context-menu-item:hover {
+        background: #f0f0f0;
+      }
+      .context-menu-item:first-child {
+        border-radius: 8px 8px 0 0;
+      }
+      .context-menu-item:last-child {
+        border-radius: 0 0 8px 8px;
+      }
+      .context-menu-divider {
+        height: 1px;
+        background: #e0e0e0;
+        margin: 4px 0;
+      }
+      .context-menu-danger {
+        color: #dc2626;
+      }
+      .context-menu-danger:hover {
+        background: #fee2e2;
+      }
+    </style>
+
+    <script src="js/comentarios-celdas.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (!window.GuidedTour) return;
+        window.GuidedTour.mount({
+          id: "resumen-edicion-export",
+          buttonText: "Tour resumen",
+          steps: [
+            {
+              selector: "#resumenYearSelect",
+              title: "Ejercicio",
+              description:
+                "Selecciona el anio para cargar saldos y estructura del resumen.",
+            },
+            {
+              selector: "#resumenMonthSelect",
+              title: "Periodo",
+              description:
+                "Define el mes de corte para recalcular comparativos y variaciones.",
+            },
+            {
+              selector: "#resumenEmpresaComparativaToggle",
+              title: "Comparativa de empresas",
+              description:
+                "Activa este switch para comparar contra la empresa configurada como referencia.",
+            },
+            {
+              selector: "#zoomMenuToggle",
+              title: "Controles de zoom",
+              description:
+                "Desde aqui ajustas zoom, redondeo y acciones rapidas de expandir o colapsar.",
+            },
+            {
+              selector: "#accountSearch",
+              title: "Busqueda en tabla",
+              description:
+                "Filtra cuentas y descripciones para localizar rubros sin recorrer todo el reporte.",
+            },
+            {
+              selector: "#resumenChartsToggleBtn",
+              title: "Panel de graficas",
+              description:
+                "Abre las graficas integradas del resumen sin salir del modulo.",
+              beforeEnter: ({ api }) => {
+                api.click("#resumenChartsToggleBtn");
+                return api.waitFor("#resumenChartsPanel", 1200);
+              },
+            },
+            {
+              selector: "#resumenChartsPanel",
+              title: "Graficas embebidas",
+              description:
+                "Aqui puedes actualizar y validar la lectura visual de operativo, neto e ingresos.",
+            },
+            {
+              selector: ["#exportResumenBtn", "#printResumenBtn"],
+              title: "Exportacion del resumen",
+              description:
+                "Exporta a XLSX o genera PDF para compartir resultados y evidencia de cierre.",
+            },
+            {
+              selector: "#tablaComparacion",
+              title: "Modo edicion",
+              description:
+                "La tabla permite edicion asistida y menu contextual para ajustar estructura.",
+            },
+            {
+              selector: ".comentarios-floating-btn",
+              title: "Comentarios por celda",
+              description:
+                "Usa este acceso para crear comentarios y dar seguimiento a observaciones.",
+              beforeEnter: ({ api }) =>
+                api.waitFor(".comentarios-floating-btn", 2000),
+            },
+            {
+              selector: "#comentariosInput",
+              title: "Crear comentario",
+              description:
+                "Selecciona una celda y escribe tu mensaje para iniciar un hilo de colaboracion.",
+              beforeEnter: ({ api }) => {
+                api.click(".comentarios-floating-btn");
+                return api.waitFor("#comentariosInput", 2000);
+              },
+            },
+            {
+              selector: [
+                "#comentariosLista [data-action='responder']",
+                "#comentariosLista",
+              ],
+              title: "Contestar comentarios",
+              description:
+                "Cuando exista conversacion veras la accion Responder para continuar el hilo.",
+              beforeEnter: ({ api }) => api.waitFor("#comentariosLista", 1500),
+            },
+          ],
+        });
+      });
+    </script>
+  </body>
+</html>
+
+
+
+

@@ -1,0 +1,20 @@
+- main "AmCham" [ref=e2]:
+  - heading "AmCham" [level=1] [ref=e4]
+  - alert [ref=e5]:
+    - generic [ref=e22]: "!"
+    - generic [ref=e23]: "Failed to execute 'json' on 'Response': Unexpected end of JSON input"
+  - generic [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e8]: Usuario *
+      - textbox "Usuario" [ref=e9]:
+        - /placeholder: ""
+        - text: ICONET
+    - generic [ref=e10]:
+      - generic [ref=e11]: Contraseña *
+      - generic [ref=e12]:
+        - textbox "Contraseña" [ref=e13]: 4zxb63NyI43?
+        - button "Mostrar contraseña" [ref=e14] [cursor=pointer]:
+          - img [ref=e15]
+    - button "Ingresar" [ref=e18] [cursor=pointer]:
+      - status [ref=e19]
+      - text: Ingresar

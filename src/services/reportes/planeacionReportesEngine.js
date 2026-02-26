@@ -2966,6 +2966,20 @@ const construirReporteResumen = (
       : opsConFormulaBase;
 
     const manualSeccionOps = opsConFormula;
+    const esTerminoSubseccionValido = (term = {}) => {
+      const tipo = normalizarTerminoTipo(term);
+      return (
+        tipo === "account" ||
+        tipo === "cuenta" ||
+        tipo === "const" ||
+        tipo === "constant"
+      );
+    };
+    const obtenerTerminosSubseccionValidos = (op = {}) => {
+      const terms = obtenerTerminosOperacion(op);
+      if (!Array.isArray(terms) || !terms.length) return null;
+      return terms.every(esTerminoSubseccionValido) ? terms : null;
+    };
     const cleanLabel = (value = "") => (value || "").toString().trim();
     const labelsAreEqual = (left = "", right = "") => {
       const leftKey = normalizarEtiqueta(left);
@@ -3080,6 +3094,8 @@ const construirReporteResumen = (
 
     manualSeccionOps.forEach(({ op }) => {
       const opKey = getOperacionKey(op);
+      const terms = obtenerTerminosSubseccionValidos(op);
+      if (!terms) return;
       const totals = calcularTotalesOperacion(op);
       if (!totals) return;
       const sectionCandidates = buildSubsectionCandidates(op);
@@ -3090,7 +3106,7 @@ const construirReporteResumen = (
         const secNode = resolveSectionNode(candidate.label, candidate.parent);
         if (!secNode) continue;
         applyTotalsToSection(secNode, totals);
-        secNode.__formulaTerms = obtenerTerminosOperacion(op);
+        secNode.__formulaTerms = terms;
         rebuildMapSecciones();
         storeOperacionTotals(op, totals);
         applied = true;

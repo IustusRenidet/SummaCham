@@ -5183,24 +5183,6 @@
         dest.planYTD += toNumber(src.planYTD);
         dest.prevYTD += toNumber(src.prevYTD);
       };
-      const formulaSubseccionValida = (block = {}) => {
-        const terms = Array.isArray(block?.formula_terms)
-          ? block.formula_terms
-          : [];
-        if (!terms.length) return false;
-        return terms.every((term) => {
-          const tipo = (term?.type || "")
-            .toString()
-            .trim()
-            .toLowerCase();
-          return (
-            tipo === "account" ||
-            tipo === "cuenta" ||
-            tipo === "const" ||
-            tipo === "constant"
-          );
-        });
-      };
 
       // FIRST PASS: Aggregate Accounts into Subsections (Secundarias)
       // IMPORTANT: Resumen puede venir en "orden manual" (layout global), donde las cuentas
@@ -5280,10 +5262,6 @@
         const tipo = tipoKey.toLowerCase();
         const isSecundaria = tipo === 'secundaria' || tipo === 'sum-row' || tipo.includes('secundaria') || tipo === 'subsection';
         if (isSecundaria) {
-          // Regla estricta: una subsección solo puede formularse con cuentas/constantes.
-          // Si trae referencias de nivel superior (section/operation), se ignora y
-          // prevalece la suma de cuentas (Pass 1).
-          if (!formulaSubseccionValida(block)) return;
           const subFormula = getFormulaString(block);
           if (subFormula && typeof subFormula === 'string' && subFormula.trim().length > 3) {
             const fields = ['actualMonth', 'planMonth', 'prevMonth', 'actualYTD', 'planYTD', 'prevYTD'];
