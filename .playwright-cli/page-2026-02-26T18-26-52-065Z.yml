@@ -1,0 +1,1894 @@
+- generic [ref=e3]:
+  - complementary "Navegación principal" [ref=e4]:
+    - img "AmCham" [ref=e6]
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - button "Resumen 1" [expanded] [ref=e9] [cursor=pointer]:
+          - generic [ref=e10]: Resumen
+          - generic [ref=e11]: "1"
+        - button "Resumen summary" [ref=e13] [cursor=pointer]:
+          - generic [ref=e14]: Resumen
+          - generic [ref=e15]: summary
+      - generic [ref=e16]:
+        - button "Divisiones 11" [expanded] [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: Divisiones
+          - generic [ref=e19]: "11"
+        - generic [ref=e20]:
+          - button "Presupuestos ppto" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: Presupuestos
+            - generic [ref=e23]: ppto
+          - button "Comités" [ref=e24] [cursor=pointer]:
+            - generic [ref=e25]: Comités
+          - button "Comunicación" [ref=e26] [cursor=pointer]:
+            - generic [ref=e27]: Comunicación
+          - button "Eventos" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: Eventos
+          - generic [ref=e30]:
+            - button "Finanzas 3" [expanded] [ref=e31] [cursor=pointer]:
+              - generic [ref=e32]: Finanzas
+              - generic [ref=e33]: "3"
+            - generic [ref=e34]:
+              - button "Finanzas finanzas" [ref=e35] [cursor=pointer]:
+                - generic [ref=e36]: Finanzas
+                - generic [ref=e37]: finanzas
+              - button "Gastos Generales finanzas" [ref=e38] [cursor=pointer]:
+                - generic [ref=e39]: Gastos Generales
+                - generic [ref=e40]: finanzas
+              - button "Nómina finanzas" [ref=e41] [cursor=pointer]:
+                - generic [ref=e42]: Nómina
+                - generic [ref=e43]: finanzas
+          - button "Gastos Corporativos" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: Gastos Corporativos
+          - button "Membresía" [ref=e46] [cursor=pointer]:
+            - generic [ref=e47]: Membresía
+          - button "Recursos Humanos" [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]: Recursos Humanos
+          - button "Servicios a la Membresía" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: Servicios a la Membresía
+          - button "T&IC" [ref=e52] [cursor=pointer]:
+            - generic [ref=e53]: T&IC
+          - button "VPE" [ref=e54] [cursor=pointer]:
+            - generic [ref=e55]: VPE
+      - generic [ref=e56]:
+        - button "Configuración 5" [expanded] [ref=e57] [cursor=pointer]:
+          - generic [ref=e58]: Configuración
+          - generic [ref=e59]: "5"
+        - generic [ref=e60]:
+          - button "Mi Perfil perfil" [ref=e61] [cursor=pointer]:
+            - generic [ref=e62]: Mi Perfil
+            - generic [ref=e63]: perfil
+          - button "Administrar usuarios Permisos" [ref=e64] [cursor=pointer]:
+            - generic [ref=e65]: Administrar usuarios
+            - generic [ref=e66]: Permisos
+          - button "Crear usuario" [ref=e67] [cursor=pointer]:
+            - generic [ref=e68]: Crear usuario
+          - button "Gestor de Plantillas" [ref=e69] [cursor=pointer]:
+            - generic [ref=e70]: Gestor de Plantillas
+          - button "Administrar conexiones" [ref=e71] [cursor=pointer]:
+            - generic [ref=e72]: Administrar conexiones
+  - main [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - button "Ocultar menú lateral" [expanded] [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]: ☰
+        - heading "Gestor de Plantillas" [level=2] [ref=e97]
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - button "Tour guiado" [ref=e83] [cursor=pointer]
+          - button "Opciones" [ref=e84] [cursor=pointer]:
+            - generic [ref=e85]: Opciones
+        - button "Notificaciones" [ref=e87] [cursor=pointer]:
+          - img [ref=e88]
+        - generic [ref=e90]:
+          - generic [ref=e91]: "Empresa:"
+          - combobox "Empresa:" [ref=e92]:
+            - option "Ciudad de México" [selected]
+            - option "Guadalajara"
+            - option "Noreste"
+            - option "Noroeste"
+        - button "Cerrar sesión" [ref=e93] [cursor=pointer]
+    - iframe [active] [ref=e98]:
+      - generic [active] [ref=f2e1]:
+        - generic [ref=f2e2]:
+          - generic [ref=f2e7]:
+            - generic [ref=f2e8]:
+              - heading "Gestor de Plantillas" [level=1] [ref=f2e9]
+              - paragraph [ref=f2e10]: RESUMEN · 2026 · CIUDAD DE MEXICO
+            - generic [ref=f2e11]:
+              - generic [ref=f2e15702]: 
+              - text: Edición forzada (local)
+          - generic [ref=f2e13]:
+            - generic [ref=f2e14]:
+              - generic [ref=f2e15]: Módulo
+              - combobox "Módulo" [ref=f2e16] [cursor=pointer]:
+                - option "RESUMEN" [selected]
+                - option "Finanzas"
+                - option "Gastos Generales"
+                - option "Nómina"
+                - option "Membresía"
+                - option "Serv Membresía"
+                - option "RH"
+                - option "Eventos"
+                - option "Comités"
+                - option "Comunicación"
+                - option "Dirección"
+                - option "Gtos Corporativos"
+                - option "T&IC"
+                - option "VPE"
+            - generic [ref=f2e17]:
+              - generic [ref=f2e18]: Año
+              - combobox "Año" [ref=f2e19] [cursor=pointer]:
+                - option "2026" [selected]
+                - option "2025"
+                - option "2024"
+                - option "2023"
+                - option "2022"
+                - option "2021"
+                - option "2020"
+                - option "2019"
+                - option "2018"
+                - option "2017"
+                - option "2016"
+                - option "2015"
+                - option "2014"
+                - option "2013"
+                - option "2012"
+                - option "2011"
+                - option "2010"
+                - option "2009"
+                - option "2008"
+                - option "2007"
+                - option "2006"
+                - option "2005"
+            - generic [ref=f2e20]:
+              - generic [ref=f2e21]: Capítulo
+              - combobox "Capítulo" [ref=f2e22] [cursor=pointer]:
+                - option "CIUDAD DE MÉXICO" [selected]
+            - button " Cargar Layout" [ref=f2e24] [cursor=pointer]:
+              - generic [ref=f2e25]: 
+              - text: Cargar Layout
+          - generic [ref=f2e30]:
+            - generic [ref=f2e32]:
+              - textbox "Buscar en el layout..." [ref=f2e33] [cursor=pointer]
+              - generic [ref=f2e34]:
+                - generic [ref=f2e35]: "Filtrar:"
+                - group [ref=f2e36]:
+                  - radio "Todo" [checked] [ref=f2e37] [cursor=pointer]
+                  - generic [ref=f2e38] [cursor=pointer]: Todo
+                  - radio "Secciones" [ref=f2e39] [cursor=pointer]
+                  - generic [ref=f2e40] [cursor=pointer]: Secciones
+                  - radio "Cuentas" [ref=f2e41] [cursor=pointer]
+                  - generic [ref=f2e42] [cursor=pointer]: Cuentas
+                  - radio "Operaciones" [ref=f2e43] [cursor=pointer]
+                  - generic [ref=f2e44] [cursor=pointer]: Operaciones
+            - button " Agregar" [ref=f2e45] [cursor=pointer]:
+              - generic [ref=f2e46]: 
+              - text: Agregar
+            - button " Expandir" [ref=f2e47] [cursor=pointer]:
+              - generic [ref=f2e48]: 
+              - text: Expandir
+            - button " Colapsar" [ref=f2e49] [cursor=pointer]:
+              - generic [ref=f2e50]: 
+              - text: Colapsar
+            - button " Vista Previa" [ref=f2e51] [cursor=pointer]:
+              - generic [ref=f2e52]: 
+              - text: Vista Previa
+            - button " Copiar a otro año" [ref=f2e53] [cursor=pointer]:
+              - generic [ref=f2e54]: 
+              - text: Copiar a otro año
+            - button " Guardar" [ref=f2e3705] [cursor=pointer]:
+              - generic [ref=f2e3706]: 
+              - text: Guardar
+            - button " Historial" [ref=f2e55] [cursor=pointer]:
+              - generic [ref=f2e56]: 
+              - text: Historial
+          - tablist [ref=f2e59]:
+            - tab "Layout" [selected] [ref=f2e60] [cursor=pointer]
+            - tab "Graficas" [ref=f2e61] [cursor=pointer]
+          - generic [ref=f2e62]:
+            - tabpanel "Layout" [ref=f2e63]:
+              - generic [ref=f2e65]:
+                - text:   
+                - generic [ref=f2e67]:
+                  - generic [ref=f2e69]: RESUMEN · 2026 · CIUDAD DE MEXICO
+                  - generic [ref=f2e15703]:
+                    - generic [ref=f2e15705]:
+                      - generic [ref=f2e15706]:
+                        - generic [ref=f2e15707]:
+                          - generic [ref=f2e15708]: Secciones
+                          - generic [ref=f2e15709]: "10"
+                        - generic [ref=f2e15710]:
+                          - generic [ref=f2e15711]: Subsecciones
+                          - generic [ref=f2e15712]: "22"
+                        - generic [ref=f2e15713]:
+                          - generic [ref=f2e15714]: Cuentas
+                          - generic [ref=f2e15715]: "52"
+                        - generic [ref=f2e15716]:
+                          - generic [ref=f2e15717]: Operaciones
+                          - generic [ref=f2e15718]: "0"
+                      - generic [ref=f2e15719]: "Modo ordenar activo: usa las flechas para mover."
+                    - generic [ref=f2e15720]:
+                      - generic [ref=f2e15721]:
+                        - generic [ref=f2e15722]: Elementos de la plantilla
+                        - generic [ref=f2e15725]:
+                          - checkbox " Ordenar" [checked] [ref=f2e15726] [cursor=pointer]
+                          - generic [ref=f2e15727]:
+                            - generic [ref=f2e15728]: 
+                            - text: Ordenar
+                      - generic [ref=f2e15730]:
+                        - generic [ref=f2e15731] [cursor=pointer]:
+                          - generic [ref=f2e15732]:
+                            - button "" [ref=f2e15733]:
+                              - generic [ref=f2e15734]: 
+                            - spinbutton "Mover a posición" [ref=f2e15735]: "1"
+                            - button "" [ref=f2e15736]:
+                              - generic [ref=f2e15737]: 
+                          - generic [ref=f2e15738]:
+                            - generic [ref=f2e15739]:
+                              - generic [ref=f2e15740]: 
+                              - strong [ref=f2e15741]: INCOME
+                            - generic [ref=f2e15742]:
+                              - button "Σ" [ref=f2e15743]
+                              - button "" [ref=f2e15744]:
+                                - generic [ref=f2e15745]: 
+                              - button "" [ref=f2e15746]:
+                                - generic [ref=f2e15747]: 
+                              - button "" [ref=f2e15748]:
+                                - generic [ref=f2e15749]: 
+                        - generic [ref=f2e15750] [cursor=pointer]:
+                          - generic [ref=f2e15751]:
+                            - button "" [ref=f2e15752]:
+                              - generic [ref=f2e15753]: 
+                            - spinbutton "Mover a posición" [ref=f2e15754]: "2"
+                            - button "" [ref=f2e15755]:
+                              - generic [ref=f2e15756]: 
+                          - generic [ref=f2e15757]:
+                            - generic [ref=f2e15758]:
+                              - generic [ref=f2e15759]: 
+                              - emphasis [ref=f2e15760]: Membership
+                            - generic [ref=f2e15761]:
+                              - button "" [ref=f2e15762]:
+                                - generic [ref=f2e15763]: 
+                              - button "" [ref=f2e15764]:
+                                - generic [ref=f2e15765]: 
+                              - button "" [ref=f2e15766]:
+                                - generic [ref=f2e15767]: 
+                              - button "" [ref=f2e15768]:
+                                - generic [ref=f2e15769]: 
+                        - generic [ref=f2e15770] [cursor=pointer]:
+                          - generic [ref=f2e15771]:
+                            - button "" [ref=f2e15772]:
+                              - generic [ref=f2e15773]: 
+                            - spinbutton "Mover a posición" [ref=f2e15774]: "3"
+                            - button "" [ref=f2e15775]:
+                              - generic [ref=f2e15776]: 
+                          - generic [ref=f2e15777]:
+                            - generic [ref=f2e15778]:
+                              - generic [ref=f2e15779]: 402-000-000-00
+                              - generic [ref=f2e15780]: Ingresos socios nuevos
+                            - generic [ref=f2e15781]:
+                              - button "" [ref=f2e15782]:
+                                - generic [ref=f2e15783]: 
+                              - button "" [ref=f2e15784]:
+                                - generic [ref=f2e15785]: 
+                        - generic [ref=f2e15786] [cursor=pointer]:
+                          - generic [ref=f2e15787]:
+                            - button "" [ref=f2e15788]:
+                              - generic [ref=f2e15789]: 
+                            - spinbutton "Mover a posición" [ref=f2e15790]: "4"
+                            - button "" [ref=f2e15791]:
+                              - generic [ref=f2e15792]: 
+                          - generic [ref=f2e15793]:
+                            - generic [ref=f2e15794]:
+                              - generic [ref=f2e15795]: 401-000-000-00
+                              - generic [ref=f2e15796]: Cuotas Netas
+                            - generic [ref=f2e15797]:
+                              - button "" [ref=f2e15798]:
+                                - generic [ref=f2e15799]: 
+                              - button "" [ref=f2e15800]:
+                                - generic [ref=f2e15801]: 
+                        - generic [ref=f2e15802] [cursor=pointer]:
+                          - generic [ref=f2e15803]:
+                            - button "" [ref=f2e15804]:
+                              - generic [ref=f2e15805]: 
+                            - spinbutton "Mover a posición" [ref=f2e15806]: "5"
+                            - button "" [ref=f2e15807]:
+                              - generic [ref=f2e15808]: 
+                          - generic [ref=f2e15809]:
+                            - generic [ref=f2e15810]:
+                              - generic [ref=f2e15811]: 
+                              - emphasis [ref=f2e15812]: Events
+                            - generic [ref=f2e15813]:
+                              - button "" [ref=f2e15814]:
+                                - generic [ref=f2e15815]: 
+                              - button "" [ref=f2e15816]:
+                                - generic [ref=f2e15817]: 
+                              - button "" [ref=f2e15818]:
+                                - generic [ref=f2e15819]: 
+                              - button "" [ref=f2e15820]:
+                                - generic [ref=f2e15821]: 
+                        - generic [ref=f2e15822] [cursor=pointer]:
+                          - generic [ref=f2e15823]:
+                            - button "" [ref=f2e15824]:
+                              - generic [ref=f2e15825]: 
+                            - spinbutton "Mover a posición" [ref=f2e15826]: "6"
+                            - button "" [ref=f2e15827]:
+                              - generic [ref=f2e15828]: 
+                          - generic [ref=f2e15829]:
+                            - generic [ref=f2e15830]:
+                              - generic [ref=f2e15831]: 407-000-000-00
+                              - generic [ref=f2e15832]: Eventos
+                            - generic [ref=f2e15833]:
+                              - button "" [ref=f2e15834]:
+                                - generic [ref=f2e15835]: 
+                              - button "" [ref=f2e15836]:
+                                - generic [ref=f2e15837]: 
+                        - generic [ref=f2e15838] [cursor=pointer]:
+                          - generic [ref=f2e15839]:
+                            - button "" [ref=f2e15840]:
+                              - generic [ref=f2e15841]: 
+                            - spinbutton "Mover a posición" [ref=f2e15842]: "7"
+                            - button "" [ref=f2e15843]:
+                              - generic [ref=f2e15844]: 
+                          - generic [ref=f2e15845]:
+                            - generic [ref=f2e15846]:
+                              - generic [ref=f2e15847]: 408-000-000-00
+                              - generic [ref=f2e15848]: Patrocinios
+                            - generic [ref=f2e15849]:
+                              - button "" [ref=f2e15850]:
+                                - generic [ref=f2e15851]: 
+                              - button "" [ref=f2e15852]:
+                                - generic [ref=f2e15853]: 
+                        - generic [ref=f2e15854] [cursor=pointer]:
+                          - generic [ref=f2e15855]:
+                            - button "" [ref=f2e15856]:
+                              - generic [ref=f2e15857]: 
+                            - spinbutton "Mover a posición" [ref=f2e15858]: "8"
+                            - button "" [ref=f2e15859]:
+                              - generic [ref=f2e15860]: 
+                          - generic [ref=f2e15861]:
+                            - generic [ref=f2e15862]:
+                              - generic [ref=f2e15863]: 
+                              - emphasis [ref=f2e15864]: Committees
+                            - generic [ref=f2e15865]:
+                              - button "" [ref=f2e15866]:
+                                - generic [ref=f2e15867]: 
+                              - button "" [ref=f2e15868]:
+                                - generic [ref=f2e15869]: 
+                              - button "" [ref=f2e15870]:
+                                - generic [ref=f2e15871]: 
+                              - button "" [ref=f2e15872]:
+                                - generic [ref=f2e15873]: 
+                        - generic [ref=f2e15874] [cursor=pointer]:
+                          - generic [ref=f2e15875]:
+                            - button "" [ref=f2e15876]:
+                              - generic [ref=f2e15877]: 
+                            - spinbutton "Mover a posición" [ref=f2e15878]: "9"
+                            - button "" [ref=f2e15879]:
+                              - generic [ref=f2e15880]: 
+                          - generic [ref=f2e15881]:
+                            - generic [ref=f2e15882]:
+                              - generic [ref=f2e15883]: 417-000-000-00
+                              - generic [ref=f2e15884]: Comités
+                            - generic [ref=f2e15885]:
+                              - button "" [ref=f2e15886]:
+                                - generic [ref=f2e15887]: 
+                              - button "" [ref=f2e15888]:
+                                - generic [ref=f2e15889]: 
+                        - generic [ref=f2e15890] [cursor=pointer]:
+                          - generic [ref=f2e15891]:
+                            - button "" [ref=f2e15892]:
+                              - generic [ref=f2e15893]: 
+                            - spinbutton "Mover a posición" [ref=f2e15894]: "10"
+                            - button "" [ref=f2e15895]:
+                              - generic [ref=f2e15896]: 
+                          - generic [ref=f2e15897]:
+                            - generic [ref=f2e15898]:
+                              - generic [ref=f2e15899]: 412-000-000-00
+                              - generic [ref=f2e15900]: Economex
+                            - generic [ref=f2e15901]:
+                              - button "" [ref=f2e15902]:
+                                - generic [ref=f2e15903]: 
+                              - button "" [ref=f2e15904]:
+                                - generic [ref=f2e15905]: 
+                        - generic [ref=f2e15906] [cursor=pointer]:
+                          - generic [ref=f2e15907]:
+                            - button "" [ref=f2e15908]:
+                              - generic [ref=f2e15909]: 
+                            - spinbutton "Mover a posición" [ref=f2e15910]: "11"
+                            - button "" [ref=f2e15911]:
+                              - generic [ref=f2e15912]: 
+                          - generic [ref=f2e15913]:
+                            - generic [ref=f2e15914]:
+                              - generic [ref=f2e15915]: 
+                              - emphasis [ref=f2e15916]: T&IC
+                            - generic [ref=f2e15917]:
+                              - button "" [ref=f2e15918]:
+                                - generic [ref=f2e15919]: 
+                              - button "" [ref=f2e15920]:
+                                - generic [ref=f2e15921]: 
+                              - button "" [ref=f2e15922]:
+                                - generic [ref=f2e15923]: 
+                              - button "" [ref=f2e15924]:
+                                - generic [ref=f2e15925]: 
+                        - generic [ref=f2e15926] [cursor=pointer]:
+                          - generic [ref=f2e15927]:
+                            - button "" [ref=f2e15928]:
+                              - generic [ref=f2e15929]: 
+                            - spinbutton "Mover a posición" [ref=f2e15930]: "12"
+                            - button "" [ref=f2e15931]:
+                              - generic [ref=f2e15932]: 
+                          - generic [ref=f2e15933]:
+                            - generic [ref=f2e15934]:
+                              - generic [ref=f2e15935]: 405-000-000-00
+                              - generic [ref=f2e15936]: Trade & Investment Center
+                            - generic [ref=f2e15937]:
+                              - button "" [ref=f2e15938]:
+                                - generic [ref=f2e15939]: 
+                              - button "" [ref=f2e15940]:
+                                - generic [ref=f2e15941]: 
+                        - generic [ref=f2e15942] [cursor=pointer]:
+                          - generic [ref=f2e15943]:
+                            - button "" [ref=f2e15944]:
+                              - generic [ref=f2e15945]: 
+                            - spinbutton "Mover a posición" [ref=f2e15946]: "13"
+                            - button "" [ref=f2e15947]:
+                              - generic [ref=f2e15948]: 
+                          - generic [ref=f2e15949]:
+                            - generic [ref=f2e15950]:
+                              - generic [ref=f2e15951]: 
+                              - emphasis [ref=f2e15952]: Services to Members
+                            - generic [ref=f2e15953]:
+                              - button "" [ref=f2e15954]:
+                                - generic [ref=f2e15955]: 
+                              - button "" [ref=f2e15956]:
+                                - generic [ref=f2e15957]: 
+                              - button "" [ref=f2e15958]:
+                                - generic [ref=f2e15959]: 
+                              - button "" [ref=f2e15960]:
+                                - generic [ref=f2e15961]: 
+                        - generic [ref=f2e15962] [cursor=pointer]:
+                          - generic [ref=f2e15963]:
+                            - button "" [ref=f2e15964]:
+                              - generic [ref=f2e15965]: 
+                            - spinbutton "Mover a posición" [ref=f2e15966]: "14"
+                            - button "" [ref=f2e15967]:
+                              - generic [ref=f2e15968]: 
+                          - generic [ref=f2e15969]:
+                            - generic [ref=f2e15970]:
+                              - generic [ref=f2e15971]: 406-001-000-00
+                              - generic [ref=f2e15972]: Venta Publicaciones
+                            - generic [ref=f2e15973]:
+                              - button "" [ref=f2e15974]:
+                                - generic [ref=f2e15975]: 
+                              - button "" [ref=f2e15976]:
+                                - generic [ref=f2e15977]: 
+                        - generic [ref=f2e15978] [cursor=pointer]:
+                          - generic [ref=f2e15979]:
+                            - button "" [ref=f2e15980]:
+                              - generic [ref=f2e15981]: 
+                            - spinbutton "Mover a posición" [ref=f2e15982]: "15"
+                            - button "" [ref=f2e15983]:
+                              - generic [ref=f2e15984]: 
+                          - generic [ref=f2e15985]:
+                            - generic [ref=f2e15986]:
+                              - generic [ref=f2e15987]: 406-002-000-00
+                              - generic [ref=f2e15988]: Digital Training
+                            - generic [ref=f2e15989]:
+                              - button "" [ref=f2e15990]:
+                                - generic [ref=f2e15991]: 
+                              - button "" [ref=f2e15992]:
+                                - generic [ref=f2e15993]: 
+                        - generic [ref=f2e15994] [cursor=pointer]:
+                          - generic [ref=f2e15995]:
+                            - button "" [ref=f2e15996]:
+                              - generic [ref=f2e15997]: 
+                            - spinbutton "Mover a posición" [ref=f2e15998]: "16"
+                            - button "" [ref=f2e15999]:
+                              - generic [ref=f2e16000]: 
+                          - generic [ref=f2e16001]:
+                            - generic [ref=f2e16002]:
+                              - generic [ref=f2e16003]: 409-000-000-00
+                              - generic [ref=f2e16004]: Visas
+                            - generic [ref=f2e16005]:
+                              - button "" [ref=f2e16006]:
+                                - generic [ref=f2e16007]: 
+                              - button "" [ref=f2e16008]:
+                                - generic [ref=f2e16009]: 
+                        - generic [ref=f2e16010] [cursor=pointer]:
+                          - generic [ref=f2e16011]:
+                            - button "" [ref=f2e16012]:
+                              - generic [ref=f2e16013]: 
+                            - spinbutton "Mover a posición" [ref=f2e16014]: "17"
+                            - button "" [ref=f2e16015]:
+                              - generic [ref=f2e16016]: 
+                          - generic [ref=f2e16017]:
+                            - generic [ref=f2e16018]:
+                              - generic [ref=f2e16019]: 
+                              - strong [ref=f2e16020]: Guadalajara Income
+                              - generic [ref=f2e16021]: income-Guadalajara Income
+                            - generic [ref=f2e16022]:
+                              - button "Σ" [ref=f2e16023]
+                              - button "" [ref=f2e16024]:
+                                - generic [ref=f2e16025]: 
+                              - button "" [ref=f2e16026]:
+                                - generic [ref=f2e16027]: 
+                              - button "" [ref=f2e16028]:
+                                - generic [ref=f2e16029]: 
+                        - generic [ref=f2e16030] [cursor=pointer]:
+                          - generic [ref=f2e16031]:
+                            - button "" [ref=f2e16032]:
+                              - generic [ref=f2e16033]: 
+                            - spinbutton "Mover a posición" [ref=f2e16034]: "18"
+                            - button "" [ref=f2e16035]:
+                              - generic [ref=f2e16036]: 
+                          - generic [ref=f2e16037]:
+                            - generic [ref=f2e16038]:
+                              - generic [ref=f2e16039]: 
+                              - emphasis [ref=f2e16040]: Guadalajara Income
+                            - generic [ref=f2e16041]:
+                              - button "" [ref=f2e16042]:
+                                - generic [ref=f2e16043]: 
+                              - button "" [ref=f2e16044]:
+                                - generic [ref=f2e16045]: 
+                              - button "" [ref=f2e16046]:
+                                - generic [ref=f2e16047]: 
+                              - button "" [ref=f2e16048]:
+                                - generic [ref=f2e16049]: 
+                        - generic [ref=f2e16050] [cursor=pointer]:
+                          - generic [ref=f2e16051]:
+                            - button "" [ref=f2e16052]:
+                              - generic [ref=f2e16053]: 
+                            - spinbutton "Mover a posición" [ref=f2e16054]: "19"
+                            - button "" [ref=f2e16055]:
+                              - generic [ref=f2e16056]: 
+                          - generic [ref=f2e16057]:
+                            - generic [ref=f2e16058]:
+                              - generic [ref=f2e16059]: 450-001-000-00
+                              - generic [ref=f2e16060]: Guadalajara Income
+                            - generic [ref=f2e16061]:
+                              - button "" [ref=f2e16062]:
+                                - generic [ref=f2e16063]: 
+                              - button "" [ref=f2e16064]:
+                                - generic [ref=f2e16065]: 
+                        - generic [ref=f2e16066] [cursor=pointer]:
+                          - generic [ref=f2e16067]:
+                            - button "" [ref=f2e16068]:
+                              - generic [ref=f2e16069]: 
+                            - spinbutton "Mover a posición" [ref=f2e16070]: "20"
+                            - button "" [ref=f2e16071]:
+                              - generic [ref=f2e16072]: 
+                          - generic [ref=f2e16073]:
+                            - generic [ref=f2e16074]:
+                              - generic [ref=f2e16075]: 
+                              - strong [ref=f2e16076]: Monterrey Income
+                              - generic [ref=f2e16077]: income-Monterrey Income
+                            - generic [ref=f2e16078]:
+                              - button "Σ" [ref=f2e16079]
+                              - button "" [ref=f2e16080]:
+                                - generic [ref=f2e16081]: 
+                              - button "" [ref=f2e16082]:
+                                - generic [ref=f2e16083]: 
+                              - button "" [ref=f2e16084]:
+                                - generic [ref=f2e16085]: 
+                        - generic [ref=f2e16086] [cursor=pointer]:
+                          - generic [ref=f2e16087]:
+                            - button "" [ref=f2e16088]:
+                              - generic [ref=f2e16089]: 
+                            - spinbutton "Mover a posición" [ref=f2e16090]: "21"
+                            - button "" [ref=f2e16091]:
+                              - generic [ref=f2e16092]: 
+                          - generic [ref=f2e16093]:
+                            - generic [ref=f2e16094]:
+                              - generic [ref=f2e16095]: 
+                              - emphasis [ref=f2e16096]: Monterrey Income
+                            - generic [ref=f2e16097]:
+                              - button "" [ref=f2e16098]:
+                                - generic [ref=f2e16099]: 
+                              - button "" [ref=f2e16100]:
+                                - generic [ref=f2e16101]: 
+                              - button "" [ref=f2e16102]:
+                                - generic [ref=f2e16103]: 
+                              - button "" [ref=f2e16104]:
+                                - generic [ref=f2e16105]: 
+                        - generic [ref=f2e16106] [cursor=pointer]:
+                          - generic [ref=f2e16107]:
+                            - button "" [ref=f2e16108]:
+                              - generic [ref=f2e16109]: 
+                            - spinbutton "Mover a posición" [ref=f2e16110]: "22"
+                            - button "" [ref=f2e16111]:
+                              - generic [ref=f2e16112]: 
+                          - generic [ref=f2e16113]:
+                            - generic [ref=f2e16114]:
+                              - generic [ref=f2e16115]: 450-002-000-00
+                              - generic [ref=f2e16116]: Monterrey Income
+                            - generic [ref=f2e16117]:
+                              - button "" [ref=f2e16118]:
+                                - generic [ref=f2e16119]: 
+                              - button "" [ref=f2e16120]:
+                                - generic [ref=f2e16121]: 
+                        - generic [ref=f2e16122] [cursor=pointer]:
+                          - generic [ref=f2e16123]:
+                            - button "" [ref=f2e16124]:
+                              - generic [ref=f2e16125]: 
+                            - spinbutton "Mover a posición" [ref=f2e16126]: "23"
+                            - button "" [ref=f2e16127]:
+                              - generic [ref=f2e16128]: 
+                          - generic [ref=f2e16129]:
+                            - generic [ref=f2e16130]:
+                              - generic [ref=f2e16131]: 
+                              - strong [ref=f2e16132]: Northwest Income
+                              - generic [ref=f2e16133]: income-Northwest Income
+                            - generic [ref=f2e16134]:
+                              - button "Σ" [ref=f2e16135]
+                              - button "" [ref=f2e16136]:
+                                - generic [ref=f2e16137]: 
+                              - button "" [ref=f2e16138]:
+                                - generic [ref=f2e16139]: 
+                              - button "" [ref=f2e16140]:
+                                - generic [ref=f2e16141]: 
+                        - generic [ref=f2e16142] [cursor=pointer]:
+                          - generic [ref=f2e16143]:
+                            - button "" [ref=f2e16144]:
+                              - generic [ref=f2e16145]: 
+                            - spinbutton "Mover a posición" [ref=f2e16146]: "24"
+                            - button "" [ref=f2e16147]:
+                              - generic [ref=f2e16148]: 
+                          - generic [ref=f2e16149]:
+                            - generic [ref=f2e16150]:
+                              - generic [ref=f2e16151]: 
+                              - emphasis [ref=f2e16152]: Northwest Income
+                            - generic [ref=f2e16153]:
+                              - button "" [ref=f2e16154]:
+                                - generic [ref=f2e16155]: 
+                              - button "" [ref=f2e16156]:
+                                - generic [ref=f2e16157]: 
+                              - button "" [ref=f2e16158]:
+                                - generic [ref=f2e16159]: 
+                              - button "" [ref=f2e16160]:
+                                - generic [ref=f2e16161]: 
+                        - generic [ref=f2e16162] [cursor=pointer]:
+                          - generic [ref=f2e16163]:
+                            - button "" [ref=f2e16164]:
+                              - generic [ref=f2e16165]: 
+                            - spinbutton "Mover a posición" [ref=f2e16166]: "25"
+                            - button "" [ref=f2e16167]:
+                              - generic [ref=f2e16168]: 
+                          - generic [ref=f2e16169]:
+                            - generic [ref=f2e16170]:
+                              - generic [ref=f2e16171]: 450-003-000-00
+                              - generic [ref=f2e16172]: Northwest Income
+                            - generic [ref=f2e16173]:
+                              - button "" [ref=f2e16174]:
+                                - generic [ref=f2e16175]: 
+                              - button "" [ref=f2e16176]:
+                                - generic [ref=f2e16177]: 
+                        - generic [ref=f2e16178] [cursor=pointer]:
+                          - generic [ref=f2e16179]:
+                            - button "" [ref=f2e16180]:
+                              - generic [ref=f2e16181]: 
+                            - spinbutton "Mover a posición" [ref=f2e16182]: "26"
+                            - button "" [ref=f2e16183]:
+                              - generic [ref=f2e16184]: 
+                          - generic [ref=f2e16185]:
+                            - generic [ref=f2e16186]:
+                              - generic [ref=f2e16187]: 
+                              - strong [ref=f2e16188]: EXPENSE
+                            - generic [ref=f2e16189]:
+                              - button "Σ" [ref=f2e16190]
+                              - button "" [ref=f2e16191]:
+                                - generic [ref=f2e16192]: 
+                              - button "" [ref=f2e16193]:
+                                - generic [ref=f2e16194]: 
+                              - button "" [ref=f2e16195]:
+                                - generic [ref=f2e16196]: 
+                        - generic [ref=f2e16197] [cursor=pointer]:
+                          - generic [ref=f2e16198]:
+                            - button "" [ref=f2e16199]:
+                              - generic [ref=f2e16200]: 
+                            - spinbutton "Mover a posición" [ref=f2e16201]: "27"
+                            - button "" [ref=f2e16202]:
+                              - generic [ref=f2e16203]: 
+                          - generic [ref=f2e16204]:
+                            - generic [ref=f2e16205]:
+                              - generic [ref=f2e16206]: 
+                              - emphasis [ref=f2e16207]: Membership
+                            - generic [ref=f2e16208]:
+                              - button "" [ref=f2e16209]:
+                                - generic [ref=f2e16210]: 
+                              - button "" [ref=f2e16211]:
+                                - generic [ref=f2e16212]: 
+                              - button "" [ref=f2e16213]:
+                                - generic [ref=f2e16214]: 
+                              - button "" [ref=f2e16215]:
+                                - generic [ref=f2e16216]: 
+                        - generic [ref=f2e16217] [cursor=pointer]:
+                          - generic [ref=f2e16218]:
+                            - button "" [ref=f2e16219]:
+                              - generic [ref=f2e16220]: 
+                            - spinbutton "Mover a posición" [ref=f2e16221]: "28"
+                            - button "" [ref=f2e16222]:
+                              - generic [ref=f2e16223]: 
+                          - generic [ref=f2e16224]:
+                            - generic [ref=f2e16225]:
+                              - generic [ref=f2e16226]: 705-000-000-00
+                              - generic [ref=f2e16227]: Gastos Promoción
+                            - generic [ref=f2e16228]:
+                              - button "" [ref=f2e16229]:
+                                - generic [ref=f2e16230]: 
+                              - button "" [ref=f2e16231]:
+                                - generic [ref=f2e16232]: 
+                        - generic [ref=f2e16233] [cursor=pointer]:
+                          - generic [ref=f2e16234]:
+                            - button "" [ref=f2e16235]:
+                              - generic [ref=f2e16236]: 
+                            - spinbutton "Mover a posición" [ref=f2e16237]: "29"
+                            - button "" [ref=f2e16238]:
+                              - generic [ref=f2e16239]: 
+                          - generic [ref=f2e16240]:
+                            - generic [ref=f2e16241]:
+                              - generic [ref=f2e16242]: 520-000-000-00
+                              - generic [ref=f2e16243]: Comsiones por venta de membresía
+                            - generic [ref=f2e16244]:
+                              - button "" [ref=f2e16245]:
+                                - generic [ref=f2e16246]: 
+                              - button "" [ref=f2e16247]:
+                                - generic [ref=f2e16248]: 
+                        - generic [ref=f2e16249] [cursor=pointer]:
+                          - generic [ref=f2e16250]:
+                            - button "" [ref=f2e16251]:
+                              - generic [ref=f2e16252]: 
+                            - spinbutton "Mover a posición" [ref=f2e16253]: "30"
+                            - button "" [ref=f2e16254]:
+                              - generic [ref=f2e16255]: 
+                          - generic [ref=f2e16256]:
+                            - generic [ref=f2e16257]:
+                              - generic [ref=f2e16258]: 
+                              - emphasis [ref=f2e16259]: Events
+                            - generic [ref=f2e16260]:
+                              - button "" [ref=f2e16261]:
+                                - generic [ref=f2e16262]: 
+                              - button "" [ref=f2e16263]:
+                                - generic [ref=f2e16264]: 
+                              - button "" [ref=f2e16265]:
+                                - generic [ref=f2e16266]: 
+                              - button "" [ref=f2e16267]:
+                                - generic [ref=f2e16268]: 
+                        - generic [ref=f2e16269] [cursor=pointer]:
+                          - generic [ref=f2e16270]:
+                            - button "" [ref=f2e16271]:
+                              - generic [ref=f2e16272]: 
+                            - spinbutton "Mover a posición" [ref=f2e16273]: "31"
+                            - button "" [ref=f2e16274]:
+                              - generic [ref=f2e16275]: 
+                          - generic [ref=f2e16276]:
+                            - generic [ref=f2e16277]:
+                              - generic [ref=f2e16278]: 701-000-000-00
+                              - generic [ref=f2e16279]: Costo Eventos
+                            - generic [ref=f2e16280]:
+                              - button "" [ref=f2e16281]:
+                                - generic [ref=f2e16282]: 
+                              - button "" [ref=f2e16283]:
+                                - generic [ref=f2e16284]: 
+                        - generic [ref=f2e16285] [cursor=pointer]:
+                          - generic [ref=f2e16286]:
+                            - button "" [ref=f2e16287]:
+                              - generic [ref=f2e16288]: 
+                            - spinbutton "Mover a posición" [ref=f2e16289]: "32"
+                            - button "" [ref=f2e16290]:
+                              - generic [ref=f2e16291]: 
+                          - generic [ref=f2e16292]:
+                            - generic [ref=f2e16293]:
+                              - generic [ref=f2e16294]: 
+                              - emphasis [ref=f2e16295]: Committees
+                            - generic [ref=f2e16296]:
+                              - button "" [ref=f2e16297]:
+                                - generic [ref=f2e16298]: 
+                              - button "" [ref=f2e16299]:
+                                - generic [ref=f2e16300]: 
+                              - button "" [ref=f2e16301]:
+                                - generic [ref=f2e16302]: 
+                              - button "" [ref=f2e16303]:
+                                - generic [ref=f2e16304]: 
+                        - generic [ref=f2e16305] [cursor=pointer]:
+                          - generic [ref=f2e16306]:
+                            - button "" [ref=f2e16307]:
+                              - generic [ref=f2e16308]: 
+                            - spinbutton "Mover a posición" [ref=f2e16309]: "33"
+                            - button "" [ref=f2e16310]:
+                              - generic [ref=f2e16311]: 
+                          - generic [ref=f2e16312]:
+                            - generic [ref=f2e16313]:
+                              - generic [ref=f2e16314]: 702-000-000-00
+                              - generic [ref=f2e16315]: Costo Comités
+                            - generic [ref=f2e16316]:
+                              - button "" [ref=f2e16317]:
+                                - generic [ref=f2e16318]: 
+                              - button "" [ref=f2e16319]:
+                                - generic [ref=f2e16320]: 
+                        - generic [ref=f2e16321] [cursor=pointer]:
+                          - generic [ref=f2e16322]:
+                            - button "" [ref=f2e16323]:
+                              - generic [ref=f2e16324]: 
+                            - spinbutton "Mover a posición" [ref=f2e16325]: "34"
+                            - button "" [ref=f2e16326]:
+                              - generic [ref=f2e16327]: 
+                          - generic [ref=f2e16328]:
+                            - generic [ref=f2e16329]:
+                              - generic [ref=f2e16330]: 704-000-000-00
+                              - generic [ref=f2e16331]: Costo Economex
+                            - generic [ref=f2e16332]:
+                              - button "" [ref=f2e16333]:
+                                - generic [ref=f2e16334]: 
+                              - button "" [ref=f2e16335]:
+                                - generic [ref=f2e16336]: 
+                        - generic [ref=f2e16337] [cursor=pointer]:
+                          - generic [ref=f2e16338]:
+                            - button "" [ref=f2e16339]:
+                              - generic [ref=f2e16340]: 
+                            - spinbutton "Mover a posición" [ref=f2e16341]: "35"
+                            - button "" [ref=f2e16342]:
+                              - generic [ref=f2e16343]: 
+                          - generic [ref=f2e16344]:
+                            - generic [ref=f2e16345]:
+                              - generic [ref=f2e16346]: 521-000-000-00
+                              - generic [ref=f2e16347]: Comisiones EWDP y Economex
+                            - generic [ref=f2e16348]:
+                              - button "" [ref=f2e16349]:
+                                - generic [ref=f2e16350]: 
+                              - button "" [ref=f2e16351]:
+                                - generic [ref=f2e16352]: 
+                        - generic [ref=f2e16353] [cursor=pointer]:
+                          - generic [ref=f2e16354]:
+                            - button "" [ref=f2e16355]:
+                              - generic [ref=f2e16356]: 
+                            - spinbutton "Mover a posición" [ref=f2e16357]: "36"
+                            - button "" [ref=f2e16358]:
+                              - generic [ref=f2e16359]: 
+                          - generic [ref=f2e16360]:
+                            - generic [ref=f2e16361]:
+                              - generic [ref=f2e16362]: 
+                              - emphasis [ref=f2e16363]: T&IC
+                            - generic [ref=f2e16364]:
+                              - button "" [ref=f2e16365]:
+                                - generic [ref=f2e16366]: 
+                              - button "" [ref=f2e16367]:
+                                - generic [ref=f2e16368]: 
+                              - button "" [ref=f2e16369]:
+                                - generic [ref=f2e16370]: 
+                              - button "" [ref=f2e16371]:
+                                - generic [ref=f2e16372]: 
+                        - generic [ref=f2e16373] [cursor=pointer]:
+                          - generic [ref=f2e16374]:
+                            - button "" [ref=f2e16375]:
+                              - generic [ref=f2e16376]: 
+                            - spinbutton "Mover a posición" [ref=f2e16377]: "37"
+                            - button "" [ref=f2e16378]:
+                              - generic [ref=f2e16379]: 
+                          - generic [ref=f2e16380]:
+                            - generic [ref=f2e16381]:
+                              - generic [ref=f2e16382]: 703-000-000-00
+                              - generic [ref=f2e16383]: Costo Trade & Investment Center
+                            - generic [ref=f2e16384]:
+                              - button "" [ref=f2e16385]:
+                                - generic [ref=f2e16386]: 
+                              - button "" [ref=f2e16387]:
+                                - generic [ref=f2e16388]: 
+                        - generic [ref=f2e16389] [cursor=pointer]:
+                          - generic [ref=f2e16390]:
+                            - button "" [ref=f2e16391]:
+                              - generic [ref=f2e16392]: 
+                            - spinbutton "Mover a posición" [ref=f2e16393]: "38"
+                            - button "" [ref=f2e16394]:
+                              - generic [ref=f2e16395]: 
+                          - generic [ref=f2e16396]:
+                            - generic [ref=f2e16397]:
+                              - generic [ref=f2e16398]: 
+                              - emphasis [ref=f2e16399]: Services to Members
+                            - generic [ref=f2e16400]:
+                              - button "" [ref=f2e16401]:
+                                - generic [ref=f2e16402]: 
+                              - button "" [ref=f2e16403]:
+                                - generic [ref=f2e16404]: 
+                              - button "" [ref=f2e16405]:
+                                - generic [ref=f2e16406]: 
+                              - button "" [ref=f2e16407]:
+                                - generic [ref=f2e16408]: 
+                        - generic [ref=f2e16409] [cursor=pointer]:
+                          - generic [ref=f2e16410]:
+                            - button "" [ref=f2e16411]:
+                              - generic [ref=f2e16412]: 
+                            - spinbutton "Mover a posición" [ref=f2e16413]: "39"
+                            - button "" [ref=f2e16414]:
+                              - generic [ref=f2e16415]: 
+                          - generic [ref=f2e16416]:
+                            - generic [ref=f2e16417]:
+                              - generic [ref=f2e16418]: 601-002-003-00
+                              - generic [ref=f2e16419]: Costo Venta Publicaciones
+                            - generic [ref=f2e16420]:
+                              - button "" [ref=f2e16421]:
+                                - generic [ref=f2e16422]: 
+                              - button "" [ref=f2e16423]:
+                                - generic [ref=f2e16424]: 
+                        - generic [ref=f2e16425] [cursor=pointer]:
+                          - generic [ref=f2e16426]:
+                            - button "" [ref=f2e16427]:
+                              - generic [ref=f2e16428]: 
+                            - spinbutton "Mover a posición" [ref=f2e16429]: "40"
+                            - button "" [ref=f2e16430]:
+                              - generic [ref=f2e16431]: 
+                          - generic [ref=f2e16432]:
+                            - generic [ref=f2e16433]:
+                              - generic [ref=f2e16434]: 601-003-001-00
+                              - generic [ref=f2e16435]: Costo Digital Training
+                            - generic [ref=f2e16436]:
+                              - button "" [ref=f2e16437]:
+                                - generic [ref=f2e16438]: 
+                              - button "" [ref=f2e16439]:
+                                - generic [ref=f2e16440]: 
+                        - generic [ref=f2e16441] [cursor=pointer]:
+                          - generic [ref=f2e16442]:
+                            - button "" [ref=f2e16443]:
+                              - generic [ref=f2e16444]: 
+                            - spinbutton "Mover a posición" [ref=f2e16445]: "41"
+                            - button "" [ref=f2e16446]:
+                              - generic [ref=f2e16447]: 
+                          - generic [ref=f2e16448]:
+                            - generic [ref=f2e16449]:
+                              - generic [ref=f2e16450]: 
+                              - emphasis [ref=f2e16451]: Gastos Administrativos
+                            - generic [ref=f2e16452]:
+                              - button "" [ref=f2e16453]:
+                                - generic [ref=f2e16454]: 
+                              - button "" [ref=f2e16455]:
+                                - generic [ref=f2e16456]: 
+                              - button "" [ref=f2e16457]:
+                                - generic [ref=f2e16458]: 
+                              - button "" [ref=f2e16459]:
+                                - generic [ref=f2e16460]: 
+                        - generic [ref=f2e16461] [cursor=pointer]:
+                          - generic [ref=f2e16462]:
+                            - button "" [ref=f2e16463]:
+                              - generic [ref=f2e16464]: 
+                            - spinbutton "Mover a posición" [ref=f2e16465]: "42"
+                            - button "" [ref=f2e16466]:
+                              - generic [ref=f2e16467]: 
+                          - generic [ref=f2e16468]:
+                            - generic [ref=f2e16469]:
+                              - generic [ref=f2e16470]: 801-001-000-00
+                              - generic [ref=f2e16471]: Desarrollo de Negocios
+                            - generic [ref=f2e16472]:
+                              - button "" [ref=f2e16473]:
+                                - generic [ref=f2e16474]: 
+                              - button "" [ref=f2e16475]:
+                                - generic [ref=f2e16476]: 
+                        - generic [ref=f2e16477] [cursor=pointer]:
+                          - generic [ref=f2e16478]:
+                            - button "" [ref=f2e16479]:
+                              - generic [ref=f2e16480]: 
+                            - spinbutton "Mover a posición" [ref=f2e16481]: "43"
+                            - button "" [ref=f2e16482]:
+                              - generic [ref=f2e16483]: 
+                          - generic [ref=f2e16484]:
+                            - generic [ref=f2e16485]:
+                              - generic [ref=f2e16486]: 801-002-000-00
+                              - generic [ref=f2e16487]: Relaciones Externas
+                            - generic [ref=f2e16488]:
+                              - button "" [ref=f2e16489]:
+                                - generic [ref=f2e16490]: 
+                              - button "" [ref=f2e16491]:
+                                - generic [ref=f2e16492]: 
+                        - generic [ref=f2e16493] [cursor=pointer]:
+                          - generic [ref=f2e16494]:
+                            - button "" [ref=f2e16495]:
+                              - generic [ref=f2e16496]: 
+                            - spinbutton "Mover a posición" [ref=f2e16497]: "44"
+                            - button "" [ref=f2e16498]:
+                              - generic [ref=f2e16499]: 
+                          - generic [ref=f2e16500]:
+                            - generic [ref=f2e16501]:
+                              - generic [ref=f2e16502]: 801-003-000-00
+                              - generic [ref=f2e16503]: Servicios a las membresia
+                            - generic [ref=f2e16504]:
+                              - button "" [ref=f2e16505]:
+                                - generic [ref=f2e16506]: 
+                              - button "" [ref=f2e16507]:
+                                - generic [ref=f2e16508]: 
+                        - generic [ref=f2e16509] [cursor=pointer]:
+                          - generic [ref=f2e16510]:
+                            - button "" [ref=f2e16511]:
+                              - generic [ref=f2e16512]: 
+                            - spinbutton "Mover a posición" [ref=f2e16513]: "45"
+                            - button "" [ref=f2e16514]:
+                              - generic [ref=f2e16515]: 
+                          - generic [ref=f2e16516]:
+                            - generic [ref=f2e16517]:
+                              - generic [ref=f2e16518]: 801-004-000-00
+                              - generic [ref=f2e16519]: Vicepresidencia
+                            - generic [ref=f2e16520]:
+                              - button "" [ref=f2e16521]:
+                                - generic [ref=f2e16522]: 
+                              - button "" [ref=f2e16523]:
+                                - generic [ref=f2e16524]: 
+                        - generic [ref=f2e16525] [cursor=pointer]:
+                          - generic [ref=f2e16526]:
+                            - button "" [ref=f2e16527]:
+                              - generic [ref=f2e16528]: 
+                            - spinbutton "Mover a posición" [ref=f2e16529]: "46"
+                            - button "" [ref=f2e16530]:
+                              - generic [ref=f2e16531]: 
+                          - generic [ref=f2e16532]:
+                            - generic [ref=f2e16533]:
+                              - generic [ref=f2e16534]: 801-005-000-00
+                              - generic [ref=f2e16535]: Finanzas
+                            - generic [ref=f2e16536]:
+                              - button "" [ref=f2e16537]:
+                                - generic [ref=f2e16538]: 
+                              - button "" [ref=f2e16539]:
+                                - generic [ref=f2e16540]: 
+                        - generic [ref=f2e16541] [cursor=pointer]:
+                          - generic [ref=f2e16542]:
+                            - button "" [ref=f2e16543]:
+                              - generic [ref=f2e16544]: 
+                            - spinbutton "Mover a posición" [ref=f2e16545]: "47"
+                            - button "" [ref=f2e16546]:
+                              - generic [ref=f2e16547]: 
+                          - generic [ref=f2e16548]:
+                            - generic [ref=f2e16549]:
+                              - generic [ref=f2e16550]: 801-006-000-00
+                              - generic [ref=f2e16551]: Administración
+                            - generic [ref=f2e16552]:
+                              - button "" [ref=f2e16553]:
+                                - generic [ref=f2e16554]: 
+                              - button "" [ref=f2e16555]:
+                                - generic [ref=f2e16556]: 
+                        - generic [ref=f2e16557] [cursor=pointer]:
+                          - generic [ref=f2e16558]:
+                            - button "" [ref=f2e16559]:
+                              - generic [ref=f2e16560]: 
+                            - spinbutton "Mover a posición" [ref=f2e16561]: "48"
+                            - button "" [ref=f2e16562]:
+                              - generic [ref=f2e16563]: 
+                          - generic [ref=f2e16564]:
+                            - generic [ref=f2e16565]:
+                              - generic [ref=f2e16566]: 801-007-000-00
+                              - generic [ref=f2e16567]: Sistemas
+                            - generic [ref=f2e16568]:
+                              - button "" [ref=f2e16569]:
+                                - generic [ref=f2e16570]: 
+                              - button "" [ref=f2e16571]:
+                                - generic [ref=f2e16572]: 
+                        - generic [ref=f2e16573] [cursor=pointer]:
+                          - generic [ref=f2e16574]:
+                            - button "" [ref=f2e16575]:
+                              - generic [ref=f2e16576]: 
+                            - spinbutton "Mover a posición" [ref=f2e16577]: "49"
+                            - button "" [ref=f2e16578]:
+                              - generic [ref=f2e16579]: 
+                          - generic [ref=f2e16580]:
+                            - generic [ref=f2e16581]:
+                              - generic [ref=f2e16582]: 801-008-000-00
+                              - generic [ref=f2e16583]: Empleos
+                            - generic [ref=f2e16584]:
+                              - button "" [ref=f2e16585]:
+                                - generic [ref=f2e16586]: 
+                              - button "" [ref=f2e16587]:
+                                - generic [ref=f2e16588]: 
+                        - generic [ref=f2e16589] [cursor=pointer]:
+                          - generic [ref=f2e16590]:
+                            - button "" [ref=f2e16591]:
+                              - generic [ref=f2e16592]: 
+                            - spinbutton "Mover a posición" [ref=f2e16593]: "50"
+                            - button "" [ref=f2e16594]:
+                              - generic [ref=f2e16595]: 
+                          - generic [ref=f2e16596]:
+                            - generic [ref=f2e16597]:
+                              - generic [ref=f2e16598]: 801-009-000-00
+                              - generic [ref=f2e16599]: Servicios Generales (Almacén)
+                            - generic [ref=f2e16600]:
+                              - button "" [ref=f2e16601]:
+                                - generic [ref=f2e16602]: 
+                              - button "" [ref=f2e16603]:
+                                - generic [ref=f2e16604]: 
+                        - generic [ref=f2e16605] [cursor=pointer]:
+                          - generic [ref=f2e16606]:
+                            - button "" [ref=f2e16607]:
+                              - generic [ref=f2e16608]: 
+                            - spinbutton "Mover a posición" [ref=f2e16609]: "51"
+                            - button "" [ref=f2e16610]:
+                              - generic [ref=f2e16611]: 
+                          - generic [ref=f2e16612]:
+                            - generic [ref=f2e16613]:
+                              - generic [ref=f2e16614]: 801-010-000-00
+                              - generic [ref=f2e16615]: Eventos
+                            - generic [ref=f2e16616]:
+                              - button "" [ref=f2e16617]:
+                                - generic [ref=f2e16618]: 
+                              - button "" [ref=f2e16619]:
+                                - generic [ref=f2e16620]: 
+                        - generic [ref=f2e16621] [cursor=pointer]:
+                          - generic [ref=f2e16622]:
+                            - button "" [ref=f2e16623]:
+                              - generic [ref=f2e16624]: 
+                            - spinbutton "Mover a posición" [ref=f2e16625]: "52"
+                            - button "" [ref=f2e16626]:
+                              - generic [ref=f2e16627]: 
+                          - generic [ref=f2e16628]:
+                            - generic [ref=f2e16629]:
+                              - generic [ref=f2e16630]: 801-011-000-00
+                              - generic [ref=f2e16631]: Comites
+                            - generic [ref=f2e16632]:
+                              - button "" [ref=f2e16633]:
+                                - generic [ref=f2e16634]: 
+                              - button "" [ref=f2e16635]:
+                                - generic [ref=f2e16636]: 
+                        - generic [ref=f2e16637] [cursor=pointer]:
+                          - generic [ref=f2e16638]:
+                            - button "" [ref=f2e16639]:
+                              - generic [ref=f2e16640]: 
+                            - spinbutton "Mover a posición" [ref=f2e16641]: "53"
+                            - button "" [ref=f2e16642]:
+                              - generic [ref=f2e16643]: 
+                          - generic [ref=f2e16644]:
+                            - generic [ref=f2e16645]:
+                              - generic [ref=f2e16646]: 801-012-000-00
+                              - generic [ref=f2e16647]: Renta de Salas
+                            - generic [ref=f2e16648]:
+                              - button "" [ref=f2e16649]:
+                                - generic [ref=f2e16650]: 
+                              - button "" [ref=f2e16651]:
+                                - generic [ref=f2e16652]: 
+                        - generic [ref=f2e16653] [cursor=pointer]:
+                          - generic [ref=f2e16654]:
+                            - button "" [ref=f2e16655]:
+                              - generic [ref=f2e16656]: 
+                            - spinbutton "Mover a posición" [ref=f2e16657]: "54"
+                            - button "" [ref=f2e16658]:
+                              - generic [ref=f2e16659]: 
+                          - generic [ref=f2e16660]:
+                            - generic [ref=f2e16661]:
+                              - generic [ref=f2e16662]: 801-013-000-00
+                              - generic [ref=f2e16663]: Comunicación
+                            - generic [ref=f2e16664]:
+                              - button "" [ref=f2e16665]:
+                                - generic [ref=f2e16666]: 
+                              - button "" [ref=f2e16667]:
+                                - generic [ref=f2e16668]: 
+                        - generic [ref=f2e16669] [cursor=pointer]:
+                          - generic [ref=f2e16670]:
+                            - button "" [ref=f2e16671]:
+                              - generic [ref=f2e16672]: 
+                            - spinbutton "Mover a posición" [ref=f2e16673]: "55"
+                            - button "" [ref=f2e16674]:
+                              - generic [ref=f2e16675]: 
+                          - generic [ref=f2e16676]:
+                            - generic [ref=f2e16677]:
+                              - generic [ref=f2e16678]: 
+                              - emphasis [ref=f2e16679]: Gastos Generales
+                            - generic [ref=f2e16680]:
+                              - button "" [ref=f2e16681]:
+                                - generic [ref=f2e16682]: 
+                              - button "" [ref=f2e16683]:
+                                - generic [ref=f2e16684]: 
+                              - button "" [ref=f2e16685]:
+                                - generic [ref=f2e16686]: 
+                              - button "" [ref=f2e16687]:
+                                - generic [ref=f2e16688]: 
+                        - generic [ref=f2e16689] [cursor=pointer]:
+                          - generic [ref=f2e16690]:
+                            - button "" [ref=f2e16691]:
+                              - generic [ref=f2e16692]: 
+                            - spinbutton "Mover a posición" [ref=f2e16693]: "56"
+                            - button "" [ref=f2e16694]:
+                              - generic [ref=f2e16695]: 
+                          - generic [ref=f2e16696]:
+                            - generic [ref=f2e16697]:
+                              - generic [ref=f2e16698]: 901-000-000-00
+                              - generic [ref=f2e16699]: Gastos Generales
+                            - generic [ref=f2e16700]:
+                              - button "" [ref=f2e16701]:
+                                - generic [ref=f2e16702]: 
+                              - button "" [ref=f2e16703]:
+                                - generic [ref=f2e16704]: 
+                        - generic [ref=f2e16705] [cursor=pointer]:
+                          - generic [ref=f2e16706]:
+                            - button "" [ref=f2e16707]:
+                              - generic [ref=f2e16708]: 
+                            - spinbutton "Mover a posición" [ref=f2e16709]: "57"
+                            - button "" [ref=f2e16710]:
+                              - generic [ref=f2e16711]: 
+                          - generic [ref=f2e16712]:
+                            - generic [ref=f2e16713]:
+                              - generic [ref=f2e16714]: 
+                              - emphasis [ref=f2e16715]: Nómina
+                            - generic [ref=f2e16716]:
+                              - button "" [ref=f2e16717]:
+                                - generic [ref=f2e16718]: 
+                              - button "" [ref=f2e16719]:
+                                - generic [ref=f2e16720]: 
+                              - button "" [ref=f2e16721]:
+                                - generic [ref=f2e16722]: 
+                              - button "" [ref=f2e16723]:
+                                - generic [ref=f2e16724]: 
+                        - generic [ref=f2e16725] [cursor=pointer]:
+                          - generic [ref=f2e16726]:
+                            - button "" [ref=f2e16727]:
+                              - generic [ref=f2e16728]: 
+                            - spinbutton "Mover a posición" [ref=f2e16729]: "58"
+                            - button "" [ref=f2e16730]:
+                              - generic [ref=f2e16731]: 
+                          - generic [ref=f2e16732]:
+                            - generic [ref=f2e16733]:
+                              - generic [ref=f2e16734]: 513-000-000-00
+                              - generic [ref=f2e16735]: Nomina Vicepresidencia
+                            - generic [ref=f2e16736]:
+                              - button "" [ref=f2e16737]:
+                                - generic [ref=f2e16738]: 
+                              - button "" [ref=f2e16739]:
+                                - generic [ref=f2e16740]: 
+                        - generic [ref=f2e16741] [cursor=pointer]:
+                          - generic [ref=f2e16742]:
+                            - button "" [ref=f2e16743]:
+                              - generic [ref=f2e16744]: 
+                            - spinbutton "Mover a posición" [ref=f2e16745]: "59"
+                            - button "" [ref=f2e16746]:
+                              - generic [ref=f2e16747]: 
+                          - generic [ref=f2e16748]:
+                            - generic [ref=f2e16749]:
+                              - generic [ref=f2e16750]: 517-000-000-00
+                              - generic [ref=f2e16751]: Nomina Desarrollo de Negocios
+                            - generic [ref=f2e16752]:
+                              - button "" [ref=f2e16753]:
+                                - generic [ref=f2e16754]: 
+                              - button "" [ref=f2e16755]:
+                                - generic [ref=f2e16756]: 
+                        - generic [ref=f2e16757] [cursor=pointer]:
+                          - generic [ref=f2e16758]:
+                            - button "" [ref=f2e16759]:
+                              - generic [ref=f2e16760]: 
+                            - spinbutton "Mover a posición" [ref=f2e16761]: "60"
+                            - button "" [ref=f2e16762]:
+                              - generic [ref=f2e16763]: 
+                          - generic [ref=f2e16764]:
+                            - generic [ref=f2e16765]:
+                              - generic [ref=f2e16766]: 516-000-000-00
+                              - generic [ref=f2e16767]: Nomina Comites y Relaciones Externas
+                            - generic [ref=f2e16768]:
+                              - button "" [ref=f2e16769]:
+                                - generic [ref=f2e16770]: 
+                              - button "" [ref=f2e16771]:
+                                - generic [ref=f2e16772]: 
+                        - generic [ref=f2e16773] [cursor=pointer]:
+                          - generic [ref=f2e16774]:
+                            - button "" [ref=f2e16775]:
+                              - generic [ref=f2e16776]: 
+                            - spinbutton "Mover a posición" [ref=f2e16777]: "61"
+                            - button "" [ref=f2e16778]:
+                              - generic [ref=f2e16779]: 
+                          - generic [ref=f2e16780]:
+                            - generic [ref=f2e16781]:
+                              - generic [ref=f2e16782]: 519-000-000-00
+                              - generic [ref=f2e16783]: Nomina Comunicación
+                            - generic [ref=f2e16784]:
+                              - button "" [ref=f2e16785]:
+                                - generic [ref=f2e16786]: 
+                              - button "" [ref=f2e16787]:
+                                - generic [ref=f2e16788]: 
+                        - generic [ref=f2e16789] [cursor=pointer]:
+                          - generic [ref=f2e16790]:
+                            - button "" [ref=f2e16791]:
+                              - generic [ref=f2e16792]: 
+                            - spinbutton "Mover a posición" [ref=f2e16793]: "62"
+                            - button "" [ref=f2e16794]:
+                              - generic [ref=f2e16795]: 
+                          - generic [ref=f2e16796]:
+                            - generic [ref=f2e16797]:
+                              - generic [ref=f2e16798]: 515-000-000-00
+                              - generic [ref=f2e16799]: Nomina Servicios a la Membresia
+                            - generic [ref=f2e16800]:
+                              - button "" [ref=f2e16801]:
+                                - generic [ref=f2e16802]: 
+                              - button "" [ref=f2e16803]:
+                                - generic [ref=f2e16804]: 
+                        - generic [ref=f2e16805] [cursor=pointer]:
+                          - generic [ref=f2e16806]:
+                            - button "" [ref=f2e16807]:
+                              - generic [ref=f2e16808]: 
+                            - spinbutton "Mover a posición" [ref=f2e16809]: "63"
+                            - button "" [ref=f2e16810]:
+                              - generic [ref=f2e16811]: 
+                          - generic [ref=f2e16812]:
+                            - generic [ref=f2e16813]:
+                              - generic [ref=f2e16814]: 518-000-000-00
+                              - generic [ref=f2e16815]: Nomina Eventos y Mercadotecnia
+                            - generic [ref=f2e16816]:
+                              - button "" [ref=f2e16817]:
+                                - generic [ref=f2e16818]: 
+                              - button "" [ref=f2e16819]:
+                                - generic [ref=f2e16820]: 
+                        - generic [ref=f2e16821] [cursor=pointer]:
+                          - generic [ref=f2e16822]:
+                            - button "" [ref=f2e16823]:
+                              - generic [ref=f2e16824]: 
+                            - spinbutton "Mover a posición" [ref=f2e16825]: "64"
+                            - button "" [ref=f2e16826]:
+                              - generic [ref=f2e16827]: 
+                          - generic [ref=f2e16828]:
+                            - generic [ref=f2e16829]:
+                              - generic [ref=f2e16830]: 514-000-000-00
+                              - generic [ref=f2e16831]: Nomina Administración y Finanzas
+                            - generic [ref=f2e16832]:
+                              - button "" [ref=f2e16833]:
+                                - generic [ref=f2e16834]: 
+                              - button "" [ref=f2e16835]:
+                                - generic [ref=f2e16836]: 
+                        - generic [ref=f2e16837] [cursor=pointer]:
+                          - generic [ref=f2e16838]:
+                            - button "" [ref=f2e16839]:
+                              - generic [ref=f2e16840]: 
+                            - spinbutton "Mover a posición" [ref=f2e16841]: "65"
+                            - button "" [ref=f2e16842]:
+                              - generic [ref=f2e16843]: 
+                          - generic [ref=f2e16844]:
+                            - generic [ref=f2e16845]:
+                              - generic [ref=f2e16846]: 
+                              - emphasis [ref=f2e16847]: Gastos Corporativos
+                            - generic [ref=f2e16848]:
+                              - button "" [ref=f2e16849]:
+                                - generic [ref=f2e16850]: 
+                              - button "" [ref=f2e16851]:
+                                - generic [ref=f2e16852]: 
+                              - button "" [ref=f2e16853]:
+                                - generic [ref=f2e16854]: 
+                              - button "" [ref=f2e16855]:
+                                - generic [ref=f2e16856]: 
+                        - generic [ref=f2e16857] [cursor=pointer]:
+                          - generic [ref=f2e16858]:
+                            - button "" [ref=f2e16859]:
+                              - generic [ref=f2e16860]: 
+                            - spinbutton "Mover a posición" [ref=f2e16861]: "66"
+                            - button "" [ref=f2e16862]:
+                              - generic [ref=f2e16863]: 
+                          - generic [ref=f2e16864]:
+                            - generic [ref=f2e16865]:
+                              - generic [ref=f2e16866]: 903-000-000-00
+                              - generic [ref=f2e16867]: Gastos Corporativos
+                            - generic [ref=f2e16868]:
+                              - button "" [ref=f2e16869]:
+                                - generic [ref=f2e16870]: 
+                              - button "" [ref=f2e16871]:
+                                - generic [ref=f2e16872]: 
+                        - generic [ref=f2e16873] [cursor=pointer]:
+                          - generic [ref=f2e16874]:
+                            - button "" [ref=f2e16875]:
+                              - generic [ref=f2e16876]: 
+                            - spinbutton "Mover a posición" [ref=f2e16877]: "67"
+                            - button "" [ref=f2e16878]:
+                              - generic [ref=f2e16879]: 
+                          - generic [ref=f2e16880]:
+                            - generic [ref=f2e16881]:
+                              - generic [ref=f2e16882]: 
+                              - strong [ref=f2e16883]: Guadalajara Expense
+                              - generic [ref=f2e16884]: expense-Guadalajara Expense
+                            - generic [ref=f2e16885]:
+                              - button "Σ" [ref=f2e16886]
+                              - button "" [ref=f2e16887]:
+                                - generic [ref=f2e16888]: 
+                              - button "" [ref=f2e16889]:
+                                - generic [ref=f2e16890]: 
+                              - button "" [ref=f2e16891]:
+                                - generic [ref=f2e16892]: 
+                        - generic [ref=f2e16893] [cursor=pointer]:
+                          - generic [ref=f2e16894]:
+                            - button "" [ref=f2e16895]:
+                              - generic [ref=f2e16896]: 
+                            - spinbutton "Mover a posición" [ref=f2e16897]: "68"
+                            - button "" [ref=f2e16898]:
+                              - generic [ref=f2e16899]: 
+                          - generic [ref=f2e16900]:
+                            - generic [ref=f2e16901]:
+                              - generic [ref=f2e16902]: 
+                              - emphasis [ref=f2e16903]: Guadalajara Expense
+                            - generic [ref=f2e16904]:
+                              - button "" [ref=f2e16905]:
+                                - generic [ref=f2e16906]: 
+                              - button "" [ref=f2e16907]:
+                                - generic [ref=f2e16908]: 
+                              - button "" [ref=f2e16909]:
+                                - generic [ref=f2e16910]: 
+                              - button "" [ref=f2e16911]:
+                                - generic [ref=f2e16912]: 
+                        - generic [ref=f2e16913] [cursor=pointer]:
+                          - generic [ref=f2e16914]:
+                            - button "" [ref=f2e16915]:
+                              - generic [ref=f2e16916]: 
+                            - spinbutton "Mover a posición" [ref=f2e16917]: "69"
+                            - button "" [ref=f2e16918]:
+                              - generic [ref=f2e16919]: 
+                          - generic [ref=f2e16920]:
+                            - generic [ref=f2e16921]:
+                              - generic [ref=f2e16922]: 950-001-000-00
+                              - generic [ref=f2e16923]: Guadalajara Expense
+                            - generic [ref=f2e16924]:
+                              - button "" [ref=f2e16925]:
+                                - generic [ref=f2e16926]: 
+                              - button "" [ref=f2e16927]:
+                                - generic [ref=f2e16928]: 
+                        - generic [ref=f2e16929] [cursor=pointer]:
+                          - generic [ref=f2e16930]:
+                            - button "" [ref=f2e16931]:
+                              - generic [ref=f2e16932]: 
+                            - spinbutton "Mover a posición" [ref=f2e16933]: "70"
+                            - button "" [ref=f2e16934]:
+                              - generic [ref=f2e16935]: 
+                          - generic [ref=f2e16936]:
+                            - generic [ref=f2e16937]:
+                              - generic [ref=f2e16938]: 
+                              - strong [ref=f2e16939]: Monterrey Expense
+                              - generic [ref=f2e16940]: expense-Monterrey Expense
+                            - generic [ref=f2e16941]:
+                              - button "Σ" [ref=f2e16942]
+                              - button "" [ref=f2e16943]:
+                                - generic [ref=f2e16944]: 
+                              - button "" [ref=f2e16945]:
+                                - generic [ref=f2e16946]: 
+                              - button "" [ref=f2e16947]:
+                                - generic [ref=f2e16948]: 
+                        - generic [ref=f2e16949] [cursor=pointer]:
+                          - generic [ref=f2e16950]:
+                            - button "" [ref=f2e16951]:
+                              - generic [ref=f2e16952]: 
+                            - spinbutton "Mover a posición" [ref=f2e16953]: "71"
+                            - button "" [ref=f2e16954]:
+                              - generic [ref=f2e16955]: 
+                          - generic [ref=f2e16956]:
+                            - generic [ref=f2e16957]:
+                              - generic [ref=f2e16958]: 
+                              - emphasis [ref=f2e16959]: Monterrey Expense
+                            - generic [ref=f2e16960]:
+                              - button "" [ref=f2e16961]:
+                                - generic [ref=f2e16962]: 
+                              - button "" [ref=f2e16963]:
+                                - generic [ref=f2e16964]: 
+                              - button "" [ref=f2e16965]:
+                                - generic [ref=f2e16966]: 
+                              - button "" [ref=f2e16967]:
+                                - generic [ref=f2e16968]: 
+                        - generic [ref=f2e16969] [cursor=pointer]:
+                          - generic [ref=f2e16970]:
+                            - button "" [ref=f2e16971]:
+                              - generic [ref=f2e16972]: 
+                            - spinbutton "Mover a posición" [ref=f2e16973]: "72"
+                            - button "" [ref=f2e16974]:
+                              - generic [ref=f2e16975]: 
+                          - generic [ref=f2e16976]:
+                            - generic [ref=f2e16977]:
+                              - generic [ref=f2e16978]: 950-002-000-00
+                              - generic [ref=f2e16979]: Monterrey Expense
+                            - generic [ref=f2e16980]:
+                              - button "" [ref=f2e16981]:
+                                - generic [ref=f2e16982]: 
+                              - button "" [ref=f2e16983]:
+                                - generic [ref=f2e16984]: 
+                        - generic [ref=f2e16985] [cursor=pointer]:
+                          - generic [ref=f2e16986]:
+                            - button "" [ref=f2e16987]:
+                              - generic [ref=f2e16988]: 
+                            - spinbutton "Mover a posición" [ref=f2e16989]: "73"
+                            - button "" [ref=f2e16990]:
+                              - generic [ref=f2e16991]: 
+                          - generic [ref=f2e16992]:
+                            - generic [ref=f2e16993]:
+                              - generic [ref=f2e16994]: 
+                              - strong [ref=f2e16995]: Northwest Expense
+                              - generic [ref=f2e16996]: expense-Northwest Expense
+                            - generic [ref=f2e16997]:
+                              - button "Σ" [ref=f2e16998]
+                              - button "" [ref=f2e16999]:
+                                - generic [ref=f2e17000]: 
+                              - button "" [ref=f2e17001]:
+                                - generic [ref=f2e17002]: 
+                              - button "" [ref=f2e17003]:
+                                - generic [ref=f2e17004]: 
+                        - generic [ref=f2e17005] [cursor=pointer]:
+                          - generic [ref=f2e17006]:
+                            - button "" [ref=f2e17007]:
+                              - generic [ref=f2e17008]: 
+                            - spinbutton "Mover a posición" [ref=f2e17009]: "74"
+                            - button "" [ref=f2e17010]:
+                              - generic [ref=f2e17011]: 
+                          - generic [ref=f2e17012]:
+                            - generic [ref=f2e17013]:
+                              - generic [ref=f2e17014]: 
+                              - emphasis [ref=f2e17015]: Northwest Expense
+                            - generic [ref=f2e17016]:
+                              - button "" [ref=f2e17017]:
+                                - generic [ref=f2e17018]: 
+                              - button "" [ref=f2e17019]:
+                                - generic [ref=f2e17020]: 
+                              - button "" [ref=f2e17021]:
+                                - generic [ref=f2e17022]: 
+                              - button "" [ref=f2e17023]:
+                                - generic [ref=f2e17024]: 
+                        - generic [ref=f2e17025] [cursor=pointer]:
+                          - generic [ref=f2e17026]:
+                            - button "" [ref=f2e17027]:
+                              - generic [ref=f2e17028]: 
+                            - spinbutton "Mover a posición" [ref=f2e17029]: "75"
+                            - button "" [ref=f2e17030]:
+                              - generic [ref=f2e17031]: 
+                          - generic [ref=f2e17032]:
+                            - generic [ref=f2e17033]:
+                              - generic [ref=f2e17034]: 950-003-000-00
+                              - generic [ref=f2e17035]: Northwest Expense
+                            - generic [ref=f2e17036]:
+                              - button "" [ref=f2e17037]:
+                                - generic [ref=f2e17038]: 
+                              - button "" [ref=f2e17039]:
+                                - generic [ref=f2e17040]: 
+                        - generic [ref=f2e17041] [cursor=pointer]:
+                          - generic [ref=f2e17042]:
+                            - button "" [ref=f2e17043]:
+                              - generic [ref=f2e17044]: 
+                            - spinbutton "Mover a posición" [ref=f2e17045]: "76"
+                            - button "" [ref=f2e17046]:
+                              - generic [ref=f2e17047]: 
+                          - generic [ref=f2e17048]:
+                            - generic [ref=f2e17049]:
+                              - generic [ref=f2e17050]: 
+                              - strong [ref=f2e17051]: Member Centricity
+                              - generic [ref=f2e17052]: expense-Member Centricity
+                            - generic [ref=f2e17053]:
+                              - button "Σ" [ref=f2e17054]
+                              - button "" [ref=f2e17055]:
+                                - generic [ref=f2e17056]: 
+                              - button "" [ref=f2e17057]:
+                                - generic [ref=f2e17058]: 
+                              - button "" [ref=f2e17059]:
+                                - generic [ref=f2e17060]: 
+                        - generic [ref=f2e17061] [cursor=pointer]:
+                          - generic [ref=f2e17062]:
+                            - button "" [ref=f2e17063]:
+                              - generic [ref=f2e17064]: 
+                            - spinbutton "Mover a posición" [ref=f2e17065]: "77"
+                            - button "" [ref=f2e17066]:
+                              - generic [ref=f2e17067]: 
+                          - generic [ref=f2e17068]:
+                            - generic [ref=f2e17069]:
+                              - generic [ref=f2e17070]: 
+                              - emphasis [ref=f2e17071]: Member Centricity
+                            - generic [ref=f2e17072]:
+                              - button "" [ref=f2e17073]:
+                                - generic [ref=f2e17074]: 
+                              - button "" [ref=f2e17075]:
+                                - generic [ref=f2e17076]: 
+                              - button "" [ref=f2e17077]:
+                                - generic [ref=f2e17078]: 
+                              - button "" [ref=f2e17079]:
+                                - generic [ref=f2e17080]: 
+                        - generic [ref=f2e17081] [cursor=pointer]:
+                          - generic [ref=f2e17082]:
+                            - button "" [ref=f2e17083]:
+                              - generic [ref=f2e17084]: 
+                            - spinbutton "Mover a posición" [ref=f2e17085]: "78"
+                            - button "" [ref=f2e17086]:
+                              - generic [ref=f2e17087]: 
+                          - generic [ref=f2e17088]:
+                            - generic [ref=f2e17089]:
+                              - generic [ref=f2e17090]: 902-000-000-00
+                              - generic [ref=f2e17091]: Member Centricity
+                            - generic [ref=f2e17092]:
+                              - button "" [ref=f2e17093]:
+                                - generic [ref=f2e17094]: 
+                              - button "" [ref=f2e17095]:
+                                - generic [ref=f2e17096]: 
+                        - generic [ref=f2e17097] [cursor=pointer]:
+                          - generic [ref=f2e17098]:
+                            - button "" [ref=f2e17099]:
+                              - generic [ref=f2e17100]: 
+                            - spinbutton "Mover a posición" [ref=f2e17101]: "79"
+                            - button "" [ref=f2e17102]:
+                              - generic [ref=f2e17103]: 
+                          - generic [ref=f2e17104]:
+                            - generic [ref=f2e17105]:
+                              - generic [ref=f2e17106]: 
+                              - strong [ref=f2e17107]: Other (MEXICO)
+                            - generic [ref=f2e17108]:
+                              - button "Σ" [ref=f2e17109]
+                              - button "" [ref=f2e17110]:
+                                - generic [ref=f2e17111]: 
+                              - button "" [ref=f2e17112]:
+                                - generic [ref=f2e17113]: 
+                              - button "" [ref=f2e17114]:
+                                - generic [ref=f2e17115]: 
+                        - generic [ref=f2e17116] [cursor=pointer]:
+                          - generic [ref=f2e17117]:
+                            - button "" [ref=f2e17118]:
+                              - generic [ref=f2e17119]: 
+                            - spinbutton "Mover a posición" [ref=f2e17120]: "80"
+                            - button "" [ref=f2e17121]:
+                              - generic [ref=f2e17122]: 
+                          - generic [ref=f2e17123]:
+                            - generic [ref=f2e17124]:
+                              - generic [ref=f2e17125]: 
+                              - emphasis [ref=f2e17126]: Other
+                            - generic [ref=f2e17127]:
+                              - button "" [ref=f2e17128]:
+                                - generic [ref=f2e17129]: 
+                              - button "" [ref=f2e17130]:
+                                - generic [ref=f2e17131]: 
+                              - button "" [ref=f2e17132]:
+                                - generic [ref=f2e17133]: 
+                              - button "" [ref=f2e17134]:
+                                - generic [ref=f2e17135]: 
+                        - generic [ref=f2e17136] [cursor=pointer]:
+                          - generic [ref=f2e17137]:
+                            - button "" [ref=f2e17138]:
+                              - generic [ref=f2e17139]: 
+                            - spinbutton "Mover a posición" [ref=f2e17140]: "81"
+                            - button "" [ref=f2e17141]:
+                              - generic [ref=f2e17142]: 
+                          - generic [ref=f2e17143]:
+                            - generic [ref=f2e17144]:
+                              - generic [ref=f2e17145]: 413-000-000-00
+                              - generic [ref=f2e17146]: Otros Ingresos
+                            - generic [ref=f2e17147]:
+                              - button "" [ref=f2e17148]:
+                                - generic [ref=f2e17149]: 
+                              - button "" [ref=f2e17150]:
+                                - generic [ref=f2e17151]: 
+                        - generic [ref=f2e17152] [cursor=pointer]:
+                          - generic [ref=f2e17153]:
+                            - button "" [ref=f2e17154]:
+                              - generic [ref=f2e17155]: 
+                            - spinbutton "Mover a posición" [ref=f2e17156]: "82"
+                            - button "" [ref=f2e17157]:
+                              - generic [ref=f2e17158]: 
+                          - generic [ref=f2e17159]:
+                            - generic [ref=f2e17160]:
+                              - generic [ref=f2e17161]: 414-000-000-00
+                              - generic [ref=f2e17162]: Intereses Bancos
+                            - generic [ref=f2e17163]:
+                              - button "" [ref=f2e17164]:
+                                - generic [ref=f2e17165]: 
+                              - button "" [ref=f2e17166]:
+                                - generic [ref=f2e17167]: 
+                        - generic [ref=f2e17168] [cursor=pointer]:
+                          - generic [ref=f2e17169]:
+                            - button "" [ref=f2e17170]:
+                              - generic [ref=f2e17171]: 
+                            - spinbutton "Mover a posición" [ref=f2e17172]: "83"
+                            - button "" [ref=f2e17173]:
+                              - generic [ref=f2e17174]: 
+                          - generic [ref=f2e17175]:
+                            - generic [ref=f2e17176]:
+                              - generic [ref=f2e17177]: 416-000-000-00
+                              - generic [ref=f2e17178]: Utilidad Cambiaria Inversiones
+                            - generic [ref=f2e17179]:
+                              - button "" [ref=f2e17180]:
+                                - generic [ref=f2e17181]: 
+                              - button "" [ref=f2e17182]:
+                                - generic [ref=f2e17183]: 
+                        - generic [ref=f2e17184] [cursor=pointer]:
+                          - generic [ref=f2e17185]:
+                            - button "" [ref=f2e17186]:
+                              - generic [ref=f2e17187]: 
+                            - spinbutton "Mover a posición" [ref=f2e17188]: "84"
+                            - button "" [ref=f2e17189]:
+                              - generic [ref=f2e17190]: 
+                          - generic [ref=f2e17191]:
+                            - generic [ref=f2e17192]:
+                              - generic [ref=f2e17193]: 418-000-000-00
+                              - generic [ref=f2e17194]: Plusvalia/Minusvalia Portafolio Inversiones
+                            - generic [ref=f2e17195]:
+                              - button "" [ref=f2e17196]:
+                                - generic [ref=f2e17197]: 
+                              - button "" [ref=f2e17198]:
+                                - generic [ref=f2e17199]: 
+              - generic [ref=f2e1067]:
+                - generic [ref=f2e1068]:
+                  - generic [ref=f2e1069]:
+                    - heading "Consolidación CDMX → Presupuesto" [level=2] [ref=f2e1070]
+                    - paragraph [ref=f2e1071]:
+                      - text: Define qué capítulo y qué fila del
+                      - strong [ref=f2e1072]: RESUMEN
+                      - text: (columna
+                      - strong [ref=f2e1073]: Ppto
+                      - text: ) se copia a cada cuenta consolidada (450-001/002/003 y 950-001/002/003).
+                  - generic [ref=f2e1074]:
+                    - button "Restaurar defaults" [ref=f2e1075] [cursor=pointer]
+                    - button " Aplicar a presupuesto" [ref=f2e1076] [cursor=pointer]:
+                      - generic [ref=f2e1077]: 
+                      - text: Aplicar a presupuesto
+                - generic [ref=f2e1078]:
+                  - checkbox "Habilitar consolidación (manual o automática)" [checked] [ref=f2e1079] [cursor=pointer]
+                  - generic [ref=f2e1080]: Habilitar consolidación (manual o automática)
+                - generic [ref=f2e1081]:
+                  - generic [ref=f2e1082]:
+                    - checkbox "Auto-aplicar consolidación" [ref=f2e1083] [cursor=pointer]
+                    - generic [ref=f2e1084]: Auto-aplicar consolidación
+                  - generic [ref=f2e1085]:
+                    - generic [ref=f2e1086]: Cada
+                    - spinbutton [ref=f2e1087] [cursor=pointer]: "10"
+                    - generic [ref=f2e1088]: min
+                - generic [ref=f2e1089]: Se ejecuta automáticamente mientras esta pantalla esté abierta.
+                - table [ref=f2e1091]:
+                  - rowgroup [ref=f2e1092]:
+                    - row "Cuenta destino Capítulo origen Fila RESUMEN Detalle" [ref=f2e1093]:
+                      - columnheader "Cuenta destino" [ref=f2e1094]
+                      - columnheader "Capítulo origen" [ref=f2e1095]
+                      - columnheader "Fila RESUMEN" [ref=f2e1096]
+                      - columnheader "Detalle" [ref=f2e1097]
+                  - rowgroup [ref=f2e1098]:
+                    - row "450-001-000-00 GUADALAJARA INCOME GUADALAJARA · INCOME · Ppto (mes)" [ref=f2e2147]:
+                      - cell "450-001-000-00" [ref=f2e2148]:
+                        - code [ref=f2e2149]: 450-001-000-00
+                      - cell "GUADALAJARA" [ref=f2e2150]:
+                        - combobox [ref=f2e2151] [cursor=pointer]:
+                          - option "-"
+                          - option "GUADALAJARA" [selected]
+                          - option "NORESTE"
+                          - option "NOROESTE"
+                      - cell "INCOME" [ref=f2e2152]:
+                        - combobox [ref=f2e2153] [cursor=pointer]:
+                          - option "-"
+                          - option "INCOME" [selected]
+                          - option "Membership"
+                          - option "Events"
+                          - option "Committees"
+                          - option "T&IC"
+                          - option "Services to Members"
+                          - option "EXPENSE"
+                          - option "Gastos G&A"
+                          - option "Gastos Generales"
+                          - option "Nómina"
+                          - option "Gastos Corporativos"
+                          - option "Member Centricity"
+                          - option "Other"
+                      - cell "GUADALAJARA · INCOME · Ppto (mes)" [ref=f2e2154]
+                    - row "950-001-000-00 GUADALAJARA EXPENSE GUADALAJARA · EXPENSE · Ppto (mes)" [ref=f2e2155]:
+                      - cell "950-001-000-00" [ref=f2e2156]:
+                        - code [ref=f2e2157]: 950-001-000-00
+                      - cell "GUADALAJARA" [ref=f2e2158]:
+                        - combobox [ref=f2e2159] [cursor=pointer]:
+                          - option "-"
+                          - option "GUADALAJARA" [selected]
+                          - option "NORESTE"
+                          - option "NOROESTE"
+                      - cell "EXPENSE" [ref=f2e2160]:
+                        - combobox [ref=f2e2161] [cursor=pointer]:
+                          - option "-"
+                          - option "INCOME"
+                          - option "Membership"
+                          - option "Events"
+                          - option "Committees"
+                          - option "T&IC"
+                          - option "Services to Members"
+                          - option "EXPENSE" [selected]
+                          - option "Gastos G&A"
+                          - option "Gastos Generales"
+                          - option "Nómina"
+                          - option "Gastos Corporativos"
+                          - option "Member Centricity"
+                          - option "Other"
+                      - cell "GUADALAJARA · EXPENSE · Ppto (mes)" [ref=f2e2162]
+                    - row "450-002-000-00 NORESTE INCOME NORESTE · INCOME · Ppto (mes)" [ref=f2e2163]:
+                      - cell "450-002-000-00" [ref=f2e2164]:
+                        - code [ref=f2e2165]: 450-002-000-00
+                      - cell "NORESTE" [ref=f2e2166]:
+                        - combobox [ref=f2e2167] [cursor=pointer]:
+                          - option "-"
+                          - option "GUADALAJARA"
+                          - option "NORESTE" [selected]
+                          - option "NOROESTE"
+                      - cell "INCOME" [ref=f2e2168]:
+                        - combobox [ref=f2e2169] [cursor=pointer]:
+                          - option "-"
+                          - option "INCOME" [selected]
+                          - option "Membership"
+                          - option "OPERATING RESULTS"
+                          - option "NET RESULTS"
+                          - option "Events"
+                          - option "Committees"
+                          - option "T&IC"
+                          - option "Services to Members"
+                          - option "EXPENSE"
+                          - option "Gastos G&A"
+                          - option "Gastos Generales"
+                          - option "Nómina"
+                          - option "Gastos Corporativos"
+                          - option "Cargos Administrativos"
+                          - option "Member Centricity"
+                          - option "Other"
+                      - cell "NORESTE · INCOME · Ppto (mes)" [ref=f2e2170]
+                    - row "950-002-000-00 NORESTE EXPENSE NORESTE · EXPENSE · Ppto (mes)" [ref=f2e2171]:
+                      - cell "950-002-000-00" [ref=f2e2172]:
+                        - code [ref=f2e2173]: 950-002-000-00
+                      - cell "NORESTE" [ref=f2e2174]:
+                        - combobox [ref=f2e2175] [cursor=pointer]:
+                          - option "-"
+                          - option "GUADALAJARA"
+                          - option "NORESTE" [selected]
+                          - option "NOROESTE"
+                      - cell "EXPENSE" [ref=f2e2176]:
+                        - combobox [ref=f2e2177] [cursor=pointer]:
+                          - option "-"
+                          - option "INCOME"
+                          - option "Membership"
+                          - option "OPERATING RESULTS"
+                          - option "NET RESULTS"
+                          - option "Events"
+                          - option "Committees"
+                          - option "T&IC"
+                          - option "Services to Members"
+                          - option "EXPENSE" [selected]
+                          - option "Gastos G&A"
+                          - option "Gastos Generales"
+                          - option "Nómina"
+                          - option "Gastos Corporativos"
+                          - option "Cargos Administrativos"
+                          - option "Member Centricity"
+                          - option "Other"
+                      - cell "NORESTE · EXPENSE · Ppto (mes)" [ref=f2e2178]
+                    - row "450-003-000-00 NOROESTE INCOME NOROESTE · INCOME · Ppto (mes)" [ref=f2e2179]:
+                      - cell "450-003-000-00" [ref=f2e2180]:
+                        - code [ref=f2e2181]: 450-003-000-00
+                      - cell "NOROESTE" [ref=f2e2182]:
+                        - combobox [ref=f2e2183] [cursor=pointer]:
+                          - option "-"
+                          - option "GUADALAJARA"
+                          - option "NORESTE"
+                          - option "NOROESTE" [selected]
+                      - cell "INCOME" [ref=f2e2184]:
+                        - combobox [ref=f2e2185] [cursor=pointer]:
+                          - option "-"
+                          - option "EXPENSE"
+                          - option "INCOME" [selected]
+                          - option "Membership"
+                          - option "OPERATING RESULTS"
+                          - option "NET RESULTS"
+                          - option "Events"
+                          - option "Committees"
+                          - option "T&IC"
+                          - option "Services to Members"
+                          - option "Gastos G&A"
+                          - option "Gastos Generales"
+                          - option "Nómina"
+                          - option "Gastos Corporativos"
+                          - option "Cargos Administrativos"
+                          - option "Other"
+                      - cell "NOROESTE · INCOME · Ppto (mes)" [ref=f2e2186]
+                    - row "950-003-000-00 NOROESTE EXPENSE NOROESTE · EXPENSE · Ppto (mes)" [ref=f2e2187]:
+                      - cell "950-003-000-00" [ref=f2e2188]:
+                        - code [ref=f2e2189]: 950-003-000-00
+                      - cell "NOROESTE" [ref=f2e2190]:
+                        - combobox [ref=f2e2191] [cursor=pointer]:
+                          - option "-"
+                          - option "GUADALAJARA"
+                          - option "NORESTE"
+                          - option "NOROESTE" [selected]
+                      - cell "EXPENSE" [ref=f2e2192]:
+                        - combobox [ref=f2e2193] [cursor=pointer]:
+                          - option "-"
+                          - option "EXPENSE" [selected]
+                          - option "INCOME"
+                          - option "Membership"
+                          - option "OPERATING RESULTS"
+                          - option "NET RESULTS"
+                          - option "Events"
+                          - option "Committees"
+                          - option "T&IC"
+                          - option "Services to Members"
+                          - option "Gastos G&A"
+                          - option "Gastos Generales"
+                          - option "Nómina"
+                          - option "Gastos Corporativos"
+                          - option "Cargos Administrativos"
+                          - option "Other"
+                      - cell "NOROESTE · EXPENSE · Ppto (mes)" [ref=f2e2194]
+                - generic [ref=f2e1147]: Usando defaults. Guarda la plantilla para persistir cambios.
+              - paragraph [ref=f2e1150]: Guardando automatico...
+            - text:    
+        - text:                        
+        - generic: 
+        - button "Tour plantillas" [ref=f2e1151] [cursor=pointer]

@@ -1,0 +1,1089 @@
+- generic [ref=e3]:
+  - complementary "Navegación principal" [ref=e4]:
+    - img "AmCham" [ref=e6]
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - button "Resumen 1" [expanded] [ref=e9] [cursor=pointer]:
+          - generic [ref=e10]: Resumen
+          - generic [ref=e11]: "1"
+        - button "Resumen summary" [ref=e13] [cursor=pointer]:
+          - generic [ref=e14]: Resumen
+          - generic [ref=e15]: summary
+      - generic [ref=e16]:
+        - button "Divisiones 11" [expanded] [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: Divisiones
+          - generic [ref=e19]: "11"
+        - generic [ref=e20]:
+          - button "Presupuestos ppto" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: Presupuestos
+            - generic [ref=e23]: ppto
+          - button "Comités" [ref=e24] [cursor=pointer]:
+            - generic [ref=e25]: Comités
+          - button "Comunicación" [ref=e26] [cursor=pointer]:
+            - generic [ref=e27]: Comunicación
+          - button "Dirección" [ref=e99] [cursor=pointer]:
+            - generic [ref=e100]: Dirección
+          - button "Eventos" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: Eventos
+          - generic [ref=e30]:
+            - button "Finanzas 1" [expanded] [ref=e101] [cursor=pointer]:
+              - generic [ref=e32]: Finanzas
+              - generic [ref=e33]: "1"
+            - button "Gastos Generales finanzas" [ref=e38] [cursor=pointer]:
+              - generic [ref=e39]: Gastos Generales
+              - generic [ref=e40]: finanzas
+          - button "Gastos Corporativos" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: Gastos Corporativos
+          - button "Membresía" [ref=e46] [cursor=pointer]:
+            - generic [ref=e47]: Membresía
+          - button "Recursos Humanos" [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]: Recursos Humanos
+          - button "Servicios a la Membresía" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: Servicios a la Membresía
+          - button "T&IC" [ref=e52] [cursor=pointer]:
+            - generic [ref=e53]: T&IC
+      - generic [ref=e56]:
+        - button "Configuración 5" [expanded] [ref=e57] [cursor=pointer]:
+          - generic [ref=e58]: Configuración
+          - generic [ref=e59]: "5"
+        - generic [ref=e60]:
+          - button "Mi Perfil perfil" [ref=e61] [cursor=pointer]:
+            - generic [ref=e62]: Mi Perfil
+            - generic [ref=e63]: perfil
+          - button "Administrar usuarios Permisos" [ref=e64] [cursor=pointer]:
+            - generic [ref=e65]: Administrar usuarios
+            - generic [ref=e66]: Permisos
+          - button "Crear usuario" [ref=e67] [cursor=pointer]:
+            - generic [ref=e68]: Crear usuario
+          - button "Gestor de Plantillas" [ref=e69] [cursor=pointer]:
+            - generic [ref=e70]: Gestor de Plantillas
+          - button "Administrar conexiones" [ref=e71] [cursor=pointer]:
+            - generic [ref=e72]: Administrar conexiones
+  - main [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - button "Ocultar menú lateral" [expanded] [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]: ☰
+        - heading "Gestor de Plantillas" [level=2] [ref=e97]
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - button "Tour guiado" [ref=e83] [cursor=pointer]
+          - button "Opciones" [ref=e84] [cursor=pointer]:
+            - generic [ref=e85]: Opciones
+        - button "Notificaciones" [ref=e87] [cursor=pointer]:
+          - img [ref=e88]
+        - generic [ref=e90]:
+          - generic [ref=e91]: "Empresa:"
+          - combobox "Empresa:" [ref=e92]:
+            - option "Ciudad de México"
+            - option "Guadalajara"
+            - option "Noreste" [selected]
+            - option "Noroeste"
+        - button "Cerrar sesión" [ref=e93] [cursor=pointer]
+    - iframe [active] [ref=e102]:
+      - generic [active] [ref=f3e1]:
+        - generic [ref=f3e2]:
+          - generic [ref=f3e7]:
+            - generic [ref=f3e8]:
+              - heading "Gestor de Plantillas" [level=1] [ref=f3e9]
+              - paragraph [ref=f3e10]: RESUMEN · 2026 · NORESTE
+            - generic [ref=f3e11]:
+              - generic [ref=f3e2803]: 
+              - text: Edición forzada (local)
+          - generic [ref=f3e13]:
+            - generic [ref=f3e14]:
+              - generic [ref=f3e15]: Módulo
+              - combobox "Módulo" [ref=f3e16] [cursor=pointer]:
+                - option "RESUMEN" [selected]
+                - option "Finanzas"
+                - option "Gastos Generales"
+                - option "Nómina"
+                - option "Membresía"
+                - option "Serv Membresía"
+                - option "RH"
+                - option "Eventos"
+                - option "Comités"
+                - option "Comunicación"
+                - option "Dirección"
+                - option "Gtos Corporativos"
+                - option "T&IC"
+                - option "VPE"
+            - generic [ref=f3e17]:
+              - generic [ref=f3e18]: Año
+              - combobox "Año" [ref=f3e19] [cursor=pointer]:
+                - option "2026" [selected]
+                - option "2025"
+                - option "2024"
+                - option "2023"
+                - option "2022"
+                - option "2021"
+                - option "2020"
+                - option "2019"
+                - option "2018"
+                - option "2017"
+                - option "2016"
+                - option "2015"
+                - option "2014"
+                - option "2013"
+                - option "2012"
+                - option "2011"
+                - option "2010"
+                - option "2009"
+                - option "2008"
+                - option "2007"
+                - option "2006"
+                - option "2005"
+            - generic [ref=f3e20]:
+              - generic [ref=f3e21]: Capítulo
+              - combobox "Capítulo" [ref=f3e22] [cursor=pointer]:
+                - option "NORESTE" [selected]
+            - button " Cargar Layout" [ref=f3e24] [cursor=pointer]:
+              - generic [ref=f3e25]: 
+              - text: Cargar Layout
+          - generic [ref=f3e30]:
+            - generic [ref=f3e32]:
+              - textbox "Buscar en el layout..." [ref=f3e33] [cursor=pointer]
+              - generic [ref=f3e34]:
+                - generic [ref=f3e35]: "Filtrar:"
+                - group [ref=f3e36]:
+                  - radio "Todo" [checked] [ref=f3e37] [cursor=pointer]
+                  - generic [ref=f3e38] [cursor=pointer]: Todo
+                  - radio "Secciones" [ref=f3e39] [cursor=pointer]
+                  - generic [ref=f3e40] [cursor=pointer]: Secciones
+                  - radio "Cuentas" [ref=f3e41] [cursor=pointer]
+                  - generic [ref=f3e42] [cursor=pointer]: Cuentas
+                  - radio "Operaciones" [ref=f3e43] [cursor=pointer]
+                  - generic [ref=f3e44] [cursor=pointer]: Operaciones
+            - button " Agregar" [ref=f3e45] [cursor=pointer]:
+              - generic [ref=f3e46]: 
+              - text: Agregar
+            - button " Expandir" [ref=f3e47] [cursor=pointer]:
+              - generic [ref=f3e48]: 
+              - text: Expandir
+            - button " Colapsar" [ref=f3e49] [cursor=pointer]:
+              - generic [ref=f3e50]: 
+              - text: Colapsar
+            - button " Vista Previa" [ref=f3e51] [cursor=pointer]:
+              - generic [ref=f3e52]: 
+              - text: Vista Previa
+            - button " Copiar a otro año" [ref=f3e53] [cursor=pointer]:
+              - generic [ref=f3e54]: 
+              - text: Copiar a otro año
+            - button " Guardar" [ref=f3e685] [cursor=pointer]:
+              - generic [ref=f3e686]: 
+              - text: Guardar
+            - button " Historial" [ref=f3e55] [cursor=pointer]:
+              - generic [ref=f3e56]: 
+              - text: Historial
+          - tablist [ref=f3e59]:
+            - tab "Layout" [selected] [ref=f3e60] [cursor=pointer]
+            - tab "Graficas" [ref=f3e61] [cursor=pointer]
+          - generic [ref=f3e62]:
+            - tabpanel "Layout" [ref=f3e63]:
+              - generic [ref=f3e65]:
+                - text:   
+                - generic [ref=f3e67]:
+                  - generic [ref=f3e69]: RESUMEN · 2026 · NORESTE
+                  - generic [ref=f3e2804]:
+                    - generic [ref=f3e2806]:
+                      - generic [ref=f3e2807]:
+                        - generic [ref=f3e2808]:
+                          - generic [ref=f3e2809]: Secciones
+                          - generic [ref=f3e2810]: "4"
+                        - generic [ref=f3e2811]:
+                          - generic [ref=f3e2812]: Subsecciones
+                          - generic [ref=f3e2813]: "17"
+                        - generic [ref=f3e2814]:
+                          - generic [ref=f3e2815]: Cuentas
+                          - generic [ref=f3e2816]: "26"
+                        - generic [ref=f3e2817]:
+                          - generic [ref=f3e2818]: Operaciones
+                          - generic [ref=f3e2819]: "2"
+                      - generic [ref=f3e2820]: "Modo ordenar activo: usa las flechas para mover."
+                    - generic [ref=f3e2821]:
+                      - generic [ref=f3e2822]:
+                        - generic [ref=f3e2823]: Elementos de la plantilla
+                        - generic [ref=f3e2826]:
+                          - checkbox " Ordenar" [checked] [ref=f3e2827] [cursor=pointer]
+                          - generic [ref=f3e2828]:
+                            - generic [ref=f3e2829]: 
+                            - text: Ordenar
+                      - generic [ref=f3e2831]:
+                        - generic [ref=f3e2832] [cursor=pointer]:
+                          - generic [ref=f3e2833]:
+                            - button "" [ref=f3e2834]:
+                              - generic [ref=f3e2835]: 
+                            - spinbutton "Mover a posición" [ref=f3e2836]: "1"
+                            - button "" [ref=f3e2837]:
+                              - generic [ref=f3e2838]: 
+                          - generic [ref=f3e2839]:
+                            - generic [ref=f3e2840]:
+                              - generic [ref=f3e2841]:
+                                - generic [ref=f3e2842]: 
+                                - strong [ref=f3e2843]: OPERATING RESULTS
+                              - generic [ref=f3e2844]: Sin formula
+                            - generic [ref=f3e2845]:
+                              - button "" [ref=f3e2846]:
+                                - generic [ref=f3e2847]: 
+                              - button "" [ref=f3e2848]:
+                                - generic [ref=f3e2849]: 
+                        - generic [ref=f3e2850] [cursor=pointer]:
+                          - generic [ref=f3e2851]:
+                            - button "" [ref=f3e2852]:
+                              - generic [ref=f3e2853]: 
+                            - spinbutton "Mover a posición" [ref=f3e2854]: "2"
+                            - button "" [ref=f3e2855]:
+                              - generic [ref=f3e2856]: 
+                          - generic [ref=f3e2857]:
+                            - generic [ref=f3e2858]:
+                              - generic [ref=f3e2859]:
+                                - generic [ref=f3e2860]: 
+                                - strong [ref=f3e2861]: NET RESULTS
+                              - generic [ref=f3e2862]: Sin formula
+                            - generic [ref=f3e2863]:
+                              - button "" [ref=f3e2864]:
+                                - generic [ref=f3e2865]: 
+                              - button "" [ref=f3e2866]:
+                                - generic [ref=f3e2867]: 
+                        - generic [ref=f3e2868] [cursor=pointer]:
+                          - generic [ref=f3e2869]:
+                            - button "" [ref=f3e2870]:
+                              - generic [ref=f3e2871]: 
+                            - spinbutton "Mover a posición" [ref=f3e2872]: "3"
+                            - button "" [ref=f3e2873]:
+                              - generic [ref=f3e2874]: 
+                          - generic [ref=f3e2875]:
+                            - generic [ref=f3e2876]:
+                              - generic [ref=f3e2877]: 
+                              - strong [ref=f3e2878]: INCOME
+                              - generic [ref=f3e2879]: sum-row
+                            - generic [ref=f3e2880]:
+                              - button "Σ" [ref=f3e2881]
+                              - button "" [ref=f3e2882]:
+                                - generic [ref=f3e2883]: 
+                              - button "" [ref=f3e2884]:
+                                - generic [ref=f3e2885]: 
+                              - button "" [ref=f3e2886]:
+                                - generic [ref=f3e2887]: 
+                        - generic [ref=f3e2888] [cursor=pointer]:
+                          - generic [ref=f3e2889]:
+                            - button "" [ref=f3e2890]:
+                              - generic [ref=f3e2891]: 
+                            - spinbutton "Mover a posición" [ref=f3e2892]: "4"
+                            - button "" [ref=f3e2893]:
+                              - generic [ref=f3e2894]: 
+                          - generic [ref=f3e2895]:
+                            - generic [ref=f3e2896]:
+                              - generic [ref=f3e2897]: 
+                              - emphasis [ref=f3e2898]: Membership
+                            - generic [ref=f3e2899]:
+                              - button "" [ref=f3e2900]:
+                                - generic [ref=f3e2901]: 
+                              - button "" [ref=f3e2902]:
+                                - generic [ref=f3e2903]: 
+                              - button "" [ref=f3e2904]:
+                                - generic [ref=f3e2905]: 
+                              - button "" [ref=f3e2906]:
+                                - generic [ref=f3e2907]: 
+                        - generic [ref=f3e2908] [cursor=pointer]:
+                          - generic [ref=f3e2909]:
+                            - button "" [ref=f3e2910]:
+                              - generic [ref=f3e2911]: 
+                            - spinbutton "Mover a posición" [ref=f3e2912]: "5"
+                            - button "" [ref=f3e2913]:
+                              - generic [ref=f3e2914]: 
+                          - generic [ref=f3e2915]:
+                            - generic [ref=f3e2916]:
+                              - generic [ref=f3e2917]: "400000000000000000001"
+                              - generic [ref=f3e2918]: Cuotas Netas
+                            - generic [ref=f3e2919]:
+                              - button "" [ref=f3e2920]:
+                                - generic [ref=f3e2921]: 
+                              - button "" [ref=f3e2922]:
+                                - generic [ref=f3e2923]: 
+                        - generic [ref=f3e2924] [cursor=pointer]:
+                          - generic [ref=f3e2925]:
+                            - button "" [ref=f3e2926]:
+                              - generic [ref=f3e2927]: 
+                            - spinbutton "Mover a posición" [ref=f3e2928]: "6"
+                            - button "" [ref=f3e2929]:
+                              - generic [ref=f3e2930]: 
+                          - generic [ref=f3e2931]:
+                            - generic [ref=f3e2932]:
+                              - generic [ref=f3e2933]: "401000000000000000001"
+                              - generic [ref=f3e2934]: Ingresos socios nuevos
+                            - generic [ref=f3e2935]:
+                              - button "" [ref=f3e2936]:
+                                - generic [ref=f3e2937]: 
+                              - button "" [ref=f3e2938]:
+                                - generic [ref=f3e2939]: 
+                        - generic [ref=f3e2940] [cursor=pointer]:
+                          - generic [ref=f3e2941]:
+                            - button "" [ref=f3e2942]:
+                              - generic [ref=f3e2943]: 
+                            - spinbutton "Mover a posición" [ref=f3e2944]: "7"
+                            - button "" [ref=f3e2945]:
+                              - generic [ref=f3e2946]: 
+                          - generic [ref=f3e2947]:
+                            - generic [ref=f3e2948]:
+                              - generic [ref=f3e2949]: 
+                              - emphasis [ref=f3e2950]: Events
+                            - generic [ref=f3e2951]:
+                              - button "" [ref=f3e2952]:
+                                - generic [ref=f3e2953]: 
+                              - button "" [ref=f3e2954]:
+                                - generic [ref=f3e2955]: 
+                              - button "" [ref=f3e2956]:
+                                - generic [ref=f3e2957]: 
+                              - button "" [ref=f3e2958]:
+                                - generic [ref=f3e2959]: 
+                        - generic [ref=f3e2960] [cursor=pointer]:
+                          - generic [ref=f3e2961]:
+                            - button "" [ref=f3e2962]:
+                              - generic [ref=f3e2963]: 
+                            - spinbutton "Mover a posición" [ref=f3e2964]: "8"
+                            - button "" [ref=f3e2965]:
+                              - generic [ref=f3e2966]: 
+                          - generic [ref=f3e2967]:
+                            - generic [ref=f3e2968]:
+                              - generic [ref=f3e2969]: "406000000000000000000"
+                              - generic [ref=f3e2970]: Eventos
+                            - generic [ref=f3e2971]:
+                              - button "" [ref=f3e2972]:
+                                - generic [ref=f3e2973]: 
+                              - button "" [ref=f3e2974]:
+                                - generic [ref=f3e2975]: 
+                        - generic [ref=f3e2976] [cursor=pointer]:
+                          - generic [ref=f3e2977]:
+                            - button "" [ref=f3e2978]:
+                              - generic [ref=f3e2979]: 
+                            - spinbutton "Mover a posición" [ref=f3e2980]: "9"
+                            - button "" [ref=f3e2981]:
+                              - generic [ref=f3e2982]: 
+                          - generic [ref=f3e2983]:
+                            - generic [ref=f3e2984]:
+                              - generic [ref=f3e2985]: "414000000000000000001"
+                              - generic [ref=f3e2986]: Patrocinios
+                            - generic [ref=f3e2987]:
+                              - button "" [ref=f3e2988]:
+                                - generic [ref=f3e2989]: 
+                              - button "" [ref=f3e2990]:
+                                - generic [ref=f3e2991]: 
+                        - generic [ref=f3e2992] [cursor=pointer]:
+                          - generic [ref=f3e2993]:
+                            - button "" [ref=f3e2994]:
+                              - generic [ref=f3e2995]: 
+                            - spinbutton "Mover a posición" [ref=f3e2996]: "10"
+                            - button "" [ref=f3e2997]:
+                              - generic [ref=f3e2998]: 
+                          - generic [ref=f3e2999]:
+                            - generic [ref=f3e3000]:
+                              - generic [ref=f3e3001]: 
+                              - emphasis [ref=f3e3002]: Committees
+                            - generic [ref=f3e3003]:
+                              - button "" [ref=f3e3004]:
+                                - generic [ref=f3e3005]: 
+                              - button "" [ref=f3e3006]:
+                                - generic [ref=f3e3007]: 
+                              - button "" [ref=f3e3008]:
+                                - generic [ref=f3e3009]: 
+                              - button "" [ref=f3e3010]:
+                                - generic [ref=f3e3011]: 
+                        - generic [ref=f3e3012] [cursor=pointer]:
+                          - generic [ref=f3e3013]:
+                            - button "" [ref=f3e3014]:
+                              - generic [ref=f3e3015]: 
+                            - spinbutton "Mover a posición" [ref=f3e3016]: "11"
+                            - button "" [ref=f3e3017]:
+                              - generic [ref=f3e3018]: 
+                          - generic [ref=f3e3019]:
+                            - generic [ref=f3e3020]:
+                              - generic [ref=f3e3021]: "408000000000000000000"
+                              - generic [ref=f3e3022]: Comités
+                            - generic [ref=f3e3023]:
+                              - button "" [ref=f3e3024]:
+                                - generic [ref=f3e3025]: 
+                              - button "" [ref=f3e3026]:
+                                - generic [ref=f3e3027]: 
+                        - generic [ref=f3e3028] [cursor=pointer]:
+                          - generic [ref=f3e3029]:
+                            - button "" [ref=f3e3030]:
+                              - generic [ref=f3e3031]: 
+                            - spinbutton "Mover a posición" [ref=f3e3032]: "12"
+                            - button "" [ref=f3e3033]:
+                              - generic [ref=f3e3034]: 
+                          - generic [ref=f3e3035]:
+                            - generic [ref=f3e3036]:
+                              - generic [ref=f3e3037]: 
+                              - emphasis [ref=f3e3038]: T&IC
+                            - generic [ref=f3e3039]:
+                              - button "" [ref=f3e3040]:
+                                - generic [ref=f3e3041]: 
+                              - button "" [ref=f3e3042]:
+                                - generic [ref=f3e3043]: 
+                              - button "" [ref=f3e3044]:
+                                - generic [ref=f3e3045]: 
+                              - button "" [ref=f3e3046]:
+                                - generic [ref=f3e3047]: 
+                        - generic [ref=f3e3048] [cursor=pointer]:
+                          - generic [ref=f3e3049]:
+                            - button "" [ref=f3e3050]:
+                              - generic [ref=f3e3051]: 
+                            - spinbutton "Mover a posición" [ref=f3e3052]: "13"
+                            - button "" [ref=f3e3053]:
+                              - generic [ref=f3e3054]: 
+                          - generic [ref=f3e3055]:
+                            - generic [ref=f3e3056]:
+                              - generic [ref=f3e3057]: "405000000000000000001"
+                              - generic [ref=f3e3058]: Trade & InvestmentCenter
+                            - generic [ref=f3e3059]:
+                              - button "" [ref=f3e3060]:
+                                - generic [ref=f3e3061]: 
+                              - button "" [ref=f3e3062]:
+                                - generic [ref=f3e3063]: 
+                        - generic [ref=f3e3064] [cursor=pointer]:
+                          - generic [ref=f3e3065]:
+                            - button "" [ref=f3e3066]:
+                              - generic [ref=f3e3067]: 
+                            - spinbutton "Mover a posición" [ref=f3e3068]: "14"
+                            - button "" [ref=f3e3069]:
+                              - generic [ref=f3e3070]: 
+                          - generic [ref=f3e3071]:
+                            - generic [ref=f3e3072]:
+                              - generic [ref=f3e3073]: 
+                              - emphasis [ref=f3e3074]: Services to Members
+                            - generic [ref=f3e3075]:
+                              - button "" [ref=f3e3076]:
+                                - generic [ref=f3e3077]: 
+                              - button "" [ref=f3e3078]:
+                                - generic [ref=f3e3079]: 
+                              - button "" [ref=f3e3080]:
+                                - generic [ref=f3e3081]: 
+                              - button "" [ref=f3e3082]:
+                                - generic [ref=f3e3083]: 
+                        - generic [ref=f3e3084] [cursor=pointer]:
+                          - generic [ref=f3e3085]:
+                            - button "" [ref=f3e3086]:
+                              - generic [ref=f3e3087]: 
+                            - spinbutton "Mover a posición" [ref=f3e3088]: "15"
+                            - button "" [ref=f3e3089]:
+                              - generic [ref=f3e3090]: 
+                          - generic [ref=f3e3091]:
+                            - generic [ref=f3e3092]:
+                              - generic [ref=f3e3093]: "410000000000000000001"
+                              - generic [ref=f3e3094]: Venta de publicaciones
+                            - generic [ref=f3e3095]:
+                              - button "" [ref=f3e3096]:
+                                - generic [ref=f3e3097]: 
+                              - button "" [ref=f3e3098]:
+                                - generic [ref=f3e3099]: 
+                        - generic [ref=f3e3100] [cursor=pointer]:
+                          - generic [ref=f3e3101]:
+                            - button "" [ref=f3e3102]:
+                              - generic [ref=f3e3103]: 
+                            - spinbutton "Mover a posición" [ref=f3e3104]: "16"
+                            - button "" [ref=f3e3105]:
+                              - generic [ref=f3e3106]: 
+                          - generic [ref=f3e3107]:
+                            - generic [ref=f3e3108]:
+                              - generic [ref=f3e3109]: "412000000000000000001"
+                              - generic [ref=f3e3110]: Visas
+                            - generic [ref=f3e3111]:
+                              - button "" [ref=f3e3112]:
+                                - generic [ref=f3e3113]: 
+                              - button "" [ref=f3e3114]:
+                                - generic [ref=f3e3115]: 
+                        - generic [ref=f3e3116] [cursor=pointer]:
+                          - generic [ref=f3e3117]:
+                            - button "" [ref=f3e3118]:
+                              - generic [ref=f3e3119]: 
+                            - spinbutton "Mover a posición" [ref=f3e3120]: "17"
+                            - button "" [ref=f3e3121]:
+                              - generic [ref=f3e3122]: 
+                          - generic [ref=f3e3123]:
+                            - generic [ref=f3e3124]:
+                              - generic [ref=f3e3125]: 
+                              - strong [ref=f3e3126]: EXPENSE
+                              - generic [ref=f3e3127]: Gastos G&A
+                            - generic [ref=f3e3128]:
+                              - button "Σ" [ref=f3e3129]
+                              - button "" [ref=f3e3130]:
+                                - generic [ref=f3e3131]: 
+                              - button "" [ref=f3e3132]:
+                                - generic [ref=f3e3133]: 
+                              - button "" [ref=f3e3134]:
+                                - generic [ref=f3e3135]: 
+                        - generic [ref=f3e3136] [cursor=pointer]:
+                          - generic [ref=f3e3137]:
+                            - button "" [ref=f3e3138]:
+                              - generic [ref=f3e3139]: 
+                            - spinbutton "Mover a posición" [ref=f3e3140]: "18"
+                            - button "" [ref=f3e3141]:
+                              - generic [ref=f3e3142]: 
+                          - generic [ref=f3e3143]:
+                            - generic [ref=f3e3144]:
+                              - generic [ref=f3e3145]: 
+                              - emphasis [ref=f3e3146]: Membership
+                            - generic [ref=f3e3147]:
+                              - button "" [ref=f3e3148]:
+                                - generic [ref=f3e3149]: 
+                              - button "" [ref=f3e3150]:
+                                - generic [ref=f3e3151]: 
+                              - button "" [ref=f3e3152]:
+                                - generic [ref=f3e3153]: 
+                              - button "" [ref=f3e3154]:
+                                - generic [ref=f3e3155]: 
+                        - generic [ref=f3e3156] [cursor=pointer]:
+                          - generic [ref=f3e3157]:
+                            - button "" [ref=f3e3158]:
+                              - generic [ref=f3e3159]: 
+                            - spinbutton "Mover a posición" [ref=f3e3160]: "19"
+                            - button "" [ref=f3e3161]:
+                              - generic [ref=f3e3162]: 
+                          - generic [ref=f3e3163]:
+                            - generic [ref=f3e3164]:
+                              - generic [ref=f3e3165]: "502000000000000000000"
+                              - generic [ref=f3e3166]: Comsiones por venta de membresía
+                            - generic [ref=f3e3167]:
+                              - button "" [ref=f3e3168]:
+                                - generic [ref=f3e3169]: 
+                              - button "" [ref=f3e3170]:
+                                - generic [ref=f3e3171]: 
+                        - generic [ref=f3e3172] [cursor=pointer]:
+                          - generic [ref=f3e3173]:
+                            - button "" [ref=f3e3174]:
+                              - generic [ref=f3e3175]: 
+                            - spinbutton "Mover a posición" [ref=f3e3176]: "20"
+                            - button "" [ref=f3e3177]:
+                              - generic [ref=f3e3178]: 
+                          - generic [ref=f3e3179]:
+                            - generic [ref=f3e3180]:
+                              - generic [ref=f3e3181]: "708000000000000000000"
+                              - generic [ref=f3e3182]: Gastos de Promoción
+                            - generic [ref=f3e3183]:
+                              - button "" [ref=f3e3184]:
+                                - generic [ref=f3e3185]: 
+                              - button "" [ref=f3e3186]:
+                                - generic [ref=f3e3187]: 
+                        - generic [ref=f3e3188] [cursor=pointer]:
+                          - generic [ref=f3e3189]:
+                            - button "" [ref=f3e3190]:
+                              - generic [ref=f3e3191]: 
+                            - spinbutton "Mover a posición" [ref=f3e3192]: "21"
+                            - button "" [ref=f3e3193]:
+                              - generic [ref=f3e3194]: 
+                          - generic [ref=f3e3195]:
+                            - generic [ref=f3e3196]:
+                              - generic [ref=f3e3197]: 
+                              - emphasis [ref=f3e3198]: Events
+                            - generic [ref=f3e3199]:
+                              - button "" [ref=f3e3200]:
+                                - generic [ref=f3e3201]: 
+                              - button "" [ref=f3e3202]:
+                                - generic [ref=f3e3203]: 
+                              - button "" [ref=f3e3204]:
+                                - generic [ref=f3e3205]: 
+                              - button "" [ref=f3e3206]:
+                                - generic [ref=f3e3207]: 
+                        - generic [ref=f3e3208] [cursor=pointer]:
+                          - generic [ref=f3e3209]:
+                            - button "" [ref=f3e3210]:
+                              - generic [ref=f3e3211]: 
+                            - spinbutton "Mover a posición" [ref=f3e3212]: "22"
+                            - button "" [ref=f3e3213]:
+                              - generic [ref=f3e3214]: 
+                          - generic [ref=f3e3215]:
+                            - generic [ref=f3e3216]:
+                              - generic [ref=f3e3217]: "705000000000000000001"
+                              - generic [ref=f3e3218]: Eventos
+                            - generic [ref=f3e3219]:
+                              - button "" [ref=f3e3220]:
+                                - generic [ref=f3e3221]: 
+                              - button "" [ref=f3e3222]:
+                                - generic [ref=f3e3223]: 
+                        - generic [ref=f3e3224] [cursor=pointer]:
+                          - generic [ref=f3e3225]:
+                            - button "" [ref=f3e3226]:
+                              - generic [ref=f3e3227]: 
+                            - spinbutton "Mover a posición" [ref=f3e3228]: "23"
+                            - button "" [ref=f3e3229]:
+                              - generic [ref=f3e3230]: 
+                          - generic [ref=f3e3231]:
+                            - generic [ref=f3e3232]:
+                              - generic [ref=f3e3233]: 
+                              - emphasis [ref=f3e3234]: Committees
+                            - generic [ref=f3e3235]:
+                              - button "" [ref=f3e3236]:
+                                - generic [ref=f3e3237]: 
+                              - button "" [ref=f3e3238]:
+                                - generic [ref=f3e3239]: 
+                              - button "" [ref=f3e3240]:
+                                - generic [ref=f3e3241]: 
+                              - button "" [ref=f3e3242]:
+                                - generic [ref=f3e3243]: 
+                        - generic [ref=f3e3244] [cursor=pointer]:
+                          - generic [ref=f3e3245]:
+                            - button "" [ref=f3e3246]:
+                              - generic [ref=f3e3247]: 
+                            - spinbutton "Mover a posición" [ref=f3e3248]: "24"
+                            - button "" [ref=f3e3249]:
+                              - generic [ref=f3e3250]: 
+                          - generic [ref=f3e3251]:
+                            - generic [ref=f3e3252]:
+                              - generic [ref=f3e3253]: "701000000000000000001"
+                              - generic [ref=f3e3254]: Costo Comités
+                            - generic [ref=f3e3255]:
+                              - button "" [ref=f3e3256]:
+                                - generic [ref=f3e3257]: 
+                              - button "" [ref=f3e3258]:
+                                - generic [ref=f3e3259]: 
+                        - generic [ref=f3e3260] [cursor=pointer]:
+                          - generic [ref=f3e3261]:
+                            - button "" [ref=f3e3262]:
+                              - generic [ref=f3e3263]: 
+                            - spinbutton "Mover a posición" [ref=f3e3264]: "25"
+                            - button "" [ref=f3e3265]:
+                              - generic [ref=f3e3266]: 
+                          - generic [ref=f3e3267]:
+                            - generic [ref=f3e3268]:
+                              - generic [ref=f3e3269]: "504000000000000000000"
+                              - generic [ref=f3e3270]: Comisiones EWDP
+                            - generic [ref=f3e3271]:
+                              - button "" [ref=f3e3272]:
+                                - generic [ref=f3e3273]: 
+                              - button "" [ref=f3e3274]:
+                                - generic [ref=f3e3275]: 
+                        - generic [ref=f3e3276] [cursor=pointer]:
+                          - generic [ref=f3e3277]:
+                            - button "" [ref=f3e3278]:
+                              - generic [ref=f3e3279]: 
+                            - spinbutton "Mover a posición" [ref=f3e3280]: "26"
+                            - button "" [ref=f3e3281]:
+                              - generic [ref=f3e3282]: 
+                          - generic [ref=f3e3283]:
+                            - generic [ref=f3e3284]:
+                              - generic [ref=f3e3285]: 
+                              - emphasis [ref=f3e3286]: T&IC
+                            - generic [ref=f3e3287]:
+                              - button "" [ref=f3e3288]:
+                                - generic [ref=f3e3289]: 
+                              - button "" [ref=f3e3290]:
+                                - generic [ref=f3e3291]: 
+                              - button "" [ref=f3e3292]:
+                                - generic [ref=f3e3293]: 
+                              - button "" [ref=f3e3294]:
+                                - generic [ref=f3e3295]: 
+                        - generic [ref=f3e3296] [cursor=pointer]:
+                          - generic [ref=f3e3297]:
+                            - button "" [ref=f3e3298]:
+                              - generic [ref=f3e3299]: 
+                            - spinbutton "Mover a posición" [ref=f3e3300]: "27"
+                            - button "" [ref=f3e3301]:
+                              - generic [ref=f3e3302]: 
+                          - generic [ref=f3e3303]:
+                            - generic [ref=f3e3304]:
+                              - generic [ref=f3e3305]: "602000000000000000000"
+                              - generic [ref=f3e3306]: CostoTrade&InvestmentCenter
+                            - generic [ref=f3e3307]:
+                              - button "" [ref=f3e3308]:
+                                - generic [ref=f3e3309]: 
+                              - button "" [ref=f3e3310]:
+                                - generic [ref=f3e3311]: 
+                        - generic [ref=f3e3312] [cursor=pointer]:
+                          - generic [ref=f3e3313]:
+                            - button "" [ref=f3e3314]:
+                              - generic [ref=f3e3315]: 
+                            - spinbutton "Mover a posición" [ref=f3e3316]: "28"
+                            - button "" [ref=f3e3317]:
+                              - generic [ref=f3e3318]: 
+                          - generic [ref=f3e3319]:
+                            - generic [ref=f3e3320]:
+                              - generic [ref=f3e3321]: 
+                              - emphasis [ref=f3e3322]: Services to Members
+                            - generic [ref=f3e3323]:
+                              - button "" [ref=f3e3324]:
+                                - generic [ref=f3e3325]: 
+                              - button "" [ref=f3e3326]:
+                                - generic [ref=f3e3327]: 
+                              - button "" [ref=f3e3328]:
+                                - generic [ref=f3e3329]: 
+                              - button "" [ref=f3e3330]:
+                                - generic [ref=f3e3331]: 
+                        - generic [ref=f3e3332] [cursor=pointer]:
+                          - generic [ref=f3e3333]:
+                            - button "" [ref=f3e3334]:
+                              - generic [ref=f3e3335]: 
+                            - spinbutton "Mover a posición" [ref=f3e3336]: "29"
+                            - button "" [ref=f3e3337]:
+                              - generic [ref=f3e3338]: 
+                          - generic [ref=f3e3339]:
+                            - generic [ref=f3e3340]:
+                              - generic [ref=f3e3341]: "706000000000000000001"
+                              - generic [ref=f3e3342]: Visas
+                            - generic [ref=f3e3343]:
+                              - button "" [ref=f3e3344]:
+                                - generic [ref=f3e3345]: 
+                              - button "" [ref=f3e3346]:
+                                - generic [ref=f3e3347]: 
+                        - generic [ref=f3e3348] [cursor=pointer]:
+                          - generic [ref=f3e3349]:
+                            - button "" [ref=f3e3350]:
+                              - generic [ref=f3e3351]: 
+                            - spinbutton "Mover a posición" [ref=f3e3352]: "30"
+                            - button "" [ref=f3e3353]:
+                              - generic [ref=f3e3354]: 
+                          - generic [ref=f3e3355]:
+                            - generic [ref=f3e3356]:
+                              - generic [ref=f3e3357]: "600000000000000000001"
+                              - generic [ref=f3e3358]: Costo de publicaciones
+                            - generic [ref=f3e3359]:
+                              - button "" [ref=f3e3360]:
+                                - generic [ref=f3e3361]: 
+                              - button "" [ref=f3e3362]:
+                                - generic [ref=f3e3363]: 
+                        - generic [ref=f3e3364] [cursor=pointer]:
+                          - generic [ref=f3e3365]:
+                            - button "" [ref=f3e3366]:
+                              - generic [ref=f3e3367]: 
+                            - spinbutton "Mover a posición" [ref=f3e3368]: "31"
+                            - button "" [ref=f3e3369]:
+                              - generic [ref=f3e3370]: 
+                          - generic [ref=f3e3371]:
+                            - generic [ref=f3e3372]:
+                              - generic [ref=f3e3373]: 
+                              - emphasis [ref=f3e3374]: Gastos G&A
+                            - generic [ref=f3e3375]:
+                              - button "" [ref=f3e3376]:
+                                - generic [ref=f3e3377]: 
+                              - button "" [ref=f3e3378]:
+                                - generic [ref=f3e3379]: 
+                              - button "" [ref=f3e3380]:
+                                - generic [ref=f3e3381]: 
+                              - button "" [ref=f3e3382]:
+                                - generic [ref=f3e3383]: 
+                        - generic [ref=f3e3384] [cursor=pointer]:
+                          - generic [ref=f3e3385]:
+                            - button "" [ref=f3e3386]:
+                              - generic [ref=f3e3387]: 
+                            - spinbutton "Mover a posición" [ref=f3e3388]: "32"
+                            - button "" [ref=f3e3389]:
+                              - generic [ref=f3e3390]: 
+                          - generic [ref=f3e3391]:
+                            - generic [ref=f3e3392]:
+                              - generic [ref=f3e3393]: "803000000000000000000"
+                              - generic [ref=f3e3394]: Gastos administrativos
+                            - generic [ref=f3e3395]:
+                              - button "" [ref=f3e3396]:
+                                - generic [ref=f3e3397]: 
+                              - button "" [ref=f3e3398]:
+                                - generic [ref=f3e3399]: 
+                        - generic [ref=f3e3400] [cursor=pointer]:
+                          - generic [ref=f3e3401]:
+                            - button "" [ref=f3e3402]:
+                              - generic [ref=f3e3403]: 
+                            - spinbutton "Mover a posición" [ref=f3e3404]: "33"
+                            - button "" [ref=f3e3405]:
+                              - generic [ref=f3e3406]: 
+                          - generic [ref=f3e3407]:
+                            - generic [ref=f3e3408]:
+                              - generic [ref=f3e3409]: 
+                              - emphasis [ref=f3e3410]: Gastos Generales
+                            - generic [ref=f3e3411]:
+                              - button "" [ref=f3e3412]:
+                                - generic [ref=f3e3413]: 
+                              - button "" [ref=f3e3414]:
+                                - generic [ref=f3e3415]: 
+                              - button "" [ref=f3e3416]:
+                                - generic [ref=f3e3417]: 
+                              - button "" [ref=f3e3418]:
+                                - generic [ref=f3e3419]: 
+                        - generic [ref=f3e3420] [cursor=pointer]:
+                          - generic [ref=f3e3421]:
+                            - button "" [ref=f3e3422]:
+                              - generic [ref=f3e3423]: 
+                            - spinbutton "Mover a posición" [ref=f3e3424]: "34"
+                            - button "" [ref=f3e3425]:
+                              - generic [ref=f3e3426]: 
+                          - generic [ref=f3e3427]:
+                            - generic [ref=f3e3428]:
+                              - generic [ref=f3e3429]: "802000000000000000001"
+                              - generic [ref=f3e3430]: Gastos Generales
+                            - generic [ref=f3e3431]:
+                              - button "" [ref=f3e3432]:
+                                - generic [ref=f3e3433]: 
+                              - button "" [ref=f3e3434]:
+                                - generic [ref=f3e3435]: 
+                        - generic [ref=f3e3436] [cursor=pointer]:
+                          - generic [ref=f3e3437]:
+                            - button "" [ref=f3e3438]:
+                              - generic [ref=f3e3439]: 
+                            - spinbutton "Mover a posición" [ref=f3e3440]: "35"
+                            - button "" [ref=f3e3441]:
+                              - generic [ref=f3e3442]: 
+                          - generic [ref=f3e3443]:
+                            - generic [ref=f3e3444]:
+                              - generic [ref=f3e3445]: 
+                              - emphasis [ref=f3e3446]: Nómina
+                            - generic [ref=f3e3447]:
+                              - button "" [ref=f3e3448]:
+                                - generic [ref=f3e3449]: 
+                              - button "" [ref=f3e3450]:
+                                - generic [ref=f3e3451]: 
+                              - button "" [ref=f3e3452]:
+                                - generic [ref=f3e3453]: 
+                              - button "" [ref=f3e3454]:
+                                - generic [ref=f3e3455]: 
+                        - generic [ref=f3e3456] [cursor=pointer]:
+                          - generic [ref=f3e3457]:
+                            - button "" [ref=f3e3458]:
+                              - generic [ref=f3e3459]: 
+                            - spinbutton "Mover a posición" [ref=f3e3460]: "36"
+                            - button "" [ref=f3e3461]:
+                              - generic [ref=f3e3462]: 
+                          - generic [ref=f3e3463]:
+                            - generic [ref=f3e3464]:
+                              - generic [ref=f3e3465]: "501000000000000000001"
+                              - generic [ref=f3e3466]: Nómina
+                            - generic [ref=f3e3467]:
+                              - button "" [ref=f3e3468]:
+                                - generic [ref=f3e3469]: 
+                              - button "" [ref=f3e3470]:
+                                - generic [ref=f3e3471]: 
+                        - generic [ref=f3e3472] [cursor=pointer]:
+                          - generic [ref=f3e3473]:
+                            - button "" [ref=f3e3474]:
+                              - generic [ref=f3e3475]: 
+                            - spinbutton "Mover a posición" [ref=f3e3476]: "37"
+                            - button "" [ref=f3e3477]:
+                              - generic [ref=f3e3478]: 
+                          - generic [ref=f3e3479]:
+                            - generic [ref=f3e3480]:
+                              - generic [ref=f3e3481]: 
+                              - emphasis [ref=f3e3482]: Gastos Corporativos
+                            - generic [ref=f3e3483]:
+                              - button "" [ref=f3e3484]:
+                                - generic [ref=f3e3485]: 
+                              - button "" [ref=f3e3486]:
+                                - generic [ref=f3e3487]: 
+                              - button "" [ref=f3e3488]:
+                                - generic [ref=f3e3489]: 
+                              - button "" [ref=f3e3490]:
+                                - generic [ref=f3e3491]: 
+                        - generic [ref=f3e3492] [cursor=pointer]:
+                          - generic [ref=f3e3493]:
+                            - button "" [ref=f3e3494]:
+                              - generic [ref=f3e3495]: 
+                            - spinbutton "Mover a posición" [ref=f3e3496]: "38"
+                            - button "" [ref=f3e3497]:
+                              - generic [ref=f3e3498]: 
+                          - generic [ref=f3e3499]:
+                            - generic [ref=f3e3500]:
+                              - generic [ref=f3e3501]: "900000000000000000001"
+                              - generic [ref=f3e3502]: Gastos Corporativos
+                            - generic [ref=f3e3503]:
+                              - button "" [ref=f3e3504]:
+                                - generic [ref=f3e3505]: 
+                              - button "" [ref=f3e3506]:
+                                - generic [ref=f3e3507]: 
+                        - generic [ref=f3e3508] [cursor=pointer]:
+                          - generic [ref=f3e3509]:
+                            - button "" [ref=f3e3510]:
+                              - generic [ref=f3e3511]: 
+                            - spinbutton "Mover a posición" [ref=f3e3512]: "39"
+                            - button "" [ref=f3e3513]:
+                              - generic [ref=f3e3514]: 
+                          - generic [ref=f3e3515]:
+                            - generic [ref=f3e3516]:
+                              - generic [ref=f3e3517]: 
+                              - emphasis [ref=f3e3518]: Cargos Administrativos
+                            - generic [ref=f3e3519]:
+                              - button "" [ref=f3e3520]:
+                                - generic [ref=f3e3521]: 
+                              - button "" [ref=f3e3522]:
+                                - generic [ref=f3e3523]: 
+                              - button "" [ref=f3e3524]:
+                                - generic [ref=f3e3525]: 
+                              - button "" [ref=f3e3526]:
+                                - generic [ref=f3e3527]: 
+                        - generic [ref=f3e3528] [cursor=pointer]:
+                          - generic [ref=f3e3529]:
+                            - button "" [ref=f3e3530]:
+                              - generic [ref=f3e3531]: 
+                            - spinbutton "Mover a posición" [ref=f3e3532]: "40"
+                            - button "" [ref=f3e3533]:
+                              - generic [ref=f3e3534]: 
+                          - generic [ref=f3e3535]:
+                            - generic [ref=f3e3536]:
+                              - generic [ref=f3e3537]: "900001000000000000000"
+                              - generic [ref=f3e3538]: Cargos Administrativos
+                            - generic [ref=f3e3539]:
+                              - button "" [ref=f3e3540]:
+                                - generic [ref=f3e3541]: 
+                              - button "" [ref=f3e3542]:
+                                - generic [ref=f3e3543]: 
+                        - generic [ref=f3e3544] [cursor=pointer]:
+                          - generic [ref=f3e3545]:
+                            - button "" [ref=f3e3546]:
+                              - generic [ref=f3e3547]: 
+                            - spinbutton "Mover a posición" [ref=f3e3548]: "41"
+                            - button "" [ref=f3e3549]:
+                              - generic [ref=f3e3550]: 
+                          - generic [ref=f3e3551]:
+                            - generic [ref=f3e3552]:
+                              - generic [ref=f3e3553]: 
+                              - strong [ref=f3e3554]: Member Centricity
+                              - generic [ref=f3e3555]: sum-row
+                            - generic [ref=f3e3556]:
+                              - button "Σ" [ref=f3e3557]
+                              - button "" [ref=f3e3558]:
+                                - generic [ref=f3e3559]: 
+                              - button "" [ref=f3e3560]:
+                                - generic [ref=f3e3561]: 
+                              - button "" [ref=f3e3562]:
+                                - generic [ref=f3e3563]: 
+                        - generic [ref=f3e3564] [cursor=pointer]:
+                          - generic [ref=f3e3565]:
+                            - button "" [ref=f3e3566]:
+                              - generic [ref=f3e3567]: 
+                            - spinbutton "Mover a posición" [ref=f3e3568]: "42"
+                            - button "" [ref=f3e3569]:
+                              - generic [ref=f3e3570]: 
+                          - generic [ref=f3e3571]:
+                            - generic [ref=f3e3572]:
+                              - generic [ref=f3e3573]: 
+                              - emphasis [ref=f3e3574]: Member Centricity
+                            - generic [ref=f3e3575]:
+                              - button "" [ref=f3e3576]:
+                                - generic [ref=f3e3577]: 
+                              - button "" [ref=f3e3578]:
+                                - generic [ref=f3e3579]: 
+                              - button "" [ref=f3e3580]:
+                                - generic [ref=f3e3581]: 
+                              - button "" [ref=f3e3582]:
+                                - generic [ref=f3e3583]: 
+                        - generic [ref=f3e3584] [cursor=pointer]:
+                          - generic [ref=f3e3585]:
+                            - button "" [ref=f3e3586]:
+                              - generic [ref=f3e3587]: 
+                            - spinbutton "Mover a posición" [ref=f3e3588]: "43"
+                            - button "" [ref=f3e3589]:
+                              - generic [ref=f3e3590]: 
+                          - generic [ref=f3e3591]:
+                            - generic [ref=f3e3592]:
+                              - generic [ref=f3e3593]: "901000000000000000001"
+                              - generic [ref=f3e3594]: Member Centricity
+                            - generic [ref=f3e3595]:
+                              - button "" [ref=f3e3596]:
+                                - generic [ref=f3e3597]: 
+                              - button "" [ref=f3e3598]:
+                                - generic [ref=f3e3599]: 
+                        - generic [ref=f3e3600] [cursor=pointer]:
+                          - generic [ref=f3e3601]:
+                            - button "" [ref=f3e3602]:
+                              - generic [ref=f3e3603]: 
+                            - spinbutton "Mover a posición" [ref=f3e3604]: "44"
+                            - button "" [ref=f3e3605]:
+                              - generic [ref=f3e3606]: 
+                          - generic [ref=f3e3607]:
+                            - generic [ref=f3e3608]:
+                              - generic [ref=f3e3609]: 
+                              - strong [ref=f3e3610]: Other
+                              - generic [ref=f3e3611]: sum-row
+                            - generic [ref=f3e3612]:
+                              - button "Σ" [ref=f3e3613]
+                              - button "" [ref=f3e3614]:
+                                - generic [ref=f3e3615]: 
+                              - button "" [ref=f3e3616]:
+                                - generic [ref=f3e3617]: 
+                              - button "" [ref=f3e3618]:
+                                - generic [ref=f3e3619]: 
+                        - generic [ref=f3e3620] [cursor=pointer]:
+                          - generic [ref=f3e3621]:
+                            - button "" [ref=f3e3622]:
+                              - generic [ref=f3e3623]: 
+                            - spinbutton "Mover a posición" [ref=f3e3624]: "45"
+                            - button "" [ref=f3e3625]:
+                              - generic [ref=f3e3626]: 
+                          - generic [ref=f3e3627]:
+                            - generic [ref=f3e3628]:
+                              - generic [ref=f3e3629]: 
+                              - emphasis [ref=f3e3630]: Other
+                            - generic [ref=f3e3631]:
+                              - button "" [ref=f3e3632]:
+                                - generic [ref=f3e3633]: 
+                              - button "" [ref=f3e3634]:
+                                - generic [ref=f3e3635]: 
+                              - button "" [ref=f3e3636]:
+                                - generic [ref=f3e3637]: 
+                              - button "" [ref=f3e3638]:
+                                - generic [ref=f3e3639]: 
+                        - generic [ref=f3e3640] [cursor=pointer]:
+                          - generic [ref=f3e3641]:
+                            - button "" [ref=f3e3642]:
+                              - generic [ref=f3e3643]: 
+                            - spinbutton "Mover a posición" [ref=f3e3644]: "46"
+                            - button "" [ref=f3e3645]:
+                              - generic [ref=f3e3646]: 
+                          - generic [ref=f3e3647]:
+                            - generic [ref=f3e3648]:
+                              - generic [ref=f3e3649]: "403000000000000000001"
+                              - generic [ref=f3e3650]: Otros ingresos
+                            - generic [ref=f3e3651]:
+                              - button "" [ref=f3e3652]:
+                                - generic [ref=f3e3653]: 
+                              - button "" [ref=f3e3654]:
+                                - generic [ref=f3e3655]: 
+                        - generic [ref=f3e3656] [cursor=pointer]:
+                          - generic [ref=f3e3657]:
+                            - button "" [ref=f3e3658]:
+                              - generic [ref=f3e3659]: 
+                            - spinbutton "Mover a posición" [ref=f3e3660]: "47"
+                            - button "" [ref=f3e3661]:
+                              - generic [ref=f3e3662]: 
+                          - generic [ref=f3e3663]:
+                            - generic [ref=f3e3664]:
+                              - generic [ref=f3e3665]: "409000000000000000001"
+                              - generic [ref=f3e3666]: Utilidad cambiaria
+                            - generic [ref=f3e3667]:
+                              - button "" [ref=f3e3668]:
+                                - generic [ref=f3e3669]: 
+                              - button "" [ref=f3e3670]:
+                                - generic [ref=f3e3671]: 
+                        - generic [ref=f3e3672] [cursor=pointer]:
+                          - generic [ref=f3e3673]:
+                            - button "" [ref=f3e3674]:
+                              - generic [ref=f3e3675]: 
+                            - spinbutton "Mover a posición" [ref=f3e3676]: "48"
+                            - button "" [ref=f3e3677]:
+                              - generic [ref=f3e3678]: 
+                          - generic [ref=f3e3679]:
+                            - generic [ref=f3e3680]:
+                              - generic [ref=f3e3681]: "413000000000000000001"
+                              - generic [ref=f3e3682]: Rendimientos bancarios
+                            - generic [ref=f3e3683]:
+                              - button "" [ref=f3e3684]:
+                                - generic [ref=f3e3685]: 
+                              - button "" [ref=f3e3686]:
+                                - generic [ref=f3e3687]: 
+                        - generic [ref=f3e3688] [cursor=pointer]:
+                          - generic [ref=f3e3689]:
+                            - button "" [ref=f3e3690]:
+                              - generic [ref=f3e3691]: 
+                            - spinbutton "Mover a posición" [ref=f3e3692]: "49"
+                            - button "" [ref=f3e3693]:
+                              - generic [ref=f3e3694]: 
+                          - generic [ref=f3e3695]:
+                            - generic [ref=f3e3696]:
+                              - generic [ref=f3e3697]: "804000000000000000000"
+                              - generic [ref=f3e3698]: Pérdida cambiaria
+                            - generic [ref=f3e3699]:
+                              - button "" [ref=f3e3700]:
+                                - generic [ref=f3e3701]: 
+                              - button "" [ref=f3e3702]:
+                                - generic [ref=f3e3703]: 
+              - text: 
+              - paragraph [ref=f3e679]: Cambios pendientes. Guardado automatico...
+            - text:    
+        - text:                        
+        - generic: 
+        - button "Tour plantillas" [ref=f3e680] [cursor=pointer]

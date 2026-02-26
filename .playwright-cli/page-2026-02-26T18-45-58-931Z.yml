@@ -1,0 +1,635 @@
+- generic [ref=e3]:
+  - complementary "Navegación principal" [ref=e4]:
+    - img "AmCham" [ref=e6]
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - button "Resumen 1" [expanded] [ref=e9] [cursor=pointer]:
+          - generic [ref=e10]: Resumen
+          - generic [ref=e11]: "1"
+        - button "Resumen summary" [ref=e13] [cursor=pointer]:
+          - generic [ref=e14]: Resumen
+          - generic [ref=e15]: summary
+      - generic [ref=e16]:
+        - button "Divisiones 11" [expanded] [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: Divisiones
+          - generic [ref=e19]: "11"
+        - generic [ref=e20]:
+          - button "Presupuestos ppto" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: Presupuestos
+            - generic [ref=e23]: ppto
+          - button "Comités" [active] [ref=e24] [cursor=pointer]:
+            - generic [ref=e25]: Comités
+          - button "Comunicación" [ref=e26] [cursor=pointer]:
+            - generic [ref=e27]: Comunicación
+          - button "Dirección" [ref=e99] [cursor=pointer]:
+            - generic [ref=e100]: Dirección
+          - button "Eventos" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: Eventos
+          - generic [ref=e30]:
+            - button "Finanzas 1" [expanded] [ref=e101] [cursor=pointer]:
+              - generic [ref=e32]: Finanzas
+              - generic [ref=e33]: "1"
+            - button "Gastos Generales finanzas" [ref=e38] [cursor=pointer]:
+              - generic [ref=e39]: Gastos Generales
+              - generic [ref=e40]: finanzas
+          - button "Gastos Corporativos" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: Gastos Corporativos
+          - button "Membresía" [ref=e46] [cursor=pointer]:
+            - generic [ref=e47]: Membresía
+          - button "Recursos Humanos" [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]: Recursos Humanos
+          - button "Servicios a la Membresía" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: Servicios a la Membresía
+          - button "T&IC" [ref=e52] [cursor=pointer]:
+            - generic [ref=e53]: T&IC
+      - generic [ref=e56]:
+        - button "Configuración 5" [expanded] [ref=e57] [cursor=pointer]:
+          - generic [ref=e58]: Configuración
+          - generic [ref=e59]: "5"
+        - generic [ref=e60]:
+          - button "Mi Perfil perfil" [ref=e61] [cursor=pointer]:
+            - generic [ref=e62]: Mi Perfil
+            - generic [ref=e63]: perfil
+          - button "Administrar usuarios Permisos" [ref=e64] [cursor=pointer]:
+            - generic [ref=e65]: Administrar usuarios
+            - generic [ref=e66]: Permisos
+          - button "Crear usuario" [ref=e67] [cursor=pointer]:
+            - generic [ref=e68]: Crear usuario
+          - button "Gestor de Plantillas" [ref=e69] [cursor=pointer]:
+            - generic [ref=e70]: Gestor de Plantillas
+          - button "Administrar conexiones" [ref=e71] [cursor=pointer]:
+            - generic [ref=e72]: Administrar conexiones
+  - main [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - button "Ocultar menú lateral" [expanded] [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]: ☰
+        - heading "Comités" [level=2] [ref=e104]
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - button "Tour guiado" [ref=e83] [cursor=pointer]
+          - button "Opciones" [ref=e84] [cursor=pointer]:
+            - generic [ref=e85]: Opciones
+        - button "Notificaciones" [ref=e87] [cursor=pointer]:
+          - img [ref=e88]
+        - generic [ref=e90]:
+          - generic [ref=e91]: "Empresa:"
+          - combobox "Empresa:" [ref=e92]:
+            - option "Ciudad de México"
+            - option "Guadalajara" [selected]
+            - option "Noreste"
+            - option "Noroeste"
+        - button "Cerrar sesión" [ref=e93] [cursor=pointer]
+    - iframe [ref=e105]:
+      - generic [active] [ref=f5e1]:
+        - generic [ref=f5e2]:
+          - generic [ref=f5e7]:
+            - generic [ref=f5e8]:
+              - heading "Comités" [level=1] [ref=f5e9]
+              - paragraph [ref=f5e10]: Ejercicio 2026 · Guadalajara
+            - button "Ver flujo de autorización" [ref=f5e11] [cursor=pointer]:
+              - generic [ref=f5e12]: 
+          - generic [ref=f5e14]:
+            - generic [ref=f5e15]: Ejercicio
+            - combobox "Ejercicio" [ref=f5e16] [cursor=pointer]:
+              - option "2026" [selected]
+              - option "2025"
+              - option "2024"
+              - option "2023"
+              - option "2022"
+              - option "2021"
+              - option "2020"
+              - option "2019"
+              - option "2018"
+              - option "2017"
+              - option "2016"
+              - option "2015"
+              - option "2014"
+              - option "2013"
+              - option "2012"
+              - option "2011"
+              - option "2010"
+              - option "2009"
+              - option "2008"
+              - option "2007"
+              - option "2006"
+              - option "2005"
+          - generic [ref=f5e21]:
+            - generic [ref=f5e22]:
+              - generic [ref=f5e23] [cursor=pointer]: Redondear
+              - generic [ref=f5e24]:
+                - checkbox "Redondear"
+            - generic [ref=f5e26]:
+              - paragraph [ref=f5e27]: Estado del presupuesto
+              - generic [ref=f5e28]: Sin cargar
+              - paragraph
+            - group [ref=f5e29]:
+              - button " Cargar presupuesto" [ref=f5e30] [cursor=pointer]:
+                - generic [ref=f5e31]: 
+                - generic [ref=f5e32]: Cargar presupuesto
+              - text:     
+              - button " Centro de borradores" [ref=f5e33] [cursor=pointer]:
+                - generic [ref=f5e34]: 
+                - generic [ref=f5e35]: Centro de borradores
+              - text:  
+            - group [ref=f5e36]:
+              - button " Colapsar" [ref=f5e37] [cursor=pointer]:
+                - generic [ref=f5e38]: 
+                - text: Colapsar
+              - button " Expandir" [ref=f5e39] [cursor=pointer]:
+                - generic [ref=f5e40]: 
+                - text: Expandir
+          - generic [ref=f5e43]:
+            - textbox "Buscar cuenta o descripción..." [ref=f5e46] [cursor=pointer]
+            - button "Ocultar cuentas" [pressed] [ref=f5e47] [cursor=pointer]
+            - button " Graficas" [ref=f5e48] [cursor=pointer]:
+              - generic [ref=f5e49]: 
+              - text: Graficas
+            - button " Excel" [ref=f5e50] [cursor=pointer]:
+              - generic [ref=f5e51]: 
+              - text: Excel
+            - button " PDF" [ref=f5e52] [cursor=pointer]:
+              - generic [ref=f5e53]: 
+              - text: PDF
+          - table [ref=f5e58]:
+            - rowgroup [ref=f5e59]:
+              - row "COMITÉS Presupuesto 2026 Ppto ENE-26 Real ENE-26 Ppto FEB-26 Ppto MAR-26 Ppto ABR-26 Ppto MAY-26 Ppto JUN-26 Ppto JUL-26 Ppto AGO-26 Ppto SEP-26 Ppto OCT-26 Ppto NOV-26 Ppto DIC-26 Ppto. Acumulado 2026 Real Acumulado 2026" [ref=f5e60]:
+                - columnheader [ref=f5e61]
+                - columnheader "COMITÉS" [ref=f5e62]
+                - columnheader "Presupuesto 2026" [ref=f5e63]
+                - columnheader "Ppto ENE-26" [ref=f5e64]
+                - columnheader "Real ENE-26" [ref=f5e65]
+                - columnheader "Ppto FEB-26" [ref=f5e66]
+                - columnheader "Ppto MAR-26" [ref=f5e67]
+                - columnheader "Ppto ABR-26" [ref=f5e68]
+                - columnheader "Ppto MAY-26" [ref=f5e69]
+                - columnheader "Ppto JUN-26" [ref=f5e70]
+                - columnheader "Ppto JUL-26" [ref=f5e71]
+                - columnheader "Ppto AGO-26" [ref=f5e72]
+                - columnheader "Ppto SEP-26" [ref=f5e73]
+                - columnheader "Ppto OCT-26" [ref=f5e74]
+                - columnheader "Ppto NOV-26" [ref=f5e75]
+                - columnheader "Ppto DIC-26" [ref=f5e76]
+                - columnheader "Ppto. Acumulado 2026" [ref=f5e77]
+                - columnheader "Real Acumulado 2026" [ref=f5e78]
+            - rowgroup [ref=f5e79]:
+              - row " Ingresos Comités" [ref=f5e80]:
+                - cell " Ingresos Comités" [ref=f5e81] [cursor=pointer]:
+                  - generic [ref=f5e82]: 
+                  - text: Ingresos Comités
+              - row "404-017-000-00 Agroindustria 5,000.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 5,000.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00" [ref=f5e83]:
+                - cell "404-017-000-00" [ref=f5e84]
+                - cell "Agroindustria" [ref=f5e85]
+                - cell "5,000.00" [ref=f5e86]
+                - cell "0.00" [ref=f5e87]
+                - cell "0.00" [ref=f5e88]
+                - cell "0.00" [ref=f5e89]
+                - cell "0.00" [ref=f5e90]
+                - cell "0.00" [ref=f5e91]
+                - cell "0.00" [ref=f5e92]
+                - cell "0.00" [ref=f5e93]
+                - cell "5,000.00" [ref=f5e94]
+                - cell "0.00" [ref=f5e95]
+                - cell "0.00" [ref=f5e96]
+                - cell "0.00" [ref=f5e97]
+                - cell "0.00" [ref=f5e98]
+                - cell "0.00" [ref=f5e99]
+                - cell "0.00" [ref=f5e100]
+                - cell "0.00" [ref=f5e101]
+              - row "404-005-000-00 Asuntos Fiscales 148,500.00 13,500.00 9,051.75 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 0.00 13,500.00 9,051.75" [ref=f5e102]:
+                - cell "404-005-000-00" [ref=f5e103]
+                - cell "Asuntos Fiscales" [ref=f5e104]
+                - cell "148,500.00" [ref=f5e105]
+                - cell "13,500.00" [ref=f5e106]
+                - cell "9,051.75" [ref=f5e107]
+                - cell "13,500.00" [ref=f5e108]
+                - cell "13,500.00" [ref=f5e109]
+                - cell "13,500.00" [ref=f5e110]
+                - cell "13,500.00" [ref=f5e111]
+                - cell "13,500.00" [ref=f5e112]
+                - cell "13,500.00" [ref=f5e113]
+                - cell "13,500.00" [ref=f5e114]
+                - cell "13,500.00" [ref=f5e115]
+                - cell "13,500.00" [ref=f5e116]
+                - cell "13,500.00" [ref=f5e117]
+                - cell "0.00" [ref=f5e118]
+                - cell "13,500.00" [ref=f5e119]
+                - cell "9,051.75" [ref=f5e120]
+              - row "404-001-000-00 Capital Humano y Asuntos Laborales 148,500.00 13,500.00 0.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 0.00 13,500.00 0.00" [ref=f5e121]:
+                - cell "404-001-000-00" [ref=f5e122]
+                - cell "Capital Humano y Asuntos Laborales" [ref=f5e123]
+                - cell "148,500.00" [ref=f5e124]
+                - cell "13,500.00" [ref=f5e125]
+                - cell "0.00" [ref=f5e126]
+                - cell "13,500.00" [ref=f5e127]
+                - cell "13,500.00" [ref=f5e128]
+                - cell "13,500.00" [ref=f5e129]
+                - cell "13,500.00" [ref=f5e130]
+                - cell "13,500.00" [ref=f5e131]
+                - cell "13,500.00" [ref=f5e132]
+                - cell "13,500.00" [ref=f5e133]
+                - cell "13,500.00" [ref=f5e134]
+                - cell "13,500.00" [ref=f5e135]
+                - cell "13,500.00" [ref=f5e136]
+                - cell "0.00" [ref=f5e137]
+                - cell "13,500.00" [ref=f5e138]
+                - cell "0.00" [ref=f5e139]
+              - row "404-003-000-00 Comercio Exterior y Logística 148,500.00 13,500.00 15,043.15 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 13,500.00 0.00 13,500.00 15,043.15" [ref=f5e140]:
+                - cell "404-003-000-00" [ref=f5e141]
+                - cell "Comercio Exterior y Logística" [ref=f5e142]
+                - cell "148,500.00" [ref=f5e143]
+                - cell "13,500.00" [ref=f5e144]
+                - cell "15,043.15" [ref=f5e145]
+                - cell "13,500.00" [ref=f5e146]
+                - cell "13,500.00" [ref=f5e147]
+                - cell "13,500.00" [ref=f5e148]
+                - cell "13,500.00" [ref=f5e149]
+                - cell "13,500.00" [ref=f5e150]
+                - cell "13,500.00" [ref=f5e151]
+                - cell "13,500.00" [ref=f5e152]
+                - cell "13,500.00" [ref=f5e153]
+                - cell "13,500.00" [ref=f5e154]
+                - cell "13,500.00" [ref=f5e155]
+                - cell "0.00" [ref=f5e156]
+                - cell "13,500.00" [ref=f5e157]
+                - cell "15,043.15" [ref=f5e158]
+              - row "404-013-000-00 Innovación y TICs 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00" [ref=f5e159]:
+                - cell "404-013-000-00" [ref=f5e160]
+                - cell "Innovación y TICs" [ref=f5e161]
+                - cell "0.00" [ref=f5e162]
+                - cell "0.00" [ref=f5e163]
+                - cell "0.00" [ref=f5e164]
+                - cell "0.00" [ref=f5e165]
+                - cell "0.00" [ref=f5e166]
+                - cell "0.00" [ref=f5e167]
+                - cell "0.00" [ref=f5e168]
+                - cell "0.00" [ref=f5e169]
+                - cell "0.00" [ref=f5e170]
+                - cell "0.00" [ref=f5e171]
+                - cell "0.00" [ref=f5e172]
+                - cell "0.00" [ref=f5e173]
+                - cell "0.00" [ref=f5e174]
+                - cell "0.00" [ref=f5e175]
+                - cell "0.00" [ref=f5e176]
+                - cell "0.00" [ref=f5e177]
+              - row "404-007-000-00 Legalidad y Estado de Derecho 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00" [ref=f5e178]:
+                - cell "404-007-000-00" [ref=f5e179]
+                - cell "Legalidad y Estado de Derecho" [ref=f5e180]
+                - cell "0.00" [ref=f5e181]
+                - cell "0.00" [ref=f5e182]
+                - cell "0.00" [ref=f5e183]
+                - cell "0.00" [ref=f5e184]
+                - cell "0.00" [ref=f5e185]
+                - cell "0.00" [ref=f5e186]
+                - cell "0.00" [ref=f5e187]
+                - cell "0.00" [ref=f5e188]
+                - cell "0.00" [ref=f5e189]
+                - cell "0.00" [ref=f5e190]
+                - cell "0.00" [ref=f5e191]
+                - cell "0.00" [ref=f5e192]
+                - cell "0.00" [ref=f5e193]
+                - cell "0.00" [ref=f5e194]
+                - cell "0.00" [ref=f5e195]
+                - cell "0.00" [ref=f5e196]
+              - row "404-016-000-00 Salud 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00" [ref=f5e197]:
+                - cell "404-016-000-00" [ref=f5e198]
+                - cell "Salud" [ref=f5e199]
+                - cell "0.00" [ref=f5e200]
+                - cell "0.00" [ref=f5e201]
+                - cell "0.00" [ref=f5e202]
+                - cell "0.00" [ref=f5e203]
+                - cell "0.00" [ref=f5e204]
+                - cell "0.00" [ref=f5e205]
+                - cell "0.00" [ref=f5e206]
+                - cell "0.00" [ref=f5e207]
+                - cell "0.00" [ref=f5e208]
+                - cell "0.00" [ref=f5e209]
+                - cell "0.00" [ref=f5e210]
+                - cell "0.00" [ref=f5e211]
+                - cell "0.00" [ref=f5e212]
+                - cell "0.00" [ref=f5e213]
+                - cell "0.00" [ref=f5e214]
+                - cell "0.00" [ref=f5e215]
+              - row "404-004-000-00 Seguridad 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00" [ref=f5e216]:
+                - cell "404-004-000-00" [ref=f5e217]
+                - cell "Seguridad" [ref=f5e218]
+                - cell "0.00" [ref=f5e219]
+                - cell "0.00" [ref=f5e220]
+                - cell "0.00" [ref=f5e221]
+                - cell "0.00" [ref=f5e222]
+                - cell "0.00" [ref=f5e223]
+                - cell "0.00" [ref=f5e224]
+                - cell "0.00" [ref=f5e225]
+                - cell "0.00" [ref=f5e226]
+                - cell "0.00" [ref=f5e227]
+                - cell "0.00" [ref=f5e228]
+                - cell "0.00" [ref=f5e229]
+                - cell "0.00" [ref=f5e230]
+                - cell "0.00" [ref=f5e231]
+                - cell "0.00" [ref=f5e232]
+                - cell "0.00" [ref=f5e233]
+                - cell "0.00" [ref=f5e234]
+              - row "404-008-000-00 Sustentabilidad y Responsabilidad Social 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00" [ref=f5e235]:
+                - cell "404-008-000-00" [ref=f5e236]
+                - cell "Sustentabilidad y Responsabilidad Social" [ref=f5e237]
+                - cell "0.00" [ref=f5e238]
+                - cell "0.00" [ref=f5e239]
+                - cell "0.00" [ref=f5e240]
+                - cell "0.00" [ref=f5e241]
+                - cell "0.00" [ref=f5e242]
+                - cell "0.00" [ref=f5e243]
+                - cell "0.00" [ref=f5e244]
+                - cell "0.00" [ref=f5e245]
+                - cell "0.00" [ref=f5e246]
+                - cell "0.00" [ref=f5e247]
+                - cell "0.00" [ref=f5e248]
+                - cell "0.00" [ref=f5e249]
+                - cell "0.00" [ref=f5e250]
+                - cell "0.00" [ref=f5e251]
+                - cell "0.00" [ref=f5e252]
+                - cell "0.00" [ref=f5e253]
+              - row "404-009-000-00 Turismo 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00" [ref=f5e254]:
+                - cell "404-009-000-00" [ref=f5e255]
+                - cell "Turismo" [ref=f5e256]
+                - cell "0.00" [ref=f5e257]
+                - cell "0.00" [ref=f5e258]
+                - cell "0.00" [ref=f5e259]
+                - cell "0.00" [ref=f5e260]
+                - cell "0.00" [ref=f5e261]
+                - cell "0.00" [ref=f5e262]
+                - cell "0.00" [ref=f5e263]
+                - cell "0.00" [ref=f5e264]
+                - cell "0.00" [ref=f5e265]
+                - cell "0.00" [ref=f5e266]
+                - cell "0.00" [ref=f5e267]
+                - cell "0.00" [ref=f5e268]
+                - cell "0.00" [ref=f5e269]
+                - cell "0.00" [ref=f5e270]
+                - cell "0.00" [ref=f5e271]
+                - cell "0.00" [ref=f5e272]
+              - row "404-018-000-00 Programa de Mentoría (EWDP) 1,078,499.96 0.00 0.00 0.00 0.00 0.00 142,928.57 286,845.23 239,178.56 183,345.23 83,345.23 71,428.57 71,428.57 0.00 0.00 0.00" [ref=f5e273]:
+                - cell "404-018-000-00" [ref=f5e274]
+                - cell "Programa de Mentoría (EWDP)" [ref=f5e275]
+                - cell "1,078,499.96" [ref=f5e276]
+                - cell "0.00" [ref=f5e277]
+                - cell "0.00" [ref=f5e278]
+                - cell "0.00" [ref=f5e279]
+                - cell "0.00" [ref=f5e280]
+                - cell "0.00" [ref=f5e281]
+                - cell "142,928.57" [ref=f5e282]
+                - cell "286,845.23" [ref=f5e283]
+                - cell "239,178.56" [ref=f5e284]
+                - cell "183,345.23" [ref=f5e285]
+                - cell "83,345.23" [ref=f5e286]
+                - cell "71,428.57" [ref=f5e287]
+                - cell "71,428.57" [ref=f5e288]
+                - cell "0.00" [ref=f5e289]
+                - cell "0.00" [ref=f5e290]
+                - cell "0.00" [ref=f5e291]
+              - row " Gastos Comités" [ref=f5e292]:
+                - cell " Gastos Comités" [ref=f5e293] [cursor=pointer]:
+                  - generic [ref=f5e294]: 
+                  - text: Gastos Comités
+              - row "502-014-000-00 Agroindustria 5,000.00 0.00 0.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 0.00 0.00 0.00" [ref=f5e295]:
+                - cell "502-014-000-00" [ref=f5e296]
+                - cell "Agroindustria" [ref=f5e297]
+                - cell "5,000.00" [ref=f5e298]
+                - cell "0.00" [ref=f5e299]
+                - cell "0.00" [ref=f5e300]
+                - cell "500.00" [ref=f5e301]
+                - cell "500.00" [ref=f5e302]
+                - cell "500.00" [ref=f5e303]
+                - cell "500.00" [ref=f5e304]
+                - cell "500.00" [ref=f5e305]
+                - cell "500.00" [ref=f5e306]
+                - cell "500.00" [ref=f5e307]
+                - cell "500.00" [ref=f5e308]
+                - cell "500.00" [ref=f5e309]
+                - cell "500.00" [ref=f5e310]
+                - cell "0.00" [ref=f5e311]
+                - cell "0.00" [ref=f5e312]
+                - cell "0.00" [ref=f5e313]
+              - row "502-005-000-00 Asuntos Fiscales 132,000.00 12,000.00 13,335.90 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 0.00 12,000.00 13,335.90" [ref=f5e314]:
+                - cell "502-005-000-00" [ref=f5e315]
+                - cell "Asuntos Fiscales" [ref=f5e316]
+                - cell "132,000.00" [ref=f5e317]
+                - cell "12,000.00" [ref=f5e318]
+                - cell "13,335.90" [ref=f5e319]
+                - cell "12,000.00" [ref=f5e320]
+                - cell "12,000.00" [ref=f5e321]
+                - cell "12,000.00" [ref=f5e322]
+                - cell "12,000.00" [ref=f5e323]
+                - cell "12,000.00" [ref=f5e324]
+                - cell "12,000.00" [ref=f5e325]
+                - cell "12,000.00" [ref=f5e326]
+                - cell "12,000.00" [ref=f5e327]
+                - cell "12,000.00" [ref=f5e328]
+                - cell "12,000.00" [ref=f5e329]
+                - cell "0.00" [ref=f5e330]
+                - cell "12,000.00" [ref=f5e331]
+                - cell "13,335.90" [ref=f5e332]
+              - row "502-001-000-00 Capital Humano y Asuntos Laborales 132,000.00 12,000.00 0.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 0.00 12,000.00 0.00" [ref=f5e333]:
+                - cell "502-001-000-00" [ref=f5e334]
+                - cell "Capital Humano y Asuntos Laborales" [ref=f5e335]
+                - cell "132,000.00" [ref=f5e336]
+                - cell "12,000.00" [ref=f5e337]
+                - cell "0.00" [ref=f5e338]
+                - cell "12,000.00" [ref=f5e339]
+                - cell "12,000.00" [ref=f5e340]
+                - cell "12,000.00" [ref=f5e341]
+                - cell "12,000.00" [ref=f5e342]
+                - cell "12,000.00" [ref=f5e343]
+                - cell "12,000.00" [ref=f5e344]
+                - cell "12,000.00" [ref=f5e345]
+                - cell "12,000.00" [ref=f5e346]
+                - cell "12,000.00" [ref=f5e347]
+                - cell "12,000.00" [ref=f5e348]
+                - cell "0.00" [ref=f5e349]
+                - cell "12,000.00" [ref=f5e350]
+                - cell "0.00" [ref=f5e351]
+              - row "502-003-000-00 Comercio Exterior y Logística 132,000.00 12,000.00 7,290.63 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 12,000.00 0.00 12,000.00 7,290.63" [ref=f5e352]:
+                - cell "502-003-000-00" [ref=f5e353]
+                - cell "Comercio Exterior y Logística" [ref=f5e354]
+                - cell "132,000.00" [ref=f5e355]
+                - cell "12,000.00" [ref=f5e356]
+                - cell "7,290.63" [ref=f5e357]
+                - cell "12,000.00" [ref=f5e358]
+                - cell "12,000.00" [ref=f5e359]
+                - cell "12,000.00" [ref=f5e360]
+                - cell "12,000.00" [ref=f5e361]
+                - cell "12,000.00" [ref=f5e362]
+                - cell "12,000.00" [ref=f5e363]
+                - cell "12,000.00" [ref=f5e364]
+                - cell "12,000.00" [ref=f5e365]
+                - cell "12,000.00" [ref=f5e366]
+                - cell "12,000.00" [ref=f5e367]
+                - cell "0.00" [ref=f5e368]
+                - cell "12,000.00" [ref=f5e369]
+                - cell "7,290.63" [ref=f5e370]
+              - row "502-013-000-00 Innovación y TICs 5,000.00 0.00 877.67 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 0.00 0.00 877.67" [ref=f5e371]:
+                - cell "502-013-000-00" [ref=f5e372]
+                - cell "Innovación y TICs" [ref=f5e373]
+                - cell "5,000.00" [ref=f5e374]
+                - cell "0.00" [ref=f5e375]
+                - cell "877.67" [ref=f5e376]
+                - cell "500.00" [ref=f5e377]
+                - cell "500.00" [ref=f5e378]
+                - cell "500.00" [ref=f5e379]
+                - cell "500.00" [ref=f5e380]
+                - cell "500.00" [ref=f5e381]
+                - cell "500.00" [ref=f5e382]
+                - cell "500.00" [ref=f5e383]
+                - cell "500.00" [ref=f5e384]
+                - cell "500.00" [ref=f5e385]
+                - cell "500.00" [ref=f5e386]
+                - cell "0.00" [ref=f5e387]
+                - cell "0.00" [ref=f5e388]
+                - cell "877.67" [ref=f5e389]
+              - row "502-007-000-00 Legalidad y Estado de Derecho 5,000.00 0.00 0.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 0.00 0.00 0.00" [ref=f5e390]:
+                - cell "502-007-000-00" [ref=f5e391]
+                - cell "Legalidad y Estado de Derecho" [ref=f5e392]
+                - cell "5,000.00" [ref=f5e393]
+                - cell "0.00" [ref=f5e394]
+                - cell "0.00" [ref=f5e395]
+                - cell "500.00" [ref=f5e396]
+                - cell "500.00" [ref=f5e397]
+                - cell "500.00" [ref=f5e398]
+                - cell "500.00" [ref=f5e399]
+                - cell "500.00" [ref=f5e400]
+                - cell "500.00" [ref=f5e401]
+                - cell "500.00" [ref=f5e402]
+                - cell "500.00" [ref=f5e403]
+                - cell "500.00" [ref=f5e404]
+                - cell "500.00" [ref=f5e405]
+                - cell "0.00" [ref=f5e406]
+                - cell "0.00" [ref=f5e407]
+                - cell "0.00" [ref=f5e408]
+              - row "502-016-000-00 Salud 5,000.00 0.00 254.30 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 0.00 0.00 254.30" [ref=f5e409]:
+                - cell "502-016-000-00" [ref=f5e410]
+                - cell "Salud" [ref=f5e411]
+                - cell "5,000.00" [ref=f5e412]
+                - cell "0.00" [ref=f5e413]
+                - cell "254.30" [ref=f5e414]
+                - cell "500.00" [ref=f5e415]
+                - cell "500.00" [ref=f5e416]
+                - cell "500.00" [ref=f5e417]
+                - cell "500.00" [ref=f5e418]
+                - cell "500.00" [ref=f5e419]
+                - cell "500.00" [ref=f5e420]
+                - cell "500.00" [ref=f5e421]
+                - cell "500.00" [ref=f5e422]
+                - cell "500.00" [ref=f5e423]
+                - cell "500.00" [ref=f5e424]
+                - cell "0.00" [ref=f5e425]
+                - cell "0.00" [ref=f5e426]
+                - cell "254.30" [ref=f5e427]
+              - row "502-004-000-00 Seguridad 5,000.00 0.00 0.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 0.00 0.00 0.00" [ref=f5e428]:
+                - cell "502-004-000-00" [ref=f5e429]
+                - cell "Seguridad" [ref=f5e430]
+                - cell "5,000.00" [ref=f5e431]
+                - cell "0.00" [ref=f5e432]
+                - cell "0.00" [ref=f5e433]
+                - cell "500.00" [ref=f5e434]
+                - cell "500.00" [ref=f5e435]
+                - cell "500.00" [ref=f5e436]
+                - cell "500.00" [ref=f5e437]
+                - cell "500.00" [ref=f5e438]
+                - cell "500.00" [ref=f5e439]
+                - cell "500.00" [ref=f5e440]
+                - cell "500.00" [ref=f5e441]
+                - cell "500.00" [ref=f5e442]
+                - cell "500.00" [ref=f5e443]
+                - cell "0.00" [ref=f5e444]
+                - cell "0.00" [ref=f5e445]
+                - cell "0.00" [ref=f5e446]
+              - row "502-002-000-00 Sustentabilidad y Responsabilidad Social 5,000.00 0.00 0.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 0.00 0.00 0.00" [ref=f5e447]:
+                - cell "502-002-000-00" [ref=f5e448]
+                - cell "Sustentabilidad y Responsabilidad Social" [ref=f5e449]
+                - cell "5,000.00" [ref=f5e450]
+                - cell "0.00" [ref=f5e451]
+                - cell "0.00" [ref=f5e452]
+                - cell "500.00" [ref=f5e453]
+                - cell "500.00" [ref=f5e454]
+                - cell "500.00" [ref=f5e455]
+                - cell "500.00" [ref=f5e456]
+                - cell "500.00" [ref=f5e457]
+                - cell "500.00" [ref=f5e458]
+                - cell "500.00" [ref=f5e459]
+                - cell "500.00" [ref=f5e460]
+                - cell "500.00" [ref=f5e461]
+                - cell "500.00" [ref=f5e462]
+                - cell "0.00" [ref=f5e463]
+                - cell "0.00" [ref=f5e464]
+                - cell "0.00" [ref=f5e465]
+              - row "502-009-000-00 Turismo 5,000.00 0.00 0.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 500.00 0.00 0.00 0.00" [ref=f5e466]:
+                - cell "502-009-000-00" [ref=f5e467]
+                - cell "Turismo" [ref=f5e468]
+                - cell "5,000.00" [ref=f5e469]
+                - cell "0.00" [ref=f5e470]
+                - cell "0.00" [ref=f5e471]
+                - cell "500.00" [ref=f5e472]
+                - cell "500.00" [ref=f5e473]
+                - cell "500.00" [ref=f5e474]
+                - cell "500.00" [ref=f5e475]
+                - cell "500.00" [ref=f5e476]
+                - cell "500.00" [ref=f5e477]
+                - cell "500.00" [ref=f5e478]
+                - cell "500.00" [ref=f5e479]
+                - cell "500.00" [ref=f5e480]
+                - cell "500.00" [ref=f5e481]
+                - cell "0.00" [ref=f5e482]
+                - cell "0.00" [ref=f5e483]
+                - cell "0.00" [ref=f5e484]
+              - row "502-017-000-00 Programa de Mentoría (EWDP) 486,275.01 0.00 0.00 0.00 0.00 0.00 357,564.90 3,352.74 4,062.53 72,123.96 5,170.87 0.00 0.00 44,000.00 0.00 0.00" [ref=f5e485]:
+                - cell "502-017-000-00" [ref=f5e486]
+                - cell "Programa de Mentoría (EWDP)" [ref=f5e487]
+                - cell "486,275.01" [ref=f5e488]
+                - cell "0.00" [ref=f5e489]
+                - cell "0.00" [ref=f5e490]
+                - cell "0.00" [ref=f5e491]
+                - cell "0.00" [ref=f5e492]
+                - cell "0.00" [ref=f5e493]
+                - cell "357,564.90" [ref=f5e494]
+                - cell "3,352.74" [ref=f5e495]
+                - cell "4,062.53" [ref=f5e496]
+                - cell "72,123.96" [ref=f5e497]
+                - cell "5,170.87" [ref=f5e498]
+                - cell "0.00" [ref=f5e499]
+                - cell "0.00" [ref=f5e500]
+                - cell "44,000.00" [ref=f5e501]
+                - cell "0.00" [ref=f5e502]
+                - cell "0.00" [ref=f5e503]
+              - row " COMISIONES" [ref=f5e504]:
+                - cell " COMISIONES" [ref=f5e505] [cursor=pointer]:
+                  - generic [ref=f5e506]: 
+                  - text: COMISIONES
+              - row "504-000-000-00 Comisiones EWDP 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00" [ref=f5e507]:
+                - cell "504-000-000-00" [ref=f5e508]
+                - cell "Comisiones EWDP" [ref=f5e509]
+                - cell "0.00" [ref=f5e510]
+                - cell "0.00" [ref=f5e511]
+                - cell "0.00" [ref=f5e512]
+                - cell "0.00" [ref=f5e513]
+                - cell "0.00" [ref=f5e514]
+                - cell "0.00" [ref=f5e515]
+                - cell "0.00" [ref=f5e516]
+                - cell "0.00" [ref=f5e517]
+                - cell "0.00" [ref=f5e518]
+                - cell "0.00" [ref=f5e519]
+                - cell "0.00" [ref=f5e520]
+                - cell "0.00" [ref=f5e521]
+                - cell "0.00" [ref=f5e522]
+                - cell "0.00" [ref=f5e523]
+                - cell "0.00" [ref=f5e524]
+                - cell "0.00" [ref=f5e525]
+        - text:     
+        - generic:
+          - button " Ver globos" [ref=f5e527] [cursor=pointer]:
+            - generic [ref=f5e528]: 
+            - text: Ver globos
+          - button " Comentarios" [ref=f5e529] [cursor=pointer]:
+            - generic [ref=f5e530]: 
+            - text: Comentarios
+        - button " Descargas" [ref=f5e531] [cursor=pointer]:
+          - generic [ref=f5e532]: 
+          - text: Descargas

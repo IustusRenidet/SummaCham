@@ -1,0 +1,230 @@
+{
+  "pair": {
+    "from": 34,
+    "to": 33,
+    "movingKey": "op:Resultado Operativo: Asuntos Fiscales",
+    "targetKey": "op:Resultado Operativo: Agroindustria",
+    "movingLabel": "Resultado Operativo: Asuntos Fiscales",
+    "targetLabel": "Resultado Operativo: Agroindustria"
+  },
+  "beforeOpsTop": [
+    {
+      "id": "LAYOUT_CONFIG",
+      "label": "LAYOUT_CONFIG",
+      "order": -2
+    },
+    {
+      "id": "COLUMN_CONFIG",
+      "label": "COLUMN_CONFIG",
+      "order": -1
+    },
+    {
+      "id": "SUMA_DE_GASTOS_COMITES",
+      "label": "Suma de Gastos Comités",
+      "order": 1
+    },
+    {
+      "id": "SUMA_DE_INGRESOS_COMITES",
+      "label": "Suma de Ingresos Comités",
+      "order": 2
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_COMITES",
+      "label": "Resultado Operativo Comités",
+      "order": 16
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_AGROINDUSTRIA",
+      "label": "Resultado Operativo: Agroindustria",
+      "order": 29
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_ASUNTOS_FISCALES",
+      "label": "Resultado Operativo: Asuntos Fiscales",
+      "order": 30
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_CAPITAL_HUMANO_Y_ASUNTOS_LABORALES",
+      "label": "Resultado Operativo: Capital Humano y Asuntos Laborales",
+      "order": 31
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_DIVERSIDAD_E_INCLUSION",
+      "label": "Resultado Operativo: Diversidad e Inclusión",
+      "order": 32
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_COMERCIO_EXTERIOR_Y_LOGISTICA",
+      "label": "Resultado Operativo: Comercio Exterior y Logística",
+      "order": 33
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_INNOVACION_Y_TICS",
+      "label": "Resultado Operativo: Innovación y TICS",
+      "order": 34
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_LEGALIDAD_Y_ESTADO_DE_DERECHO",
+      "label": "Resultado Operativo: Legalidad y Estado de Derecho",
+      "order": 35
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_SALUD",
+      "label": "Resultado Operativo: Salud",
+      "order": 36
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_SEGURIDAD",
+      "label": "Resultado Operativo: Seguridad",
+      "order": 37
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_SUSTENTABILIDAD_Y_RESPONSABILIDAD_SOCIAL",
+      "label": "Resultado Operativo: Sustentabilidad y Responsabilidad Social",
+      "order": 38
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_TURISMO",
+      "label": "Resultado Operativo: Turismo",
+      "order": 39
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_PROGRAMA_DE_MENTORIA_EWDP",
+      "label": "Resultado Operativo: Programa de Mentoría (EWDP)",
+      "order": 40
+    },
+    {
+      "id": "SUMA_COMISIONES",
+      "label": "Suma Comisiones",
+      "order": 42
+    },
+    {
+      "id": "RESULTADO_COMITES",
+      "label": "RESULTADO COMITÉS",
+      "order": 43
+    }
+  ],
+  "afterOpsTop": [
+    {
+      "id": "LAYOUT_CONFIG",
+      "label": "LAYOUT_CONFIG",
+      "order": -2
+    },
+    {
+      "id": "COLUMN_CONFIG",
+      "label": "COLUMN_CONFIG",
+      "order": -1
+    },
+    {
+      "id": "SUMA_DE_GASTOS_COMITES",
+      "label": "Suma de Gastos Comités",
+      "order": 1
+    },
+    {
+      "id": "SUMA_DE_INGRESOS_COMITES",
+      "label": "Suma de Ingresos Comités",
+      "order": 2
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_COMITES",
+      "label": "Resultado Operativo Comités",
+      "order": 16
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_AGROINDUSTRIA",
+      "label": "Resultado Operativo: Agroindustria",
+      "order": 29
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_ASUNTOS_FISCALES",
+      "label": "Resultado Operativo: Asuntos Fiscales",
+      "order": 30
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_CAPITAL_HUMANO_Y_ASUNTOS_LABORALES",
+      "label": "Resultado Operativo: Capital Humano y Asuntos Laborales",
+      "order": 31
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_DIVERSIDAD_E_INCLUSION",
+      "label": "Resultado Operativo: Diversidad e Inclusión",
+      "order": 32
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_COMERCIO_EXTERIOR_Y_LOGISTICA",
+      "label": "Resultado Operativo: Comercio Exterior y Logística",
+      "order": 33
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_INNOVACION_Y_TICS",
+      "label": "Resultado Operativo: Innovación y TICS",
+      "order": 34
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_LEGALIDAD_Y_ESTADO_DE_DERECHO",
+      "label": "Resultado Operativo: Legalidad y Estado de Derecho",
+      "order": 35
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_SALUD",
+      "label": "Resultado Operativo: Salud",
+      "order": 36
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_SEGURIDAD",
+      "label": "Resultado Operativo: Seguridad",
+      "order": 37
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_SUSTENTABILIDAD_Y_RESPONSABILIDAD_SOCIAL",
+      "label": "Resultado Operativo: Sustentabilidad y Responsabilidad Social",
+      "order": 38
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_TURISMO",
+      "label": "Resultado Operativo: Turismo",
+      "order": 39
+    },
+    {
+      "id": "RESULTADO_OPERATIVO_PROGRAMA_DE_MENTORIA_EWDP",
+      "label": "Resultado Operativo: Programa de Mentoría (EWDP)",
+      "order": 40
+    },
+    {
+      "id": "SUMA_COMISIONES",
+      "label": "Suma Comisiones",
+      "order": 42
+    },
+    {
+      "id": "RESULTADO_COMITES",
+      "label": "RESULTADO COMITÉS",
+      "order": 43
+    }
+  ],
+  "moduleOrderTop": [
+    "Resultado Operativo Comités",
+    "Suma de Gastos Comités",
+    "Resultado Operativo: Agroindustria",
+    "Resultado Operativo: Asuntos Fiscales",
+    "Suma de Ingresos Comités",
+    "RESULTADO COMITÉS",
+    "Resultado Operativo: Capital Humano y Asuntos Laborales",
+    "Resultado Operativo: Diversidad e Inclusión",
+    "Resultado Operativo: Comercio Exterior y Logística",
+    "Resultado Operativo: Innovación y TICS",
+    "Resultado Operativo: Legalidad y Estado de Derecho",
+    "Resultado Operativo: Salud",
+    "Resultado Operativo: Seguridad",
+    "Resultado Operativo: Sustentabilidad y Responsabilidad Social",
+    "Resultado Operativo: Turismo",
+    "Resultado Operativo: Programa de Mentoría (EWDP)",
+    "Suma Comisiones"
+  ],
+  "restore": {
+    "restored": true
+  },
+  "checks": {
+    "persistedSwapByLabel": false,
+    "moduleSwapByLabel": false
+  }
+}

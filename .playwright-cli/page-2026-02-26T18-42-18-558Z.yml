@@ -1,0 +1,480 @@
+- generic [ref=e3]:
+  - complementary "Navegación principal" [ref=e4]:
+    - img "AmCham" [ref=e6]
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - button "Resumen 1" [expanded] [ref=e9] [cursor=pointer]:
+          - generic [ref=e10]: Resumen
+          - generic [ref=e11]: "1"
+        - button "Resumen summary" [ref=e13] [cursor=pointer]:
+          - generic [ref=e14]: Resumen
+          - generic [ref=e15]: summary
+      - generic [ref=e16]:
+        - button "Divisiones 11" [expanded] [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: Divisiones
+          - generic [ref=e19]: "11"
+        - generic [ref=e20]:
+          - button "Presupuestos ppto" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: Presupuestos
+            - generic [ref=e23]: ppto
+          - button "Comités" [ref=e24] [cursor=pointer]:
+            - generic [ref=e25]: Comités
+          - button "Comunicación" [ref=e26] [cursor=pointer]:
+            - generic [ref=e27]: Comunicación
+          - button "Dirección" [ref=e99] [cursor=pointer]:
+            - generic [ref=e100]: Dirección
+          - button "Eventos" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: Eventos
+          - generic [ref=e30]:
+            - button "Finanzas 1" [expanded] [ref=e101] [cursor=pointer]:
+              - generic [ref=e32]: Finanzas
+              - generic [ref=e33]: "1"
+            - button "Gastos Generales finanzas" [ref=e38] [cursor=pointer]:
+              - generic [ref=e39]: Gastos Generales
+              - generic [ref=e40]: finanzas
+          - button "Gastos Corporativos" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: Gastos Corporativos
+          - button "Membresía" [ref=e46] [cursor=pointer]:
+            - generic [ref=e47]: Membresía
+          - button "Recursos Humanos" [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]: Recursos Humanos
+          - button "Servicios a la Membresía" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: Servicios a la Membresía
+          - button "T&IC" [ref=e52] [cursor=pointer]:
+            - generic [ref=e53]: T&IC
+      - generic [ref=e56]:
+        - button "Configuración 5" [expanded] [ref=e57] [cursor=pointer]:
+          - generic [ref=e58]: Configuración
+          - generic [ref=e59]: "5"
+        - generic [ref=e60]:
+          - button "Mi Perfil perfil" [ref=e61] [cursor=pointer]:
+            - generic [ref=e62]: Mi Perfil
+            - generic [ref=e63]: perfil
+          - button "Administrar usuarios Permisos" [ref=e64] [cursor=pointer]:
+            - generic [ref=e65]: Administrar usuarios
+            - generic [ref=e66]: Permisos
+          - button "Crear usuario" [ref=e67] [cursor=pointer]:
+            - generic [ref=e68]: Crear usuario
+          - button "Gestor de Plantillas" [ref=e69] [cursor=pointer]:
+            - generic [ref=e70]: Gestor de Plantillas
+          - button "Administrar conexiones" [ref=e71] [cursor=pointer]:
+            - generic [ref=e72]: Administrar conexiones
+  - main [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - button "Ocultar menú lateral" [expanded] [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]: ☰
+        - heading "Gestor de Plantillas" [level=2] [ref=e97]
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - button "Tour guiado" [ref=e83] [cursor=pointer]
+          - button "Opciones" [ref=e84] [cursor=pointer]:
+            - generic [ref=e85]: Opciones
+        - button "Notificaciones" [ref=e87] [cursor=pointer]:
+          - img [ref=e88]
+        - generic [ref=e90]:
+          - generic [ref=e91]: "Empresa:"
+          - combobox "Empresa:" [ref=e92]:
+            - option "Ciudad de México"
+            - option "Guadalajara" [selected]
+            - option "Noreste"
+            - option "Noroeste"
+        - button "Cerrar sesión" [ref=e93] [cursor=pointer]
+    - iframe [ref=e103]:
+      - generic [active] [ref=f4e1]:
+        - generic [ref=f4e2]:
+          - generic [ref=f4e7]:
+            - generic [ref=f4e8]:
+              - heading "Gestor de Plantillas" [level=1] [ref=f4e9]
+              - paragraph [ref=f4e10]: Comités · 2026 · GUADALAJARA
+            - generic [ref=f4e11]:
+              - generic [ref=f4e12]: 
+              - text: Edición forzada (local)
+          - generic [ref=f4e13]:
+            - generic [ref=f4e14]:
+              - generic [ref=f4e15]: Módulo
+              - combobox "Módulo" [ref=f4e16] [cursor=pointer]:
+                - option "RESUMEN"
+                - option "Finanzas"
+                - option "Gastos Generales"
+                - option "Nómina"
+                - option "Membresía"
+                - option "Serv Membresía"
+                - option "RH"
+                - option "Eventos"
+                - option "Comités" [selected]
+                - option "Comunicación"
+                - option "Dirección"
+                - option "Gtos Corporativos"
+                - option "T&IC"
+                - option "VPE"
+            - generic [ref=f4e17]:
+              - generic [ref=f4e18]: Año
+              - combobox "Año" [ref=f4e19] [cursor=pointer]:
+                - option "2026" [selected]
+                - option "2025"
+                - option "2024"
+                - option "2023"
+                - option "2022"
+                - option "2021"
+                - option "2020"
+                - option "2019"
+                - option "2018"
+                - option "2017"
+                - option "2016"
+                - option "2015"
+                - option "2014"
+                - option "2013"
+                - option "2012"
+                - option "2011"
+                - option "2010"
+                - option "2009"
+                - option "2008"
+                - option "2007"
+                - option "2006"
+                - option "2005"
+            - generic [ref=f4e20]:
+              - generic [ref=f4e21]: Capítulo
+              - combobox "Capítulo" [ref=f4e22] [cursor=pointer]:
+                - option "GUADALAJARA" [selected]
+            - button " Cargar Layout" [ref=f4e24] [cursor=pointer]:
+              - generic [ref=f4e25]: 
+              - text: Cargar Layout
+          - generic [ref=f4e30]:
+            - generic [ref=f4e32]:
+              - textbox "Buscar en el layout..." [ref=f4e33] [cursor=pointer]
+              - generic [ref=f4e34]:
+                - generic [ref=f4e35]: "Filtrar:"
+                - group [ref=f4e36]:
+                  - radio "Todo" [checked] [ref=f4e37] [cursor=pointer]
+                  - generic [ref=f4e38] [cursor=pointer]: Todo
+                  - radio "Secciones" [ref=f4e39] [cursor=pointer]
+                  - generic [ref=f4e40] [cursor=pointer]: Secciones
+                  - radio "Cuentas" [ref=f4e41] [cursor=pointer]
+                  - generic [ref=f4e42] [cursor=pointer]: Cuentas
+                  - radio "Operaciones" [ref=f4e43] [cursor=pointer]
+                  - generic [ref=f4e44] [cursor=pointer]: Operaciones
+            - button " Agregar" [ref=f4e45] [cursor=pointer]:
+              - generic [ref=f4e46]: 
+              - text: Agregar
+            - button " Expandir" [ref=f4e47] [cursor=pointer]:
+              - generic [ref=f4e48]: 
+              - text: Expandir
+            - button " Colapsar" [ref=f4e49] [cursor=pointer]:
+              - generic [ref=f4e50]: 
+              - text: Colapsar
+            - button " Vista Previa" [ref=f4e51] [cursor=pointer]:
+              - generic [ref=f4e52]: 
+              - text: Vista Previa
+            - button " Copiar a otro año" [ref=f4e53] [cursor=pointer]:
+              - generic [ref=f4e54]: 
+              - text: Copiar a otro año
+            - button " Guardar" [disabled]:
+              - generic: 
+              - text: Guardar
+            - button " Historial" [ref=f4e55] [cursor=pointer]:
+              - generic [ref=f4e56]: 
+              - text: Historial
+          - tablist [ref=f4e59]:
+            - tab "Layout" [selected] [ref=f4e60] [cursor=pointer]
+            - tab "Graficas" [ref=f4e61] [cursor=pointer]
+          - generic [ref=f4e62]:
+            - tabpanel "Layout" [ref=f4e63]:
+              - generic [ref=f4e65]:
+                - text:   
+                - generic [ref=f4e67]:
+                  - generic [ref=f4e69]: Comités · 2026 · GUADALAJARA
+                  - generic [ref=f4e71]:
+                    - generic [ref=f4e73]:
+                      - generic [ref=f4e74]:
+                        - generic [ref=f4e75]:
+                          - generic [ref=f4e76]: Secciones
+                          - generic [ref=f4e77]: "3"
+                        - generic [ref=f4e78]:
+                          - generic [ref=f4e79]: Cuentas
+                          - generic [ref=f4e80]: "23"
+                        - generic [ref=f4e81]:
+                          - generic [ref=f4e82]: Operaciones
+                          - generic [ref=f4e83]: "0"
+                      - generic [ref=f4e84]: Orden real de aparicion. Click en una fila para editar.
+                    - generic [ref=f4e85]:
+                      - generic [ref=f4e86]:
+                        - generic [ref=f4e87]: Elementos de la plantilla
+                        - generic [ref=f4e90]:
+                          - checkbox " Ordenar" [ref=f4e91] [cursor=pointer]
+                          - generic [ref=f4e92]:
+                            - generic [ref=f4e93]: 
+                            - text: Ordenar
+                      - generic [ref=f4e95]:
+                        - generic [ref=f4e97] [cursor=pointer]:
+                          - generic [ref=f4e98]:
+                            - generic [ref=f4e99]: 
+                            - strong [ref=f4e100]: Ingresos Comités
+                          - generic [ref=f4e101]:
+                            - button "Σ" [ref=f4e102]
+                            - button "" [ref=f4e103]:
+                              - generic [ref=f4e104]: 
+                            - button "" [ref=f4e105]:
+                              - generic [ref=f4e106]: 
+                            - button "" [ref=f4e107]:
+                              - generic [ref=f4e108]: 
+                        - generic [ref=f4e110] [cursor=pointer]:
+                          - generic [ref=f4e111]:
+                            - generic [ref=f4e112]: 404-017-000-00
+                            - generic [ref=f4e113]: Agroindustria
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e114]: sin subsección
+                          - generic [ref=f4e115]:
+                            - button "" [ref=f4e116]:
+                              - generic [ref=f4e117]: 
+                            - button "" [ref=f4e118]:
+                              - generic [ref=f4e119]: 
+                        - generic [ref=f4e121] [cursor=pointer]:
+                          - generic [ref=f4e122]:
+                            - generic [ref=f4e123]: 404-005-000-00
+                            - generic [ref=f4e124]: Asuntos Fiscales
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e125]: sin subsección
+                          - generic [ref=f4e126]:
+                            - button "" [ref=f4e127]:
+                              - generic [ref=f4e128]: 
+                            - button "" [ref=f4e129]:
+                              - generic [ref=f4e130]: 
+                        - generic [ref=f4e132] [cursor=pointer]:
+                          - generic [ref=f4e133]:
+                            - generic [ref=f4e134]: 404-001-000-00
+                            - generic [ref=f4e135]: Capital Humano y Asuntos Laborales
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e136]: sin subsección
+                          - generic [ref=f4e137]:
+                            - button "" [ref=f4e138]:
+                              - generic [ref=f4e139]: 
+                            - button "" [ref=f4e140]:
+                              - generic [ref=f4e141]: 
+                        - generic [ref=f4e143] [cursor=pointer]:
+                          - generic [ref=f4e144]:
+                            - generic [ref=f4e145]: 404-003-000-00
+                            - generic [ref=f4e146]: Comercio Exterior y Logística
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e147]: sin subsección
+                          - generic [ref=f4e148]:
+                            - button "" [ref=f4e149]:
+                              - generic [ref=f4e150]: 
+                            - button "" [ref=f4e151]:
+                              - generic [ref=f4e152]: 
+                        - generic [ref=f4e154] [cursor=pointer]:
+                          - generic [ref=f4e155]:
+                            - generic [ref=f4e156]: 404-013-000-00
+                            - generic [ref=f4e157]: Innovación y TICs
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e158]: sin subsección
+                          - generic [ref=f4e159]:
+                            - button "" [ref=f4e160]:
+                              - generic [ref=f4e161]: 
+                            - button "" [ref=f4e162]:
+                              - generic [ref=f4e163]: 
+                        - generic [ref=f4e165] [cursor=pointer]:
+                          - generic [ref=f4e166]:
+                            - generic [ref=f4e167]: 404-007-000-00
+                            - generic [ref=f4e168]: Legalidad y Estado de Derecho
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e169]: sin subsección
+                          - generic [ref=f4e170]:
+                            - button "" [ref=f4e171]:
+                              - generic [ref=f4e172]: 
+                            - button "" [ref=f4e173]:
+                              - generic [ref=f4e174]: 
+                        - generic [ref=f4e176] [cursor=pointer]:
+                          - generic [ref=f4e177]:
+                            - generic [ref=f4e178]: 404-016-000-00
+                            - generic [ref=f4e179]: Salud
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e180]: sin subsección
+                          - generic [ref=f4e181]:
+                            - button "" [ref=f4e182]:
+                              - generic [ref=f4e183]: 
+                            - button "" [ref=f4e184]:
+                              - generic [ref=f4e185]: 
+                        - generic [ref=f4e187] [cursor=pointer]:
+                          - generic [ref=f4e188]:
+                            - generic [ref=f4e189]: 404-004-000-00
+                            - generic [ref=f4e190]: Seguridad
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e191]: sin subsección
+                          - generic [ref=f4e192]:
+                            - button "" [ref=f4e193]:
+                              - generic [ref=f4e194]: 
+                            - button "" [ref=f4e195]:
+                              - generic [ref=f4e196]: 
+                        - generic [ref=f4e198] [cursor=pointer]:
+                          - generic [ref=f4e199]:
+                            - generic [ref=f4e200]: 404-008-000-00
+                            - generic [ref=f4e201]: Sustentabilidad y Responsabilidad Social
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e202]: sin subsección
+                          - generic [ref=f4e203]:
+                            - button "" [ref=f4e204]:
+                              - generic [ref=f4e205]: 
+                            - button "" [ref=f4e206]:
+                              - generic [ref=f4e207]: 
+                        - generic [ref=f4e209] [cursor=pointer]:
+                          - generic [ref=f4e210]:
+                            - generic [ref=f4e211]: 404-009-000-00
+                            - generic [ref=f4e212]: Turismo
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e213]: sin subsección
+                          - generic [ref=f4e214]:
+                            - button "" [ref=f4e215]:
+                              - generic [ref=f4e216]: 
+                            - button "" [ref=f4e217]:
+                              - generic [ref=f4e218]: 
+                        - generic [ref=f4e220] [cursor=pointer]:
+                          - generic [ref=f4e221]:
+                            - generic [ref=f4e222]: 404-018-000-00
+                            - generic [ref=f4e223]: Programa de Mentoría (EWDP)
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e224]: sin subsección
+                          - generic [ref=f4e225]:
+                            - button "" [ref=f4e226]:
+                              - generic [ref=f4e227]: 
+                            - button "" [ref=f4e228]:
+                              - generic [ref=f4e229]: 
+                        - generic [ref=f4e231] [cursor=pointer]:
+                          - generic [ref=f4e232]:
+                            - generic [ref=f4e233]: 
+                            - strong [ref=f4e234]: Gastos Comités
+                          - generic [ref=f4e235]:
+                            - button "Σ" [ref=f4e236]
+                            - button "" [ref=f4e237]:
+                              - generic [ref=f4e238]: 
+                            - button "" [ref=f4e239]:
+                              - generic [ref=f4e240]: 
+                            - button "" [ref=f4e241]:
+                              - generic [ref=f4e242]: 
+                        - generic [ref=f4e244] [cursor=pointer]:
+                          - generic [ref=f4e245]:
+                            - generic [ref=f4e246]: 502-014-000-00
+                            - generic [ref=f4e247]: Agroindustria
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e248]: sin subsección
+                          - generic [ref=f4e249]:
+                            - button "" [ref=f4e250]:
+                              - generic [ref=f4e251]: 
+                            - button "" [ref=f4e252]:
+                              - generic [ref=f4e253]: 
+                        - generic [ref=f4e255] [cursor=pointer]:
+                          - generic [ref=f4e256]:
+                            - generic [ref=f4e257]: 502-005-000-00
+                            - generic [ref=f4e258]: Asuntos Fiscales
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e259]: sin subsección
+                          - generic [ref=f4e260]:
+                            - button "" [ref=f4e261]:
+                              - generic [ref=f4e262]: 
+                            - button "" [ref=f4e263]:
+                              - generic [ref=f4e264]: 
+                        - generic [ref=f4e266] [cursor=pointer]:
+                          - generic [ref=f4e267]:
+                            - generic [ref=f4e268]: 502-001-000-00
+                            - generic [ref=f4e269]: Capital Humano y Asuntos Laborales
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e270]: sin subsección
+                          - generic [ref=f4e271]:
+                            - button "" [ref=f4e272]:
+                              - generic [ref=f4e273]: 
+                            - button "" [ref=f4e274]:
+                              - generic [ref=f4e275]: 
+                        - generic [ref=f4e277] [cursor=pointer]:
+                          - generic [ref=f4e278]:
+                            - generic [ref=f4e279]: 502-003-000-00
+                            - generic [ref=f4e280]: Comercio Exterior y Logística
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e281]: sin subsección
+                          - generic [ref=f4e282]:
+                            - button "" [ref=f4e283]:
+                              - generic [ref=f4e284]: 
+                            - button "" [ref=f4e285]:
+                              - generic [ref=f4e286]: 
+                        - generic [ref=f4e288] [cursor=pointer]:
+                          - generic [ref=f4e289]:
+                            - generic [ref=f4e290]: 502-013-000-00
+                            - generic [ref=f4e291]: Innovación y TICs
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e292]: sin subsección
+                          - generic [ref=f4e293]:
+                            - button "" [ref=f4e294]:
+                              - generic [ref=f4e295]: 
+                            - button "" [ref=f4e296]:
+                              - generic [ref=f4e297]: 
+                        - generic [ref=f4e299] [cursor=pointer]:
+                          - generic [ref=f4e300]:
+                            - generic [ref=f4e301]: 502-007-000-00
+                            - generic [ref=f4e302]: Legalidad y Estado de Derecho
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e303]: sin subsección
+                          - generic [ref=f4e304]:
+                            - button "" [ref=f4e305]:
+                              - generic [ref=f4e306]: 
+                            - button "" [ref=f4e307]:
+                              - generic [ref=f4e308]: 
+                        - generic [ref=f4e310] [cursor=pointer]:
+                          - generic [ref=f4e311]:
+                            - generic [ref=f4e312]: 502-016-000-00
+                            - generic [ref=f4e313]: Salud
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e314]: sin subsección
+                          - generic [ref=f4e315]:
+                            - button "" [ref=f4e316]:
+                              - generic [ref=f4e317]: 
+                            - button "" [ref=f4e318]:
+                              - generic [ref=f4e319]: 
+                        - generic [ref=f4e321] [cursor=pointer]:
+                          - generic [ref=f4e322]:
+                            - generic [ref=f4e323]: 502-004-000-00
+                            - generic [ref=f4e324]: Seguridad
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e325]: sin subsección
+                          - generic [ref=f4e326]:
+                            - button "" [ref=f4e327]:
+                              - generic [ref=f4e328]: 
+                            - button "" [ref=f4e329]:
+                              - generic [ref=f4e330]: 
+                        - generic [ref=f4e332] [cursor=pointer]:
+                          - generic [ref=f4e333]:
+                            - generic [ref=f4e334]: 502-002-000-00
+                            - generic [ref=f4e335]: Sustentabilidad y Responsabilidad Social
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e336]: sin subsección
+                          - generic [ref=f4e337]:
+                            - button "" [ref=f4e338]:
+                              - generic [ref=f4e339]: 
+                            - button "" [ref=f4e340]:
+                              - generic [ref=f4e341]: 
+                        - generic [ref=f4e343] [cursor=pointer]:
+                          - generic [ref=f4e344]:
+                            - generic [ref=f4e345]: 502-009-000-00
+                            - generic [ref=f4e346]: Turismo
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e347]: sin subsección
+                          - generic [ref=f4e348]:
+                            - button "" [ref=f4e349]:
+                              - generic [ref=f4e350]: 
+                            - button "" [ref=f4e351]:
+                              - generic [ref=f4e352]: 
+                        - generic [ref=f4e354] [cursor=pointer]:
+                          - generic [ref=f4e355]:
+                            - generic [ref=f4e356]: 502-017-000-00
+                            - generic [ref=f4e357]: Programa de Mentoría (EWDP)
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e358]: sin subsección
+                          - generic [ref=f4e359]:
+                            - button "" [ref=f4e360]:
+                              - generic [ref=f4e361]: 
+                            - button "" [ref=f4e362]:
+                              - generic [ref=f4e363]: 
+                        - generic [ref=f4e365] [cursor=pointer]:
+                          - generic [ref=f4e366]:
+                            - generic [ref=f4e367]: 
+                            - strong [ref=f4e368]: COMISIONES
+                          - generic [ref=f4e369]:
+                            - button "Σ" [ref=f4e370]
+                            - button "" [ref=f4e371]:
+                              - generic [ref=f4e372]: 
+                            - button "" [ref=f4e373]:
+                              - generic [ref=f4e374]: 
+                            - button "" [ref=f4e375]:
+                              - generic [ref=f4e376]: 
+                        - generic [ref=f4e378] [cursor=pointer]:
+                          - generic [ref=f4e379]:
+                            - generic [ref=f4e380]: 504-000-000-00
+                            - generic [ref=f4e381]: Comisiones EWDP
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e382]: sin subsección
+                          - generic [ref=f4e383]:
+                            - button "" [ref=f4e384]:
+                              - generic [ref=f4e385]: 
+                            - button "" [ref=f4e386]:
+                              - generic [ref=f4e387]: 
+              - text: 
+              - paragraph [ref=f4e390]: Layout Comités 2026 listo para editar
+            - text:    
+        - text:                        
+        - generic: 
+        - button "Tour plantillas" [ref=f4e391] [cursor=pointer]

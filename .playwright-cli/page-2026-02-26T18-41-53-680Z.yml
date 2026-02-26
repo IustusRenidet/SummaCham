@@ -1,0 +1,483 @@
+- generic [ref=e3]:
+  - complementary "Navegación principal" [ref=e4]:
+    - img "AmCham" [ref=e6]
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - button "Resumen 1" [expanded] [ref=e9] [cursor=pointer]:
+          - generic [ref=e10]: Resumen
+          - generic [ref=e11]: "1"
+        - button "Resumen summary" [ref=e13] [cursor=pointer]:
+          - generic [ref=e14]: Resumen
+          - generic [ref=e15]: summary
+      - generic [ref=e16]:
+        - button "Divisiones 11" [expanded] [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: Divisiones
+          - generic [ref=e19]: "11"
+        - generic [ref=e20]:
+          - button "Presupuestos ppto" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: Presupuestos
+            - generic [ref=e23]: ppto
+          - button "Comités" [ref=e24] [cursor=pointer]:
+            - generic [ref=e25]: Comités
+          - button "Comunicación" [ref=e26] [cursor=pointer]:
+            - generic [ref=e27]: Comunicación
+          - button "Dirección" [ref=e99] [cursor=pointer]:
+            - generic [ref=e100]: Dirección
+          - button "Eventos" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: Eventos
+          - generic [ref=e30]:
+            - button "Finanzas 1" [expanded] [ref=e101] [cursor=pointer]:
+              - generic [ref=e32]: Finanzas
+              - generic [ref=e33]: "1"
+            - button "Gastos Generales finanzas" [ref=e38] [cursor=pointer]:
+              - generic [ref=e39]: Gastos Generales
+              - generic [ref=e40]: finanzas
+          - button "Gastos Corporativos" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: Gastos Corporativos
+          - button "Membresía" [ref=e46] [cursor=pointer]:
+            - generic [ref=e47]: Membresía
+          - button "Recursos Humanos" [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]: Recursos Humanos
+          - button "Servicios a la Membresía" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: Servicios a la Membresía
+          - button "T&IC" [ref=e52] [cursor=pointer]:
+            - generic [ref=e53]: T&IC
+      - generic [ref=e56]:
+        - button "Configuración 5" [expanded] [ref=e57] [cursor=pointer]:
+          - generic [ref=e58]: Configuración
+          - generic [ref=e59]: "5"
+        - generic [ref=e60]:
+          - button "Mi Perfil perfil" [ref=e61] [cursor=pointer]:
+            - generic [ref=e62]: Mi Perfil
+            - generic [ref=e63]: perfil
+          - button "Administrar usuarios Permisos" [ref=e64] [cursor=pointer]:
+            - generic [ref=e65]: Administrar usuarios
+            - generic [ref=e66]: Permisos
+          - button "Crear usuario" [ref=e67] [cursor=pointer]:
+            - generic [ref=e68]: Crear usuario
+          - button "Gestor de Plantillas" [ref=e69] [cursor=pointer]:
+            - generic [ref=e70]: Gestor de Plantillas
+          - button "Administrar conexiones" [ref=e71] [cursor=pointer]:
+            - generic [ref=e72]: Administrar conexiones
+  - main [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - button "Ocultar menú lateral" [expanded] [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]: ☰
+        - heading "Gestor de Plantillas" [level=2] [ref=e97]
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - button "Tour guiado" [ref=e83] [cursor=pointer]
+          - button "Opciones" [ref=e84] [cursor=pointer]:
+            - generic [ref=e85]: Opciones
+        - button "Notificaciones" [ref=e87] [cursor=pointer]:
+          - img [ref=e88]
+        - generic [ref=e90]:
+          - generic [ref=e91]: "Empresa:"
+          - combobox "Empresa:" [ref=e92]:
+            - option "Ciudad de México"
+            - option "Guadalajara"
+            - option "Noreste" [selected]
+            - option "Noroeste"
+        - button "Cerrar sesión" [ref=e93] [cursor=pointer]
+    - iframe [active] [ref=e102]:
+      - generic [ref=f3e1]:
+        - generic [ref=f3e2]:
+          - generic [ref=f3e7]:
+            - generic [ref=f3e8]:
+              - heading "Gestor de Plantillas" [level=1] [ref=f3e9]
+              - paragraph [ref=f3e10]: Comités · 2026 · NORESTE
+            - generic [ref=f3e11]:
+              - generic [ref=f3e10009]: 
+              - text: Edición forzada (local)
+          - generic [ref=f3e13]:
+            - generic [ref=f3e14]:
+              - generic [ref=f3e15]: Módulo
+              - combobox "Módulo" [ref=f3e16] [cursor=pointer]:
+                - option "RESUMEN"
+                - option "Finanzas"
+                - option "Gastos Generales"
+                - option "Nómina"
+                - option "Membresía"
+                - option "Serv Membresía"
+                - option "RH"
+                - option "Eventos"
+                - option "Comités" [selected]
+                - option "Comunicación"
+                - option "Dirección"
+                - option "Gtos Corporativos"
+                - option "T&IC"
+                - option "VPE"
+            - generic [ref=f3e17]:
+              - generic [ref=f3e18]: Año
+              - combobox "Año" [ref=f3e19] [cursor=pointer]:
+                - option "2026" [selected]
+                - option "2025"
+                - option "2024"
+                - option "2023"
+                - option "2022"
+                - option "2021"
+                - option "2020"
+                - option "2019"
+                - option "2018"
+                - option "2017"
+                - option "2016"
+                - option "2015"
+                - option "2014"
+                - option "2013"
+                - option "2012"
+                - option "2011"
+                - option "2010"
+                - option "2009"
+                - option "2008"
+                - option "2007"
+                - option "2006"
+                - option "2005"
+            - generic [ref=f3e20]:
+              - generic [ref=f3e21]: Capítulo
+              - combobox "Capítulo" [ref=f3e22] [cursor=pointer]:
+                - option "NORESTE" [selected]
+            - button " Cargar Layout" [active] [ref=f3e24] [cursor=pointer]:
+              - generic [ref=f3e25]: 
+              - text: Cargar Layout
+          - generic [ref=f3e30]:
+            - generic [ref=f3e32]:
+              - textbox "Buscar en el layout..." [ref=f3e33] [cursor=pointer]
+              - generic [ref=f3e34]:
+                - generic [ref=f3e35]: "Filtrar:"
+                - group [ref=f3e36]:
+                  - radio "Todo" [checked] [ref=f3e37] [cursor=pointer]
+                  - generic [ref=f3e38] [cursor=pointer]: Todo
+                  - radio "Secciones" [ref=f3e39] [cursor=pointer]
+                  - generic [ref=f3e40] [cursor=pointer]: Secciones
+                  - radio "Cuentas" [ref=f3e41] [cursor=pointer]
+                  - generic [ref=f3e42] [cursor=pointer]: Cuentas
+                  - radio "Operaciones" [ref=f3e43] [cursor=pointer]
+                  - generic [ref=f3e44] [cursor=pointer]: Operaciones
+            - button " Agregar" [ref=f3e45] [cursor=pointer]:
+              - generic [ref=f3e46]: 
+              - text: Agregar
+            - button " Expandir" [ref=f3e47] [cursor=pointer]:
+              - generic [ref=f3e48]: 
+              - text: Expandir
+            - button " Colapsar" [ref=f3e49] [cursor=pointer]:
+              - generic [ref=f3e50]: 
+              - text: Colapsar
+            - button " Vista Previa" [ref=f3e51] [cursor=pointer]:
+              - generic [ref=f3e52]: 
+              - text: Vista Previa
+            - button " Copiar a otro año" [ref=f3e53] [cursor=pointer]:
+              - generic [ref=f3e54]: 
+              - text: Copiar a otro año
+            - button " Guardar" [disabled]:
+              - generic: 
+              - text: Guardar
+            - button " Historial" [ref=f3e55] [cursor=pointer]:
+              - generic [ref=f3e56]: 
+              - text: Historial
+          - tablist [ref=f3e59]:
+            - tab "Layout" [selected] [ref=f3e60] [cursor=pointer]
+            - tab "Graficas" [ref=f3e61] [cursor=pointer]
+          - generic [ref=f3e62]:
+            - tabpanel "Layout" [ref=f3e63]:
+              - generic [ref=f3e65]:
+                - text:   
+                - generic [ref=f3e67]:
+                  - generic [ref=f3e69]: Comités · 2026 · NORESTE
+                  - generic [ref=f3e9715]:
+                    - generic [ref=f3e9717]:
+                      - generic [ref=f3e9718]:
+                        - generic [ref=f3e9719]:
+                          - generic [ref=f3e9720]: Secciones
+                          - generic [ref=f3e9721]: "3"
+                        - generic [ref=f3e9722]:
+                          - generic [ref=f3e9723]: Cuentas
+                          - generic [ref=f3e9724]: "7"
+                        - generic [ref=f3e9725]:
+                          - generic [ref=f3e9726]: Operaciones
+                          - generic [ref=f3e9727]: "5"
+                      - generic [ref=f3e9728]: "Modo ordenar activo: usa las flechas para mover."
+                    - generic [ref=f3e9729]:
+                      - generic [ref=f3e9730]:
+                        - generic [ref=f3e9731]: Elementos de la plantilla
+                        - generic [ref=f3e9734]:
+                          - checkbox " Ordenar" [checked] [ref=f3e9735] [cursor=pointer]
+                          - generic [ref=f3e9736]:
+                            - generic [ref=f3e9737]: 
+                            - text: Ordenar
+                      - generic [ref=f3e9739]:
+                        - generic [ref=f3e9740] [cursor=pointer]:
+                          - generic [ref=f3e9741]:
+                            - button "" [ref=f3e9742]:
+                              - generic [ref=f3e9743]: 
+                            - spinbutton "Mover a posición" [ref=f3e9744]: "1"
+                            - button "" [ref=f3e9745]:
+                              - generic [ref=f3e9746]: 
+                          - generic [ref=f3e9747]:
+                            - generic [ref=f3e9748]:
+                              - generic [ref=f3e9749]: 
+                              - strong [ref=f3e9750]: Ingresos Comités
+                              - generic [ref=f3e9751]: sum-row
+                            - generic [ref=f3e9752]:
+                              - button "Σ" [ref=f3e9753]
+                              - button "" [ref=f3e9754]:
+                                - generic [ref=f3e9755]: 
+                              - button "" [ref=f3e9756]:
+                                - generic [ref=f3e9757]: 
+                              - button "" [ref=f3e9758]:
+                                - generic [ref=f3e9759]: 
+                        - generic [ref=f3e9760] [cursor=pointer]:
+                          - generic [ref=f3e9761]:
+                            - button "" [ref=f3e9762]:
+                              - generic [ref=f3e9763]: 
+                            - spinbutton "Mover a posición" [ref=f3e9764]: "2"
+                            - button "" [ref=f3e9765]:
+                              - generic [ref=f3e9766]: 
+                          - generic [ref=f3e9767]:
+                            - generic [ref=f3e9768]:
+                              - generic [ref=f3e9769]: 408-001-000-00
+                              - generic [ref=f3e9770]: Juntas de Comité
+                              - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f3e9771]: sin subsección
+                            - generic [ref=f3e9772]:
+                              - button "" [ref=f3e9773]:
+                                - generic [ref=f3e9774]: 
+                              - button "" [ref=f3e9775]:
+                                - generic [ref=f3e9776]: 
+                        - generic [ref=f3e9777] [cursor=pointer]:
+                          - generic [ref=f3e9778]:
+                            - button "" [ref=f3e9779]:
+                              - generic [ref=f3e9780]: 
+                            - spinbutton "Mover a posición" [ref=f3e9781]: "3"
+                            - button "" [ref=f3e9782]:
+                              - generic [ref=f3e9783]: 
+                          - generic [ref=f3e9784]:
+                            - generic [ref=f3e9785]:
+                              - generic [ref=f3e9786]: 408-003-000-00
+                              - generic [ref=f3e9787]: Stering group
+                              - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f3e9788]: sin subsección
+                            - generic [ref=f3e9789]:
+                              - button "" [ref=f3e9790]:
+                                - generic [ref=f3e9791]: 
+                              - button "" [ref=f3e9792]:
+                                - generic [ref=f3e9793]: 
+                        - generic [ref=f3e9794] [cursor=pointer]:
+                          - generic [ref=f3e9795]:
+                            - button "" [ref=f3e9796]:
+                              - generic [ref=f3e9797]: 
+                            - spinbutton "Mover a posición" [ref=f3e9798]: "4"
+                            - button "" [ref=f3e9799]:
+                              - generic [ref=f3e9800]: 
+                          - generic [ref=f3e9801]:
+                            - generic [ref=f3e9802]:
+                              - generic [ref=f3e9803]: 408-004-000-00
+                              - generic [ref=f3e9804]: Programa de Mentoría (EWDP)
+                              - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f3e9805]: sin subsección
+                            - generic [ref=f3e9806]:
+                              - button "" [ref=f3e9807]:
+                                - generic [ref=f3e9808]: 
+                              - button "" [ref=f3e9809]:
+                                - generic [ref=f3e9810]: 
+                        - generic [ref=f3e9811] [cursor=pointer]:
+                          - generic [ref=f3e9812]:
+                            - button "" [ref=f3e9813]:
+                              - generic [ref=f3e9814]: 
+                            - spinbutton "Mover a posición" [ref=f3e9815]: "5"
+                            - button "" [ref=f3e9816]:
+                              - generic [ref=f3e9817]: 
+                          - generic [ref=f3e9818]:
+                            - generic [ref=f3e9819]:
+                              - generic [ref=f3e9820]: 
+                              - strong [ref=f3e9821]: Gastos Comités
+                              - generic [ref=f3e9822]: sum-row
+                            - generic [ref=f3e9823]:
+                              - button "Σ" [ref=f3e9824]
+                              - button "" [ref=f3e9825]:
+                                - generic [ref=f3e9826]: 
+                              - button "" [ref=f3e9827]:
+                                - generic [ref=f3e9828]: 
+                              - button "" [ref=f3e9829]:
+                                - generic [ref=f3e9830]: 
+                        - generic [ref=f3e9831] [cursor=pointer]:
+                          - generic [ref=f3e9832]:
+                            - button "" [ref=f3e9833]:
+                              - generic [ref=f3e9834]: 
+                            - spinbutton "Mover a posición" [ref=f3e9835]: "6"
+                            - button "" [ref=f3e9836]:
+                              - generic [ref=f3e9837]: 
+                          - generic [ref=f3e9838]:
+                            - generic [ref=f3e9839]:
+                              - generic [ref=f3e9840]: 701-001-001-00
+                              - generic [ref=f3e9841]: Juntas de Comité
+                              - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f3e9842]: sin subsección
+                            - generic [ref=f3e9843]:
+                              - button "" [ref=f3e9844]:
+                                - generic [ref=f3e9845]: 
+                              - button "" [ref=f3e9846]:
+                                - generic [ref=f3e9847]: 
+                        - generic [ref=f3e9848] [cursor=pointer]:
+                          - generic [ref=f3e9849]:
+                            - button "" [ref=f3e9850]:
+                              - generic [ref=f3e9851]: 
+                            - spinbutton "Mover a posición" [ref=f3e9852]: "7"
+                            - button "" [ref=f3e9853]:
+                              - generic [ref=f3e9854]: 
+                          - generic [ref=f3e9855]:
+                            - generic [ref=f3e9856]:
+                              - generic [ref=f3e9857]: 701-001-003-00
+                              - generic [ref=f3e9858]: Stering group
+                              - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f3e9859]: sin subsección
+                            - generic [ref=f3e9860]:
+                              - button "" [ref=f3e9861]:
+                                - generic [ref=f3e9862]: 
+                              - button "" [ref=f3e9863]:
+                                - generic [ref=f3e9864]: 
+                        - generic [ref=f3e9865] [cursor=pointer]:
+                          - generic [ref=f3e9866]:
+                            - button "" [ref=f3e9867]:
+                              - generic [ref=f3e9868]: 
+                            - spinbutton "Mover a posición" [ref=f3e9869]: "8"
+                            - button "" [ref=f3e9870]:
+                              - generic [ref=f3e9871]: 
+                          - generic [ref=f3e9872]:
+                            - generic [ref=f3e9873]:
+                              - generic [ref=f3e9874]: 701-001-004-00
+                              - generic [ref=f3e9875]: Programa de Mentoría (EWDP)
+                              - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f3e9876]: sin subsección
+                            - generic [ref=f3e9877]:
+                              - button "" [ref=f3e9878]:
+                                - generic [ref=f3e9879]: 
+                              - button "" [ref=f3e9880]:
+                                - generic [ref=f3e9881]: 
+                        - generic [ref=f3e9882] [cursor=pointer]:
+                          - generic [ref=f3e9883]:
+                            - button "" [ref=f3e9884]:
+                              - generic [ref=f3e9885]: 
+                            - spinbutton "Mover a posición" [ref=f3e9886]: "9"
+                            - button "" [ref=f3e9887]:
+                              - generic [ref=f3e9888]: 
+                          - generic [ref=f3e9889]:
+                            - generic [ref=f3e9890]:
+                              - generic [ref=f3e9891]: 
+                              - strong [ref=f3e9892]: Comisiones
+                              - generic [ref=f3e9893]: sum-row
+                            - generic [ref=f3e9894]:
+                              - button "Σ" [ref=f3e9895]
+                              - button "" [ref=f3e9896]:
+                                - generic [ref=f3e9897]: 
+                              - button "" [ref=f3e9898]:
+                                - generic [ref=f3e9899]: 
+                              - button "" [ref=f3e9900]:
+                                - generic [ref=f3e9901]: 
+                        - generic [ref=f3e9902] [cursor=pointer]:
+                          - generic [ref=f3e9903]:
+                            - button "" [ref=f3e9904]:
+                              - generic [ref=f3e9905]: 
+                            - spinbutton "Mover a posición" [ref=f3e9906]: "10"
+                            - button "" [ref=f3e9907]:
+                              - generic [ref=f3e9908]: 
+                          - generic [ref=f3e9909]:
+                            - generic [ref=f3e9910]:
+                              - generic [ref=f3e9911]: 504-000-000-00
+                              - generic [ref=f3e9912]: Comisiones EWDP
+                              - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f3e9913]: sin subsección
+                            - generic [ref=f3e9914]:
+                              - button "" [ref=f3e9915]:
+                                - generic [ref=f3e9916]: 
+                              - button "" [ref=f3e9917]:
+                                - generic [ref=f3e9918]: 
+                        - generic "403-001-000-00" [ref=f3e9919] [cursor=pointer]:
+                          - generic [ref=f3e9920]:
+                            - button "" [ref=f3e9921]:
+                              - generic [ref=f3e9922]: 
+                            - spinbutton "Mover a posición" [ref=f3e9923]: "11"
+                            - button "" [ref=f3e9924]:
+                              - generic [ref=f3e9925]: 
+                          - generic [ref=f3e9926]:
+                            - generic [ref=f3e9927]:
+                              - generic [ref=f3e9928]:
+                                - generic [ref=f3e9929]: 
+                                - strong [ref=f3e9930]: sum-row
+                              - generic [ref=f3e9931]: = 403-001-000-00
+                            - generic [ref=f3e9932]:
+                              - button "" [ref=f3e9933]:
+                                - generic [ref=f3e9934]: 
+                              - button "" [ref=f3e9935]:
+                                - generic [ref=f3e9936]: 
+                        - generic "701-001-000-00" [ref=f3e9937] [cursor=pointer]:
+                          - generic [ref=f3e9938]:
+                            - button "" [ref=f3e9939]:
+                              - generic [ref=f3e9940]: 
+                            - spinbutton "Mover a posición" [ref=f3e9941]: "12"
+                            - button "" [ref=f3e9942]:
+                              - generic [ref=f3e9943]: 
+                          - generic [ref=f3e9944]:
+                            - generic [ref=f3e9945]:
+                              - generic [ref=f3e9946]:
+                                - generic [ref=f3e9947]: 
+                                - strong [ref=f3e9948]: sum-row
+                              - generic [ref=f3e9949]: = 701-001-000-00
+                            - generic [ref=f3e9950]:
+                              - button "" [ref=f3e9951]:
+                                - generic [ref=f3e9952]: 
+                              - button "" [ref=f3e9953]:
+                                - generic [ref=f3e9954]: 
+                        - generic "504-000-000-00" [ref=f3e9955] [cursor=pointer]:
+                          - generic [ref=f3e9956]:
+                            - button "" [ref=f3e9957]:
+                              - generic [ref=f3e9958]: 
+                            - spinbutton "Mover a posición" [ref=f3e9959]: "13"
+                            - button "" [ref=f3e9960]:
+                              - generic [ref=f3e9961]: 
+                          - generic [ref=f3e9962]:
+                            - generic [ref=f3e9963]:
+                              - generic [ref=f3e9964]:
+                                - generic [ref=f3e9965]: 
+                                - strong [ref=f3e9966]: sum-row
+                              - generic [ref=f3e9967]: = 504-000-000-00
+                            - generic [ref=f3e9968]:
+                              - button "" [ref=f3e9969]:
+                                - generic [ref=f3e9970]: 
+                              - button "" [ref=f3e9971]:
+                                - generic [ref=f3e9972]: 
+                        - generic "Suma de Ingresos Comités - Suma de Gastos Comités" [ref=f3e9973] [cursor=pointer]:
+                          - generic [ref=f3e9974]:
+                            - button "" [ref=f3e9975]:
+                              - generic [ref=f3e9976]: 
+                            - spinbutton "Mover a posición" [ref=f3e9977]: "14"
+                            - button "" [ref=f3e9978]:
+                              - generic [ref=f3e9979]: 
+                          - generic [ref=f3e9980]:
+                            - generic [ref=f3e9981]:
+                              - generic [ref=f3e9982]:
+                                - generic [ref=f3e9983]: 
+                                - strong [ref=f3e9984]: result-row
+                              - generic [ref=f3e9985]: = Suma de Ingresos Comités - Suma de Gastos Comités
+                            - generic [ref=f3e9986]:
+                              - button "" [ref=f3e9987]:
+                                - generic [ref=f3e9988]: 
+                              - button "" [ref=f3e9989]:
+                                - generic [ref=f3e9990]: 
+                        - generic "Suma de Ingresos Comités - Suma de Gastos Comités - Suma de Comisiones" [ref=f3e9991] [cursor=pointer]:
+                          - generic [ref=f3e9992]:
+                            - button "" [ref=f3e9993]:
+                              - generic [ref=f3e9994]: 
+                            - spinbutton "Mover a posición" [ref=f3e9995]: "15"
+                            - button "" [ref=f3e9996]:
+                              - generic [ref=f3e9997]: 
+                          - generic [ref=f3e9998]:
+                            - generic [ref=f3e9999]:
+                              - generic [ref=f3e10000]:
+                                - generic [ref=f3e10001]: 
+                                - strong [ref=f3e10002]: result-row
+                              - generic [ref=f3e10003]: = Suma de Ingresos Comités - Suma de Gastos Comités - Suma de Comisiones
+                            - generic [ref=f3e10004]:
+                              - button "" [ref=f3e10005]:
+                                - generic [ref=f3e10006]: 
+                              - button "" [ref=f3e10007]:
+                                - generic [ref=f3e10008]: 
+              - text: 
+              - paragraph [ref=f3e679]: Layout Comités 2026 listo para editar
+            - text:    
+        - text:                        
+        - generic: 
+        - button "Tour plantillas" [ref=f3e680] [cursor=pointer]

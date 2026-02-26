@@ -42,7 +42,10 @@
 
     init() {
       // Si está activo el nuevo menú del wizard, omitir este manager para evitar duplicados
-      if (window.ContextMenuWizard) {
+      if (
+        window.location.pathname.includes("plantillas.html") &&
+        window.ContextMenuWizard
+      ) {
         console.info('ℹ️ ContextMenuManager deshabilitado: usando ContextMenuWizard');
         return;
       }

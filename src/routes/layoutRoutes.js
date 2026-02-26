@@ -461,9 +461,16 @@ router.get("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
  * POST /api/layouts/:modulo/:anio/:capitulo
  * Reemplazar layout completo (cuentas + operaciones) para un capitulo
  */
-router.post("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
+router.post("/:modulo/:anio/:capitulo", requireAuth, (req, res, next) => {
   try {
     const { modulo, anio, capitulo } = req.params;
+    const capituloRuta = (capitulo || "").toString().trim().toLowerCase();
+    // Evitar colisión con endpoints específicos como:
+    // POST /:modulo/:anio/operaciones
+    // Si no se delega, "operaciones" se interpreta como capítulo.
+    if (capituloRuta === "operaciones") {
+      return next();
+    }
     const {
       empresaId = "EMPRESA01",
       cuentas = [],

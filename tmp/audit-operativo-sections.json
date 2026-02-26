@@ -1,0 +1,234 @@
+{
+  "generatedAt": "2026-02-26T22:02:32.786Z",
+  "baseUrl": "http://127.0.0.1:3005",
+  "modules": [
+    {
+      "html": "Membresía.html",
+      "ok": true,
+      "error": null,
+      "data": {
+        "rowCount": 29,
+        "sectionHeaders": [
+          "Ingresos Membresía",
+          "Gastos Membresía",
+          "Gastos Administrativos"
+        ],
+        "sectionCount": 3,
+        "operativoTotal": 1,
+        "operativoUngrouped": 0,
+        "operativoUngroupedSample": []
+      }
+    },
+    {
+      "html": "Eventos.html",
+      "ok": true,
+      "error": null,
+      "data": {
+        "rowCount": 69,
+        "sectionHeaders": [
+          "Boletaje",
+          "Patrocinios",
+          "Costos y Gastos Eventos",
+          "Resultados Operativos",
+          "Gastos Administrativos"
+        ],
+        "sectionCount": 5,
+        "operativoTotal": 11,
+        "operativoUngrouped": 0,
+        "operativoUngroupedSample": []
+      }
+    },
+    {
+      "html": "Comunicación.html",
+      "ok": true,
+      "error": null,
+      "data": {
+        "rowCount": 7,
+        "sectionHeaders": [
+          "Gastos Comunicación"
+        ],
+        "sectionCount": 1,
+        "operativoTotal": 1,
+        "operativoUngrouped": 1,
+        "operativoUngroupedSample": [
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo Comunicación-855,181.42-71,265.12-5,921.01-71,265.120.00-71,265.120.00-71,265.120.00-71,265.120.00-71,265.120.00-71,265.120.00-71,265.120.00-71,265.120.00-71,265.120.00-71,265.120.00-71,265.120.00-71,265.12-5,921.01",
+            "seccion": "",
+            "seccionName": ""
+          }
+        ]
+      }
+    },
+    {
+      "html": "Dirección.html",
+      "ok": true,
+      "error": null,
+      "data": {
+        "rowCount": 1,
+        "sectionHeaders": [],
+        "sectionCount": 0,
+        "operativoTotal": 0,
+        "operativoUngrouped": 0,
+        "operativoUngroupedSample": []
+      }
+    },
+    {
+      "html": "Serv_Membresía.html",
+      "ok": true,
+      "error": null,
+      "data": {
+        "rowCount": 13,
+        "sectionHeaders": [
+          "Ingresos Serv Membresía",
+          "Gastos Serv Membresía",
+          "Resultados Operativos"
+        ],
+        "sectionCount": 3,
+        "operativoTotal": 2,
+        "operativoUngrouped": 0,
+        "operativoUngroupedSample": []
+      }
+    },
+    {
+      "html": "Comités.html",
+      "ok": true,
+      "error": null,
+      "data": {
+        "rowCount": 81,
+        "sectionHeaders": [
+          "Ingresos Comités",
+          "Gastos Comités",
+          "Resultados Operativos",
+          "Gastos Administrativos"
+        ],
+        "sectionCount": 4,
+        "operativoTotal": 20,
+        "operativoUngrouped": 0,
+        "operativoUngroupedSample": []
+      }
+    },
+    {
+      "html": "T&IC.html",
+      "ok": true,
+      "error": null,
+      "data": {
+        "rowCount": 19,
+        "sectionHeaders": [
+          "Ingresos T&IC",
+          "Gastos T&IC",
+          "Resultados Operativos"
+        ],
+        "sectionCount": 3,
+        "operativoTotal": 4,
+        "operativoUngrouped": 0,
+        "operativoUngroupedSample": []
+      }
+    },
+    {
+      "html": "RH.html",
+      "ok": true,
+      "error": null,
+      "data": {
+        "rowCount": 19,
+        "sectionHeaders": [
+          "Gastos RH",
+          "Gastos Administrativos"
+        ],
+        "sectionCount": 2,
+        "operativoTotal": 1,
+        "operativoUngrouped": 0,
+        "operativoUngroupedSample": []
+      }
+    },
+    {
+      "html": "VPE.html",
+      "ok": true,
+      "error": null,
+      "data": {
+        "rowCount": 31,
+        "sectionHeaders": [
+          "Ingresos CEN/Board",
+          "Gastos CEN/Board",
+          "Gastos Administrativos"
+        ],
+        "sectionCount": 3,
+        "operativoTotal": 0,
+        "operativoUngrouped": 0,
+        "operativoUngroupedSample": []
+      }
+    },
+    {
+      "html": "Finanzas.html",
+      "ok": true,
+      "error": null,
+      "data": {
+        "rowCount": 17,
+        "sectionHeaders": [
+          "Gastos Administrativos"
+        ],
+        "sectionCount": 1,
+        "operativoTotal": 0,
+        "operativoUngrouped": 0,
+        "operativoUngroupedSample": []
+      }
+    },
+    {
+      "html": "GastosGenerales.html",
+      "ok": true,
+      "error": null,
+      "data": {
+        "rowCount": 44,
+        "sectionHeaders": [
+          "Otros ingresos",
+          "Gastos Financieros",
+          "Gastos Generales",
+          "Depreciaciones y Amortizaciones",
+          "Gastos Corporativos CdMx",
+          "Member Centricity"
+        ],
+        "sectionCount": 6,
+        "operativoTotal": 0,
+        "operativoUngrouped": 0,
+        "operativoUngroupedSample": []
+      }
+    },
+    {
+      "html": "Nomina.html",
+      "ok": true,
+      "error": null,
+      "data": {
+        "rowCount": 15,
+        "sectionHeaders": [
+          "Sueldos DN Indem. y Prima de Ant.",
+          "Sueldos SV Indem. y Prima de Ant.",
+          "Sueldos eventos, Indem. y Prima de Ant.",
+          "Sueldos Comités, Indem. y Prima de Ant.",
+          "Sueldos Comunicación, Indem. y Prima de Ant.",
+          "Sueldos Admon y Finanzas, Sueldos RH, Indem. y Prima de Ant.",
+          "Sueldos VPE, Indem. y Prima de Ant."
+        ],
+        "sectionCount": 7,
+        "operativoTotal": 0,
+        "operativoUngrouped": 0,
+        "operativoUngroupedSample": []
+      }
+    },
+    {
+      "html": "Gtos_Corporativos.html",
+      "ok": true,
+      "error": null,
+      "data": {
+        "rowCount": 23,
+        "sectionHeaders": [
+          "GASTOS CORPORATIVOS 2026"
+        ],
+        "sectionCount": 1,
+        "operativoTotal": 0,
+        "operativoUngrouped": 0,
+        "operativoUngroupedSample": []
+      }
+    }
+  ],
+  "pageErrors": []
+}

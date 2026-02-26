@@ -1,0 +1,23 @@
+{
+  "exec": {
+    "found": false,
+    "invoked": false
+  },
+  "before": {
+    "cuentas": 26,
+    "operaciones": 17,
+    "totalRows": 50,
+    "unsavedChanges": false
+  },
+  "after": {
+    "cuentas": 26,
+    "operaciones": 17,
+    "totalRows": 50,
+    "unsavedChanges": false
+  },
+  "assertions": {
+    "accountRemoved": false,
+    "rowCountReduced": false,
+    "dirtyFlagSet": false
+  }
+}

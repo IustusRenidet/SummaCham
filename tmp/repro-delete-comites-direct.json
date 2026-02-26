@@ -1,0 +1,544 @@
+{
+  "deleteResult": {
+    "found": true,
+    "removed": false
+  },
+  "before": {
+    "total": 83,
+    "sections": [
+      "Ingresos Comités",
+      "Gastos Comités",
+      "Resultados Operativos",
+      "Gastos Administrativos"
+    ],
+    "resOpsRows": 22,
+    "targetRows": [
+      {
+        "idx": 47,
+        "cls": "fila-cuenta account-row",
+        "c0": "Por programa",
+        "c1": "Comités",
+        "sec": "RESULTADOS OPERATIVOS"
+      }
+    ],
+    "sample": [
+      {
+        "idx": 0,
+        "cls": "section-header-row",
+        "c0": "Ingresos Comités",
+        "c1": "",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 1,
+        "cls": "fila-cuenta account-row",
+        "c0": "412-001-000-00",
+        "c1": "Economex: Diamond + Membresías",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 2,
+        "cls": "fila-cuenta account-row",
+        "c0": "412-002-000-00",
+        "c1": "Economex: Sesiones",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 3,
+        "cls": "fila-cuenta account-row",
+        "c0": "412-003-000-00",
+        "c1": "Economex: Breafings y cocteles",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 4,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-001-000-00",
+        "c1": "Steering Group",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 5,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-002-001-00",
+        "c1": "DC Training - Georgetown",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 6,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-002-002-00",
+        "c1": "Legalidad y Estado de Derecho",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 7,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-003-000-00",
+        "c1": "Capital Humano y Asuntos Laborales",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 8,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-004-000-00",
+        "c1": "Comercio Exterior y Logística",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 9,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-005-000-00",
+        "c1": "Seguridad",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 10,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-009-000-00",
+        "c1": "IPR",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 11,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-010-000-00",
+        "c1": "Energía",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 12,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-012-000-00",
+        "c1": "Sustentabilidad y Responsabilidad Social",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 13,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-014-000-00",
+        "c1": "Talleres (IPR)",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 14,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-015-000-00",
+        "c1": "Programa de Mentoría",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 15,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-018-000-00",
+        "c1": "Asuntos Fiscales",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 16,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-020-000-00",
+        "c1": "Diversidad",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 17,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-021-000-00",
+        "c1": "Servicios Financieros",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 18,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-023-000-00",
+        "c1": "Innovación y TIC´s",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 19,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-024-000-00",
+        "c1": "Task Force lideres Rel. Con Gobierno",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 20,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-025-000-00",
+        "c1": "Salud",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 21,
+        "cls": "operation-row free-operation-row",
+        "c0": "",
+        "c1": "Suma de Ingresos Comités",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 22,
+        "cls": "section-header-row",
+        "c0": "Gastos Comités",
+        "c1": "",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 23,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-001-00",
+        "c1": "Steering Group",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 24,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-003-00",
+        "c1": "Capital Humano y Asuntos Laborales",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 25,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-004-00",
+        "c1": "Comercio Exterior y Logística",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 26,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-005-00",
+        "c1": "Seguridad",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 27,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-010-00",
+        "c1": "IPR",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 28,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-011-00",
+        "c1": "Energía",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 29,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-013-00",
+        "c1": "Innovación y TIC´s",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 30,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-015-00",
+        "c1": "Sustentabilidad y Responsabilidad Social",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 31,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-017-00",
+        "c1": "Programa Mentoría",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 32,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-021-00",
+        "c1": "Servicios Financieros",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 33,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-022-00",
+        "c1": "Diversidad",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 34,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-023-00",
+        "c1": "Asuntos Fiscales",
+        "sec": "GASTOS COMITES"
+      }
+    ]
+  },
+  "after": {
+    "total": 83,
+    "sections": [
+      "Ingresos Comités",
+      "Gastos Comités",
+      "Resultados Operativos",
+      "Gastos Administrativos"
+    ],
+    "resOpsRows": 22,
+    "targetRows": [
+      {
+        "idx": 47,
+        "cls": "fila-cuenta account-row",
+        "c0": "Por programa",
+        "c1": "Comités",
+        "sec": "RESULTADOS OPERATIVOS"
+      }
+    ],
+    "sample": [
+      {
+        "idx": 0,
+        "cls": "section-header-row",
+        "c0": "Ingresos Comités",
+        "c1": "",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 1,
+        "cls": "fila-cuenta account-row",
+        "c0": "412-001-000-00",
+        "c1": "Economex: Diamond + Membresías",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 2,
+        "cls": "fila-cuenta account-row",
+        "c0": "412-002-000-00",
+        "c1": "Economex: Sesiones",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 3,
+        "cls": "fila-cuenta account-row",
+        "c0": "412-003-000-00",
+        "c1": "Economex: Breafings y cocteles",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 4,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-001-000-00",
+        "c1": "Steering Group",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 5,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-002-001-00",
+        "c1": "DC Training - Georgetown",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 6,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-002-002-00",
+        "c1": "Legalidad y Estado de Derecho",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 7,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-003-000-00",
+        "c1": "Capital Humano y Asuntos Laborales",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 8,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-004-000-00",
+        "c1": "Comercio Exterior y Logística",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 9,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-005-000-00",
+        "c1": "Seguridad",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 10,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-009-000-00",
+        "c1": "IPR",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 11,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-010-000-00",
+        "c1": "Energía",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 12,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-012-000-00",
+        "c1": "Sustentabilidad y Responsabilidad Social",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 13,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-014-000-00",
+        "c1": "Talleres (IPR)",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 14,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-015-000-00",
+        "c1": "Programa de Mentoría",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 15,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-018-000-00",
+        "c1": "Asuntos Fiscales",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 16,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-020-000-00",
+        "c1": "Diversidad",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 17,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-021-000-00",
+        "c1": "Servicios Financieros",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 18,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-023-000-00",
+        "c1": "Innovación y TIC´s",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 19,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-024-000-00",
+        "c1": "Task Force lideres Rel. Con Gobierno",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 20,
+        "cls": "fila-cuenta account-row",
+        "c0": "417-025-000-00",
+        "c1": "Salud",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 21,
+        "cls": "operation-row free-operation-row",
+        "c0": "",
+        "c1": "Suma de Ingresos Comités",
+        "sec": "INGRESOS COMITES"
+      },
+      {
+        "idx": 22,
+        "cls": "section-header-row",
+        "c0": "Gastos Comités",
+        "c1": "",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 23,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-001-00",
+        "c1": "Steering Group",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 24,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-003-00",
+        "c1": "Capital Humano y Asuntos Laborales",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 25,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-004-00",
+        "c1": "Comercio Exterior y Logística",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 26,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-005-00",
+        "c1": "Seguridad",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 27,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-010-00",
+        "c1": "IPR",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 28,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-011-00",
+        "c1": "Energía",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 29,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-013-00",
+        "c1": "Innovación y TIC´s",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 30,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-015-00",
+        "c1": "Sustentabilidad y Responsabilidad Social",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 31,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-017-00",
+        "c1": "Programa Mentoría",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 32,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-021-00",
+        "c1": "Servicios Financieros",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 33,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-022-00",
+        "c1": "Diversidad",
+        "sec": "GASTOS COMITES"
+      },
+      {
+        "idx": 34,
+        "cls": "fila-cuenta account-row",
+        "c0": "702-002-023-00",
+        "c1": "Asuntos Fiscales",
+        "sec": "GASTOS COMITES"
+      }
+    ]
+  },
+  "assertions": {
+    "removedOneRow": false,
+    "targetRemoved": false,
+    "sectionsStable": true,
+    "resOpsReducedByOne": false
+  }
+}

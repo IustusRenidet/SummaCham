@@ -15,6 +15,9 @@
       ? "http://localhost:3005/api"
       : `${window.location.origin}/api`;
   const API_BASE = `${API_ROOT}/layouts-config`;
+  const LAYOUT_SYNC_EVENT = "summa:layout-sync";
+  const LAYOUT_SYNC_STORAGE_KEY = "summa:layout-sync";
+  const LAYOUT_SYNC_CHANNEL = "summa-layout-sync";
   const AUTO_OPERACIONES_DISABLED = true;
   const MANUAL_ORDER_ONLY = true;
   const FORCE_EDIT_MODE = true;
@@ -47,6 +50,39 @@
     autoSave: true,
   };
   window.state = state;
+
+  function notifyLayoutSync(extra = {}) {
+    const anioNum = Number(state.anio);
+    const detail = {
+      type: "layout-saved",
+      modulo: (state.modulo || "").toString(),
+      anio: Number.isInteger(anioNum) ? anioNum : null,
+      capitulo: (state.capitulo || "").toString(),
+      source: "plantillas",
+      timestamp: Date.now(),
+      ...extra,
+    };
+    try {
+      window.dispatchEvent(new CustomEvent(LAYOUT_SYNC_EVENT, { detail }));
+    } catch (error) {
+      // No bloquear guardado por error de notificación.
+    }
+    try {
+      localStorage.setItem(LAYOUT_SYNC_STORAGE_KEY, JSON.stringify(detail));
+      localStorage.removeItem(LAYOUT_SYNC_STORAGE_KEY);
+    } catch (error) {
+      // Puede fallar en modo incógnito/cookies bloqueadas.
+    }
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        const channel = new BroadcastChannel(LAYOUT_SYNC_CHANNEL);
+        channel.postMessage(detail);
+        channel.close();
+      }
+    } catch (error) {
+      // BroadcastChannel no disponible.
+    }
+  }
 
   // ==========================================
   // DOM ELEMENTS
@@ -3948,7 +3984,28 @@
       return 0;
     };
 
-    const sectionNodes = Array.from(sectionsMap.values());
+    const subsectionHasLinkedRows = (subNode) =>
+      (Array.isArray(subNode?.items) && subNode.items.length > 0) ||
+      Boolean((subNode?.placeholderAccountId || "").toString().trim());
+    const sectionHasLinkedRows = (sectionNode) => {
+      if (!sectionNode) return false;
+      if (Array.isArray(sectionNode.items) && sectionNode.items.length > 0) {
+        return true;
+      }
+      if (Boolean((sectionNode.placeholderAccountId || "").toString().trim())) {
+        return true;
+      }
+      const subs = Array.from(sectionNode.subsectionMap?.values?.() || []);
+      return subs.some((subNode) => subsectionHasLinkedRows(subNode));
+    };
+
+    // Mostrar secciones/subsecciones cuando tengan elementos vinculados:
+    // - cuentas
+    // - operaciones
+    // - o vínculo estructural explícito (placeholders/layout_secciones).
+    const sectionNodes = Array.from(sectionsMap.values()).filter((sectionNode) =>
+      sectionHasLinkedRows(sectionNode),
+    );
 
     // Orden de secciones: por primera aparición (min orden de items), con fallback a hints placeholder.
     const getSectionOrder = (sectionNode, idx) => {
@@ -4015,7 +4072,9 @@
         });
       });
 
-      const subsections = Array.from(sectionNode.subsectionMap.values());
+      const subsections = Array.from(sectionNode.subsectionMap.values()).filter(
+        (subNode) => subsectionHasLinkedRows(subNode),
+      );
       const getSubOrder = (subNode, idx) => {
         const valid = (subNode.items || [])
           .map((it) => safeOrder(it.__orden, null))
@@ -9952,10 +10011,13 @@
       0,
     );
 
-    let subsectionsHtml = "";
-    subsections.forEach((subsection) => {
-      subsectionsHtml += renderSubsection(subsection, principal);
-    });
+    const renderedSubsections = subsections
+      .map((subsection) => renderSubsection(subsection, principal))
+      .filter(Boolean);
+    const subsectionsHtml = renderedSubsections.join("");
+    if (!subsectionsHtml && accountCount === 0) {
+      return "";
+    }
 
     return `
       <div class="layout-section" data-section="${escapeHtml(principal)}">
@@ -10027,6 +10089,9 @@
     const realAccounts = (accounts || []).filter(
       (account) => !isPlaceholderAccount(account),
     );
+    const hasLinkedPlaceholder = (accounts || []).some((account) =>
+      isPlaceholderAccount(account),
+    );
     const accountsHtml = sortAccountsByOrder(realAccounts)
       .map((acc) => renderAccount(acc, principal, name))
       .join("");
@@ -10088,6 +10153,9 @@
       .sort((a, b) => getOperationOrder(a) - getOperationOrder(b))
       .map((op) => renderInlineOperation(op, realAccounts))
       .join("");
+    if (!realAccounts.length && !matchingOps.length && !hasLinkedPlaceholder) {
+      return "";
+    }
 
     return `
       <div class="subsection" data-subsection="${escapeHtml(name)}">
@@ -13882,6 +13950,11 @@
       if (!silent) {
         showToast("✅ Layout guardado exitosamente", "success");
       }
+      notifyLayoutSync({
+        type: "layout-saved",
+        sourceAction: source,
+        totalChanges: changesSummary.total,
+      });
 
       // Registrar en bitácora
       await addToBitacora(
@@ -14507,6 +14580,77 @@
       cuenta: account || null,
     };
     updateSelectionInfo();
+  };
+
+  function getRowCellText(row, cellIndex = 0) {
+    if (!row || !row.cells || !row.cells[cellIndex]) return "";
+    return (row.cells[cellIndex].textContent || "").replace(/\s+/g, " ").trim();
+  }
+
+  window.deleteTemplateRowFromElement = function (row) {
+    if (!row) return false;
+    const rowType = (row.dataset.rowType || "").toString().trim().toLowerCase();
+
+    const isAccount =
+      rowType === "account" ||
+      row.classList.contains("account-row") ||
+      row.classList.contains("fila-cuenta");
+    if (isAccount && typeof window.deleteAccount === "function") {
+      const accountId =
+        (row.dataset.accountId || row.dataset.cuenta || getRowCellText(row, 0) || "")
+          .toString()
+          .trim();
+      if (!accountId) return false;
+      window.deleteAccount(accountId);
+      return true;
+    }
+
+    const isOperation =
+      rowType === "operation" || row.classList.contains("operation-row");
+    if (isOperation && typeof window.deleteOperation === "function") {
+      const opId =
+        (
+          row.dataset.operationId ||
+          row.dataset.operationLabel ||
+          getRowCellText(row, 1) ||
+          getRowCellText(row, 0) ||
+          ""
+        )
+          .toString()
+          .trim();
+      if (!opId) return false;
+      window.deleteOperation(opId);
+      return true;
+    }
+
+    const isSubsection =
+      rowType === "subsection" || row.classList.contains("subsection-row");
+    if (isSubsection && typeof window.deleteSubsection === "function") {
+      const principal = (row.dataset.section || row.dataset.parentSection || "")
+        .toString()
+        .trim();
+      const subsection = (row.dataset.subsection || getRowCellText(row, 0) || "")
+        .toString()
+        .trim();
+      if (!subsection) return false;
+      window.deleteSubsection(principal, subsection);
+      return true;
+    }
+
+    const isSection =
+      rowType === "section" ||
+      row.classList.contains("section-header-row") ||
+      row.classList.contains("sum-row");
+    if (isSection && typeof window.deleteSection === "function") {
+      const section = (row.dataset.section || getRowCellText(row, 0) || "")
+        .toString()
+        .trim();
+      if (!section) return false;
+      window.deleteSection(section);
+      return true;
+    }
+
+    return false;
   };
 
   // Exponer funciones de movimiento para los botones onclick

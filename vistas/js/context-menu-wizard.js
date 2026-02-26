@@ -266,19 +266,39 @@
      */
     deleteRow() {
       if (!this.canModifyStructure(false)) return;
-      // Buscar función de eliminación existente en el módulo
+      if (!this.currentRow) return;
+
+      // Prioridad 1: Gestor de plantillas (actualiza estado + autosave)
+      if (
+        typeof window.deleteTemplateRowFromElement === "function" &&
+        window.deleteTemplateRowFromElement(this.currentRow)
+      ) {
+        return;
+      }
+
+      // Prioridad 2: Módulos con CuentasModulo (sincroniza metadatos internos)
+      if (
+        window.CuentasModulo &&
+        typeof window.CuentasModulo.eliminarFila === "function" &&
+        window.CuentasModulo.eliminarFila(this.currentRow)
+      ) {
+        return;
+      }
+
+      // Fallback legacy
       if (typeof window.eliminarFila === "function") {
         window.eliminarFila(this.currentRow);
-      } else if (typeof window.deleteFila === "function") {
-        window.deleteFila(this.currentRow);
-      } else {
-        console.warn("⚠️ No se encontró función de eliminación");
-
-        if (confirm("¿Estás seguro de eliminar este elemento?")) {
-          this.currentRow.remove();
-          alert("Elemento eliminado (solo visualmente, no persistido)");
-        }
+        return;
       }
+      if (typeof window.deleteFila === "function") {
+        window.deleteFila(this.currentRow);
+        return;
+      }
+
+      console.warn("⚠️ No se encontró función de eliminación estructural");
+      alert(
+        "No se pudo eliminar este elemento de forma segura. Revisa el tipo de fila y usa el flujo de edición del módulo."
+      );
     },
 
     /**

@@ -1,0 +1,32 @@
+const { chromium } = require('playwright');
+(async()=>{
+ const base='http://127.0.0.1:3005';
+ const browser=await chromium.launch({headless:true});
+ const page=await (await browser.newContext({viewport:{width:1440,height:1100}})).newPage();
+ await page.goto(base+'/login.html');
+ await page.fill('#usuario','ICONET');
+ await page.fill('#contrasena','4zxb63NyI43?');
+ await Promise.all([page.waitForURL('**/app.html'),page.click('#botonIngresar')]);
+ await page.goto(base+'/Comit%C3%A9s.html',{waitUntil:'domcontentloaded'});
+ await page.waitForSelector('#tablaComparacion');
+ await page.evaluate(()=>window.Sesion?.establecerEmpresaActiva?.('empresa1'));
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForSelector('#tablaComparacion');
+ await page.waitForTimeout(2600);
+ const data=await page.evaluate(async()=>{
+   const modulo='Comités';
+   const year=(document.querySelector('#yearLabel')?.textContent||'').trim()||'2026';
+   const empresa='EMPRESA01';
+   const capitulo='CIUDAD DE MEXICO';
+   const headers=typeof window.Sesion?.headersAutenticacion==='function'?window.Sesion.headersAutenticacion():{};
+   const url=`/api/layouts/${encodeURIComponent(modulo)}/${encodeURIComponent(year)}/${encodeURIComponent(capitulo)}?empresaId=${encodeURIComponent(empresa)}`;
+   const res=await fetch(url,{headers});
+   const json=await res.json();
+   const cuentas=Array.isArray(json?.layout?.cuentas)?json.layout.cuentas:[];
+   const weird=cuentas.filter(c=>!/^\d{3}-\d{3}-\d{3}-\d{2}$/.test(String(c?.CUENTA||c?.cuenta||'').trim()));
+   const por=cuentas.filter(c=>/POR\s*PROGRAMA/i.test(String(c?.CUENTA||c?.cuenta||''))||/COMIT/i.test(String(c?.NOMBRE||c?.nombre||'')));
+   return {status:res.status,count:cuentas.length,weird:weird.slice(0,20),por:por.slice(0,20)};
+ });
+ console.log(JSON.stringify(data,null,2));
+ await browser.close();
+})();

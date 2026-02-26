@@ -1,0 +1,59 @@
+{
+  "targetIndex": 47,
+  "menu": {
+    "exists": true,
+    "hidden": true,
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "items": [
+      "Editar operaci├│n / factor",
+      "Agregar cuenta arriba",
+      "Agregar cuenta abajo",
+      "Eliminar fila",
+      "Agregar secci├│n"
+    ]
+  },
+  "clickedDelete": true,
+  "before": {
+    "total": 83,
+    "sections": [
+      "Ingresos Comités",
+      "Gastos Comités",
+      "Resultados Operativos",
+      "Gastos Administrativos"
+    ],
+    "targetRows": [
+      {
+        "idx": 47,
+        "cls": "fila-cuenta account-row",
+        "c0": "Por programa",
+        "c1": "Comités",
+        "sec": "RESULTADOS OPERATIVOS",
+        "text": "Por programaComités0.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00"
+      }
+    ]
+  },
+  "after": {
+    "total": 83,
+    "sections": [
+      "Ingresos Comités",
+      "Gastos Comités",
+      "Resultados Operativos",
+      "Gastos Administrativos"
+    ],
+    "targetRows": [
+      {
+        "idx": 47,
+        "cls": "fila-cuenta account-row",
+        "c0": "Por programa",
+        "c1": "Comités",
+        "sec": "RESULTADOS OPERATIVOS",
+        "text": "Por programaComités0.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00"
+      }
+    ]
+  }
+}

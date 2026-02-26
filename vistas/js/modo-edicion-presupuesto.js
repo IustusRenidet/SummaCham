@@ -29,6 +29,9 @@
   const CLASE_EDITANDO = "cell-editing";
   const CLASE_MODIFICADO = "cell-modified";
   const CLASE_ACTIVA = "cell-active";
+  const LAYOUT_SYNC_EVENT = "summa:layout-sync";
+  const LAYOUT_SYNC_STORAGE_KEY = "summa:layout-sync";
+  const LAYOUT_SYNC_CHANNEL = "summa-layout-sync";
 
   // Estado global del módulo
   const estado = {
@@ -529,6 +532,38 @@
     }
   }
 
+  function emitirSyncLayout({ moduloClave, anio, capitulo, source = "modo-edicion" }) {
+    const anioNum = Number(anio);
+    const detail = {
+      type: "layout-saved",
+      modulo: (moduloClave || "").toString(),
+      anio: Number.isInteger(anioNum) ? anioNum : null,
+      capitulo: (capitulo || "").toString(),
+      source,
+      timestamp: Date.now(),
+    };
+    try {
+      window.dispatchEvent(new CustomEvent(LAYOUT_SYNC_EVENT, { detail }));
+    } catch (error) {
+      // Ignorar error de notificación local.
+    }
+    try {
+      localStorage.setItem(LAYOUT_SYNC_STORAGE_KEY, JSON.stringify(detail));
+      localStorage.removeItem(LAYOUT_SYNC_STORAGE_KEY);
+    } catch (error) {
+      // Puede fallar si localStorage está restringido.
+    }
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        const channel = new BroadcastChannel(LAYOUT_SYNC_CHANNEL);
+        channel.postMessage(detail);
+        channel.close();
+      }
+    } catch (error) {
+      // BroadcastChannel no disponible.
+    }
+  }
+
   async function cargarLayoutServidor({
     moduloClave,
     empresaId,
@@ -822,6 +857,7 @@
     const valorAnterior = editorState.valorOriginal || "";
     const numeroAnterior = editorState.valorNumericoOriginal;
     const valorIngresado = editorState.input.value || "";
+    let huboCambios = false;
 
     editorState.commitEnProgreso = true;
     try {
@@ -836,6 +872,7 @@
         if (Math.abs(numero - previo) > 0.0001) {
           marcarComoModificado(celda);
           capturarCambio(celda, numero);
+          huboCambios = true;
         }
       } else {
         const nuevo = valorIngresado.trim();
@@ -851,12 +888,19 @@
           // NO persistir automáticamente - solo marcar como modificado
           // El usuario debe guardar explícitamente el borrador
           estado.layoutModificado = true;
+          huboCambios = true;
         }
       }
     } finally {
       editorState.commitEnProgreso = false;
       establecerCeldaActiva(celda);
       ocultarEditor();
+    }
+
+    if (huboCambios) {
+      window.dispatchEvent(
+        new CustomEvent("modulo-planeacion:tabla-actualizada"),
+      );
     }
 
     if (mover) {
@@ -1326,6 +1370,12 @@
 
       if (guardadoServidor) {
         estado.layoutModificado = false;
+        emitirSyncLayout({
+          moduloClave,
+          anio,
+          capitulo,
+          source: "modo-edicion-save",
+        });
         console.log("? Layout guardado en servidor", {
           moduloClave,
           empresaId: empresa.id,
@@ -1522,7 +1572,7 @@
         switch (opcion.clave) {
           case "add_row":
             // Usar InsertionWizard si está disponible
-            if (typeof window.InsertionWizard !== "undefined") {
+            if (insertionWizardDisponible()) {
               window.InsertionWizard.open(filaContextual);
             } else {
               // Fallback al sistema simple
@@ -1583,6 +1633,13 @@
     menuContextual = menu;
   }
 
+  const estaEnGestorPlantillas = () =>
+    window.location.pathname.includes("plantillas.html");
+  const insertionWizardDisponible = () =>
+    estaEnGestorPlantillas() &&
+    !!window.InsertionWizard &&
+    typeof window.InsertionWizard.open === "function";
+
   function insertarFilaNueva(pos = "abajo") {
     const { tabla } = resolverTabla(estado.selectorTabla);
     if (!tabla || !filaContextual) return;
@@ -1599,7 +1656,33 @@
 
   function eliminarFilaSeleccionada() {
     if (!filaContextual) return;
-    filaContextual.remove();
+    if (
+      window.CuentasModulo &&
+      typeof window.CuentasModulo.eliminarFila === "function"
+    ) {
+      const handled = window.CuentasModulo.eliminarFila(filaContextual);
+      if (handled) {
+        filaContextual = null;
+        return;
+      }
+    }
+    if (
+      window.deleteTemplateRowFromElement &&
+      typeof window.deleteTemplateRowFromElement === "function"
+    ) {
+      const handled = window.deleteTemplateRowFromElement(filaContextual);
+      if (handled) {
+        filaContextual = null;
+        return;
+      }
+    }
+    console.warn(
+      "⚠️ Eliminación cancelada: no hay manejador seguro para esta fila",
+      filaContextual
+    );
+    window.alert(
+      "No se pudo eliminar esta fila de forma segura. Usa el gestor de plantillas o edita la sección/operación asociada."
+    );
     filaContextual = null;
   }
 
@@ -1620,7 +1703,7 @@
 
   document.addEventListener("contextmenu", (evt) => {
     if (!estado.modoEdicionActivo) return;
-    if (window.ContextMenuWizard || window.InsertionWizard) return;
+    if (estaEnGestorPlantillas() && window.ContextMenuWizard) return;
     const res = resolverTabla(estado.selectorTabla);
     if (!res || !res.tabla) return;
     const tabla = res.tabla;

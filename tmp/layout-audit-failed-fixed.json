@@ -1,0 +1,387 @@
+[
+  {
+    "modulo": "Membresía",
+    "html": "Membresía.html",
+    "errors": [],
+    "rowCounts": {
+      "principal": 2,
+      "account": 7
+    },
+    "accountTest": {
+      "attempted": true,
+      "move": {
+        "attempted": true,
+        "movingKey": "acc:400-002-000-00",
+        "targetKey": "acc:400-001-000-00",
+        "movingLabel": "400-002-000-00",
+        "targetLabel": "400-001-000-00",
+        "movedBeforeTarget": true
+      },
+      "persistedMoved": true,
+      "tableMoved": true,
+      "persisted": {
+        "account": {
+          "idxA": 1,
+          "idxB": 0,
+          "top": [
+            "400-002-000-00",
+            "400-001-000-00",
+            "400-005-000-00",
+            "401-001-000-00",
+            "702-002-000-00",
+            "503-000-000-00",
+            "702-001-000-00"
+          ]
+        },
+        "section": {
+          "idxA": -1,
+          "idxB": -1,
+          "top": [
+            "Ingresos Membresía",
+            "Gastos Membresía"
+          ]
+        }
+      },
+      "table": {
+        "year": "2026",
+        "empresa": "Guadalajara",
+        "account": {
+          "idxA": 1,
+          "idxB": 0,
+          "top": [
+            "400-002-000-00",
+            "400-001-000-00",
+            "400-005-000-00",
+            "401-001-000-00",
+            "702-002-000-00",
+            "503-000-000-00",
+            "702-001-000-00"
+          ]
+        },
+        "section": {
+          "idxA": -1,
+          "idxB": -1,
+          "top": [
+            "Ingresos Membresía",
+            "Gastos Membresía"
+          ]
+        }
+      },
+      "restoreRes": {
+        "restored": true
+      }
+    },
+    "sectionTest": {
+      "attempted": true,
+      "move": {
+        "attempted": true,
+        "movingKey": "pri:Gastos Membresía",
+        "targetKey": "pri:Ingresos Membresía",
+        "movingLabel": "Gastos Membresía",
+        "targetLabel": "Ingresos Membresía",
+        "movedBeforeTarget": true
+      },
+      "persistedMoved": true,
+      "tableMoved": true,
+      "persisted": {
+        "account": {
+          "idxA": -1,
+          "idxB": -1,
+          "top": [
+            "702-002-000-00",
+            "503-000-000-00",
+            "702-001-000-00",
+            "400-002-000-00",
+            "400-001-000-00",
+            "400-005-000-00",
+            "401-001-000-00"
+          ]
+        },
+        "section": {
+          "idxA": 1,
+          "idxB": 0,
+          "top": [
+            "Gastos Membresía",
+            "Ingresos Membresía"
+          ]
+        }
+      },
+      "table": {
+        "year": "2026",
+        "empresa": "Guadalajara",
+        "account": {
+          "idxA": -1,
+          "idxB": -1,
+          "top": [
+            "702-002-000-00",
+            "503-000-000-00",
+            "702-001-000-00",
+            "400-002-000-00",
+            "400-001-000-00",
+            "400-005-000-00",
+            "401-001-000-00"
+          ]
+        },
+        "section": {
+          "idxA": 1,
+          "idxB": 0,
+          "top": [
+            "Gastos Membresía",
+            "Ingresos Membresía"
+          ]
+        }
+      },
+      "restoreRes": {
+        "restored": true
+      }
+    },
+    "state": {
+      "modulo": "Membresía",
+      "anio": 2026,
+      "capitulo": "GUADALAJARA",
+      "empresa": "empresa2"
+    }
+  },
+  {
+    "modulo": "Eventos",
+    "html": "Eventos.html",
+    "errors": [],
+    "rowCounts": {
+      "principal": 3,
+      "account": 36
+    },
+    "accountTest": {
+      "attempted": true,
+      "move": {
+        "attempted": true,
+        "movingKey": "acc:405-001-000-00",
+        "targetKey": "acc:405-002-000-00",
+        "movingLabel": "405-001-000-00",
+        "targetLabel": "405-002-000-00",
+        "movedBeforeTarget": true
+      },
+      "persistedMoved": true,
+      "tableMoved": true,
+      "persisted": {
+        "account": {
+          "idxA": 1,
+          "idxB": 0,
+          "top": [
+            "405-001-000-00",
+            "405-002-000-00",
+            "405-009-000-00",
+            "405-003-000-00",
+            "405-013-000-00",
+            "405-012-000-00",
+            "405-008-000-00",
+            "405-010-000-00",
+            "405-005-000-00",
+            "405-007-000-00",
+            "405-004-000-00",
+            "405-011-000-00"
+          ]
+        },
+        "section": {
+          "idxA": -1,
+          "idxB": -1,
+          "top": [
+            "Boletaje",
+            "Patrocinios",
+            "Costos y Gastos Eventos"
+          ]
+        }
+      },
+      "table": {
+        "year": "2026",
+        "empresa": "Guadalajara",
+        "account": {
+          "idxA": 1,
+          "idxB": 0,
+          "top": [
+            "405-001-000-00",
+            "405-002-000-00",
+            "405-009-000-00",
+            "405-003-000-00",
+            "405-013-000-00",
+            "405-012-000-00",
+            "405-008-000-00",
+            "405-010-000-00",
+            "405-005-000-00",
+            "405-007-000-00",
+            "405-004-000-00",
+            "405-011-000-00"
+          ]
+        },
+        "section": {
+          "idxA": -1,
+          "idxB": -1,
+          "top": [
+            "Boletaje",
+            "Patrocinios",
+            "Costos y Gastos Eventos"
+          ]
+        }
+      },
+      "restoreRes": {
+        "restored": true
+      }
+    },
+    "sectionTest": {
+      "attempted": true,
+      "move": {
+        "attempted": true,
+        "movingKey": "pri:Patrocinios",
+        "targetKey": "pri:Boletaje",
+        "movingLabel": "Patrocinios",
+        "targetLabel": "Boletaje",
+        "movedBeforeTarget": true
+      },
+      "persistedMoved": true,
+      "tableMoved": true,
+      "persisted": {
+        "account": {
+          "idxA": -1,
+          "idxB": -1,
+          "top": [
+            "406-002-000-00",
+            "406-001-000-00",
+            "406-003-000-00",
+            "406-004-000-00",
+            "406-005-000-00",
+            "406-006-000-00",
+            "406-007-000-00",
+            "406-008-000-00",
+            "406-009-000-00",
+            "406-010-000-00",
+            "406-011-000-00",
+            "406-012-000-00"
+          ]
+        },
+        "section": {
+          "idxA": 1,
+          "idxB": 0,
+          "top": [
+            "Patrocinios",
+            "Boletaje",
+            "Costos y Gastos Eventos"
+          ]
+        }
+      },
+      "table": {
+        "year": "2026",
+        "empresa": "Guadalajara",
+        "account": {
+          "idxA": -1,
+          "idxB": -1,
+          "top": [
+            "406-002-000-00",
+            "406-001-000-00",
+            "406-003-000-00",
+            "406-004-000-00",
+            "406-005-000-00",
+            "406-006-000-00",
+            "406-007-000-00",
+            "406-008-000-00",
+            "406-009-000-00",
+            "406-010-000-00",
+            "406-011-000-00",
+            "406-012-000-00"
+          ]
+        },
+        "section": {
+          "idxA": 1,
+          "idxB": 0,
+          "top": [
+            "Patrocinios",
+            "Boletaje",
+            "Costos y Gastos Eventos"
+          ]
+        }
+      },
+      "restoreRes": {
+        "restored": true
+      }
+    },
+    "state": {
+      "modulo": "Eventos",
+      "anio": 2026,
+      "capitulo": "GUADALAJARA",
+      "empresa": "empresa2"
+    }
+  },
+  {
+    "modulo": "Comunicación",
+    "html": "Comunicación.html",
+    "errors": [],
+    "rowCounts": {
+      "principal": 1,
+      "account": 4
+    },
+    "accountTest": {
+      "attempted": true,
+      "move": {
+        "attempted": true,
+        "movingKey": "acc:901-018-002-00",
+        "targetKey": "acc:901-018-001-00",
+        "movingLabel": "901-018-002-00",
+        "targetLabel": "901-018-001-00",
+        "movedBeforeTarget": true
+      },
+      "persistedMoved": true,
+      "tableMoved": true,
+      "persisted": {
+        "account": {
+          "idxA": 1,
+          "idxB": 0,
+          "top": [
+            "901-018-002-00",
+            "901-018-001-00",
+            "901-018-003-00",
+            "901-018-004-00"
+          ]
+        },
+        "section": {
+          "idxA": -1,
+          "idxB": -1,
+          "top": [
+            "Gastos Comunicación"
+          ]
+        }
+      },
+      "table": {
+        "year": "2026",
+        "empresa": "Guadalajara",
+        "account": {
+          "idxA": 1,
+          "idxB": 0,
+          "top": [
+            "901-018-002-00",
+            "901-018-001-00",
+            "901-018-003-00",
+            "901-018-004-00"
+          ]
+        },
+        "section": {
+          "idxA": -1,
+          "idxB": -1,
+          "top": [
+            "Gastos Comunicación"
+          ]
+        }
+      },
+      "restoreRes": {
+        "restored": true
+      }
+    },
+    "sectionTest": {
+      "attempted": false,
+      "reason": "no-candidate"
+    },
+    "state": {
+      "modulo": "Comunicación",
+      "anio": 2026,
+      "capitulo": "GUADALAJARA",
+      "empresa": "empresa2"
+    }
+  }
+]

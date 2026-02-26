@@ -1,0 +1,789 @@
+{
+  "generatedAt": "2026-02-26T21:53:55.784Z",
+  "baseUrl": "http://127.0.0.1:3005",
+  "empresa": "empresa1",
+  "modulo": "Comités",
+  "anio": 2026,
+  "chapters": [
+    {
+      "hint": "CDMX",
+      "selectedChapter": {
+        "value": "CDMX",
+        "label": "CDMX",
+        "options": [
+          {
+            "value": "CDMX",
+            "label": "CDMX",
+            "nValue": "CDMX",
+            "nLabel": "CDMX"
+          },
+          {
+            "value": "CIUDAD DE MEXICO",
+            "label": "CIUDAD DE MEXICO",
+            "nValue": "CIUDAD DE MEXICO",
+            "nLabel": "CIUDAD DE MEXICO"
+          },
+          {
+            "value": "GUADALAJARA",
+            "label": "GUADALAJARA",
+            "nValue": "GUADALAJARA",
+            "nLabel": "GUADALAJARA"
+          },
+          {
+            "value": "MONTERREY",
+            "label": "MONTERREY",
+            "nValue": "MONTERREY",
+            "nLabel": "MONTERREY"
+          },
+          {
+            "value": "NORESTE",
+            "label": "NORESTE",
+            "nValue": "NORESTE",
+            "nLabel": "NORESTE"
+          },
+          {
+            "value": "NOROESTE",
+            "label": "NOROESTE",
+            "nValue": "NOROESTE",
+            "nLabel": "NOROESTE"
+          }
+        ]
+      },
+      "plantillas": {
+        "state": {
+          "modulo": "Comités",
+          "anio": "2026",
+          "capitulo": "CDMX",
+          "empresaId": "empresa1"
+        },
+        "counts": {
+          "operation": 5
+        },
+        "principals": [],
+        "subsections": [],
+        "operationRows": [
+          {
+            "label": "sum-row",
+            "principalName": "",
+            "subsectionName": "",
+            "operationId": ""
+          },
+          {
+            "label": "sum-row",
+            "principalName": "",
+            "subsectionName": "",
+            "operationId": ""
+          },
+          {
+            "label": "sum-row",
+            "principalName": "",
+            "subsectionName": "",
+            "operationId": ""
+          },
+          {
+            "label": "result-row",
+            "principalName": "",
+            "subsectionName": "",
+            "operationId": ""
+          },
+          {
+            "label": "result-row",
+            "principalName": "",
+            "subsectionName": "",
+            "operationId": ""
+          }
+        ],
+        "layoutInfo": {
+          "ok": true,
+          "status": 200,
+          "cuentasTotal": 0,
+          "operacionesTotal": 5,
+          "seccionesTotal": 0,
+          "cuentasPorSeccion": {},
+          "opsPorSeccion": {
+            "Ingresos Comités": 1,
+            "Gastos Comités": 1,
+            "Comisiones": 1
+          },
+          "secciones": [],
+          "operacionesConOperativo": []
+        }
+      },
+      "comitesPage": {
+        "yearLabel": "2026",
+        "empresaLabel": "Ciudad de México",
+        "sectionHeaders": [
+          {
+            "text": "Ingresos Comités",
+            "dataSeccion": "INGRESOS COMITES",
+            "dataSectionName": "Ingresos Comités"
+          },
+          {
+            "text": "Gastos Comités",
+            "dataSeccion": "GASTOS COMITES",
+            "dataSectionName": "Gastos Comités"
+          },
+          {
+            "text": "Gastos Administrativos",
+            "dataSeccion": "GASTOS ADMINISTRATIVOS",
+            "dataSectionName": "Gastos Administrativos"
+          }
+        ],
+        "containsResultadosOperativosSection": false,
+        "operativoRows": [
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Steering Group-154,000.00-14,000.00-732.35-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.00-732.35",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Capital Humano y asuntos Laborales18,256.200.001,481.173,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.001,481.17",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: DC Training- Georgetown400,000.000.000.000.000.000.000.000.000.00400,000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Legalidad y Estado de Derecho18,256.200.001,200.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.001,200.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Comercio Exterior y Logística18,256.200.0021.293,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.0021.29",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: IPR18,256.200.00-938.663,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.00-938.66",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Energía18,256.200.001,670.783,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.001,670.78",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Seguridad15,213.500.001,800.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.001,800.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Sustentabilidad y Responsabilidad Social15,213.500.00983.992,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.00983.99",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Talleres (IPR)0.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Programa de Mentoría3,300,000.000.000.000.000.000.000.000.000.001,650,000.000.00-850,000.000.000.000.000.000.002,500,000.000.000.000.000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Asuntos Fiscales18,256.200.004,693.583,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.004,693.58",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Diversidad15,213.500.001,105.232,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.001,105.23",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Servicios Financieros15,213.500.001,800.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.001,800.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Innovación y TIC'S15,213.500.00-42,614.462,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.00-42,614.46",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Task Force líderes Rel. Con Gobierno15,213.500.00-7,240.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.00-7,240.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Economex Breafings y cocteles-40,000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00-40,000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Salud15,213.500.0018,835.382,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.0018,835.38",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Economex: Sesiones-159,254.00-8,000.00-179.46-8,000.000.00-12,000.000.00-5,467.000.00-6,633.000.00-12,000.000.00-18,757.000.00-5,979.000.00-4,872.000.00-11,753.000.00-11,753.000.00-54,040.000.00-8,000.00-179.46",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo Comités2,806,777.70-69,250.00-63,113.51-33,244.740.00-73,250.000.00-30,711.740.001,982,117.000.00-887,244.740.00-66,007.000.00-31,223.740.002,433,878.000.00-36,997.740.00-76,997.740.00-304,290.000.00-69,250.00-63,113.51",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          }
+        ],
+        "opRowsTop": [
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Suma de Ingresos Comités9,316,450.0094,000.00133,826.08330,075.000.0094,000.000.00330,075.000.004,394,000.000.00330,075.000.0080,000.000.00330,075.000.002,594,000.000.00330,075.000.00330,075.000.0080,000.000.0094,000.00133,826.08",
+            "dataSeccion": "INGRESOS COMITES",
+            "dataSectionName": "Ingresos Comités"
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Suma de Gastos Comités6,509,672.30163,250.00196,939.59363,319.740.00167,250.000.00360,786.740.002,411,883.000.001,217,319.740.00146,007.000.00361,298.740.00160,122.000.00367,072.740.00407,072.740.00384,290.000.00163,250.00196,939.59",
+            "dataSeccion": "GASTOS COMITES",
+            "dataSectionName": "Gastos Comités"
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Steering Group-154,000.00-14,000.00-732.35-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.00-732.35",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Capital Humano y asuntos Laborales18,256.200.001,481.173,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.001,481.17",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: DC Training- Georgetown400,000.000.000.000.000.000.000.000.000.00400,000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Legalidad y Estado de Derecho18,256.200.001,200.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.001,200.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Comercio Exterior y Logística18,256.200.0021.293,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.0021.29",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: IPR18,256.200.00-938.663,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.00-938.66",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Energía18,256.200.001,670.783,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.001,670.78",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Seguridad15,213.500.001,800.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.001,800.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Sustentabilidad y Responsabilidad Social15,213.500.00983.992,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.00983.99",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Talleres (IPR)0.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Programa de Mentoría3,300,000.000.000.000.000.000.000.000.000.001,650,000.000.00-850,000.000.000.000.000.000.002,500,000.000.000.000.000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Asuntos Fiscales18,256.200.004,693.583,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.004,693.58",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Diversidad15,213.500.001,105.232,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.001,105.23",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Servicios Financieros15,213.500.001,800.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.001,800.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Innovación y TIC'S15,213.500.00-42,614.462,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.00-42,614.46",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Task Force líderes Rel. Con Gobierno15,213.500.00-7,240.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.00-7,240.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Economex Breafings y cocteles-40,000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00-40,000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Salud15,213.500.0018,835.382,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.0018,835.38",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Economex: Sesiones-159,254.00-8,000.00-179.46-8,000.000.00-12,000.000.00-5,467.000.00-6,633.000.00-12,000.000.00-18,757.000.00-5,979.000.00-4,872.000.00-11,753.000.00-11,753.000.00-54,040.000.00-8,000.00-179.46",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo Comités2,806,777.70-69,250.00-63,113.51-33,244.740.00-73,250.000.00-30,711.740.001,982,117.000.00-887,244.740.00-66,007.000.00-31,223.740.002,433,878.000.00-36,997.740.00-76,997.740.00-304,290.000.00-69,250.00-63,113.51",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Suma Gastos Administrativos984,074.1662,696.2541,713.9772,318.950.0072,768.530.0063,082.130.0072,166.810.0067,722.060.0063,398.850.0063,552.690.0071,639.930.0065,176.000.00154,776.000.00154,776.000.0062,696.2541,713.97",
+            "dataSeccion": "GASTOS ADMINISTRATIVOS",
+            "dataSectionName": "Gastos Administrativos"
+          }
+        ],
+        "rowCount": 80
+      }
+    },
+    {
+      "hint": "CIUDAD DE MEXICO",
+      "selectedChapter": {
+        "value": "CIUDAD DE MEXICO",
+        "label": "CIUDAD DE MEXICO",
+        "options": [
+          {
+            "value": "CDMX",
+            "label": "CDMX",
+            "nValue": "CDMX",
+            "nLabel": "CDMX"
+          },
+          {
+            "value": "CIUDAD DE MEXICO",
+            "label": "CIUDAD DE MEXICO",
+            "nValue": "CIUDAD DE MEXICO",
+            "nLabel": "CIUDAD DE MEXICO"
+          },
+          {
+            "value": "GUADALAJARA",
+            "label": "GUADALAJARA",
+            "nValue": "GUADALAJARA",
+            "nLabel": "GUADALAJARA"
+          },
+          {
+            "value": "MONTERREY",
+            "label": "MONTERREY",
+            "nValue": "MONTERREY",
+            "nLabel": "MONTERREY"
+          },
+          {
+            "value": "NORESTE",
+            "label": "NORESTE",
+            "nValue": "NORESTE",
+            "nLabel": "NORESTE"
+          },
+          {
+            "value": "NOROESTE",
+            "label": "NOROESTE",
+            "nValue": "NOROESTE",
+            "nLabel": "NOROESTE"
+          }
+        ]
+      },
+      "plantillas": {
+        "state": {
+          "modulo": "Comités",
+          "anio": "2026",
+          "capitulo": "CDMX",
+          "empresaId": "empresa1"
+        },
+        "counts": {
+          "operation": 5
+        },
+        "principals": [],
+        "subsections": [],
+        "operationRows": [
+          {
+            "label": "sum-row",
+            "principalName": "",
+            "subsectionName": "",
+            "operationId": ""
+          },
+          {
+            "label": "sum-row",
+            "principalName": "",
+            "subsectionName": "",
+            "operationId": ""
+          },
+          {
+            "label": "sum-row",
+            "principalName": "",
+            "subsectionName": "",
+            "operationId": ""
+          },
+          {
+            "label": "result-row",
+            "principalName": "",
+            "subsectionName": "",
+            "operationId": ""
+          },
+          {
+            "label": "result-row",
+            "principalName": "",
+            "subsectionName": "",
+            "operationId": ""
+          }
+        ],
+        "layoutInfo": {
+          "ok": true,
+          "status": 200,
+          "cuentasTotal": 0,
+          "operacionesTotal": 5,
+          "seccionesTotal": 0,
+          "cuentasPorSeccion": {},
+          "opsPorSeccion": {
+            "Ingresos Comités": 1,
+            "Gastos Comités": 1,
+            "Comisiones": 1
+          },
+          "secciones": [],
+          "operacionesConOperativo": []
+        }
+      },
+      "comitesPage": {
+        "yearLabel": "2026",
+        "empresaLabel": "Ciudad de México",
+        "sectionHeaders": [
+          {
+            "text": "Ingresos Comités",
+            "dataSeccion": "INGRESOS COMITES",
+            "dataSectionName": "Ingresos Comités"
+          },
+          {
+            "text": "Gastos Comités",
+            "dataSeccion": "GASTOS COMITES",
+            "dataSectionName": "Gastos Comités"
+          },
+          {
+            "text": "Gastos Administrativos",
+            "dataSeccion": "GASTOS ADMINISTRATIVOS",
+            "dataSectionName": "Gastos Administrativos"
+          }
+        ],
+        "containsResultadosOperativosSection": false,
+        "operativoRows": [
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Steering Group-154,000.00-14,000.00-732.35-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.00-732.35",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Capital Humano y asuntos Laborales18,256.200.001,481.173,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.001,481.17",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: DC Training- Georgetown400,000.000.000.000.000.000.000.000.000.00400,000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Legalidad y Estado de Derecho18,256.200.001,200.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.001,200.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Comercio Exterior y Logística18,256.200.0021.293,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.0021.29",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: IPR18,256.200.00-938.663,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.00-938.66",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Energía18,256.200.001,670.783,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.001,670.78",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Seguridad15,213.500.001,800.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.001,800.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Sustentabilidad y Responsabilidad Social15,213.500.00983.992,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.00983.99",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Talleres (IPR)0.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Programa de Mentoría3,300,000.000.000.000.000.000.000.000.000.001,650,000.000.00-850,000.000.000.000.000.000.002,500,000.000.000.000.000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Asuntos Fiscales18,256.200.004,693.583,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.004,693.58",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Diversidad15,213.500.001,105.232,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.001,105.23",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Servicios Financieros15,213.500.001,800.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.001,800.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Innovación y TIC'S15,213.500.00-42,614.462,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.00-42,614.46",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Task Force líderes Rel. Con Gobierno15,213.500.00-7,240.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.00-7,240.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Economex Breafings y cocteles-40,000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00-40,000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Salud15,213.500.0018,835.382,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.0018,835.38",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Economex: Sesiones-159,254.00-8,000.00-179.46-8,000.000.00-12,000.000.00-5,467.000.00-6,633.000.00-12,000.000.00-18,757.000.00-5,979.000.00-4,872.000.00-11,753.000.00-11,753.000.00-54,040.000.00-8,000.00-179.46",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo Comités2,806,777.70-69,250.00-63,113.51-33,244.740.00-73,250.000.00-30,711.740.001,982,117.000.00-887,244.740.00-66,007.000.00-31,223.740.002,433,878.000.00-36,997.740.00-76,997.740.00-304,290.000.00-69,250.00-63,113.51",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          }
+        ],
+        "opRowsTop": [
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Suma de Ingresos Comités9,316,450.0094,000.00133,826.08330,075.000.0094,000.000.00330,075.000.004,394,000.000.00330,075.000.0080,000.000.00330,075.000.002,594,000.000.00330,075.000.00330,075.000.0080,000.000.0094,000.00133,826.08",
+            "dataSeccion": "INGRESOS COMITES",
+            "dataSectionName": "Ingresos Comités"
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Suma de Gastos Comités6,509,672.30163,250.00196,939.59363,319.740.00167,250.000.00360,786.740.002,411,883.000.001,217,319.740.00146,007.000.00361,298.740.00160,122.000.00367,072.740.00407,072.740.00384,290.000.00163,250.00196,939.59",
+            "dataSeccion": "GASTOS COMITES",
+            "dataSectionName": "Gastos Comités"
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Steering Group-154,000.00-14,000.00-732.35-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.000.00-14,000.00-732.35",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Capital Humano y asuntos Laborales18,256.200.001,481.173,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.001,481.17",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: DC Training- Georgetown400,000.000.000.000.000.000.000.000.000.00400,000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Legalidad y Estado de Derecho18,256.200.001,200.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.001,200.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Comercio Exterior y Logística18,256.200.0021.293,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.0021.29",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: IPR18,256.200.00-938.663,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.00-938.66",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Energía18,256.200.001,670.783,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.001,670.78",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Seguridad15,213.500.001,800.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.001,800.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Sustentabilidad y Responsabilidad Social15,213.500.00983.992,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.00983.99",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Talleres (IPR)0.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Programa de Mentoría3,300,000.000.000.000.000.000.000.000.000.001,650,000.000.00-850,000.000.000.000.000.000.002,500,000.000.000.000.000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Asuntos Fiscales18,256.200.004,693.583,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.000.000.003,042.700.003,042.700.000.000.000.004,693.58",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Diversidad15,213.500.001,105.232,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.001,105.23",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Servicios Financieros15,213.500.001,800.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.001,800.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Innovación y TIC'S15,213.500.00-42,614.462,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.00-42,614.46",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Task Force líderes Rel. Con Gobierno15,213.500.00-7,240.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.00-7,240.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Economex Breafings y cocteles-40,000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00-40,000.000.000.000.000.000.00",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Salud15,213.500.0018,835.382,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.000.000.002,535.580.002,535.580.000.000.000.0018,835.38",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo: Economex: Sesiones-159,254.00-8,000.00-179.46-8,000.000.00-12,000.000.00-5,467.000.00-6,633.000.00-12,000.000.00-18,757.000.00-5,979.000.00-4,872.000.00-11,753.000.00-11,753.000.00-54,040.000.00-8,000.00-179.46",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Resultado Operativo Comités2,806,777.70-69,250.00-63,113.51-33,244.740.00-73,250.000.00-30,711.740.001,982,117.000.00-887,244.740.00-66,007.000.00-31,223.740.002,433,878.000.00-36,997.740.00-76,997.740.00-304,290.000.00-69,250.00-63,113.51",
+            "dataSeccion": "",
+            "dataSectionName": ""
+          },
+          {
+            "className": "operation-row free-operation-row",
+            "text": "Suma Gastos Administrativos984,074.1662,696.2541,713.9772,318.950.0072,768.530.0063,082.130.0072,166.810.0067,722.060.0063,398.850.0063,552.690.0071,639.930.0065,176.000.00154,776.000.00154,776.000.0062,696.2541,713.97",
+            "dataSeccion": "GASTOS ADMINISTRATIVOS",
+            "dataSectionName": "Gastos Administrativos"
+          }
+        ],
+        "rowCount": 80
+      }
+    }
+  ]
+}

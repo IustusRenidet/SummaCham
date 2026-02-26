@@ -50,6 +50,9 @@
   })();
   const EVENTO_TABLA_ACTUALIZADA = "modulo-planeacion:tabla-actualizada";
   const EVENTO_CONTEXTO = "planeacion:contexto-actualizado";
+  const LAYOUT_SYNC_EVENT = "summa:layout-sync";
+  const LAYOUT_SYNC_STORAGE_KEY = "summa:layout-sync";
+  const LAYOUT_SYNC_CHANNEL = "summa-layout-sync";
   const MESES = [
     "ene",
     "feb",
@@ -1248,6 +1251,10 @@
   };
   let moduloReadyDispatched = false;
   let panelPrincipales = null;
+  let instanciaActiva = null;
+  let layoutSyncListenersReady = false;
+  let layoutSyncChannel = null;
+  let layoutSyncTimer = null;
 
   const normalizarPeriodo = (valor) => {
     const numero = Number(valor);
@@ -3482,17 +3489,36 @@
         : registrosBase;
     const secciones = new Map();
     const seccionOriginalPorClave = new Map();
+    const seccionOrdenMin = new Map();
+    const seccionIndice = new Map();
+    let secuenciaSeccion = 0;
     const faltantesNombre = new Set();
     const moduloEsGastosGenerales = moduloNormalizado === "gastosgenerales";
     const esModuloNomina = moduloNormalizado === "nomina";
     const esModuloResumen = moduloNormalizado === "resumen";
-    registrosProcesados.forEach((item) => {
+    const registrarOrdenSeccion = (nombreSeccion, orden) => {
+      const clave = normalizarTexto(nombreSeccion || "");
+      if (!clave) return;
+      const ordenNum = Number(orden);
+      if (!Number.isFinite(ordenNum)) return;
+      const previo = seccionOrdenMin.get(clave);
+      if (!Number.isFinite(previo) || ordenNum < previo) {
+        seccionOrdenMin.set(clave, ordenNum);
+      }
+    };
+
+    registrosProcesados.forEach((item, idxRegistro) => {
       const clave = item.seccion || "SIN SECCION";
       if (esModuloResumen && /OPERATING RESULTS/i.test(clave)) {
         return;
       }
       if (!secciones.has(clave)) {
         secciones.set(clave, []);
+        const claveNorm = normalizarTexto(clave);
+        if (!seccionIndice.has(claveNorm)) {
+          seccionIndice.set(claveNorm, secuenciaSeccion);
+          secuenciaSeccion += 1;
+        }
       }
       secciones.get(clave).push(item);
       if (!seccionOriginalPorClave.has(clave)) {
@@ -3501,6 +3527,7 @@
           item.seccionOriginal || item.seccion || "SIN SECCION"
         );
       }
+      registrarOrdenSeccion(clave, obtenerOrdenPresentacion(item, idxRegistro));
     });
 
     const resultRows = new Map();
@@ -3517,8 +3544,8 @@
     const operacionesConFilaPorSeccion = new Map();
     const operacionesUsadas = new Set();
     const operacionesIncluidas = new Set();
-    const seccionesDisponibles = new Set(
-      Array.from(secciones.keys()).map((key) => normalizarTexto(key))
+    const seccionClavePorNormalizada = new Map(
+      Array.from(secciones.keys()).map((key) => [normalizarTexto(key), key])
     );
 
     const obtenerOperacionId = (op) =>
@@ -3528,6 +3555,52 @@
 
     const obtenerOrdenOperacion = (op, fallback = Number.POSITIVE_INFINITY) =>
       obtenerOrdenPresentacion(op, fallback);
+
+    const obtenerEtiquetaSeccionOperacion = (op) => {
+      const candidatos = [
+        op?.parentSection,
+        op?.SECCION,
+        op?.seccion,
+        op?.parentSubsection,
+      ];
+      for (const candidato of candidatos) {
+        const limpio = (candidato || "").toString().trim();
+        if (limpio) return limpio;
+      }
+      return "";
+    };
+
+    const registrarSeccionDesdeOperacion = (op, idxOp = 0) => {
+      const etiqueta = obtenerEtiquetaSeccionOperacion(op);
+      const claveNorm = normalizarTexto(etiqueta || "");
+      if (!claveNorm || claveNorm === "SIN SECCION") return;
+      if (!seccionClavePorNormalizada.has(claveNorm)) {
+        const nombreSeccion = etiqueta || "SIN SECCION";
+        secciones.set(nombreSeccion, []);
+        if (!seccionOriginalPorClave.has(nombreSeccion)) {
+          seccionOriginalPorClave.set(nombreSeccion, nombreSeccion);
+        }
+        seccionClavePorNormalizada.set(claveNorm, nombreSeccion);
+        if (!seccionIndice.has(claveNorm)) {
+          seccionIndice.set(claveNorm, secuenciaSeccion);
+          secuenciaSeccion += 1;
+        }
+      }
+      registrarOrdenSeccion(
+        seccionClavePorNormalizada.get(claveNorm),
+        obtenerOrdenOperacion(op, idxOp)
+      );
+    };
+
+    operacionesLayout.forEach((op, idxOp) => {
+      if (!op || op?.visible === false) return;
+      if (esOperacionConfigColumnas(op)) return;
+      registrarSeccionDesdeOperacion(op, idxOp);
+    });
+
+    const seccionesDisponibles = new Set(
+      Array.from(seccionClavePorNormalizada.keys())
+    );
 
     const resolverClaveSeccionOperacion = (op) => {
       const candidatos = [
@@ -3583,7 +3656,25 @@
       }
     };
 
-    secciones.forEach((lista, seccion) => {
+    const seccionesOrdenadas = Array.from(secciones.entries()).sort(
+      ([nombreA], [nombreB]) => {
+        const claveA = normalizarTexto(nombreA || "");
+        const claveB = normalizarTexto(nombreB || "");
+        const ordenA = seccionOrdenMin.get(claveA);
+        const ordenB = seccionOrdenMin.get(claveB);
+        const aFinite = Number.isFinite(ordenA);
+        const bFinite = Number.isFinite(ordenB);
+        if (aFinite && bFinite && ordenA !== ordenB) return ordenA - ordenB;
+        if (aFinite && !bFinite) return -1;
+        if (!aFinite && bFinite) return 1;
+        const idxA = seccionIndice.get(claveA) ?? 0;
+        const idxB = seccionIndice.get(claveB) ?? 0;
+        if (idxA !== idxB) return idxA - idxB;
+        return nombreA.localeCompare(nombreB);
+      }
+    );
+
+    seccionesOrdenadas.forEach(([seccion, lista]) => {
       const seccionOriginal = esModuloNomina
         ? seccionOriginalPorClave.get(seccion) || seccion
         : seccion;
@@ -4844,6 +4935,98 @@
     return moduloId;
   };
 
+  const obtenerContextoSyncActual = () => {
+    const moduloNombre = obtenerNombreModulo();
+    const moduloContexto = normalizarModuloClave(
+      estadoModulo.moduloClave || estadoModulo.moduloId || moduloNombre || ""
+    );
+    const anio = Number(estadoModulo.anio);
+    const capituloContexto = normalizarTexto(estadoModulo.capitulo || "");
+    return {
+      modulo: moduloContexto,
+      anio: Number.isInteger(anio) ? anio : null,
+      capitulo: capituloContexto || "",
+    };
+  };
+
+  const syncPayloadCoincideContexto = (payload = {}) => {
+    if (!payload || typeof payload !== "object") return false;
+    const contexto = obtenerContextoSyncActual();
+    if (!contexto.modulo) return false;
+
+    const moduloPayload = normalizarModuloClave(
+      payload.modulo || payload.moduloClave || payload.sheet || ""
+    );
+    if (moduloPayload && moduloPayload !== contexto.modulo) return false;
+
+    const anioPayload = Number(payload.anio);
+    if (Number.isInteger(contexto.anio) && Number.isInteger(anioPayload)) {
+      if (contexto.anio !== anioPayload) return false;
+    }
+
+    const capituloPayload = normalizarTexto(payload.capitulo || "");
+    if (contexto.capitulo && capituloPayload && contexto.capitulo !== capituloPayload) {
+      return false;
+    }
+
+    return true;
+  };
+
+  const programarRefreshDesdeSync = () => {
+    if (layoutSyncTimer) {
+      clearTimeout(layoutSyncTimer);
+    }
+    layoutSyncTimer = setTimeout(() => {
+      layoutSyncTimer = null;
+      const refresher =
+        instanciaActiva?.refresh ||
+        (window.CuentasModulo && typeof window.CuentasModulo.refresh === "function"
+          ? window.CuentasModulo.refresh
+          : null);
+      if (typeof refresher === "function") {
+        refresher();
+      }
+    }, 250);
+  };
+
+  const manejarLayoutSync = (payload = {}) => {
+    if (!syncPayloadCoincideContexto(payload)) return;
+    if (payload.type && payload.type !== "layout-saved" && payload.type !== "budget-saved") {
+      return;
+    }
+    programarRefreshDesdeSync();
+  };
+
+  const inicializarLayoutSyncListeners = () => {
+    if (layoutSyncListenersReady) return;
+    layoutSyncListenersReady = true;
+
+    window.addEventListener("storage", (event) => {
+      if (event.key !== LAYOUT_SYNC_STORAGE_KEY || !event.newValue) return;
+      try {
+        const payload = JSON.parse(event.newValue);
+        manejarLayoutSync(payload);
+      } catch (error) {
+        // Ignorar payload inválido.
+      }
+    });
+
+    window.addEventListener(LAYOUT_SYNC_EVENT, (event) => {
+      manejarLayoutSync(event?.detail || {});
+    });
+
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        layoutSyncChannel = new BroadcastChannel(LAYOUT_SYNC_CHANNEL);
+        layoutSyncChannel.onmessage = (event) => {
+          manejarLayoutSync(event?.data || {});
+        };
+      }
+    } catch (error) {
+      layoutSyncChannel = null;
+    }
+  };
+
   const construirCuentasDesdeLayout = ({ layout, capitulo }) => {
     if (!layout || !Array.isArray(layout.secciones)) return [];
     const cuentas = [];
@@ -5669,18 +5852,18 @@
   };
 
   const eliminarFilaSeleccionada = (fila) => {
-    if (!fila) return;
+    if (!fila) return false;
 
     // Caso: fila de cuenta
     if (fila.classList.contains("fila-cuenta")) {
       const meta = obtenerMetaSeccionPorFila(fila);
       if (!meta) {
         console.warn("ÔÜá´©Å eliminarFilaSeleccionada: meta no encontrada");
-        return;
+        return false;
       }
       if ((meta.filasCuenta || []).length <= 1) {
         window.alert("La secci├│n debe tener al menos una cuenta.");
-        return;
+        return false;
       }
       const cuenta = fila.dataset.cuenta21 || fila.dataset.cuenta;
       if (cuenta) {
@@ -5696,14 +5879,14 @@
       if (idx >= 0) meta.filasCuenta.splice(idx, 1);
       actualizarEstructuraDespuesCambio();
       console.log(`Ô£à Fila eliminada de secci├│n ${meta.seccion}`);
-      return;
+      return true;
     }
 
     // Caso: fila sum-row-sumavarios
     if (fila.classList.contains("sum-row-sumavarios")) {
-      if (!estadoModulo || !estadoModulo.tabla) return;
+      if (!estadoModulo || !estadoModulo.tabla) return false;
       const cuerpo = estadoModulo.tabla.querySelector("tbody");
-      if (!cuerpo) return;
+      if (!cuerpo) return false;
 
       // Buscar clave asociada
       let claveAux = null;
@@ -5735,8 +5918,9 @@
       }
       actualizarEstructuraDespuesCambio();
       console.log(`Ô£à Sumavarios ${claveAux || ""} eliminado`);
-      return;
+      return true;
     }
+    return false;
   };
 
   const obtenerIndiceInsercionSeccion = (metaBase) => {
@@ -5765,6 +5949,13 @@
     }
     filaContextual = null;
   };
+
+  const estaEnGestorPlantillas = () =>
+    window.location.pathname.includes("plantillas.html");
+  const insertionWizardDisponible = () =>
+    estaEnGestorPlantillas() &&
+    !!window.InsertionWizard &&
+    typeof window.InsertionWizard.open === "function";
 
   const mostrarMenuContextual = (x, y, opciones) => {
     const menu = menuContextual || document.createElement("div");
@@ -5806,7 +5997,7 @@
         switch (opcion.clave) {
           case "add_wizard":
             // Usar InsertionWizard si est├í disponible
-            if (typeof window.InsertionWizard !== "undefined") {
+            if (insertionWizardDisponible()) {
               window.InsertionWizard.open(filaContextual);
             } else {
               console.warn("InsertionWizard no disponible");
@@ -5855,7 +6046,7 @@
     if (!estadoModulo.editMode || !esModuloEditable(estadoModulo.moduloClave)) {
       return;
     }
-    if (window.ContextMenuWizard || window.InsertionWizard) {
+    if (estaEnGestorPlantillas() && window.ContextMenuWizard) {
       // Si est├í activo el wizard de inserci├│n, dejamos que solo ├®l maneje el men├║ contextual
       return;
     }
@@ -5875,7 +6066,7 @@
       fila.classList.contains("sum-row");
     const opciones = [];
     // Priorizar InsertionWizard si est├í disponible
-    if (typeof window.InsertionWizard !== "undefined") {
+    if (insertionWizardDisponible()) {
       opciones.push({
         clave: "add_wizard",
         texto: "Ô£¿ Agregar cuenta/secci├│n...",
@@ -5898,7 +6089,7 @@
       });
     }
     // Agregar secci├│n (legacy) solo si no hay wizard
-    if (typeof window.InsertionWizard === "undefined") {
+    if (!insertionWizardDisponible()) {
       opciones.push({ clave: "add_section", texto: "Agregar secci├│n" });
     }
     if (!opciones.length) return;
@@ -8413,6 +8604,7 @@
   const crearInstancia = (opciones) => {
     const config = { ...(opciones || {}) };
     let destruido = false;
+    inicializarLayoutSyncListeners();
     const ejecutar = () => {
       if (destruido) return Promise.resolve(false);
       return renderizarTabla(config).then((resultado) => {
@@ -8459,7 +8651,7 @@
       solicitarDatos();
     };
     window.addEventListener(EVENTO_CONTEXTO, contextoListener);
-    return {
+    const api = {
       ready,
       refresh: ejecutar,
       setEditMode(flag) {
@@ -8477,8 +8669,13 @@
         window.removeEventListener(Sesion.EVENTO_EMPRESA, listener);
         window.removeEventListener(EVENTO_CONTEXTO, contextoListener);
         destruirTooltips();
+        if (instanciaActiva === api) {
+          instanciaActiva = null;
+        }
       },
     };
+    instanciaActiva = api;
+    return api;
   };
 
   
@@ -8567,9 +8764,16 @@
     return aplicado;
   };
 
+  inicializarLayoutSyncListeners();
   window.CuentasModulo = {
     init: crearInstancia,
     render: renderizarTabla,
+    refresh() {
+      if (instanciaActiva?.refresh) {
+        return instanciaActiva.refresh();
+      }
+      return renderizarTabla();
+    },
     setEditMode(flag) {
       if (flag) {
         iniciarEdicion();
@@ -8585,6 +8789,9 @@
     },
     guardarBorradorLocal() {
       return persistirLayoutActual();
+    },
+    eliminarFila(fila) {
+      return eliminarFilaSeleccionada(fila);
     },
     async cargarBorradorLocal() {
       const empresa = Sesion.obtenerEmpresaActiva();

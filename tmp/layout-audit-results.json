@@ -1,0 +1,2702 @@
+{
+  "generatedAt": "2026-02-26T20:05:10.739Z",
+  "baseUrl": "http://127.0.0.1:3005",
+  "targetYear": "2026",
+  "targetChapter": "GUADALAJARA",
+  "modules": [
+    {
+      "modulo": "Membresía",
+      "html": "Membresía.html",
+      "contextOk": false,
+      "rowCounts": {},
+      "accountTest": null,
+      "sectionTest": null,
+      "operationTest": null,
+      "errors": [
+        "page.waitForFunction: Timeout 30000ms exceeded."
+      ]
+    },
+    {
+      "modulo": "Eventos",
+      "html": "Eventos.html",
+      "contextOk": true,
+      "rowCounts": {
+        "principal": 4,
+        "subsection": 4,
+        "account": 35,
+        "operation": 15
+      },
+      "accountTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "account",
+          "from": 3,
+          "to": 2,
+          "movingKey": "acc:405-001-000-00",
+          "targetKey": "acc:405-002-000-00",
+          "movingLabel": "405-001-000-00",
+          "targetLabel": "405-002-000-00",
+          "movingOpId": "405-001-000-00",
+          "targetOpId": "405-002-000-00",
+          "movingAfter": 2,
+          "targetAfter": 3,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "405-001-000-00",
+              "405-002-000-00",
+              "405-004-000-00",
+              "405-005-000-00",
+              "405-007-000-00",
+              "405-009-000-00",
+              "405-010-000-00",
+              "405-013-000-00",
+              "405-014-000-00",
+              "405-015-000-00",
+              "405-016-000-00",
+              "405-012-000-00",
+              "406-002-000-00",
+              "406-001-000-00",
+              "406-003-000-00"
+            ],
+            "total": 35
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Boletaje",
+              "Patrocinios",
+              "Costos y Gastos Eventos",
+              "Resultados Operativos"
+            ],
+            "total": 4
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "INGRESOS_BOLETAJE",
+              "SUMA_DE_PATROCINIOS",
+              "SUMA_INGRESOS_EVENTOS",
+              "RESULTADO_OPERATIVO_OPEN_HOUSE",
+              "RESULTADO_OPERATIVO_TOP_CIRCLE",
+              "SUMA_COSTOS_Y_GASTOS_EVENTOS",
+              "RESULTADO_OPERATIVO_JORNADA_DE_REFORESTACION",
+              "RESULTADO_OPERATIVO_ASAMBLE_ANUAL",
+              "RESULTADO_OPERATIVO_CUMBRE_EMPRESARIOS",
+              "RESULTADO_OPERATIVO_TORNEO_GOLF",
+              "RESULTADO_OPERATIVO_JALISCO_TRAVEL_FEST",
+              "RESULTADO_OPERATIVO_CENA_GALA",
+              "RESULTADO_OPERATIVO_FOROS_TALENTO"
+            ],
+            "total": 17
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "405-001-000-00",
+              "405-002-000-00",
+              "405-004-000-00",
+              "405-005-000-00",
+              "405-007-000-00",
+              "405-009-000-00",
+              "405-010-000-00",
+              "405-013-000-00",
+              "405-014-000-00",
+              "405-015-000-00",
+              "405-016-000-00",
+              "405-012-000-00",
+              "406-002-000-00",
+              "406-001-000-00",
+              "406-003-000-00"
+            ],
+            "total": 34
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Boletaje",
+              "Patrocinios",
+              "Costos y Gastos Eventos",
+              "Resultados Operativos"
+            ],
+            "total": 4
+          },
+          "operation": {
+            "order": [
+              "Ingresos Boletaje",
+              "Suma Ingresos Eventos",
+              "Suma de Patrocinios",
+              "Suma Costos y Gastos Eventos",
+              "Resultado Operativo: Open House",
+              "Resultado Operativo: Top Circle",
+              "Resultado Operativo: Jornada de Reforestación",
+              "Resultado Operativo: Asamble Anual",
+              "Resultado Operativo: Cumbre Empresarios",
+              "Resultado Operativo: Torneo Golf",
+              "Resultado Operativo: Jalisco Travel Fest",
+              "Resultado Operativo: Cena Gala",
+              "Resultado Operativo: Foros (Talento)",
+              "Resultado Operativo: The North America Week",
+              "Resultado Eventos"
+            ],
+            "total": 15
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 2,
+          "afterTarget": 3,
+          "targetBeforeMoving": false
+        }
+      },
+      "sectionTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "principal",
+          "from": 15,
+          "to": 0,
+          "movingKey": "pri:Patrocinios",
+          "targetKey": "pri:Boletaje",
+          "movingLabel": "Patrocinios",
+          "targetLabel": "Boletaje",
+          "movingOpId": "Patrocinios",
+          "targetOpId": "Boletaje",
+          "movingAfter": 0,
+          "targetAfter": 16,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "406-002-000-00",
+              "406-001-000-00",
+              "406-003-000-00",
+              "406-005-000-00",
+              "406-006-000-00",
+              "406-008-000-00",
+              "406-009-000-00",
+              "406-010-000-00",
+              "406-011-000-00",
+              "406-014-000-00",
+              "406-013-000-00",
+              "406-015-000-00",
+              "405-001-000-00",
+              "405-002-000-00",
+              "405-004-000-00"
+            ],
+            "total": 35
+          },
+          "section": {
+            "idxA": 1,
+            "idxB": 0,
+            "order": [
+              "Patrocinios",
+              "Boletaje",
+              "Costos y Gastos Eventos",
+              "Resultados Operativos"
+            ],
+            "total": 4
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_DE_PATROCINIOS",
+              "SUMA_INGRESOS_EVENTOS",
+              "INGRESOS_BOLETAJE",
+              "RESULTADO_OPERATIVO_OPEN_HOUSE",
+              "RESULTADO_OPERATIVO_TOP_CIRCLE",
+              "SUMA_COSTOS_Y_GASTOS_EVENTOS",
+              "RESULTADO_OPERATIVO_JORNADA_DE_REFORESTACION",
+              "RESULTADO_OPERATIVO_ASAMBLE_ANUAL",
+              "RESULTADO_OPERATIVO_CUMBRE_EMPRESARIOS",
+              "RESULTADO_OPERATIVO_TORNEO_GOLF",
+              "RESULTADO_OPERATIVO_JALISCO_TRAVEL_FEST",
+              "RESULTADO_OPERATIVO_CENA_GALA",
+              "RESULTADO_OPERATIVO_FOROS_TALENTO"
+            ],
+            "total": 17
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "406-002-000-00",
+              "406-001-000-00",
+              "406-003-000-00",
+              "406-005-000-00",
+              "406-006-000-00",
+              "406-008-000-00",
+              "406-009-000-00",
+              "406-010-000-00",
+              "406-011-000-00",
+              "406-014-000-00",
+              "406-013-000-00",
+              "406-015-000-00",
+              "405-001-000-00",
+              "405-002-000-00",
+              "405-004-000-00"
+            ],
+            "total": 34
+          },
+          "section": {
+            "idxA": 1,
+            "idxB": 0,
+            "order": [
+              "Patrocinios",
+              "Boletaje",
+              "Costos y Gastos Eventos",
+              "Resultados Operativos"
+            ],
+            "total": 4
+          },
+          "operation": {
+            "order": [
+              "Suma Ingresos Eventos",
+              "Suma de Patrocinios",
+              "Ingresos Boletaje",
+              "Suma Costos y Gastos Eventos",
+              "Resultado Operativo: Open House",
+              "Resultado Operativo: Top Circle",
+              "Resultado Operativo: Jornada de Reforestación",
+              "Resultado Operativo: Asamble Anual",
+              "Resultado Operativo: Cumbre Empresarios",
+              "Resultado Operativo: Torneo Golf",
+              "Resultado Operativo: Jalisco Travel Fest",
+              "Resultado Operativo: Cena Gala",
+              "Resultado Operativo: Foros (Talento)",
+              "Resultado Operativo: The North America Week",
+              "Resultado Eventos"
+            ],
+            "total": 15
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 0,
+          "afterTarget": 16,
+          "targetBeforeMoving": false
+        }
+      },
+      "operationTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "operation",
+          "from": 47,
+          "to": 46,
+          "movingKey": "op:Resultado Operativo: Top Circle",
+          "targetKey": "op:Resultado Operativo: Open House",
+          "movingLabel": "Resultado Operativo: Top Circle",
+          "targetLabel": "Resultado Operativo: Open House",
+          "movingOpId": "Resultado Operativo: Top Circle",
+          "targetOpId": "Resultado Operativo: Open House",
+          "movingAfter": 46,
+          "targetAfter": 47,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": null,
+        "tableMoved": false,
+        "tableOrder": [
+          "Suma Ingresos Eventos",
+          "Suma de Patrocinios",
+          "Ingresos Boletaje",
+          "Suma Costos y Gastos Eventos",
+          "Resultado Operativo: Open House",
+          "Resultado Operativo: Top Circle",
+          "Resultado Operativo: Jornada de Reforestación",
+          "Resultado Operativo: Asamble Anual",
+          "Resultado Operativo: Cumbre Empresarios",
+          "Resultado Operativo: Torneo Golf",
+          "Resultado Operativo: Jalisco Travel Fest",
+          "Resultado Operativo: Cena Gala",
+          "Resultado Operativo: Foros (Talento)",
+          "Resultado Operativo: The North America Week",
+          "Resultado Eventos"
+        ],
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "406-002-000-00",
+              "406-001-000-00",
+              "406-003-000-00",
+              "406-005-000-00",
+              "406-006-000-00",
+              "406-008-000-00",
+              "406-009-000-00",
+              "406-010-000-00",
+              "406-011-000-00",
+              "406-014-000-00",
+              "406-013-000-00",
+              "406-015-000-00",
+              "405-001-000-00",
+              "405-002-000-00",
+              "405-004-000-00"
+            ],
+            "total": 35
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Patrocinios",
+              "Boletaje",
+              "Costos y Gastos Eventos",
+              "Resultados Operativos"
+            ],
+            "total": 4
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_DE_PATROCINIOS",
+              "SUMA_INGRESOS_EVENTOS",
+              "INGRESOS_BOLETAJE",
+              "RESULTADO_OPERATIVO_OPEN_HOUSE",
+              "RESULTADO_OPERATIVO_TOP_CIRCLE",
+              "SUMA_COSTOS_Y_GASTOS_EVENTOS",
+              "RESULTADO_OPERATIVO_JORNADA_DE_REFORESTACION",
+              "RESULTADO_OPERATIVO_ASAMBLE_ANUAL",
+              "RESULTADO_OPERATIVO_CUMBRE_EMPRESARIOS",
+              "RESULTADO_OPERATIVO_TORNEO_GOLF",
+              "RESULTADO_OPERATIVO_JALISCO_TRAVEL_FEST",
+              "RESULTADO_OPERATIVO_CENA_GALA",
+              "RESULTADO_OPERATIVO_FOROS_TALENTO"
+            ],
+            "total": 17
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "406-002-000-00",
+              "406-001-000-00",
+              "406-003-000-00",
+              "406-005-000-00",
+              "406-006-000-00",
+              "406-008-000-00",
+              "406-009-000-00",
+              "406-010-000-00",
+              "406-011-000-00",
+              "406-014-000-00",
+              "406-013-000-00",
+              "406-015-000-00",
+              "405-001-000-00",
+              "405-002-000-00",
+              "405-004-000-00"
+            ],
+            "total": 34
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Patrocinios",
+              "Boletaje",
+              "Costos y Gastos Eventos",
+              "Resultados Operativos"
+            ],
+            "total": 4
+          },
+          "operation": {
+            "order": [
+              "Suma Ingresos Eventos",
+              "Suma de Patrocinios",
+              "Ingresos Boletaje",
+              "Suma Costos y Gastos Eventos",
+              "Resultado Operativo: Open House",
+              "Resultado Operativo: Top Circle",
+              "Resultado Operativo: Jornada de Reforestación",
+              "Resultado Operativo: Asamble Anual",
+              "Resultado Operativo: Cumbre Empresarios",
+              "Resultado Operativo: Torneo Golf",
+              "Resultado Operativo: Jalisco Travel Fest",
+              "Resultado Operativo: Cena Gala",
+              "Resultado Operativo: Foros (Talento)",
+              "Resultado Operativo: The North America Week",
+              "Resultado Eventos"
+            ],
+            "total": 15
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 46,
+          "afterTarget": 47,
+          "targetBeforeMoving": false
+        }
+      },
+      "errors": []
+    },
+    {
+      "modulo": "Comunicación",
+      "html": "Comunicación.html",
+      "contextOk": true,
+      "rowCounts": {
+        "principal": 1,
+        "subsection": 1,
+        "account": 4,
+        "operation": 2
+      },
+      "accountTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "account",
+          "from": 3,
+          "to": 2,
+          "movingKey": "acc:901-018-002-00",
+          "targetKey": "acc:901-018-001-00",
+          "movingLabel": "901-018-002-00",
+          "targetLabel": "901-018-001-00",
+          "movingOpId": "901-018-002-00",
+          "targetOpId": "901-018-001-00",
+          "movingAfter": 2,
+          "targetAfter": 3,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "901-018-002-00",
+              "901-018-001-00",
+              "901-018-003-00",
+              "901-018-004-00"
+            ],
+            "total": 4
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos Comunicación"
+            ],
+            "total": 1
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_DE_GASTOS_COMUNICACION",
+              "RESULTADO_OPERATIVO_COMUNICACION"
+            ],
+            "total": 4
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "901-018-002-00",
+              "901-018-001-00",
+              "901-018-003-00",
+              "901-018-004-00"
+            ],
+            "total": 4
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos Comunicación"
+            ],
+            "total": 1
+          },
+          "operation": {
+            "order": [
+              "Suma de Gastos Comunicación",
+              "Resultado Operativo Comunicación"
+            ],
+            "total": 2
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 2,
+          "afterTarget": 3,
+          "targetBeforeMoving": false
+        }
+      },
+      "sectionTest": {
+        "attempted": false,
+        "reason": "no-candidate"
+      },
+      "operationTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "operation",
+          "from": 7,
+          "to": 6,
+          "movingKey": "op:Resultado Operativo Comunicación",
+          "targetKey": "op:Suma de Gastos Comunicación",
+          "movingLabel": "Resultado Operativo Comunicación",
+          "targetLabel": "Suma de Gastos Comunicación",
+          "movingOpId": "Resultado Operativo Comunicación",
+          "targetOpId": "Suma de Gastos Comunicación",
+          "movingAfter": 7,
+          "targetAfter": 6,
+          "movedBeforeTarget": false
+        },
+        "localMoved": false,
+        "persistedMoved": null,
+        "tableMoved": false,
+        "tableOrder": [
+          "Suma de Gastos Comunicación",
+          "Resultado Operativo Comunicación"
+        ],
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "901-018-002-00",
+              "901-018-001-00",
+              "901-018-003-00",
+              "901-018-004-00"
+            ],
+            "total": 4
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos Comunicación"
+            ],
+            "total": 1
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_DE_GASTOS_COMUNICACION",
+              "RESULTADO_OPERATIVO_COMUNICACION"
+            ],
+            "total": 4
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "901-018-002-00",
+              "901-018-001-00",
+              "901-018-003-00",
+              "901-018-004-00"
+            ],
+            "total": 4
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos Comunicación"
+            ],
+            "total": 1
+          },
+          "operation": {
+            "order": [
+              "Suma de Gastos Comunicación",
+              "Resultado Operativo Comunicación"
+            ],
+            "total": 2
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 7,
+          "afterTarget": 6,
+          "targetBeforeMoving": true
+        }
+      },
+      "errors": []
+    },
+    {
+      "modulo": "Dirección",
+      "html": "Dirección.html",
+      "contextOk": true,
+      "rowCounts": {
+        "principal": 3,
+        "subsection": 3,
+        "account": 9,
+        "operation": 5
+      },
+      "accountTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "account",
+          "from": 3,
+          "to": 2,
+          "movingKey": "acc:404-006-000-00",
+          "targetKey": "acc:404-011-000-00",
+          "movingLabel": "404-006-000-00",
+          "targetLabel": "404-011-000-00",
+          "movingOpId": "404-006-000-00",
+          "targetOpId": "404-011-000-00",
+          "movingAfter": 2,
+          "targetAfter": 3,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "404-006-000-00",
+              "404-011-000-00",
+              "502-012-000-00",
+              "502-006-000-00",
+              "801-006-004-00",
+              "901-007-000-00",
+              "801-006-002-00",
+              "801-006-005-00",
+              "801-006-006-00"
+            ],
+            "total": 9
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Ingresos CE/Board",
+              "Gastos CE/Board",
+              "Gastos de Administración"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "INGRESOS_CE_BOARD",
+              "RESULTADO_CE_BOARD",
+              "SUMA_GASTOS_CE_BOARD",
+              "SUMA_GASTOS_ADMINISTRACION",
+              "RESULTADO_DIRECTOR_CAPITULO"
+            ],
+            "total": 7
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "404-006-000-00",
+              "404-011-000-00",
+              "502-012-000-00",
+              "502-006-000-00",
+              "801-006-004-00",
+              "901-007-000-00",
+              "801-006-002-00",
+              "801-006-005-00",
+              "801-006-006-00"
+            ],
+            "total": 9
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Ingresos CE/Board",
+              "Gastos CE/Board",
+              "Gastos de Administración"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "order": [
+              "Ingresos CE/Board",
+              "Resultado CE/Board",
+              "Suma Gastos CE/Board",
+              "Suma Gastos Administración",
+              "Resultado Director Capítulo"
+            ],
+            "total": 5
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 2,
+          "afterTarget": 3,
+          "targetBeforeMoving": false
+        }
+      },
+      "sectionTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "principal",
+          "from": 5,
+          "to": 0,
+          "movingKey": "pri:Gastos CE/Board",
+          "targetKey": "pri:Ingresos CE/Board",
+          "movingLabel": "Gastos CE/Board",
+          "targetLabel": "Ingresos CE/Board",
+          "movingOpId": "Gastos CE/Board",
+          "targetOpId": "Ingresos CE/Board",
+          "movingAfter": 0,
+          "targetAfter": 6,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "502-012-000-00",
+              "502-006-000-00",
+              "404-006-000-00",
+              "404-011-000-00",
+              "801-006-004-00",
+              "901-007-000-00",
+              "801-006-002-00",
+              "801-006-005-00",
+              "801-006-006-00"
+            ],
+            "total": 9
+          },
+          "section": {
+            "idxA": 1,
+            "idxB": 0,
+            "order": [
+              "Gastos CE/Board",
+              "Ingresos CE/Board",
+              "Gastos de Administración"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "RESULTADO_CE_BOARD",
+              "SUMA_GASTOS_CE_BOARD",
+              "INGRESOS_CE_BOARD",
+              "SUMA_GASTOS_ADMINISTRACION",
+              "RESULTADO_DIRECTOR_CAPITULO"
+            ],
+            "total": 7
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "502-012-000-00",
+              "502-006-000-00",
+              "404-006-000-00",
+              "404-011-000-00",
+              "801-006-004-00",
+              "901-007-000-00",
+              "801-006-002-00",
+              "801-006-005-00",
+              "801-006-006-00"
+            ],
+            "total": 9
+          },
+          "section": {
+            "idxA": 1,
+            "idxB": 0,
+            "order": [
+              "Gastos CE/Board",
+              "Ingresos CE/Board",
+              "Gastos de Administración"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "order": [
+              "Resultado CE/Board",
+              "Suma Gastos CE/Board",
+              "Ingresos CE/Board",
+              "Suma Gastos Administración",
+              "Resultado Director Capítulo"
+            ],
+            "total": 5
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 0,
+          "afterTarget": 6,
+          "targetBeforeMoving": false
+        }
+      },
+      "operationTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "operation",
+          "from": 19,
+          "to": 18,
+          "movingKey": "op:Resultado Director Capítulo",
+          "targetKey": "op:Suma Gastos Administración",
+          "movingLabel": "Resultado Director Capítulo",
+          "targetLabel": "Suma Gastos Administración",
+          "movingOpId": "Resultado Director Capítulo",
+          "targetOpId": "Suma Gastos Administración",
+          "movingAfter": 18,
+          "targetAfter": 19,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": null,
+        "tableMoved": true,
+        "tableOrder": [
+          "Resultado CE/Board",
+          "Suma Gastos CE/Board",
+          "Ingresos CE/Board",
+          "Resultado Director Capítulo",
+          "Suma Gastos Administración"
+        ],
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "502-012-000-00",
+              "502-006-000-00",
+              "404-006-000-00",
+              "404-011-000-00",
+              "801-006-004-00",
+              "901-007-000-00",
+              "801-006-002-00",
+              "801-006-005-00",
+              "801-006-006-00"
+            ],
+            "total": 9
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos CE/Board",
+              "Ingresos CE/Board",
+              "Gastos de Administración"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "RESULTADO_CE_BOARD",
+              "SUMA_GASTOS_CE_BOARD",
+              "INGRESOS_CE_BOARD",
+              "RESULTADO_DIRECTOR_CAPITULO",
+              "SUMA_GASTOS_ADMINISTRACION"
+            ],
+            "total": 7
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "502-012-000-00",
+              "502-006-000-00",
+              "404-006-000-00",
+              "404-011-000-00",
+              "801-006-004-00",
+              "901-007-000-00",
+              "801-006-002-00",
+              "801-006-005-00",
+              "801-006-006-00"
+            ],
+            "total": 9
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos CE/Board",
+              "Ingresos CE/Board",
+              "Gastos de Administración"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "order": [
+              "Resultado CE/Board",
+              "Suma Gastos CE/Board",
+              "Ingresos CE/Board",
+              "Resultado Director Capítulo",
+              "Suma Gastos Administración"
+            ],
+            "total": 5
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 18,
+          "afterTarget": 19,
+          "targetBeforeMoving": false
+        }
+      },
+      "errors": []
+    },
+    {
+      "modulo": "Serv Membresía",
+      "html": "Serv_Membresía.html",
+      "contextOk": true,
+      "rowCounts": {
+        "principal": 2,
+        "subsection": 2,
+        "account": 2,
+        "operation": 3
+      },
+      "accountTest": {
+        "attempted": false,
+        "reason": "no-candidate"
+      },
+      "sectionTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "principal",
+          "from": 4,
+          "to": 0,
+          "movingKey": "pri:Gastos Serv a la Membresía",
+          "targetKey": "pri:Ingresos Serv a la Membresía",
+          "movingLabel": "Gastos Serv a la Membresía",
+          "targetLabel": "Ingresos Serv a la Membresía",
+          "movingOpId": "Gastos Serv a la Membresía",
+          "targetOpId": "Ingresos Serv a la Membresía",
+          "movingAfter": 0,
+          "targetAfter": 5,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "601-003-004-00",
+              "403-002-000-00"
+            ],
+            "total": 2
+          },
+          "section": {
+            "idxA": 1,
+            "idxB": 0,
+            "order": [
+              "Gastos Serv a la Membresía",
+              "Ingresos Serv a la Membresía"
+            ],
+            "total": 2
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "RESULTADO_SERV_MEMBRESIA",
+              "SUMA_DE_GASTOS_SERV_A_LA_MEMBRESIA",
+              "SUMA_DE_INGRESOS_SERV_A_LA_MEMBRESIA"
+            ],
+            "total": 5
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "601-003-004-00",
+              "403-002-000-00"
+            ],
+            "total": 2
+          },
+          "section": {
+            "idxA": 1,
+            "idxB": 0,
+            "order": [
+              "Gastos Serv a la Membresía",
+              "Ingresos Serv a la Membresía"
+            ],
+            "total": 2
+          },
+          "operation": {
+            "order": [
+              "Resultado Serv Membresía",
+              "Suma de Gastos Serv a la Membresía",
+              "Suma de Ingresos Serv a la Membresía"
+            ],
+            "total": 3
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 0,
+          "afterTarget": 5,
+          "targetBeforeMoving": false
+        }
+      },
+      "operationTest": {
+        "attempted": false,
+        "reason": "no-candidate",
+        "operationRows": 3
+      },
+      "errors": []
+    },
+    {
+      "modulo": "Comités",
+      "html": "Comités.html",
+      "contextOk": true,
+      "rowCounts": {
+        "principal": 4,
+        "operation": 17,
+        "subsection": 3,
+        "account": 26
+      },
+      "accountTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "account",
+          "from": 4,
+          "to": 3,
+          "movingKey": "acc:404-001-000-00",
+          "targetKey": "acc:404-003-000-00",
+          "movingLabel": "404-001-000-00",
+          "targetLabel": "404-003-000-00",
+          "movingOpId": "404-001-000-00",
+          "targetOpId": "404-003-000-00",
+          "movingAfter": 3,
+          "targetAfter": 4,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "404-001-000-00",
+              "404-003-000-00",
+              "404-004-000-00",
+              "404-005-000-00",
+              "404-007-000-00",
+              "404-008-000-00",
+              "404-009-000-00",
+              "404-013-000-00",
+              "404-016-000-00",
+              "404-017-000-00",
+              "404-018-000-00",
+              "404-012-000-00",
+              "502-002-000-00",
+              "502-001-000-00",
+              "502-003-000-00"
+            ],
+            "total": 26
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Ingresos Comités",
+              "Gastos Comités",
+              "COMISIONES"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_DE_INGRESOS_COMITES",
+              "SUMA_DE_GASTOS_COMITES",
+              "RESULTADO_OPERATIVO_COMITES",
+              "RESULTADO_OPERATIVO_AGROINDUSTRIA",
+              "RESULTADO_OPERATIVO_ASUNTOS_FISCALES",
+              "RESULTADO_OPERATIVO_CAPITAL_HUMANO_Y_ASUNTOS_LABORALES",
+              "RESULTADO_OPERATIVO_DIVERSIDAD_E_INCLUSION",
+              "RESULTADO_OPERATIVO_COMERCIO_EXTERIOR_Y_LOGISTICA",
+              "RESULTADO_OPERATIVO_INNOVACION_Y_TICS",
+              "RESULTADO_OPERATIVO_LEGALIDAD_Y_ESTADO_DE_DERECHO",
+              "RESULTADO_OPERATIVO_SALUD",
+              "RESULTADO_OPERATIVO_SEGURIDAD",
+              "RESULTADO_OPERATIVO_SUSTENTABILIDAD_Y_RESPONSABILIDAD_SOCIAL"
+            ],
+            "total": 19
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "404-001-000-00",
+              "404-003-000-00",
+              "404-004-000-00",
+              "404-005-000-00",
+              "404-007-000-00",
+              "404-008-000-00",
+              "404-009-000-00",
+              "404-013-000-00",
+              "404-016-000-00",
+              "404-017-000-00",
+              "404-018-000-00",
+              "404-012-000-00",
+              "502-002-000-00",
+              "502-001-000-00",
+              "502-003-000-00"
+            ],
+            "total": 26
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Ingresos Comités",
+              "Gastos Comités",
+              "COMISIONES"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "order": [
+              "Suma de Ingresos Comités",
+              "Resultado Operativo Comités",
+              "Resultado Operativo: Agroindustria",
+              "Suma de Gastos Comités",
+              "RESULTADO COMITÉS",
+              "Resultado Operativo: Asuntos Fiscales",
+              "Resultado Operativo: Capital Humano y Asuntos Laborales",
+              "Resultado Operativo: Diversidad e Inclusión",
+              "Resultado Operativo: Comercio Exterior y Logística",
+              "Resultado Operativo: Innovación y TICS",
+              "Resultado Operativo: Legalidad y Estado de Derecho",
+              "Resultado Operativo: Salud",
+              "Resultado Operativo: Seguridad",
+              "Resultado Operativo: Sustentabilidad y Responsabilidad Social",
+              "Resultado Operativo: Turismo",
+              "Resultado Operativo: Programa de Mentoría (EWDP)",
+              "Suma Comisiones"
+            ],
+            "total": 17
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 3,
+          "afterTarget": 4,
+          "targetBeforeMoving": false
+        }
+      },
+      "sectionTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "principal",
+          "from": 15,
+          "to": 0,
+          "movingKey": "pri:Gastos Comités",
+          "targetKey": "pri:Ingresos Comités",
+          "movingLabel": "Gastos Comités",
+          "targetLabel": "Ingresos Comités",
+          "movingOpId": "Gastos Comités",
+          "targetOpId": "Ingresos Comités",
+          "movingAfter": 0,
+          "targetAfter": 17,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "502-002-000-00",
+              "502-001-000-00",
+              "502-003-000-00",
+              "502-004-000-00",
+              "502-005-000-00",
+              "502-007-000-00",
+              "502-009-000-00",
+              "502-013-000-00",
+              "502-014-000-00",
+              "502-016-000-00",
+              "502-017-000-00",
+              "502-008-000-00",
+              "502-010-000-00",
+              "404-001-000-00",
+              "404-003-000-00"
+            ],
+            "total": 26
+          },
+          "section": {
+            "idxA": 1,
+            "idxB": 0,
+            "order": [
+              "Gastos Comités",
+              "Ingresos Comités",
+              "COMISIONES"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_DE_GASTOS_COMITES",
+              "SUMA_DE_INGRESOS_COMITES",
+              "RESULTADO_OPERATIVO_COMITES",
+              "RESULTADO_OPERATIVO_AGROINDUSTRIA",
+              "RESULTADO_OPERATIVO_ASUNTOS_FISCALES",
+              "RESULTADO_OPERATIVO_CAPITAL_HUMANO_Y_ASUNTOS_LABORALES",
+              "RESULTADO_OPERATIVO_DIVERSIDAD_E_INCLUSION",
+              "RESULTADO_OPERATIVO_COMERCIO_EXTERIOR_Y_LOGISTICA",
+              "RESULTADO_OPERATIVO_INNOVACION_Y_TICS",
+              "RESULTADO_OPERATIVO_LEGALIDAD_Y_ESTADO_DE_DERECHO",
+              "RESULTADO_OPERATIVO_SALUD",
+              "RESULTADO_OPERATIVO_SEGURIDAD",
+              "RESULTADO_OPERATIVO_SUSTENTABILIDAD_Y_RESPONSABILIDAD_SOCIAL"
+            ],
+            "total": 19
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "502-002-000-00",
+              "502-001-000-00",
+              "502-003-000-00",
+              "502-004-000-00",
+              "502-005-000-00",
+              "502-007-000-00",
+              "502-009-000-00",
+              "502-013-000-00",
+              "502-014-000-00",
+              "502-016-000-00",
+              "502-017-000-00",
+              "502-008-000-00",
+              "502-010-000-00",
+              "404-001-000-00",
+              "404-003-000-00"
+            ],
+            "total": 26
+          },
+          "section": {
+            "idxA": 1,
+            "idxB": 0,
+            "order": [
+              "Gastos Comités",
+              "Ingresos Comités",
+              "COMISIONES"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "order": [
+              "Resultado Operativo Comités",
+              "Suma de Gastos Comités",
+              "Resultado Operativo: Agroindustria",
+              "Resultado Operativo: Asuntos Fiscales",
+              "Suma de Ingresos Comités",
+              "RESULTADO COMITÉS",
+              "Resultado Operativo: Capital Humano y Asuntos Laborales",
+              "Resultado Operativo: Diversidad e Inclusión",
+              "Resultado Operativo: Comercio Exterior y Logística",
+              "Resultado Operativo: Innovación y TICS",
+              "Resultado Operativo: Legalidad y Estado de Derecho",
+              "Resultado Operativo: Salud",
+              "Resultado Operativo: Seguridad",
+              "Resultado Operativo: Sustentabilidad y Responsabilidad Social",
+              "Resultado Operativo: Turismo",
+              "Resultado Operativo: Programa de Mentoría (EWDP)",
+              "Suma Comisiones"
+            ],
+            "total": 17
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 0,
+          "afterTarget": 17,
+          "targetBeforeMoving": false
+        }
+      },
+      "operationTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "operation",
+          "from": 34,
+          "to": 33,
+          "movingKey": "op:Resultado Operativo: Asuntos Fiscales",
+          "targetKey": "op:Resultado Operativo: Agroindustria",
+          "movingLabel": "Resultado Operativo: Asuntos Fiscales",
+          "targetLabel": "Resultado Operativo: Agroindustria",
+          "movingOpId": "Resultado Operativo: Asuntos Fiscales",
+          "targetOpId": "Resultado Operativo: Agroindustria",
+          "movingAfter": 33,
+          "targetAfter": 34,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": null,
+        "tableMoved": false,
+        "tableOrder": [
+          "Resultado Operativo Comités",
+          "Suma de Gastos Comités",
+          "Resultado Operativo: Agroindustria",
+          "Resultado Operativo: Asuntos Fiscales",
+          "Suma de Ingresos Comités",
+          "RESULTADO COMITÉS",
+          "Resultado Operativo: Capital Humano y Asuntos Laborales",
+          "Resultado Operativo: Diversidad e Inclusión",
+          "Resultado Operativo: Comercio Exterior y Logística",
+          "Resultado Operativo: Innovación y TICS",
+          "Resultado Operativo: Legalidad y Estado de Derecho",
+          "Resultado Operativo: Salud",
+          "Resultado Operativo: Seguridad",
+          "Resultado Operativo: Sustentabilidad y Responsabilidad Social",
+          "Resultado Operativo: Turismo",
+          "Resultado Operativo: Programa de Mentoría (EWDP)",
+          "Suma Comisiones"
+        ],
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "502-002-000-00",
+              "502-001-000-00",
+              "502-003-000-00",
+              "502-004-000-00",
+              "502-005-000-00",
+              "502-007-000-00",
+              "502-009-000-00",
+              "502-013-000-00",
+              "502-014-000-00",
+              "502-016-000-00",
+              "502-017-000-00",
+              "502-008-000-00",
+              "502-010-000-00",
+              "404-001-000-00",
+              "404-003-000-00"
+            ],
+            "total": 26
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos Comités",
+              "Ingresos Comités",
+              "COMISIONES"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_DE_GASTOS_COMITES",
+              "SUMA_DE_INGRESOS_COMITES",
+              "RESULTADO_OPERATIVO_COMITES",
+              "RESULTADO_OPERATIVO_AGROINDUSTRIA",
+              "RESULTADO_OPERATIVO_ASUNTOS_FISCALES",
+              "RESULTADO_OPERATIVO_CAPITAL_HUMANO_Y_ASUNTOS_LABORALES",
+              "RESULTADO_OPERATIVO_DIVERSIDAD_E_INCLUSION",
+              "RESULTADO_OPERATIVO_COMERCIO_EXTERIOR_Y_LOGISTICA",
+              "RESULTADO_OPERATIVO_INNOVACION_Y_TICS",
+              "RESULTADO_OPERATIVO_LEGALIDAD_Y_ESTADO_DE_DERECHO",
+              "RESULTADO_OPERATIVO_SALUD",
+              "RESULTADO_OPERATIVO_SEGURIDAD",
+              "RESULTADO_OPERATIVO_SUSTENTABILIDAD_Y_RESPONSABILIDAD_SOCIAL"
+            ],
+            "total": 19
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "502-002-000-00",
+              "502-001-000-00",
+              "502-003-000-00",
+              "502-004-000-00",
+              "502-005-000-00",
+              "502-007-000-00",
+              "502-009-000-00",
+              "502-013-000-00",
+              "502-014-000-00",
+              "502-016-000-00",
+              "502-017-000-00",
+              "502-008-000-00",
+              "502-010-000-00",
+              "404-001-000-00",
+              "404-003-000-00"
+            ],
+            "total": 26
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos Comités",
+              "Ingresos Comités",
+              "COMISIONES"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "order": [
+              "Resultado Operativo Comités",
+              "Suma de Gastos Comités",
+              "Resultado Operativo: Agroindustria",
+              "Resultado Operativo: Asuntos Fiscales",
+              "Suma de Ingresos Comités",
+              "RESULTADO COMITÉS",
+              "Resultado Operativo: Capital Humano y Asuntos Laborales",
+              "Resultado Operativo: Diversidad e Inclusión",
+              "Resultado Operativo: Comercio Exterior y Logística",
+              "Resultado Operativo: Innovación y TICS",
+              "Resultado Operativo: Legalidad y Estado de Derecho",
+              "Resultado Operativo: Salud",
+              "Resultado Operativo: Seguridad",
+              "Resultado Operativo: Sustentabilidad y Responsabilidad Social",
+              "Resultado Operativo: Turismo",
+              "Resultado Operativo: Programa de Mentoría (EWDP)",
+              "Suma Comisiones"
+            ],
+            "total": 17
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 33,
+          "afterTarget": 34,
+          "targetBeforeMoving": false
+        }
+      },
+      "errors": []
+    },
+    {
+      "modulo": "T&IC",
+      "html": "T&IC.html",
+      "contextOk": true,
+      "rowCounts": {
+        "principal": 3,
+        "operation": 5,
+        "subsection": 3,
+        "account": 5
+      },
+      "accountTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "account",
+          "from": 4,
+          "to": 3,
+          "movingKey": "acc:407-001-000-00",
+          "targetKey": "acc:407-002-000-00",
+          "movingLabel": "407-001-000-00",
+          "targetLabel": "407-002-000-00",
+          "movingOpId": "407-001-000-00",
+          "targetOpId": "407-002-000-00",
+          "movingAfter": 3,
+          "targetAfter": 4,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "407-001-000-00",
+              "407-002-000-00",
+              "703-002-000-00",
+              "703-001-000-00",
+              "Por evento"
+            ],
+            "total": 5
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Ingresos T&IC",
+              "Gastos T&IC",
+              "Resultados Operativos"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_DE_INGRESOS_T_IC",
+              "SUMA_DE_GASTOS_T_IC",
+              "RESULTADO_OPERATIVO_SEMICONWEST",
+              "RESULTADO_OPERATIVO_INGRESOS_GASTOS_2",
+              "RESULTADO_T_IC"
+            ],
+            "total": 7
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "407-001-000-00",
+              "407-002-000-00",
+              "703-002-000-00",
+              "703-001-000-00"
+            ],
+            "total": 4
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Ingresos T&IC",
+              "Gastos T&IC",
+              "Resultados Operativos"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "order": [
+              "Suma de Ingresos T&IC",
+              "Suma de Gastos T&IC",
+              "Resultado Operativo: SemiconWest",
+              "Resultado Operativo: Ingresos/Gastos 2",
+              "Resultado T&IC"
+            ],
+            "total": 5
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 3,
+          "afterTarget": 4,
+          "targetBeforeMoving": false
+        }
+      },
+      "sectionTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "principal",
+          "from": 5,
+          "to": 0,
+          "movingKey": "pri:Gastos T&IC",
+          "targetKey": "pri:Ingresos T&IC",
+          "movingLabel": "Gastos T&IC",
+          "targetLabel": "Ingresos T&IC",
+          "movingOpId": "Gastos T&IC",
+          "targetOpId": "Ingresos T&IC",
+          "movingAfter": 0,
+          "targetAfter": 5,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "703-002-000-00",
+              "703-001-000-00",
+              "407-001-000-00",
+              "407-002-000-00",
+              "Por evento"
+            ],
+            "total": 5
+          },
+          "section": {
+            "idxA": 1,
+            "idxB": 0,
+            "order": [
+              "Gastos T&IC",
+              "Ingresos T&IC",
+              "Resultados Operativos"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_DE_GASTOS_T_IC",
+              "SUMA_DE_INGRESOS_T_IC",
+              "RESULTADO_OPERATIVO_SEMICONWEST",
+              "RESULTADO_OPERATIVO_INGRESOS_GASTOS_2",
+              "RESULTADO_T_IC"
+            ],
+            "total": 7
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "703-002-000-00",
+              "703-001-000-00",
+              "407-001-000-00",
+              "407-002-000-00"
+            ],
+            "total": 4
+          },
+          "section": {
+            "idxA": 1,
+            "idxB": 0,
+            "order": [
+              "Gastos T&IC",
+              "Ingresos T&IC",
+              "Resultados Operativos"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "order": [
+              "Suma de Gastos T&IC",
+              "Suma de Ingresos T&IC",
+              "Resultado Operativo: SemiconWest",
+              "Resultado Operativo: Ingresos/Gastos 2",
+              "Resultado T&IC"
+            ],
+            "total": 5
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 0,
+          "afterTarget": 5,
+          "targetBeforeMoving": false
+        }
+      },
+      "operationTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "operation",
+          "from": 12,
+          "to": 11,
+          "movingKey": "op:Resultado Operativo: Ingresos/Gastos 2",
+          "targetKey": "op:Resultado Operativo: SemiconWest",
+          "movingLabel": "Resultado Operativo: Ingresos/Gastos 2",
+          "targetLabel": "Resultado Operativo: SemiconWest",
+          "movingOpId": "Resultado Operativo: Ingresos/Gastos 2",
+          "targetOpId": "Resultado Operativo: SemiconWest",
+          "movingAfter": 11,
+          "targetAfter": 12,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": null,
+        "tableMoved": false,
+        "tableOrder": [
+          "Suma de Gastos T&IC",
+          "Suma de Ingresos T&IC",
+          "Resultado Operativo: SemiconWest",
+          "Resultado Operativo: Ingresos/Gastos 2",
+          "Resultado T&IC"
+        ],
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "703-002-000-00",
+              "703-001-000-00",
+              "407-001-000-00",
+              "407-002-000-00",
+              "Por evento"
+            ],
+            "total": 5
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos T&IC",
+              "Ingresos T&IC",
+              "Resultados Operativos"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_DE_GASTOS_T_IC",
+              "SUMA_DE_INGRESOS_T_IC",
+              "RESULTADO_OPERATIVO_SEMICONWEST",
+              "RESULTADO_OPERATIVO_INGRESOS_GASTOS_2",
+              "RESULTADO_T_IC"
+            ],
+            "total": 7
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "703-002-000-00",
+              "703-001-000-00",
+              "407-001-000-00",
+              "407-002-000-00"
+            ],
+            "total": 4
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos T&IC",
+              "Ingresos T&IC",
+              "Resultados Operativos"
+            ],
+            "total": 3
+          },
+          "operation": {
+            "order": [
+              "Suma de Gastos T&IC",
+              "Suma de Ingresos T&IC",
+              "Resultado Operativo: SemiconWest",
+              "Resultado Operativo: Ingresos/Gastos 2",
+              "Resultado T&IC"
+            ],
+            "total": 5
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 11,
+          "afterTarget": 12,
+          "targetBeforeMoving": false
+        }
+      },
+      "errors": []
+    },
+    {
+      "modulo": "RH",
+      "html": "RH.html",
+      "contextOk": true,
+      "rowCounts": {
+        "principal": 1,
+        "subsection": 1,
+        "account": 3,
+        "operation": 2
+      },
+      "accountTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "account",
+          "from": 3,
+          "to": 2,
+          "movingKey": "acc:901-017-002-00",
+          "targetKey": "acc:901-017-001-00",
+          "movingLabel": "901-017-002-00",
+          "targetLabel": "901-017-001-00",
+          "movingOpId": "901-017-002-00",
+          "targetOpId": "901-017-001-00",
+          "movingAfter": 2,
+          "targetAfter": 3,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "901-017-002-00",
+              "901-017-001-00",
+              "901-017-003-00"
+            ],
+            "total": 3
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos RH"
+            ],
+            "total": 1
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_DE_GASTOS_RH",
+              "RESULTADO_OPERATIVO_RH"
+            ],
+            "total": 4
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "901-017-002-00",
+              "901-017-001-00",
+              "901-017-003-00"
+            ],
+            "total": 3
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos RH"
+            ],
+            "total": 1
+          },
+          "operation": {
+            "order": [
+              "Suma de Gastos RH",
+              "Resultado Operativo RH"
+            ],
+            "total": 2
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 2,
+          "afterTarget": 3,
+          "targetBeforeMoving": false
+        }
+      },
+      "sectionTest": {
+        "attempted": false,
+        "reason": "no-candidate"
+      },
+      "operationTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "operation",
+          "from": 6,
+          "to": 5,
+          "movingKey": "op:Resultado Operativo RH",
+          "targetKey": "op:Suma de Gastos RH",
+          "movingLabel": "Resultado Operativo RH",
+          "targetLabel": "Suma de Gastos RH",
+          "movingOpId": "Resultado Operativo RH",
+          "targetOpId": "Suma de Gastos RH",
+          "movingAfter": 5,
+          "targetAfter": 6,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": null,
+        "tableMoved": true,
+        "tableOrder": [
+          "Resultado Operativo RH",
+          "Suma de Gastos RH"
+        ],
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "901-017-002-00",
+              "901-017-001-00",
+              "901-017-003-00"
+            ],
+            "total": 3
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos RH"
+            ],
+            "total": 1
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "RESULTADO_OPERATIVO_RH",
+              "SUMA_DE_GASTOS_RH"
+            ],
+            "total": 4
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "901-017-002-00",
+              "901-017-001-00",
+              "901-017-003-00"
+            ],
+            "total": 3
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos RH"
+            ],
+            "total": 1
+          },
+          "operation": {
+            "order": [
+              "Resultado Operativo RH",
+              "Suma de Gastos RH"
+            ],
+            "total": 2
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 5,
+          "afterTarget": 6,
+          "targetBeforeMoving": false
+        }
+      },
+      "errors": []
+    },
+    {
+      "modulo": "VPE",
+      "html": "VPE.html",
+      "contextOk": false,
+      "rowCounts": {},
+      "accountTest": null,
+      "sectionTest": null,
+      "operationTest": null,
+      "errors": [
+        "page.selectOption: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#moduloSelect')\u001b[22m\n\u001b[2m    - locator resolved to <select id=\"moduloSelect\" class=\"form-select\">…</select>\u001b[22m\n\u001b[2m  - attempting select option action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - option being selected is not enabled\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - option being selected is not enabled\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    58 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m       - option being selected is not enabled\u001b[22m\n\u001b[2m     - retrying select option action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+      ]
+    },
+    {
+      "modulo": "Finanzas",
+      "html": "Finanzas.html",
+      "contextOk": false,
+      "rowCounts": {},
+      "accountTest": null,
+      "sectionTest": null,
+      "operationTest": null,
+      "errors": [
+        "page.selectOption: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#moduloSelect')\u001b[22m\n\u001b[2m    - locator resolved to <select id=\"moduloSelect\" class=\"form-select\">…</select>\u001b[22m\n\u001b[2m  - attempting select option action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - option being selected is not enabled\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - option being selected is not enabled\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    58 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m       - option being selected is not enabled\u001b[22m\n\u001b[2m     - retrying select option action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+      ]
+    },
+    {
+      "modulo": "Gastos Generales",
+      "html": "GastosGenerales.html",
+      "contextOk": true,
+      "rowCounts": {
+        "principal": 5,
+        "subsection": 5,
+        "operation": 6,
+        "account": 35
+      },
+      "accountTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "account",
+          "from": 9,
+          "to": 8,
+          "movingKey": "acc:901-019-000-00",
+          "targetKey": "acc:410-000-000-00",
+          "movingLabel": "901-019-000-00",
+          "targetLabel": "410-000-000-00",
+          "movingOpId": "901-019-000-00",
+          "targetOpId": "410-000-000-00",
+          "movingAfter": 8,
+          "targetAfter": 9,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": 2,
+            "idxB": 1,
+            "top": [
+              "402-000-000-00",
+              "901-019-000-00",
+              "410-000-000-00",
+              "901-020-000-00",
+              "901-011-007-00",
+              "901-016-001-00",
+              "901-016-002-00",
+              "901-016-003-00",
+              "901-011-013-00",
+              "901-009-000-00",
+              "901-011-006-00",
+              "901-014-001-00",
+              "901-014-002-00",
+              "901-003-000-00",
+              "901-006-003-00"
+            ],
+            "total": 35
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Otros ingresos",
+              "Gastos Financieros",
+              "Gastos Generales",
+              "Gastos Corporativos y Member Centricity",
+              "Depreciaciones y Amortizaciones"
+            ],
+            "total": 5
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_OTROS_INGRESOS",
+              "SUMA_GASTOS_FINANCIEROS",
+              "OTROS_INGRESOS_VS_GASTOS",
+              "SUMA_DE_GASTOS_GENERALES",
+              "TOTAL_GA_GDL",
+              "SUMA_DEPRECIACIONES_Y_AMORTIZACIONES"
+            ],
+            "total": 8
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": 2,
+            "idxB": 1,
+            "top": [
+              "402-000-000-00",
+              "901-019-000-00",
+              "410-000-000-00",
+              "901-020-000-00",
+              "901-011-007-00",
+              "901-016-001-00",
+              "901-016-002-00",
+              "901-016-003-00",
+              "901-011-013-00",
+              "901-009-000-00",
+              "901-011-006-00",
+              "901-014-001-00",
+              "901-014-002-00",
+              "901-003-000-00",
+              "901-006-003-00"
+            ],
+            "total": 35
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Otros ingresos",
+              "Gastos Financieros",
+              "Gastos Generales",
+              "Gastos Corporativos y Member Centricity",
+              "Depreciaciones y Amortizaciones"
+            ],
+            "total": 5
+          },
+          "operation": {
+            "order": [
+              "Suma Otros Ingresos",
+              "Suma Gastos Financieros",
+              "Otros Ingresos vs Gastos",
+              "Suma de Gastos Generales",
+              "Total GA Gdl",
+              "Suma Depreciaciones y Amortizaciones"
+            ],
+            "total": 6
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 8,
+          "afterTarget": 9,
+          "targetBeforeMoving": false
+        }
+      },
+      "sectionTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "principal",
+          "from": 4,
+          "to": 0,
+          "movingKey": "pri:Gastos Financieros",
+          "targetKey": "pri:Otros ingresos",
+          "movingLabel": "Gastos Financieros",
+          "targetLabel": "Otros ingresos",
+          "movingOpId": "Gastos Financieros",
+          "targetOpId": "Otros ingresos",
+          "movingAfter": 0,
+          "targetAfter": 7,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "901-019-000-00",
+              "410-000-000-00",
+              "901-020-000-00",
+              "402-000-000-00",
+              "901-011-007-00",
+              "901-016-001-00",
+              "901-016-002-00",
+              "901-016-003-00",
+              "901-011-013-00",
+              "901-009-000-00",
+              "901-011-006-00",
+              "901-014-001-00",
+              "901-014-002-00",
+              "901-003-000-00",
+              "901-006-003-00"
+            ],
+            "total": 35
+          },
+          "section": {
+            "idxA": 1,
+            "idxB": 0,
+            "order": [
+              "Gastos Financieros",
+              "Otros ingresos",
+              "Gastos Generales",
+              "Gastos Corporativos y Member Centricity",
+              "Depreciaciones y Amortizaciones"
+            ],
+            "total": 5
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_OTROS_INGRESOS",
+              "SUMA_GASTOS_FINANCIEROS",
+              "OTROS_INGRESOS_VS_GASTOS",
+              "SUMA_DE_GASTOS_GENERALES",
+              "TOTAL_GA_GDL",
+              "SUMA_DEPRECIACIONES_Y_AMORTIZACIONES"
+            ],
+            "total": 8
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "901-019-000-00",
+              "410-000-000-00",
+              "901-020-000-00",
+              "402-000-000-00",
+              "901-011-007-00",
+              "901-016-001-00",
+              "901-016-002-00",
+              "901-016-003-00",
+              "901-011-013-00",
+              "901-009-000-00",
+              "901-011-006-00",
+              "901-014-001-00",
+              "901-014-002-00",
+              "901-003-000-00",
+              "901-006-003-00"
+            ],
+            "total": 35
+          },
+          "section": {
+            "idxA": 1,
+            "idxB": 0,
+            "order": [
+              "Gastos Financieros",
+              "Otros ingresos",
+              "Gastos Generales",
+              "Gastos Corporativos y Member Centricity",
+              "Depreciaciones y Amortizaciones"
+            ],
+            "total": 5
+          },
+          "operation": {
+            "order": [
+              "Suma Gastos Financieros",
+              "Otros Ingresos vs Gastos",
+              "Suma Otros Ingresos",
+              "Suma de Gastos Generales",
+              "Total GA Gdl",
+              "Suma Depreciaciones y Amortizaciones"
+            ],
+            "total": 6
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 0,
+          "afterTarget": 7,
+          "targetBeforeMoving": false
+        }
+      },
+      "operationTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "operation",
+          "from": 3,
+          "to": 2,
+          "movingKey": "op:Otros Ingresos vs Gastos",
+          "targetKey": "op:Suma Gastos Financieros",
+          "movingLabel": "Otros Ingresos vs Gastos",
+          "targetLabel": "Suma Gastos Financieros",
+          "movingOpId": "Otros Ingresos vs Gastos",
+          "targetOpId": "Suma Gastos Financieros",
+          "movingAfter": 2,
+          "targetAfter": 3,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": null,
+        "tableMoved": true,
+        "tableOrder": [
+          "Otros Ingresos vs Gastos",
+          "Suma Gastos Financieros",
+          "Suma Otros Ingresos",
+          "Suma de Gastos Generales",
+          "Total GA Gdl",
+          "Suma Depreciaciones y Amortizaciones"
+        ],
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "901-019-000-00",
+              "410-000-000-00",
+              "901-020-000-00",
+              "402-000-000-00",
+              "901-011-007-00",
+              "901-016-001-00",
+              "901-016-002-00",
+              "901-016-003-00",
+              "901-011-013-00",
+              "901-009-000-00",
+              "901-011-006-00",
+              "901-014-001-00",
+              "901-014-002-00",
+              "901-003-000-00",
+              "901-006-003-00"
+            ],
+            "total": 35
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos Financieros",
+              "Otros ingresos",
+              "Gastos Generales",
+              "Gastos Corporativos y Member Centricity",
+              "Depreciaciones y Amortizaciones"
+            ],
+            "total": 5
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_OTROS_INGRESOS",
+              "OTROS_INGRESOS_VS_GASTOS",
+              "SUMA_GASTOS_FINANCIEROS",
+              "SUMA_DE_GASTOS_GENERALES",
+              "TOTAL_GA_GDL",
+              "SUMA_DEPRECIACIONES_Y_AMORTIZACIONES"
+            ],
+            "total": 8
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "901-019-000-00",
+              "410-000-000-00",
+              "901-020-000-00",
+              "402-000-000-00",
+              "901-011-007-00",
+              "901-016-001-00",
+              "901-016-002-00",
+              "901-016-003-00",
+              "901-011-013-00",
+              "901-009-000-00",
+              "901-011-006-00",
+              "901-014-001-00",
+              "901-014-002-00",
+              "901-003-000-00",
+              "901-006-003-00"
+            ],
+            "total": 35
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos Financieros",
+              "Otros ingresos",
+              "Gastos Generales",
+              "Gastos Corporativos y Member Centricity",
+              "Depreciaciones y Amortizaciones"
+            ],
+            "total": 5
+          },
+          "operation": {
+            "order": [
+              "Otros Ingresos vs Gastos",
+              "Suma Gastos Financieros",
+              "Suma Otros Ingresos",
+              "Suma de Gastos Generales",
+              "Total GA Gdl",
+              "Suma Depreciaciones y Amortizaciones"
+            ],
+            "total": 6
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 6,
+          "afterTarget": 7,
+          "targetBeforeMoving": false
+        }
+      },
+      "errors": []
+    },
+    {
+      "modulo": "Nomina",
+      "html": "Nomina.html",
+      "contextOk": false,
+      "rowCounts": {},
+      "accountTest": null,
+      "sectionTest": null,
+      "operationTest": null,
+      "errors": [
+        "page.selectOption: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#moduloSelect')\u001b[22m\n\u001b[2m    - locator resolved to <select id=\"moduloSelect\" class=\"form-select\">…</select>\u001b[22m\n\u001b[2m  - attempting select option action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - option being selected is not enabled\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - option being selected is not enabled\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    58 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m       - option being selected is not enabled\u001b[22m\n\u001b[2m     - retrying select option action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+      ]
+    },
+    {
+      "modulo": "Gtos Corporativos",
+      "html": "Gtos_Corporativos.html",
+      "contextOk": true,
+      "rowCounts": {
+        "principal": 1,
+        "subsection": 1,
+        "account": 21,
+        "operation": 1
+      },
+      "accountTest": {
+        "attempted": true,
+        "move": {
+          "attempted": true,
+          "type": "account",
+          "from": 3,
+          "to": 2,
+          "movingKey": "acc:903-033-000-00",
+          "targetKey": "acc:903-034-000-00",
+          "movingLabel": "903-033-000-00",
+          "targetLabel": "903-034-000-00",
+          "movingOpId": "903-033-000-00",
+          "targetOpId": "903-034-000-00",
+          "movingAfter": 2,
+          "targetAfter": 3,
+          "movedBeforeTarget": true
+        },
+        "localMoved": true,
+        "persistedMoved": true,
+        "tableMoved": true,
+        "persisted": {
+          "ok": true,
+          "status": 200,
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "903-033-000-00",
+              "903-034-000-00",
+              "903-002-000-00",
+              "903-029-000-00",
+              "903-003-000-00",
+              "903-030-000-00",
+              "903-032-000-00",
+              "903-018-000-00",
+              "903-031-000-00",
+              "903-028-000-00",
+              "903-011-000-00",
+              "903-012-000-00",
+              "903-017-000-00",
+              "903-014-000-00",
+              "903-015-000-00"
+            ],
+            "total": 21
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos Corporativos"
+            ],
+            "total": 1
+          },
+          "operation": {
+            "idxA": -1,
+            "idxB": -1,
+            "top": [
+              "LAYOUT_CONFIG",
+              "COLUMN_CONFIG",
+              "SUMA_GASTOS_CORPORATIVOS"
+            ],
+            "total": 3
+          }
+        },
+        "moduleTable": {
+          "yearLabel": "2026",
+          "empresaLabel": "Guadalajara",
+          "account": {
+            "idxA": 1,
+            "idxB": 0,
+            "top": [
+              "903-033-000-00",
+              "903-034-000-00",
+              "903-002-000-00",
+              "903-029-000-00",
+              "903-003-000-00",
+              "903-030-000-00",
+              "903-032-000-00",
+              "903-018-000-00",
+              "903-031-000-00",
+              "903-028-000-00",
+              "903-011-000-00",
+              "903-012-000-00",
+              "903-017-000-00",
+              "903-014-000-00",
+              "903-015-000-00"
+            ],
+            "total": 21
+          },
+          "section": {
+            "idxA": -1,
+            "idxB": -1,
+            "order": [
+              "Gastos Corporativos"
+            ],
+            "total": 1
+          },
+          "operation": {
+            "order": [
+              "Suma Gastos Corporativos"
+            ],
+            "total": 1
+          }
+        },
+        "restore": {
+          "restored": true,
+          "afterMoving": 2,
+          "afterTarget": 3,
+          "targetBeforeMoving": false
+        }
+      },
+      "sectionTest": {
+        "attempted": false,
+        "reason": "no-candidate"
+      },
+      "operationTest": {
+        "attempted": false,
+        "reason": "no-candidate",
+        "operationRows": 1
+      },
+      "errors": []
+    }
+  ]
+}
