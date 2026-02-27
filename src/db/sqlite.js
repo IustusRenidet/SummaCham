@@ -26,8 +26,7 @@ try {
   } catch (err2) {
     // No es posible cargar better-sqlite3. Crash early and give instructions.
     const mensaje =
-      `\n\n❌ better-sqlite3 no pudo ser cargado: ${
-        err2 && err2.message ? err2.message : err2
+      `\n\n❌ better-sqlite3 no pudo ser cargado: ${err2 && err2.message ? err2.message : err2
       }\n\n` +
       "Para usar SQLite (obligatorio), reconstruye los módulos nativos para el runtime de Electron y la versión objetivo.\n" +
       "Ejemplos:\n" +
@@ -281,7 +280,7 @@ const crearConexion = () => {
   rutaDbActiva = rutaDb;
   console.log("Conectando a SQLite en:", rutaDb);
   db = new Database(rutaDb);
-  
+
   // Configuración optimizada para multi-usuario concurrente
   db.pragma("foreign_keys = ON");
   db.pragma("journal_mode = WAL"); // Write-Ahead Logging para mejor concurrencia
@@ -289,7 +288,7 @@ const crearConexion = () => {
   db.pragma("cache_size = 10000"); // Cache de 10MB aprox
   db.pragma("temp_store = MEMORY"); // Tablas temporales en memoria
   db.pragma("busy_timeout = 5000"); // Esperar hasta 5 segundos si hay lock
-  
+
   console.log("✓ SQLite configurado para multi-usuario (modo WAL)");
   return db;
 };
@@ -1337,8 +1336,9 @@ const inicializarBaseDatos = () => {
   }
   db = crearConexion();
   crearTablas();
-  copiarLayoutsDesdeSemillaSiFaltan();
-  intentarSembrarLayoutsIniciales();
+  // Siembra automática desactivada: layouts y fórmulas vienen exclusivamente de la BD.
+  // copiarLayoutsDesdeSemillaSiFaltan();
+  // intentarSembrarLayoutsIniciales();
   crearAdministradorGlobal();
   // Asegurar que ciertos usuarios históricos sean administradores globales
   const asegurarAdministradoresHistoricos = () => {

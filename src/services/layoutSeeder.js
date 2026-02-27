@@ -409,9 +409,9 @@ const procesarArchivoSummaryResumen = ({
       contenido["SUMA DE VARIAS SECCIONES"]
     )
       ? filtrarOperacionesPorModulo(
-          contenido["SUMA DE VARIAS SECCIONES"],
-          operacionesCompartidas ? nombre : nombre
-        )
+        contenido["SUMA DE VARIAS SECCIONES"],
+        operacionesCompartidas ? nombre : nombre
+      )
       : [];
 
     anios.forEach((anio) => {
@@ -421,14 +421,14 @@ const procesarArchivoSummaryResumen = ({
           `SELECT COUNT(*) as total FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ?`
         )
         .get(empresaId, nombre, anio);
-      
+
       // Verificar si existen operaciones
       const existenOperaciones = db
         .prepare(
           `SELECT COUNT(*) as total FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ?`
         )
         .get(empresaId, nombre, anio);
-      
+
       // Si no forzamos y ya existen cuentas Y operaciones, saltamos
       if (!force && existenCuentas?.total > 0 && existenOperaciones?.total > 0) {
         return;
@@ -757,6 +757,18 @@ const seedLayoutsDesdeExcelCdMx = ({
       }));
 
     anios.forEach((anio) => {
+      // Si ya existen datos para este módulo+año+capítulo, no borrar ni reemplazar
+      // (preserva fórmulas personalizadas guardadas por el usuario).
+      const existentes = db
+        .prepare(
+          `SELECT COUNT(*) as total FROM layout_cuentas
+           WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?`
+        )
+        .get(empresaId, def.modulo, anio, capitulo);
+      if (existentes?.total > 0) {
+        return;
+      }
+
       limpiarLayoutPorCapitulo(db, {
         empresaId,
         modulo: def.modulo,
