@@ -50,8 +50,8 @@ const formatearCuentaDesdeSqlite = (cuenta, capitulo) => {
   const ordenPresentacion = Number.isFinite(Number(cuenta.orden_presentacion))
     ? Number(cuenta.orden_presentacion)
     : Number.isFinite(Number(cuenta.orden))
-    ? Number(cuenta.orden)
-    : 0;
+      ? Number(cuenta.orden)
+      : 0;
   return {
     CAPITULO: capitulo,
     CUENTA: cuenta.CUENTA,
