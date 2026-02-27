@@ -1,0 +1,400 @@
+- generic [ref=e3]:
+  - complementary "Navegación principal" [ref=e4]:
+    - img "AmCham" [ref=e6]
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - button "Resumen 1" [expanded] [ref=e9] [cursor=pointer]:
+          - generic [ref=e10]: Resumen
+          - generic [ref=e11]: "1"
+        - button "Resumen summary" [ref=e13] [cursor=pointer]:
+          - generic [ref=e14]: Resumen
+          - generic [ref=e15]: summary
+      - generic [ref=e16]:
+        - button "Divisiones 11" [expanded] [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: Divisiones
+          - generic [ref=e19]: "11"
+        - generic [ref=e20]:
+          - button "Presupuestos ppto" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: Presupuestos
+            - generic [ref=e23]: ppto
+          - button "Comités" [ref=e24] [cursor=pointer]:
+            - generic [ref=e25]: Comités
+          - button "Comunicación" [ref=e26] [cursor=pointer]:
+            - generic [ref=e27]: Comunicación
+          - button "Eventos" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: Eventos
+          - generic [ref=e30]:
+            - button "Finanzas 3" [expanded] [ref=e31] [cursor=pointer]:
+              - generic [ref=e32]: Finanzas
+              - generic [ref=e33]: "3"
+            - generic [ref=e34]:
+              - button "Finanzas finanzas" [ref=e35] [cursor=pointer]:
+                - generic [ref=e36]: Finanzas
+                - generic [ref=e37]: finanzas
+              - button "Gastos Generales finanzas" [ref=e38] [cursor=pointer]:
+                - generic [ref=e39]: Gastos Generales
+                - generic [ref=e40]: finanzas
+              - button "Nómina finanzas" [ref=e41] [cursor=pointer]:
+                - generic [ref=e42]: Nómina
+                - generic [ref=e43]: finanzas
+          - button "Gastos Corporativos" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: Gastos Corporativos
+          - button "Membresía" [ref=e46] [cursor=pointer]:
+            - generic [ref=e47]: Membresía
+          - button "Recursos Humanos" [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]: Recursos Humanos
+          - button "Servicios a la Membresía" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: Servicios a la Membresía
+          - button "T&IC" [ref=e52] [cursor=pointer]:
+            - generic [ref=e53]: T&IC
+          - button "VPE" [ref=e54] [cursor=pointer]:
+            - generic [ref=e55]: VPE
+      - generic [ref=e56]:
+        - button "Configuración 5" [expanded] [ref=e57] [cursor=pointer]:
+          - generic [ref=e58]: Configuración
+          - generic [ref=e59]: "5"
+        - generic [ref=e60]:
+          - button "Mi Perfil perfil" [ref=e61] [cursor=pointer]:
+            - generic [ref=e62]: Mi Perfil
+            - generic [ref=e63]: perfil
+          - button "Administrar usuarios Permisos" [ref=e64] [cursor=pointer]:
+            - generic [ref=e65]: Administrar usuarios
+            - generic [ref=e66]: Permisos
+          - button "Crear usuario" [ref=e67] [cursor=pointer]:
+            - generic [ref=e68]: Crear usuario
+          - button "Gestor de Plantillas" [active] [ref=e69] [cursor=pointer]:
+            - generic [ref=e70]: Gestor de Plantillas
+          - button "Administrar conexiones" [ref=e71] [cursor=pointer]:
+            - generic [ref=e72]: Administrar conexiones
+  - main [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - button "Ocultar menú lateral" [expanded] [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]: ☰
+        - heading "Gestor de Plantillas" [level=2] [ref=e97]
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - button "Tour guiado" [ref=e83] [cursor=pointer]
+          - button "Opciones" [ref=e84] [cursor=pointer]:
+            - generic [ref=e85]: Opciones
+        - button "Notificaciones" [ref=e87] [cursor=pointer]:
+          - img [ref=e88]
+        - generic [ref=e90]:
+          - generic [ref=e91]: "Empresa:"
+          - combobox "Empresa:" [ref=e92]:
+            - option "Ciudad de México" [selected]
+            - option "Guadalajara"
+            - option "Noreste"
+            - option "Noroeste"
+        - button "Cerrar sesión" [ref=e93] [cursor=pointer]
+    - iframe [ref=e98]:
+      - generic [active] [ref=f4e1]:
+        - generic [ref=f4e2]:
+          - generic [ref=f4e7]:
+            - generic [ref=f4e8]:
+              - heading "Gestor de Plantillas" [level=1] [ref=f4e9]
+              - paragraph [ref=f4e10]: Finanzas · 2026 · CIUDAD DE MEXICO
+            - generic [ref=f4e11]:
+              - generic [ref=f4e1207]: 
+              - text: Edición forzada (local)
+          - generic [ref=f4e13]:
+            - generic [ref=f4e14]:
+              - generic [ref=f4e15]: Módulo
+              - combobox "Módulo" [ref=f4e16] [cursor=pointer]:
+                - option "RESUMEN"
+                - option "Finanzas" [selected]
+                - option "Gastos Generales"
+                - option "Nómina"
+                - option "Membresía"
+                - option "Serv Membresía"
+                - option "RH"
+                - option "Eventos"
+                - option "Comités"
+                - option "Comunicación"
+                - option "Dirección"
+                - option "Gtos Corporativos"
+                - option "T&IC"
+                - option "VPE"
+            - generic [ref=f4e17]:
+              - generic [ref=f4e18]: Año
+              - combobox "Año" [ref=f4e19] [cursor=pointer]:
+                - option "2026" [selected]
+                - option "2025"
+                - option "2024"
+                - option "2023"
+                - option "2022"
+                - option "2021"
+                - option "2020"
+                - option "2019"
+                - option "2018"
+                - option "2017"
+                - option "2016"
+                - option "2015"
+                - option "2014"
+                - option "2013"
+                - option "2012"
+                - option "2011"
+                - option "2010"
+                - option "2009"
+                - option "2008"
+                - option "2007"
+                - option "2006"
+                - option "2005"
+            - generic [ref=f4e20]:
+              - generic [ref=f4e21]: Capítulo
+              - combobox "Capítulo" [ref=f4e22] [cursor=pointer]:
+                - option "CIUDAD DE MÉXICO" [selected]
+            - button " Cargar Layout" [ref=f4e24] [cursor=pointer]:
+              - generic [ref=f4e25]: 
+              - text: Cargar Layout
+          - generic [ref=f4e30]:
+            - generic [ref=f4e32]:
+              - textbox "Buscar en el layout..." [ref=f4e33] [cursor=pointer]
+              - generic [ref=f4e34]:
+                - generic [ref=f4e35]: "Filtrar:"
+                - group [ref=f4e36]:
+                  - radio "Todo" [checked] [ref=f4e37] [cursor=pointer]
+                  - generic [ref=f4e38] [cursor=pointer]: Todo
+                  - radio "Secciones" [ref=f4e39] [cursor=pointer]
+                  - generic [ref=f4e40] [cursor=pointer]: Secciones
+                  - radio "Cuentas" [ref=f4e41] [cursor=pointer]
+                  - generic [ref=f4e42] [cursor=pointer]: Cuentas
+                  - radio "Operaciones" [ref=f4e43] [cursor=pointer]
+                  - generic [ref=f4e44] [cursor=pointer]: Operaciones
+            - button " Agregar" [ref=f4e69] [cursor=pointer]:
+              - generic [ref=f4e70]: 
+              - text: Agregar
+            - button " Expandir" [ref=f4e71] [cursor=pointer]:
+              - generic [ref=f4e72]: 
+              - text: Expandir
+            - button " Colapsar" [ref=f4e73] [cursor=pointer]:
+              - generic [ref=f4e74]: 
+              - text: Colapsar
+            - button " Vista Previa" [ref=f4e75] [cursor=pointer]:
+              - generic [ref=f4e76]: 
+              - text: Vista Previa
+            - button " Copiar a otro año" [ref=f4e77] [cursor=pointer]:
+              - generic [ref=f4e78]: 
+              - text: Copiar a otro año
+            - button " Guardar" [disabled]:
+              - generic: 
+              - text: Guardar
+            - button " Historial" [ref=f4e79] [cursor=pointer]:
+              - generic [ref=f4e80]: 
+              - text: Historial
+          - tablist [ref=f4e47]:
+            - tab "Layout" [selected] [ref=f4e48] [cursor=pointer]
+            - tab "Graficas" [ref=f4e49] [cursor=pointer]
+          - generic [ref=f4e50]:
+            - tabpanel "Layout" [ref=f4e51]:
+              - generic [ref=f4e53]:
+                - text:   
+                - generic [ref=f4e82]:
+                  - generic [ref=f4e84]: Finanzas · 2026 · CIUDAD DE MEXICO
+                  - generic [ref=f4e1208]:
+                    - generic [ref=f4e1210]:
+                      - generic [ref=f4e1211]:
+                        - generic [ref=f4e1212]:
+                          - generic [ref=f4e1213]: Secciones
+                          - generic [ref=f4e1214]: "1"
+                        - generic [ref=f4e1215]:
+                          - generic [ref=f4e1216]: Subsecciones
+                          - generic [ref=f4e1217]: "1"
+                        - generic [ref=f4e1218]:
+                          - generic [ref=f4e1219]: Cuentas
+                          - generic [ref=f4e1220]: "14"
+                        - generic [ref=f4e1221]:
+                          - generic [ref=f4e1222]: Operaciones
+                          - generic [ref=f4e1223]: "2"
+                      - generic [ref=f4e1224]: Orden real de aparicion. Click en una fila para editar.
+                    - generic [ref=f4e1225]:
+                      - generic [ref=f4e1226]:
+                        - generic [ref=f4e1227]: Elementos de la plantilla
+                        - generic [ref=f4e1230]:
+                          - checkbox " Ordenar" [ref=f4e1231] [cursor=pointer]
+                          - generic [ref=f4e1232]:
+                            - generic [ref=f4e1233]: 
+                            - text: Ordenar
+                      - generic [ref=f4e1235]:
+                        - generic [ref=f4e1237] [cursor=pointer]:
+                          - generic [ref=f4e1238]:
+                            - generic [ref=f4e1239]: 
+                            - strong [ref=f4e1240]: Gastos Administrativos
+                            - generic [ref=f4e1241]: Suma Gastos Administrativos
+                          - generic [ref=f4e1242]:
+                            - button "Σ" [ref=f4e1243]
+                            - button "" [ref=f4e1244]:
+                              - generic [ref=f4e1245]: 
+                            - button "" [ref=f4e1246]:
+                              - generic [ref=f4e1247]: 
+                            - button "" [ref=f4e1248]:
+                              - generic [ref=f4e1249]: 
+                        - generic [ref=f4e1251] [cursor=pointer]:
+                          - generic [ref=f4e1252]:
+                            - generic [ref=f4e1253]: 
+                            - emphasis [ref=f4e1254]: Gastos Administrativos
+                          - generic [ref=f4e1255]:
+                            - button "" [ref=f4e1256]:
+                              - generic [ref=f4e1257]: 
+                            - button "" [ref=f4e1258]:
+                              - generic [ref=f4e1259]: 
+                            - button "" [ref=f4e1260]:
+                              - generic [ref=f4e1261]: 
+                            - button "" [ref=f4e1262]:
+                              - generic [ref=f4e1263]: 
+                        - generic [ref=f4e1265] [cursor=pointer]:
+                          - generic [ref=f4e1266]:
+                            - generic [ref=f4e1267]: 801-005-001-00
+                            - generic [ref=f4e1268]: Teléfono Móvil
+                          - generic [ref=f4e1269]:
+                            - button "" [ref=f4e1270]:
+                              - generic [ref=f4e1271]: 
+                            - button "" [ref=f4e1272]:
+                              - generic [ref=f4e1273]: 
+                        - generic [ref=f4e1275] [cursor=pointer]:
+                          - generic [ref=f4e1276]:
+                            - generic [ref=f4e1277]: 801-005-004-00
+                            - generic [ref=f4e1278]: Mantenimiento de Automóvil
+                          - generic [ref=f4e1279]:
+                            - button "" [ref=f4e1280]:
+                              - generic [ref=f4e1281]: 
+                            - button "" [ref=f4e1282]:
+                              - generic [ref=f4e1283]: 
+                        - generic [ref=f4e1285] [cursor=pointer]:
+                          - generic [ref=f4e1286]:
+                            - generic [ref=f4e1287]: 801-005-003-00
+                            - generic [ref=f4e1288]: Gasolina
+                          - generic [ref=f4e1289]:
+                            - button "" [ref=f4e1290]:
+                              - generic [ref=f4e1291]: 
+                            - button "" [ref=f4e1292]:
+                              - generic [ref=f4e1293]: 
+                        - generic [ref=f4e1295] [cursor=pointer]:
+                          - generic [ref=f4e1296]:
+                            - generic [ref=f4e1297]: 801-005-010-00
+                            - generic [ref=f4e1298]: Becarios
+                          - generic [ref=f4e1299]:
+                            - button "" [ref=f4e1300]:
+                              - generic [ref=f4e1301]: 
+                            - button "" [ref=f4e1302]:
+                              - generic [ref=f4e1303]: 
+                        - generic [ref=f4e1305] [cursor=pointer]:
+                          - generic [ref=f4e1306]:
+                            - generic [ref=f4e1307]: 801-005-005-00
+                            - generic [ref=f4e1308]: Pasajes y taxis
+                          - generic [ref=f4e1309]:
+                            - button "" [ref=f4e1310]:
+                              - generic [ref=f4e1311]: 
+                            - button "" [ref=f4e1312]:
+                              - generic [ref=f4e1313]: 
+                        - generic [ref=f4e1315] [cursor=pointer]:
+                          - generic [ref=f4e1316]:
+                            - generic [ref=f4e1317]: 801-005-006-00
+                            - generic [ref=f4e1318]: Estacionamientos
+                          - generic [ref=f4e1319]:
+                            - button "" [ref=f4e1320]:
+                              - generic [ref=f4e1321]: 
+                            - button "" [ref=f4e1322]:
+                              - generic [ref=f4e1323]: 
+                        - generic [ref=f4e1325] [cursor=pointer]:
+                          - generic [ref=f4e1326]:
+                            - generic [ref=f4e1327]: 801-005-011-00
+                            - generic [ref=f4e1328]: Impresión Tarjetas
+                          - generic [ref=f4e1329]:
+                            - button "" [ref=f4e1330]:
+                              - generic [ref=f4e1331]: 
+                            - button "" [ref=f4e1332]:
+                              - generic [ref=f4e1333]: 
+                        - generic [ref=f4e1335] [cursor=pointer]:
+                          - generic [ref=f4e1336]:
+                            - generic [ref=f4e1337]: 801-005-008-00
+                            - generic [ref=f4e1338]: Suscripciones y varios
+                          - generic [ref=f4e1339]:
+                            - button "" [ref=f4e1340]:
+                              - generic [ref=f4e1341]: 
+                            - button "" [ref=f4e1342]:
+                              - generic [ref=f4e1343]: 
+                        - generic [ref=f4e1345] [cursor=pointer]:
+                          - generic [ref=f4e1346]:
+                            - generic [ref=f4e1347]: 801-005-017-00
+                            - generic [ref=f4e1348]: Gastos de viaje
+                          - generic [ref=f4e1349]:
+                            - button "" [ref=f4e1350]:
+                              - generic [ref=f4e1351]: 
+                            - button "" [ref=f4e1352]:
+                              - generic [ref=f4e1353]: 
+                        - generic [ref=f4e1355] [cursor=pointer]:
+                          - generic [ref=f4e1356]:
+                            - generic [ref=f4e1357]: 801-005-012-00
+                            - generic [ref=f4e1358]: Gastos varios
+                          - generic [ref=f4e1359]:
+                            - button "" [ref=f4e1360]:
+                              - generic [ref=f4e1361]: 
+                            - button "" [ref=f4e1362]:
+                              - generic [ref=f4e1363]: 
+                        - generic [ref=f4e1365] [cursor=pointer]:
+                          - generic [ref=f4e1366]:
+                            - generic [ref=f4e1367]: 801-005-013-00
+                            - generic [ref=f4e1368]: No deducibles
+                          - generic [ref=f4e1369]:
+                            - button "" [ref=f4e1370]:
+                              - generic [ref=f4e1371]: 
+                            - button "" [ref=f4e1372]:
+                              - generic [ref=f4e1373]: 
+                        - generic [ref=f4e1375] [cursor=pointer]:
+                          - generic [ref=f4e1376]:
+                            - generic [ref=f4e1377]: 801-005-015-00
+                            - generic [ref=f4e1378]: PAPELERIA Y ARTICULOS DE OFICINA
+                          - generic [ref=f4e1379]:
+                            - button "" [ref=f4e1380]:
+                              - generic [ref=f4e1381]: 
+                            - button "" [ref=f4e1382]:
+                              - generic [ref=f4e1383]: 
+                        - generic [ref=f4e1385] [cursor=pointer]:
+                          - generic [ref=f4e1386]:
+                            - generic [ref=f4e1387]: 801-005-009-00
+                            - generic [ref=f4e1388]: SERVICIOS ADMINISTRATIVOS (PERSONAL)
+                          - generic [ref=f4e1389]:
+                            - button "" [ref=f4e1390]:
+                              - generic [ref=f4e1391]: 
+                            - button "" [ref=f4e1392]:
+                              - generic [ref=f4e1393]: 
+                        - generic [ref=f4e1395] [cursor=pointer]:
+                          - generic [ref=f4e1396]:
+                            - generic [ref=f4e1397]: 801-005-007-00
+                            - generic [ref=f4e1398]: HERRAMIENTAS TELE-TRABAJO
+                          - generic [ref=f4e1399]:
+                            - button "" [ref=f4e1400]:
+                              - generic [ref=f4e1401]: 
+                            - button "" [ref=f4e1402]:
+                              - generic [ref=f4e1403]: 
+                        - generic "Gastos Administrativos" [ref=f4e1404] [cursor=pointer]:
+                          - generic [ref=f4e1405]:
+                            - generic [ref=f4e1406]:
+                              - generic [ref=f4e1407]:
+                                - generic [ref=f4e1408]: 
+                                - strong [ref=f4e1409]: Suma Gastos Administrativos
+                              - generic [ref=f4e1410]: = Gastos Administrativos
+                            - generic [ref=f4e1411]:
+                              - button "" [ref=f4e1412]:
+                                - generic [ref=f4e1413]: 
+                              - button "" [ref=f4e1414]:
+                                - generic [ref=f4e1415]: 
+                        - generic "0 - Gastos Administrativos" [ref=f4e1416] [cursor=pointer]:
+                          - generic [ref=f4e1417]:
+                            - generic [ref=f4e1418]:
+                              - generic [ref=f4e1419]:
+                                - generic [ref=f4e1420]: 
+                                - strong [ref=f4e1421]: Resultado Admon y Finanzas
+                              - generic [ref=f4e1422]: = 0 - Gastos Administrativos
+                            - generic [ref=f4e1423]:
+                              - button "" [ref=f4e1424]:
+                                - generic [ref=f4e1425]: 
+                              - button "" [ref=f4e1426]:
+                                - generic [ref=f4e1427]: 
+              - text: 
+              - paragraph [ref=f4e67]: Layout Finanzas 2026 listo para editar
+            - text:    
+        - text:                        
+        - generic: 
+        - button "Tour plantillas" [ref=f4e68] [cursor=pointer]

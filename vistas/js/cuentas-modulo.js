@@ -5108,6 +5108,81 @@
       return actual;
     };
 
+    const normalizarEtiquetaOperacion = (valor) =>
+      normalizarTexto((valor || "").toString().trim());
+
+    const tieneFormulaManual = (op = {}) => {
+      if (Array.isArray(op.formula_v2?.tokens) && op.formula_v2.tokens.length) {
+        return true;
+      }
+      const parsedFormula = parseJsonSeguro(op.formula_json);
+      if (
+        parsedFormula &&
+        typeof parsedFormula === "object" &&
+        Number(parsedFormula.version) === FORMULA_V2_VERSION &&
+        Array.isArray(parsedFormula.tokens) &&
+        parsedFormula.tokens.length
+      ) {
+        return true;
+      }
+      return (
+        Array.isArray(op.formula_terms) &&
+        op.formula_terms.length > 0 &&
+        !esListaFormulaCorrupta(op.formula_terms)
+      );
+    };
+
+    const seleccionarOperacionBase = ({
+      candidatos = [],
+      sumRowLabel = "",
+      sumRowSumavariosLabel = "",
+      sumRowSumavarios2Label = "",
+      resultRowLabel = "",
+    } = {}) => {
+      const disponibles = (Array.isArray(candidatos) ? candidatos : []).filter(
+        (op) => op && !usados.has(op)
+      );
+      if (!disponibles.length) return null;
+
+      const reglas = [
+        { campo: "sum-row", valor: sumRowLabel, peso: 16 },
+        { campo: "sum-row-sumavarios", valor: sumRowSumavariosLabel, peso: 10 },
+        { campo: "sum-row-sumavarios2", valor: sumRowSumavarios2Label, peso: 8 },
+        { campo: "result-row", valor: resultRowLabel, peso: 6 },
+      ].map((regla) => ({
+        ...regla,
+        valorNormalizado: normalizarEtiquetaOperacion(regla.valor),
+      }));
+
+      let mejor = null;
+      let mejorPuntaje = Number.NEGATIVE_INFINITY;
+
+      disponibles.forEach((candidato) => {
+        let puntaje = 0;
+        reglas.forEach((regla) => {
+          if (!regla.valorNormalizado) return;
+          const candidatoValor = normalizarEtiquetaOperacion(
+            candidato?.[regla.campo]
+          );
+          if (candidatoValor && candidatoValor === regla.valorNormalizado) {
+            puntaje += regla.peso;
+          }
+        });
+
+        if (tieneFormulaManual(candidato)) {
+          // Preferir preservar la operación que ya contiene fórmula explícita.
+          puntaje += 2;
+        }
+
+        if (mejor == null || puntaje > mejorPuntaje) {
+          mejor = candidato;
+          mejorPuntaje = puntaje;
+        }
+      });
+
+      return mejor || disponibles[0];
+    };
+
     const operaciones = [];
     layout.secciones.forEach((seccion, idx) => {
       const nombreSeccion = (seccion.titulo || seccion.seccion || "")
@@ -5115,21 +5190,6 @@
         .trim();
       if (!nombreSeccion) return;
       const claveSeccion = normalizarTexto(nombreSeccion);
-      const candidatos = porSeccion.get(claveSeccion) || [];
-      let op = null;
-      if (candidatos.length) {
-        op = { ...candidatos[0] };
-        usados.add(candidatos[0]);
-      } else {
-        op = {
-          CAPITULO: capitulo,
-          HOJA: moduloNombre,
-          SECCION: nombreSeccion,
-          Clase: "",
-          OperacionId: "",
-          signos: {},
-        };
-      }
 
       const sumRowLabel =
         (seccion.sumRowLabel || seccion.sumRow || "").toString().trim();
@@ -5143,6 +5203,27 @@
           .trim();
       const resultRowLabel =
         (seccion.resultRow || layout.resultRow || "").toString().trim();
+      const candidatos = porSeccion.get(claveSeccion) || [];
+      const candidatoBase = seleccionarOperacionBase({
+        candidatos,
+        sumRowLabel,
+        sumRowSumavariosLabel,
+        sumRowSumavarios2Label,
+        resultRowLabel,
+      });
+      const op = candidatoBase
+        ? { ...candidatoBase }
+        : {
+            CAPITULO: capitulo,
+            HOJA: moduloNombre,
+            SECCION: nombreSeccion,
+            Clase: "",
+            OperacionId: "",
+            signos: {},
+          };
+      if (candidatoBase) {
+        usados.add(candidatoBase);
+      }
 
       op.CAPITULO = capitulo;
       op.HOJA = moduloNombre;
@@ -5271,6 +5352,13 @@
     ) {
       return false;
     }
+
+    // Evitar reescribir operaciones/fórmulas cuando no hubo edición de layout.
+    // Este método también se invoca desde flujos de guardado de presupuesto.
+    if (!estadoModulo.layoutModificado) {
+      return true;
+    }
+
     const layout = capturarLayoutDesdeTabla();
     if (!validarLayout(layout)) {
       console.warn("Layout no v\u00e1lido, no se guard\u00f3.");

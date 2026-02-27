@@ -13110,19 +13110,15 @@
     const baseFormula = getFormulaMergeScore(base);
     const extraFormula = getFormulaMergeScore(extra);
 
-    // FIXED: Prioritize existing formula (base) unless it's empty/invalid.
-    // However, if the extra (incoming op) has a formula, we should consider merging it if base is default/complex?
-    // Actually, simply relying on score causes user formulas (score 2) to be ignored if base has score 3.
-    // We should allow extra to overwrite base if extra has ANY formula content that isn't empty, 
-    // OR if base is empty.
-    // But we don't want to overwrite a valid base with an empty extra.
+    // BUGFIX: Usar score para decidir qué fórmula es "mejor".
+    // V2 con tokens (score 3) > json no vacío (score 2) > json explícito vacío (score 1) > sin fórmula (score 0)
+    // Esto previene que una fórmula legacy (score 2, clave con espacios) sobreescriba
+    // una fórmula V2 ya vigente (score 3, clave con underscores) durante la deduplicación,
+    // cuando ambas colapsan al mismo key normalizado por normalizeOperationMatch.
     const extraHasContent = extraFormula.score > 0 || (extraFormula.tokenCount > 0);
     const baseHasContent = baseFormula.score > 0 || (baseFormula.tokenCount > 0);
-
-    // If extra has meaningful content, we assume it's the latest version (e.g. user edit or subsequent definition)
-    // and let it overwrite base. This fixes the issue where a complex default formula (score 3) 
-    // prevents a simpler user formula (score 2) from being applied during deduplication.
-    const extraHasBetterFormula = extraHasContent;
+    const extraHasBetterFormula =
+      !baseHasContent || extraFormula.score > baseFormula.score;
 
     if (extraHasBetterFormula) {
       base.formula_terms = Array.isArray(extra.formula_terms)

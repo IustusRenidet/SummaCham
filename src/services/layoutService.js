@@ -1747,11 +1747,15 @@ const obtenerLayout = ({
   };
   const obtenerOperacionKey = (op = {}) => {
     const id = LIMPIAR_CLAVE(op.OperacionId || op.Clase || op.clase || "");
-    if (id) return `ID:${NORMALIZAR_CLAVE(id)}`;
+    // BUGFIX: usar NORMALIZAR_ID_SEGMENTO (reemplaza espacios/especiales con _)
+    // en lugar de NORMALIZAR_CLAVE (preserva espacios) para que claves como
+    // "GASTOS ADMINISTRATIVOS" y "GASTOS_ADMINISTRATIVOS" colapsen al mismo key
+    // y backEnd no retorne ambas como operaciones distintas.
+    if (id) return `ID:${NORMALIZAR_ID_SEGMENTO(id)}`;
     const etiqueta = LIMPIAR_CLAVE(
       op.operacion_etiqueta || op.operacion_label || ""
     );
-    if (etiqueta) return `ETQ:${NORMALIZAR_CLAVE(etiqueta)}`;
+    if (etiqueta) return `ETQ:${NORMALIZAR_ID_SEGMENTO(etiqueta)}`;
     return "";
   };
 
@@ -1918,20 +1922,32 @@ const obtenerLayout = ({
     const incomingHasManualFormula =
       !tipoIgnorado && parsedFormula.hasManualFormula;
     if (incomingHasManualFormula) {
-      operacionesMap[mapKey].formula_terms = formulaTerms;
-      operacionesMap[mapKey].formula_json = incomingFormulaRaw;
-      operacionesMap[mapKey].formula_v2 =
-        parsedFormula.formulaTokens && parsedFormula.formulaTokens.length
-          ? {
-            version: FORMULA_V2_VERSION,
-            tokens: parsedFormula.formulaTokens,
-          }
-          : undefined;
-      operacionesMap[mapKey].__hasManualFormula = true;
-      formulaTerms.forEach((term, termIdx) => {
-        const key = `seccion_${termIdx + 1}`;
-        operacionesMap[mapKey].signos[key] = term.operator === "-" ? -1 : 1;
-      });
+      // BUGFIX: Cuando NORMALIZAR_ID_SEGMENTO colapsa claves legacy (con espacios)
+      // y claves V2 (con underscores) al mismo mapKey, debemos priorizar la fórmula V2.
+      // Si la base ya tiene fórmula V2 y la entrante es solo legacy (sin V2 tokens), NO sobreescribir.
+      const baseHasV2 =
+        operacionesMap[mapKey].__hasManualFormula &&
+        operacionesMap[mapKey].formula_v2 &&
+        Array.isArray(operacionesMap[mapKey].formula_v2.tokens) &&
+        operacionesMap[mapKey].formula_v2.tokens.length > 0;
+      const incomingHasV2 =
+        parsedFormula.formulaTokens && parsedFormula.formulaTokens.length > 0;
+      if (!baseHasV2 || incomingHasV2) {
+        operacionesMap[mapKey].formula_terms = formulaTerms;
+        operacionesMap[mapKey].formula_json = incomingFormulaRaw;
+        operacionesMap[mapKey].formula_v2 =
+          incomingHasV2
+            ? {
+              version: FORMULA_V2_VERSION,
+              tokens: parsedFormula.formulaTokens,
+            }
+            : undefined;
+        operacionesMap[mapKey].__hasManualFormula = true;
+        formulaTerms.forEach((term, termIdx) => {
+          const key = `seccion_${termIdx + 1}`;
+          operacionesMap[mapKey].signos[key] = term.operator === "-" ? -1 : 1;
+        });
+      }
     } else if (
       !tipoIgnorado &&
       incomingFormulaRaw &&

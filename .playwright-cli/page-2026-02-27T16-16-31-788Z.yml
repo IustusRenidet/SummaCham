@@ -1,0 +1,13 @@
+- main "AmCham" [ref=e100]:
+  - heading "AmCham" [level=1] [ref=e102]
+  - generic [ref=e103]:
+    - generic [ref=e104]:
+      - generic [ref=e105]: Usuario *
+      - textbox "Usuario *" [ref=e106]
+    - generic [ref=e107]:
+      - generic [ref=e108]: Contraseña *
+      - generic [ref=e109]:
+        - textbox "Contraseña *" [ref=e110]
+        - button "Mostrar contrase\u001a" [ref=e111] [cursor=pointer]:
+          - img [ref=e112]
+    - button "Ingresar" [ref=e115] [cursor=pointer]

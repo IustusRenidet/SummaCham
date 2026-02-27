@@ -1,0 +1,1359 @@
+- generic [ref=e3]:
+  - complementary "Navegación principal" [ref=e4]:
+    - img "AmCham" [ref=e6]
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - button "Resumen 1" [expanded] [ref=e9] [cursor=pointer]:
+          - generic [ref=e10]: Resumen
+          - generic [ref=e11]: "1"
+        - button "Resumen summary" [ref=e13] [cursor=pointer]:
+          - generic [ref=e14]: Resumen
+          - generic [ref=e15]: summary
+      - generic [ref=e16]:
+        - button "Divisiones 11" [expanded] [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: Divisiones
+          - generic [ref=e19]: "11"
+        - generic [ref=e20]:
+          - button "Presupuestos ppto" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: Presupuestos
+            - generic [ref=e23]: ppto
+          - button "Comités" [ref=e24] [cursor=pointer]:
+            - generic [ref=e25]: Comités
+          - button "Comunicación" [ref=e26] [cursor=pointer]:
+            - generic [ref=e27]: Comunicación
+          - button "Eventos" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: Eventos
+          - generic [ref=e30]:
+            - button "Finanzas 3" [expanded] [ref=e31] [cursor=pointer]:
+              - generic [ref=e32]: Finanzas
+              - generic [ref=e33]: "3"
+            - generic [ref=e34]:
+              - button "Finanzas finanzas" [ref=e35] [cursor=pointer]:
+                - generic [ref=e36]: Finanzas
+                - generic [ref=e37]: finanzas
+              - button "Gastos Generales finanzas" [ref=e38] [cursor=pointer]:
+                - generic [ref=e39]: Gastos Generales
+                - generic [ref=e40]: finanzas
+              - button "Nómina finanzas" [ref=e41] [cursor=pointer]:
+                - generic [ref=e42]: Nómina
+                - generic [ref=e43]: finanzas
+          - button "Gastos Corporativos" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: Gastos Corporativos
+          - button "Membresía" [ref=e46] [cursor=pointer]:
+            - generic [ref=e47]: Membresía
+          - button "Recursos Humanos" [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]: Recursos Humanos
+          - button "Servicios a la Membresía" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: Servicios a la Membresía
+          - button "T&IC" [ref=e52] [cursor=pointer]:
+            - generic [ref=e53]: T&IC
+          - button "VPE" [ref=e54] [cursor=pointer]:
+            - generic [ref=e55]: VPE
+      - generic [ref=e56]:
+        - button "Configuración 5" [expanded] [ref=e57] [cursor=pointer]:
+          - generic [ref=e58]: Configuración
+          - generic [ref=e59]: "5"
+        - generic [ref=e60]:
+          - button "Mi Perfil perfil" [ref=e61] [cursor=pointer]:
+            - generic [ref=e62]: Mi Perfil
+            - generic [ref=e63]: perfil
+          - button "Administrar usuarios Permisos" [ref=e64] [cursor=pointer]:
+            - generic [ref=e65]: Administrar usuarios
+            - generic [ref=e66]: Permisos
+          - button "Crear usuario" [ref=e67] [cursor=pointer]:
+            - generic [ref=e68]: Crear usuario
+          - button "Gestor de Plantillas" [active] [ref=e69] [cursor=pointer]:
+            - generic [ref=e70]: Gestor de Plantillas
+          - button "Administrar conexiones" [ref=e71] [cursor=pointer]:
+            - generic [ref=e72]: Administrar conexiones
+  - main [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - button "Ocultar menú lateral" [expanded] [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]: ☰
+        - heading "Gestor de Plantillas" [level=2] [ref=e97]
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - button "Tour guiado" [ref=e83] [cursor=pointer]
+          - button "Opciones" [ref=e84] [cursor=pointer]:
+            - generic [ref=e85]: Opciones
+        - button "Notificaciones" [ref=e87] [cursor=pointer]:
+          - img [ref=e88]
+        - generic [ref=e90]:
+          - generic [ref=e91]: "Empresa:"
+          - combobox "Empresa:" [ref=e92]:
+            - option "Ciudad de México" [selected]
+            - option "Guadalajara"
+            - option "Noreste"
+            - option "Noroeste"
+        - button "Cerrar sesión" [ref=e93] [cursor=pointer]
+    - iframe [ref=e98]:
+      - generic [active] [ref=f4e1]:
+        - generic [ref=f4e2]:
+          - generic [ref=f4e7]:
+            - generic [ref=f4e8]:
+              - heading "Gestor de Plantillas" [level=1] [ref=f4e9]
+              - paragraph [ref=f4e10]: RESUMEN · 2026 · CIUDAD DE MEXICO
+            - generic [ref=f4e11]:
+              - generic [ref=f4e12]: 
+              - text: Edición forzada (local)
+          - generic [ref=f4e13]:
+            - generic [ref=f4e14]:
+              - generic [ref=f4e15]: Módulo
+              - combobox "Módulo" [ref=f4e16] [cursor=pointer]:
+                - option "RESUMEN" [selected]
+                - option "Finanzas"
+                - option "Gastos Generales"
+                - option "Nómina"
+                - option "Membresía"
+                - option "Serv Membresía"
+                - option "RH"
+                - option "Eventos"
+                - option "Comités"
+                - option "Comunicación"
+                - option "Dirección"
+                - option "Gtos Corporativos"
+                - option "T&IC"
+                - option "VPE"
+            - generic [ref=f4e17]:
+              - generic [ref=f4e18]: Año
+              - combobox "Año" [ref=f4e19] [cursor=pointer]:
+                - option "2026" [selected]
+                - option "2025"
+                - option "2024"
+                - option "2023"
+                - option "2022"
+                - option "2021"
+                - option "2020"
+                - option "2019"
+                - option "2018"
+                - option "2017"
+                - option "2016"
+                - option "2015"
+                - option "2014"
+                - option "2013"
+                - option "2012"
+                - option "2011"
+                - option "2010"
+                - option "2009"
+                - option "2008"
+                - option "2007"
+                - option "2006"
+                - option "2005"
+            - generic [ref=f4e20]:
+              - generic [ref=f4e21]: Capítulo
+              - combobox "Capítulo" [ref=f4e22] [cursor=pointer]:
+                - option "CIUDAD DE MÉXICO" [selected]
+            - button " Cargar Layout" [ref=f4e24] [cursor=pointer]:
+              - generic [ref=f4e25]: 
+              - text: Cargar Layout
+          - generic [ref=f4e30]:
+            - generic [ref=f4e32]:
+              - textbox "Buscar en el layout..." [ref=f4e33] [cursor=pointer]
+              - generic [ref=f4e34]:
+                - generic [ref=f4e35]: "Filtrar:"
+                - group [ref=f4e36]:
+                  - radio "Todo" [checked] [ref=f4e37] [cursor=pointer]
+                  - generic [ref=f4e38] [cursor=pointer]: Todo
+                  - radio "Secciones" [ref=f4e39] [cursor=pointer]
+                  - generic [ref=f4e40] [cursor=pointer]: Secciones
+                  - radio "Cuentas" [ref=f4e41] [cursor=pointer]
+                  - generic [ref=f4e42] [cursor=pointer]: Cuentas
+                  - radio "Operaciones" [ref=f4e43] [cursor=pointer]
+                  - generic [ref=f4e44] [cursor=pointer]: Operaciones
+            - button " Agregar" [ref=f4e69] [cursor=pointer]:
+              - generic [ref=f4e70]: 
+              - text: Agregar
+            - button " Expandir" [ref=f4e71] [cursor=pointer]:
+              - generic [ref=f4e72]: 
+              - text: Expandir
+            - button " Colapsar" [ref=f4e73] [cursor=pointer]:
+              - generic [ref=f4e74]: 
+              - text: Colapsar
+            - button " Vista Previa" [ref=f4e75] [cursor=pointer]:
+              - generic [ref=f4e76]: 
+              - text: Vista Previa
+            - button " Copiar a otro año" [ref=f4e77] [cursor=pointer]:
+              - generic [ref=f4e78]: 
+              - text: Copiar a otro año
+            - button " Guardar" [disabled]:
+              - generic: 
+              - text: Guardar
+            - button " Historial" [ref=f4e79] [cursor=pointer]:
+              - generic [ref=f4e80]: 
+              - text: Historial
+          - tablist [ref=f4e47]:
+            - tab "Layout" [selected] [ref=f4e48] [cursor=pointer]
+            - tab "Graficas" [ref=f4e49] [cursor=pointer]
+          - generic [ref=f4e50]:
+            - tabpanel "Layout" [ref=f4e51]:
+              - generic [ref=f4e53]:
+                - text:   
+                - generic [ref=f4e82]:
+                  - generic [ref=f4e84]: RESUMEN · 2026 · CIUDAD DE MEXICO
+                  - generic [ref=f4e86]:
+                    - generic [ref=f4e88]:
+                      - generic [ref=f4e89]:
+                        - generic [ref=f4e90]:
+                          - generic [ref=f4e91]: Secciones
+                          - generic [ref=f4e92]: "10"
+                        - generic [ref=f4e93]:
+                          - generic [ref=f4e94]: Subsecciones
+                          - generic [ref=f4e95]: "15"
+                        - generic [ref=f4e96]:
+                          - generic [ref=f4e97]: Cuentas
+                          - generic [ref=f4e98]: "52"
+                        - generic [ref=f4e99]:
+                          - generic [ref=f4e100]: Operaciones
+                          - generic [ref=f4e101]: "12"
+                      - generic [ref=f4e102]: Orden real de aparicion. Click en una fila para editar.
+                    - generic [ref=f4e103]:
+                      - generic [ref=f4e104]:
+                        - generic [ref=f4e105]: Elementos de la plantilla
+                        - generic [ref=f4e108]:
+                          - checkbox " Ordenar" [ref=f4e109] [cursor=pointer]
+                          - generic [ref=f4e110]:
+                            - generic [ref=f4e111]: 
+                            - text: Ordenar
+                      - generic [ref=f4e113]:
+                        - generic [ref=f4e115] [cursor=pointer]:
+                          - generic [ref=f4e116]:
+                            - generic [ref=f4e117]: 
+                            - strong [ref=f4e118]: INCOME
+                          - generic [ref=f4e119]:
+                            - button "Σ" [ref=f4e120]
+                            - button "" [ref=f4e121]:
+                              - generic [ref=f4e122]: 
+                            - button "" [ref=f4e123]:
+                              - generic [ref=f4e124]: 
+                            - button "" [ref=f4e125]:
+                              - generic [ref=f4e126]: 
+                        - generic [ref=f4e128] [cursor=pointer]:
+                          - generic [ref=f4e129]:
+                            - generic [ref=f4e130]: 
+                            - emphasis [ref=f4e131]: Membership
+                          - generic [ref=f4e132]:
+                            - button "" [ref=f4e133]:
+                              - generic [ref=f4e134]: 
+                            - button "" [ref=f4e135]:
+                              - generic [ref=f4e136]: 
+                            - button "" [ref=f4e137]:
+                              - generic [ref=f4e138]: 
+                            - button "" [ref=f4e139]:
+                              - generic [ref=f4e140]: 
+                        - generic [ref=f4e142] [cursor=pointer]:
+                          - generic [ref=f4e143]:
+                            - generic [ref=f4e144]: 401-000-000-00
+                            - generic [ref=f4e145]: Cuotas Netas
+                          - generic [ref=f4e146]:
+                            - button "" [ref=f4e147]:
+                              - generic [ref=f4e148]: 
+                            - button "" [ref=f4e149]:
+                              - generic [ref=f4e150]: 
+                        - generic [ref=f4e152] [cursor=pointer]:
+                          - generic [ref=f4e153]:
+                            - generic [ref=f4e154]: 402-000-000-00
+                            - generic [ref=f4e155]: Ingresos socios nuevos
+                          - generic [ref=f4e156]:
+                            - button "" [ref=f4e157]:
+                              - generic [ref=f4e158]: 
+                            - button "" [ref=f4e159]:
+                              - generic [ref=f4e160]: 
+                        - generic [ref=f4e162] [cursor=pointer]:
+                          - generic [ref=f4e163]:
+                            - generic [ref=f4e164]: 
+                            - emphasis [ref=f4e165]: Events
+                          - generic [ref=f4e166]:
+                            - button "" [ref=f4e167]:
+                              - generic [ref=f4e168]: 
+                            - button "" [ref=f4e169]:
+                              - generic [ref=f4e170]: 
+                            - button "" [ref=f4e171]:
+                              - generic [ref=f4e172]: 
+                            - button "" [ref=f4e173]:
+                              - generic [ref=f4e174]: 
+                        - generic [ref=f4e176] [cursor=pointer]:
+                          - generic [ref=f4e177]:
+                            - generic [ref=f4e178]: 407-000-000-00
+                            - generic [ref=f4e179]: Eventos
+                          - generic [ref=f4e180]:
+                            - button "" [ref=f4e181]:
+                              - generic [ref=f4e182]: 
+                            - button "" [ref=f4e183]:
+                              - generic [ref=f4e184]: 
+                        - generic [ref=f4e186] [cursor=pointer]:
+                          - generic [ref=f4e187]:
+                            - generic [ref=f4e188]: 408-000-000-00
+                            - generic [ref=f4e189]: Patrocinios
+                          - generic [ref=f4e190]:
+                            - button "" [ref=f4e191]:
+                              - generic [ref=f4e192]: 
+                            - button "" [ref=f4e193]:
+                              - generic [ref=f4e194]: 
+                        - generic [ref=f4e196] [cursor=pointer]:
+                          - generic [ref=f4e197]:
+                            - generic [ref=f4e198]: 
+                            - emphasis [ref=f4e199]: Committees
+                          - generic [ref=f4e200]:
+                            - button "" [ref=f4e201]:
+                              - generic [ref=f4e202]: 
+                            - button "" [ref=f4e203]:
+                              - generic [ref=f4e204]: 
+                            - button "" [ref=f4e205]:
+                              - generic [ref=f4e206]: 
+                            - button "" [ref=f4e207]:
+                              - generic [ref=f4e208]: 
+                        - generic [ref=f4e210] [cursor=pointer]:
+                          - generic [ref=f4e211]:
+                            - generic [ref=f4e212]: 417-000-000-00
+                            - generic [ref=f4e213]: Comités
+                          - generic [ref=f4e214]:
+                            - button "" [ref=f4e215]:
+                              - generic [ref=f4e216]: 
+                            - button "" [ref=f4e217]:
+                              - generic [ref=f4e218]: 
+                        - generic [ref=f4e220] [cursor=pointer]:
+                          - generic [ref=f4e221]:
+                            - generic [ref=f4e222]: 412-000-000-00
+                            - generic [ref=f4e223]: Economex
+                          - generic [ref=f4e224]:
+                            - button "" [ref=f4e225]:
+                              - generic [ref=f4e226]: 
+                            - button "" [ref=f4e227]:
+                              - generic [ref=f4e228]: 
+                        - generic [ref=f4e230] [cursor=pointer]:
+                          - generic [ref=f4e231]:
+                            - generic [ref=f4e232]: 
+                            - emphasis [ref=f4e233]: T&IC
+                          - generic [ref=f4e234]:
+                            - button "" [ref=f4e235]:
+                              - generic [ref=f4e236]: 
+                            - button "" [ref=f4e237]:
+                              - generic [ref=f4e238]: 
+                            - button "" [ref=f4e239]:
+                              - generic [ref=f4e240]: 
+                            - button "" [ref=f4e241]:
+                              - generic [ref=f4e242]: 
+                        - generic [ref=f4e244] [cursor=pointer]:
+                          - generic [ref=f4e245]:
+                            - generic [ref=f4e246]: 405-000-000-00
+                            - generic [ref=f4e247]: Trade & Investment Center
+                          - generic [ref=f4e248]:
+                            - button "" [ref=f4e249]:
+                              - generic [ref=f4e250]: 
+                            - button "" [ref=f4e251]:
+                              - generic [ref=f4e252]: 
+                        - generic [ref=f4e254] [cursor=pointer]:
+                          - generic [ref=f4e255]:
+                            - generic [ref=f4e256]: 
+                            - emphasis [ref=f4e257]: Services to Members
+                          - generic [ref=f4e258]:
+                            - button "" [ref=f4e259]:
+                              - generic [ref=f4e260]: 
+                            - button "" [ref=f4e261]:
+                              - generic [ref=f4e262]: 
+                            - button "" [ref=f4e263]:
+                              - generic [ref=f4e264]: 
+                            - button "" [ref=f4e265]:
+                              - generic [ref=f4e266]: 
+                        - generic [ref=f4e268] [cursor=pointer]:
+                          - generic [ref=f4e269]:
+                            - generic [ref=f4e270]: 406-001-000-00
+                            - generic [ref=f4e271]: Venta Publicaciones
+                          - generic [ref=f4e272]:
+                            - button "" [ref=f4e273]:
+                              - generic [ref=f4e274]: 
+                            - button "" [ref=f4e275]:
+                              - generic [ref=f4e276]: 
+                        - generic [ref=f4e278] [cursor=pointer]:
+                          - generic [ref=f4e279]:
+                            - generic [ref=f4e280]: 406-002-000-00
+                            - generic [ref=f4e281]: Digital Training
+                          - generic [ref=f4e282]:
+                            - button "" [ref=f4e283]:
+                              - generic [ref=f4e284]: 
+                            - button "" [ref=f4e285]:
+                              - generic [ref=f4e286]: 
+                        - generic [ref=f4e288] [cursor=pointer]:
+                          - generic [ref=f4e289]:
+                            - generic [ref=f4e290]: 409-000-000-00
+                            - generic [ref=f4e291]: Visas
+                          - generic [ref=f4e292]:
+                            - button "" [ref=f4e293]:
+                              - generic [ref=f4e294]: 
+                            - button "" [ref=f4e295]:
+                              - generic [ref=f4e296]: 
+                        - generic [ref=f4e298] [cursor=pointer]:
+                          - generic [ref=f4e299]:
+                            - generic [ref=f4e300]: 
+                            - strong [ref=f4e301]: Guadalajara Income
+                          - generic [ref=f4e302]:
+                            - button "Σ" [ref=f4e303]
+                            - button "" [ref=f4e304]:
+                              - generic [ref=f4e305]: 
+                            - button "" [ref=f4e306]:
+                              - generic [ref=f4e307]: 
+                            - button "" [ref=f4e308]:
+                              - generic [ref=f4e309]: 
+                        - generic [ref=f4e311] [cursor=pointer]:
+                          - generic [ref=f4e312]:
+                            - generic [ref=f4e313]: 450-001-000-00
+                            - generic [ref=f4e314]: GDL Income
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e315]: sin subsección
+                          - generic [ref=f4e316]:
+                            - button "" [ref=f4e317]:
+                              - generic [ref=f4e318]: 
+                            - button "" [ref=f4e319]:
+                              - generic [ref=f4e320]: 
+                        - generic [ref=f4e322] [cursor=pointer]:
+                          - generic [ref=f4e323]:
+                            - generic [ref=f4e324]: 
+                            - strong [ref=f4e325]: Monterrey Income
+                          - generic [ref=f4e326]:
+                            - button "Σ" [ref=f4e327]
+                            - button "" [ref=f4e328]:
+                              - generic [ref=f4e329]: 
+                            - button "" [ref=f4e330]:
+                              - generic [ref=f4e331]: 
+                            - button "" [ref=f4e332]:
+                              - generic [ref=f4e333]: 
+                        - generic [ref=f4e335] [cursor=pointer]:
+                          - generic [ref=f4e336]:
+                            - generic [ref=f4e337]: 450-002-000-00
+                            - generic [ref=f4e338]: MTY Income
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e339]: sin subsección
+                          - generic [ref=f4e340]:
+                            - button "" [ref=f4e341]:
+                              - generic [ref=f4e342]: 
+                            - button "" [ref=f4e343]:
+                              - generic [ref=f4e344]: 
+                        - generic [ref=f4e346] [cursor=pointer]:
+                          - generic [ref=f4e347]:
+                            - generic [ref=f4e348]: 
+                            - strong [ref=f4e349]: Northwest Income
+                          - generic [ref=f4e350]:
+                            - button "Σ" [ref=f4e351]
+                            - button "" [ref=f4e352]:
+                              - generic [ref=f4e353]: 
+                            - button "" [ref=f4e354]:
+                              - generic [ref=f4e355]: 
+                            - button "" [ref=f4e356]:
+                              - generic [ref=f4e357]: 
+                        - generic [ref=f4e359] [cursor=pointer]:
+                          - generic [ref=f4e360]:
+                            - generic [ref=f4e361]: 450-003-000-00
+                            - generic [ref=f4e362]: NO Income
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e363]: sin subsección
+                          - generic [ref=f4e364]:
+                            - button "" [ref=f4e365]:
+                              - generic [ref=f4e366]: 
+                            - button "" [ref=f4e367]:
+                              - generic [ref=f4e368]: 
+                        - generic "+ INCOME + Guadalajara Income + Monterrey Income + Northwest Income" [ref=f4e369] [cursor=pointer]:
+                          - generic [ref=f4e370]:
+                            - generic [ref=f4e371]:
+                              - generic [ref=f4e372]:
+                                - generic [ref=f4e373]: 
+                                - strong [ref=f4e374]: CONSOLIDATED INCOME
+                              - generic [ref=f4e375]: = + INCOME + Guadalajara Income + Monterrey Income + Northwest Income
+                            - generic [ref=f4e376]:
+                              - button "" [ref=f4e377]:
+                                - generic [ref=f4e378]: 
+                              - button "" [ref=f4e379]:
+                                - generic [ref=f4e380]: 
+                        - generic [ref=f4e382] [cursor=pointer]:
+                          - generic [ref=f4e383]:
+                            - generic [ref=f4e384]: 
+                            - strong [ref=f4e385]: EXPENSE
+                          - generic [ref=f4e386]:
+                            - button "Σ" [ref=f4e387]
+                            - button "" [ref=f4e388]:
+                              - generic [ref=f4e389]: 
+                            - button "" [ref=f4e390]:
+                              - generic [ref=f4e391]: 
+                            - button "" [ref=f4e392]:
+                              - generic [ref=f4e393]: 
+                        - generic [ref=f4e395] [cursor=pointer]:
+                          - generic [ref=f4e396]:
+                            - generic [ref=f4e397]: 
+                            - emphasis [ref=f4e398]: Membership
+                          - generic [ref=f4e399]:
+                            - button "" [ref=f4e400]:
+                              - generic [ref=f4e401]: 
+                            - button "" [ref=f4e402]:
+                              - generic [ref=f4e403]: 
+                            - button "" [ref=f4e404]:
+                              - generic [ref=f4e405]: 
+                            - button "" [ref=f4e406]:
+                              - generic [ref=f4e407]: 
+                        - generic [ref=f4e409] [cursor=pointer]:
+                          - generic [ref=f4e410]:
+                            - generic [ref=f4e411]: 705-000-000-00
+                            - generic [ref=f4e412]: Gastos Promoción
+                          - generic [ref=f4e413]:
+                            - button "" [ref=f4e414]:
+                              - generic [ref=f4e415]: 
+                            - button "" [ref=f4e416]:
+                              - generic [ref=f4e417]: 
+                        - generic [ref=f4e419] [cursor=pointer]:
+                          - generic [ref=f4e420]:
+                            - generic [ref=f4e421]: 520-000-000-00
+                            - generic [ref=f4e422]: Comsiones por venta de membresía
+                          - generic [ref=f4e423]:
+                            - button "" [ref=f4e424]:
+                              - generic [ref=f4e425]: 
+                            - button "" [ref=f4e426]:
+                              - generic [ref=f4e427]: 
+                        - generic [ref=f4e429] [cursor=pointer]:
+                          - generic [ref=f4e430]:
+                            - generic [ref=f4e431]: 
+                            - emphasis [ref=f4e432]: Events
+                          - generic [ref=f4e433]:
+                            - button "" [ref=f4e434]:
+                              - generic [ref=f4e435]: 
+                            - button "" [ref=f4e436]:
+                              - generic [ref=f4e437]: 
+                            - button "" [ref=f4e438]:
+                              - generic [ref=f4e439]: 
+                            - button "" [ref=f4e440]:
+                              - generic [ref=f4e441]: 
+                        - generic [ref=f4e443] [cursor=pointer]:
+                          - generic [ref=f4e444]:
+                            - generic [ref=f4e445]: 701-000-000-00
+                            - generic [ref=f4e446]: Costo Eventos
+                          - generic [ref=f4e447]:
+                            - button "" [ref=f4e448]:
+                              - generic [ref=f4e449]: 
+                            - button "" [ref=f4e450]:
+                              - generic [ref=f4e451]: 
+                        - generic [ref=f4e453] [cursor=pointer]:
+                          - generic [ref=f4e454]:
+                            - generic [ref=f4e455]: 
+                            - emphasis [ref=f4e456]: Committees
+                          - generic [ref=f4e457]:
+                            - button "" [ref=f4e458]:
+                              - generic [ref=f4e459]: 
+                            - button "" [ref=f4e460]:
+                              - generic [ref=f4e461]: 
+                            - button "" [ref=f4e462]:
+                              - generic [ref=f4e463]: 
+                            - button "" [ref=f4e464]:
+                              - generic [ref=f4e465]: 
+                        - generic [ref=f4e467] [cursor=pointer]:
+                          - generic [ref=f4e468]:
+                            - generic [ref=f4e469]: 702-000-000-00
+                            - generic [ref=f4e470]: Costo Comités
+                          - generic [ref=f4e471]:
+                            - button "" [ref=f4e472]:
+                              - generic [ref=f4e473]: 
+                            - button "" [ref=f4e474]:
+                              - generic [ref=f4e475]: 
+                        - generic [ref=f4e477] [cursor=pointer]:
+                          - generic [ref=f4e478]:
+                            - generic [ref=f4e479]: 704-000-000-00
+                            - generic [ref=f4e480]: Costo Economex
+                          - generic [ref=f4e481]:
+                            - button "" [ref=f4e482]:
+                              - generic [ref=f4e483]: 
+                            - button "" [ref=f4e484]:
+                              - generic [ref=f4e485]: 
+                        - generic [ref=f4e487] [cursor=pointer]:
+                          - generic [ref=f4e488]:
+                            - generic [ref=f4e489]: 521-000-000-00
+                            - generic [ref=f4e490]: Comisiones EWDP y Economex
+                          - generic [ref=f4e491]:
+                            - button "" [ref=f4e492]:
+                              - generic [ref=f4e493]: 
+                            - button "" [ref=f4e494]:
+                              - generic [ref=f4e495]: 
+                        - generic [ref=f4e497] [cursor=pointer]:
+                          - generic [ref=f4e498]:
+                            - generic [ref=f4e499]: 
+                            - emphasis [ref=f4e500]: T&IC
+                          - generic [ref=f4e501]:
+                            - button "" [ref=f4e502]:
+                              - generic [ref=f4e503]: 
+                            - button "" [ref=f4e504]:
+                              - generic [ref=f4e505]: 
+                            - button "" [ref=f4e506]:
+                              - generic [ref=f4e507]: 
+                            - button "" [ref=f4e508]:
+                              - generic [ref=f4e509]: 
+                        - generic [ref=f4e511] [cursor=pointer]:
+                          - generic [ref=f4e512]:
+                            - generic [ref=f4e513]: 703-000-000-00
+                            - generic [ref=f4e514]: Costo Trade & Investment Center
+                          - generic [ref=f4e515]:
+                            - button "" [ref=f4e516]:
+                              - generic [ref=f4e517]: 
+                            - button "" [ref=f4e518]:
+                              - generic [ref=f4e519]: 
+                        - generic [ref=f4e521] [cursor=pointer]:
+                          - generic [ref=f4e522]:
+                            - generic [ref=f4e523]: 
+                            - emphasis [ref=f4e524]: Services to Members
+                          - generic [ref=f4e525]:
+                            - button "" [ref=f4e526]:
+                              - generic [ref=f4e527]: 
+                            - button "" [ref=f4e528]:
+                              - generic [ref=f4e529]: 
+                            - button "" [ref=f4e530]:
+                              - generic [ref=f4e531]: 
+                            - button "" [ref=f4e532]:
+                              - generic [ref=f4e533]: 
+                        - generic [ref=f4e535] [cursor=pointer]:
+                          - generic [ref=f4e536]:
+                            - generic [ref=f4e537]: 601-002-003-00
+                            - generic [ref=f4e538]: Costo Venta Publicaciones
+                          - generic [ref=f4e539]:
+                            - button "" [ref=f4e540]:
+                              - generic [ref=f4e541]: 
+                            - button "" [ref=f4e542]:
+                              - generic [ref=f4e543]: 
+                        - generic [ref=f4e545] [cursor=pointer]:
+                          - generic [ref=f4e546]:
+                            - generic [ref=f4e547]: 601-003-001-00
+                            - generic [ref=f4e548]: Costo Digital Training
+                          - generic [ref=f4e549]:
+                            - button "" [ref=f4e550]:
+                              - generic [ref=f4e551]: 
+                            - button "" [ref=f4e552]:
+                              - generic [ref=f4e553]: 
+                        - generic [ref=f4e555] [cursor=pointer]:
+                          - generic [ref=f4e556]:
+                            - generic [ref=f4e557]: 
+                            - emphasis [ref=f4e558]: Gastos Administrativos
+                          - generic [ref=f4e559]:
+                            - button "" [ref=f4e560]:
+                              - generic [ref=f4e561]: 
+                            - button "" [ref=f4e562]:
+                              - generic [ref=f4e563]: 
+                            - button "" [ref=f4e564]:
+                              - generic [ref=f4e565]: 
+                            - button "" [ref=f4e566]:
+                              - generic [ref=f4e567]: 
+                        - generic [ref=f4e569] [cursor=pointer]:
+                          - generic [ref=f4e570]:
+                            - generic [ref=f4e571]: 801-001-000-00
+                            - generic [ref=f4e572]: Desarrollo de Negocios
+                          - generic [ref=f4e573]:
+                            - button "" [ref=f4e574]:
+                              - generic [ref=f4e575]: 
+                            - button "" [ref=f4e576]:
+                              - generic [ref=f4e577]: 
+                        - generic [ref=f4e579] [cursor=pointer]:
+                          - generic [ref=f4e580]:
+                            - generic [ref=f4e581]: 801-002-000-00
+                            - generic [ref=f4e582]: Relaciones Externas
+                          - generic [ref=f4e583]:
+                            - button "" [ref=f4e584]:
+                              - generic [ref=f4e585]: 
+                            - button "" [ref=f4e586]:
+                              - generic [ref=f4e587]: 
+                        - generic [ref=f4e589] [cursor=pointer]:
+                          - generic [ref=f4e590]:
+                            - generic [ref=f4e591]: 801-003-000-00
+                            - generic [ref=f4e592]: Servicios a las membresia
+                          - generic [ref=f4e593]:
+                            - button "" [ref=f4e594]:
+                              - generic [ref=f4e595]: 
+                            - button "" [ref=f4e596]:
+                              - generic [ref=f4e597]: 
+                        - generic [ref=f4e599] [cursor=pointer]:
+                          - generic [ref=f4e600]:
+                            - generic [ref=f4e601]: 801-004-000-00
+                            - generic [ref=f4e602]: Vicepresidencia
+                          - generic [ref=f4e603]:
+                            - button "" [ref=f4e604]:
+                              - generic [ref=f4e605]: 
+                            - button "" [ref=f4e606]:
+                              - generic [ref=f4e607]: 
+                        - generic [ref=f4e609] [cursor=pointer]:
+                          - generic [ref=f4e610]:
+                            - generic [ref=f4e611]: 801-005-000-00
+                            - generic [ref=f4e612]: Finanzas
+                          - generic [ref=f4e613]:
+                            - button "" [ref=f4e614]:
+                              - generic [ref=f4e615]: 
+                            - button "" [ref=f4e616]:
+                              - generic [ref=f4e617]: 
+                        - generic [ref=f4e619] [cursor=pointer]:
+                          - generic [ref=f4e620]:
+                            - generic [ref=f4e621]: 801-006-000-00
+                            - generic [ref=f4e622]: Administración
+                          - generic [ref=f4e623]:
+                            - button "" [ref=f4e624]:
+                              - generic [ref=f4e625]: 
+                            - button "" [ref=f4e626]:
+                              - generic [ref=f4e627]: 
+                        - generic [ref=f4e629] [cursor=pointer]:
+                          - generic [ref=f4e630]:
+                            - generic [ref=f4e631]: 801-007-000-00
+                            - generic [ref=f4e632]: Sistemas
+                          - generic [ref=f4e633]:
+                            - button "" [ref=f4e634]:
+                              - generic [ref=f4e635]: 
+                            - button "" [ref=f4e636]:
+                              - generic [ref=f4e637]: 
+                        - generic [ref=f4e639] [cursor=pointer]:
+                          - generic [ref=f4e640]:
+                            - generic [ref=f4e641]: 801-008-000-00
+                            - generic [ref=f4e642]: Empleos
+                          - generic [ref=f4e643]:
+                            - button "" [ref=f4e644]:
+                              - generic [ref=f4e645]: 
+                            - button "" [ref=f4e646]:
+                              - generic [ref=f4e647]: 
+                        - generic [ref=f4e649] [cursor=pointer]:
+                          - generic [ref=f4e650]:
+                            - generic [ref=f4e651]: 801-009-000-00
+                            - generic [ref=f4e652]: Servicios Generales (Almacén)
+                          - generic [ref=f4e653]:
+                            - button "" [ref=f4e654]:
+                              - generic [ref=f4e655]: 
+                            - button "" [ref=f4e656]:
+                              - generic [ref=f4e657]: 
+                        - generic [ref=f4e659] [cursor=pointer]:
+                          - generic [ref=f4e660]:
+                            - generic [ref=f4e661]: 801-010-000-00
+                            - generic [ref=f4e662]: Eventos
+                          - generic [ref=f4e663]:
+                            - button "" [ref=f4e664]:
+                              - generic [ref=f4e665]: 
+                            - button "" [ref=f4e666]:
+                              - generic [ref=f4e667]: 
+                        - generic [ref=f4e669] [cursor=pointer]:
+                          - generic [ref=f4e670]:
+                            - generic [ref=f4e671]: 801-011-000-00
+                            - generic [ref=f4e672]: Comites
+                          - generic [ref=f4e673]:
+                            - button "" [ref=f4e674]:
+                              - generic [ref=f4e675]: 
+                            - button "" [ref=f4e676]:
+                              - generic [ref=f4e677]: 
+                        - generic [ref=f4e679] [cursor=pointer]:
+                          - generic [ref=f4e680]:
+                            - generic [ref=f4e681]: 801-012-000-00
+                            - generic [ref=f4e682]: Renta de Salas
+                          - generic [ref=f4e683]:
+                            - button "" [ref=f4e684]:
+                              - generic [ref=f4e685]: 
+                            - button "" [ref=f4e686]:
+                              - generic [ref=f4e687]: 
+                        - generic [ref=f4e689] [cursor=pointer]:
+                          - generic [ref=f4e690]:
+                            - generic [ref=f4e691]: 801-013-000-00
+                            - generic [ref=f4e692]: Comunicación
+                          - generic [ref=f4e693]:
+                            - button "" [ref=f4e694]:
+                              - generic [ref=f4e695]: 
+                            - button "" [ref=f4e696]:
+                              - generic [ref=f4e697]: 
+                        - generic [ref=f4e699] [cursor=pointer]:
+                          - generic [ref=f4e700]:
+                            - generic [ref=f4e701]: 
+                            - emphasis [ref=f4e702]: Gastos Generales
+                          - generic [ref=f4e703]:
+                            - button "" [ref=f4e704]:
+                              - generic [ref=f4e705]: 
+                            - button "" [ref=f4e706]:
+                              - generic [ref=f4e707]: 
+                            - button "" [ref=f4e708]:
+                              - generic [ref=f4e709]: 
+                            - button "" [ref=f4e710]:
+                              - generic [ref=f4e711]: 
+                        - generic [ref=f4e713] [cursor=pointer]:
+                          - generic [ref=f4e714]:
+                            - generic [ref=f4e715]: 901-000-000-00
+                            - generic [ref=f4e716]: Gastos Generales
+                          - generic [ref=f4e717]:
+                            - button "" [ref=f4e718]:
+                              - generic [ref=f4e719]: 
+                            - button "" [ref=f4e720]:
+                              - generic [ref=f4e721]: 
+                        - generic [ref=f4e723] [cursor=pointer]:
+                          - generic [ref=f4e724]:
+                            - generic [ref=f4e725]: 
+                            - emphasis [ref=f4e726]: Nómina
+                          - generic [ref=f4e727]:
+                            - button "" [ref=f4e728]:
+                              - generic [ref=f4e729]: 
+                            - button "" [ref=f4e730]:
+                              - generic [ref=f4e731]: 
+                            - button "" [ref=f4e732]:
+                              - generic [ref=f4e733]: 
+                            - button "" [ref=f4e734]:
+                              - generic [ref=f4e735]: 
+                        - generic [ref=f4e737] [cursor=pointer]:
+                          - generic [ref=f4e738]:
+                            - generic [ref=f4e739]: 513-000-000-00
+                            - generic [ref=f4e740]: Nomina Vicepresidencia
+                          - generic [ref=f4e741]:
+                            - button "" [ref=f4e742]:
+                              - generic [ref=f4e743]: 
+                            - button "" [ref=f4e744]:
+                              - generic [ref=f4e745]: 
+                        - generic [ref=f4e747] [cursor=pointer]:
+                          - generic [ref=f4e748]:
+                            - generic [ref=f4e749]: 517-000-000-00
+                            - generic [ref=f4e750]: Nomina Desarrollo de Negocios
+                          - generic [ref=f4e751]:
+                            - button "" [ref=f4e752]:
+                              - generic [ref=f4e753]: 
+                            - button "" [ref=f4e754]:
+                              - generic [ref=f4e755]: 
+                        - generic [ref=f4e757] [cursor=pointer]:
+                          - generic [ref=f4e758]:
+                            - generic [ref=f4e759]: 516-000-000-00
+                            - generic [ref=f4e760]: Nomina Comites y Relaciones Externas
+                          - generic [ref=f4e761]:
+                            - button "" [ref=f4e762]:
+                              - generic [ref=f4e763]: 
+                            - button "" [ref=f4e764]:
+                              - generic [ref=f4e765]: 
+                        - generic [ref=f4e767] [cursor=pointer]:
+                          - generic [ref=f4e768]:
+                            - generic [ref=f4e769]: 519-000-000-00
+                            - generic [ref=f4e770]: Nomina Comunicación
+                          - generic [ref=f4e771]:
+                            - button "" [ref=f4e772]:
+                              - generic [ref=f4e773]: 
+                            - button "" [ref=f4e774]:
+                              - generic [ref=f4e775]: 
+                        - generic [ref=f4e777] [cursor=pointer]:
+                          - generic [ref=f4e778]:
+                            - generic [ref=f4e779]: 515-000-000-00
+                            - generic [ref=f4e780]: Nomina Servicios a la Membresia
+                          - generic [ref=f4e781]:
+                            - button "" [ref=f4e782]:
+                              - generic [ref=f4e783]: 
+                            - button "" [ref=f4e784]:
+                              - generic [ref=f4e785]: 
+                        - generic [ref=f4e787] [cursor=pointer]:
+                          - generic [ref=f4e788]:
+                            - generic [ref=f4e789]: 518-000-000-00
+                            - generic [ref=f4e790]: Nomina Eventos y Mercadotecnia
+                          - generic [ref=f4e791]:
+                            - button "" [ref=f4e792]:
+                              - generic [ref=f4e793]: 
+                            - button "" [ref=f4e794]:
+                              - generic [ref=f4e795]: 
+                        - generic [ref=f4e797] [cursor=pointer]:
+                          - generic [ref=f4e798]:
+                            - generic [ref=f4e799]: 514-000-000-00
+                            - generic [ref=f4e800]: Nomina Administración y Finanzas
+                          - generic [ref=f4e801]:
+                            - button "" [ref=f4e802]:
+                              - generic [ref=f4e803]: 
+                            - button "" [ref=f4e804]:
+                              - generic [ref=f4e805]: 
+                        - generic [ref=f4e807] [cursor=pointer]:
+                          - generic [ref=f4e808]:
+                            - generic [ref=f4e809]: 
+                            - emphasis [ref=f4e810]: Gastos Corporativos
+                          - generic [ref=f4e811]:
+                            - button "" [ref=f4e812]:
+                              - generic [ref=f4e813]: 
+                            - button "" [ref=f4e814]:
+                              - generic [ref=f4e815]: 
+                            - button "" [ref=f4e816]:
+                              - generic [ref=f4e817]: 
+                            - button "" [ref=f4e818]:
+                              - generic [ref=f4e819]: 
+                        - generic [ref=f4e821] [cursor=pointer]:
+                          - generic [ref=f4e822]:
+                            - generic [ref=f4e823]: 903-000-000-00
+                            - generic [ref=f4e824]: Gastos Corporativos
+                          - generic [ref=f4e825]:
+                            - button "" [ref=f4e826]:
+                              - generic [ref=f4e827]: 
+                            - button "" [ref=f4e828]:
+                              - generic [ref=f4e829]: 
+                        - generic [ref=f4e831] [cursor=pointer]:
+                          - generic [ref=f4e832]:
+                            - generic [ref=f4e833]: 
+                            - strong [ref=f4e834]: Guadalajara Expense
+                          - generic [ref=f4e835]:
+                            - button "Σ" [ref=f4e836]
+                            - button "" [ref=f4e837]:
+                              - generic [ref=f4e838]: 
+                            - button "" [ref=f4e839]:
+                              - generic [ref=f4e840]: 
+                            - button "" [ref=f4e841]:
+                              - generic [ref=f4e842]: 
+                        - generic [ref=f4e844] [cursor=pointer]:
+                          - generic [ref=f4e845]:
+                            - generic [ref=f4e846]: 950-001-000-00
+                            - generic [ref=f4e847]: GDL Expense
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e848]: sin subsección
+                          - generic [ref=f4e849]:
+                            - button "" [ref=f4e850]:
+                              - generic [ref=f4e851]: 
+                            - button "" [ref=f4e852]:
+                              - generic [ref=f4e853]: 
+                        - generic [ref=f4e855] [cursor=pointer]:
+                          - generic [ref=f4e856]:
+                            - generic [ref=f4e857]: 
+                            - strong [ref=f4e858]: Monterrey Expense
+                          - generic [ref=f4e859]:
+                            - button "Σ" [ref=f4e860]
+                            - button "" [ref=f4e861]:
+                              - generic [ref=f4e862]: 
+                            - button "" [ref=f4e863]:
+                              - generic [ref=f4e864]: 
+                            - button "" [ref=f4e865]:
+                              - generic [ref=f4e866]: 
+                        - generic [ref=f4e868] [cursor=pointer]:
+                          - generic [ref=f4e869]:
+                            - generic [ref=f4e870]: 950-002-000-00
+                            - generic [ref=f4e871]: MTY Expense
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e872]: sin subsección
+                          - generic [ref=f4e873]:
+                            - button "" [ref=f4e874]:
+                              - generic [ref=f4e875]: 
+                            - button "" [ref=f4e876]:
+                              - generic [ref=f4e877]: 
+                        - generic [ref=f4e879] [cursor=pointer]:
+                          - generic [ref=f4e880]:
+                            - generic [ref=f4e881]: 
+                            - strong [ref=f4e882]: Northwest Expense
+                          - generic [ref=f4e883]:
+                            - button "Σ" [ref=f4e884]
+                            - button "" [ref=f4e885]:
+                              - generic [ref=f4e886]: 
+                            - button "" [ref=f4e887]:
+                              - generic [ref=f4e888]: 
+                            - button "" [ref=f4e889]:
+                              - generic [ref=f4e890]: 
+                        - generic [ref=f4e892] [cursor=pointer]:
+                          - generic [ref=f4e893]:
+                            - generic [ref=f4e894]: 950-003-000-00
+                            - generic [ref=f4e895]: NO Expense
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e896]: sin subsección
+                          - generic [ref=f4e897]:
+                            - button "" [ref=f4e898]:
+                              - generic [ref=f4e899]: 
+                            - button "" [ref=f4e900]:
+                              - generic [ref=f4e901]: 
+                        - generic "+ EXPENSE + Guadalajara Expense + Monterrey Expense + Northwest Expense" [ref=f4e902] [cursor=pointer]:
+                          - generic [ref=f4e903]:
+                            - generic [ref=f4e904]:
+                              - generic [ref=f4e905]:
+                                - generic [ref=f4e906]: 
+                                - strong [ref=f4e907]: CONSOLIDATED EXPENSES
+                              - generic [ref=f4e908]: = + EXPENSE + Guadalajara Expense + Monterrey Expense + Northwest Expense
+                            - generic [ref=f4e909]:
+                              - button "" [ref=f4e910]:
+                                - generic [ref=f4e911]: 
+                              - button "" [ref=f4e912]:
+                                - generic [ref=f4e913]: 
+                        - generic "+ INCOME - EXPENSE" [ref=f4e914] [cursor=pointer]:
+                          - generic [ref=f4e915]:
+                            - generic [ref=f4e916]:
+                              - generic [ref=f4e917]:
+                                - generic [ref=f4e918]: 
+                                - strong [ref=f4e919]: OPERATING RESULTS MEXICO
+                              - generic [ref=f4e920]: = + INCOME - EXPENSE
+                            - generic [ref=f4e921]:
+                              - button "" [ref=f4e922]:
+                                - generic [ref=f4e923]: 
+                              - button "" [ref=f4e924]:
+                                - generic [ref=f4e925]: 
+                        - generic "Guadalajara Income - Guadalajara Expense" [ref=f4e926] [cursor=pointer]:
+                          - generic [ref=f4e927]:
+                            - generic [ref=f4e928]:
+                              - generic [ref=f4e929]:
+                                - generic [ref=f4e930]: 
+                                - strong [ref=f4e931]: OPERATING RESULTS GUADALAJARA
+                              - generic [ref=f4e932]: = Guadalajara Income - Guadalajara Expense
+                            - generic [ref=f4e933]:
+                              - button "" [ref=f4e934]:
+                                - generic [ref=f4e935]: 
+                              - button "" [ref=f4e936]:
+                                - generic [ref=f4e937]: 
+                        - generic "+ Monterrey Income - Monterrey Expense" [ref=f4e938] [cursor=pointer]:
+                          - generic [ref=f4e939]:
+                            - generic [ref=f4e940]:
+                              - generic [ref=f4e941]:
+                                - generic [ref=f4e942]: 
+                                - strong [ref=f4e943]: OPERATING RESULTS NORTHEAS
+                              - generic [ref=f4e944]: = + Monterrey Income - Monterrey Expense
+                            - generic [ref=f4e945]:
+                              - button "" [ref=f4e946]:
+                                - generic [ref=f4e947]: 
+                              - button "" [ref=f4e948]:
+                                - generic [ref=f4e949]: 
+                        - generic "+ Northwest Income - Northwest Expense" [ref=f4e950] [cursor=pointer]:
+                          - generic [ref=f4e951]:
+                            - generic [ref=f4e952]:
+                              - generic [ref=f4e953]:
+                                - generic [ref=f4e954]: 
+                                - strong [ref=f4e955]: OPERATING RESULTS NORTHWEST
+                              - generic [ref=f4e956]: = + Northwest Income - Northwest Expense
+                            - generic [ref=f4e957]:
+                              - button "" [ref=f4e958]:
+                                - generic [ref=f4e959]: 
+                              - button "" [ref=f4e960]:
+                                - generic [ref=f4e961]: 
+                        - generic "OPERATING RESULTS MEXICO + OPERATING RESULTS GUADALAJARA + OPERATING RESULTS NORTHEAS + OPERATING RESULTS NORTHWEST" [ref=f4e962] [cursor=pointer]:
+                          - generic [ref=f4e963]:
+                            - generic [ref=f4e964]:
+                              - generic [ref=f4e965]:
+                                - generic [ref=f4e966]: 
+                                - strong [ref=f4e967]: CONSOLIDATED OPERATING RESULTS
+                              - generic [ref=f4e968]: = OPERATING RESULTS MEXICO + OPERATING RESULTS GUADALAJARA + OPERATING RESULTS NORTHEAS + OPERATING RESULTS NORTHWEST
+                            - generic [ref=f4e969]:
+                              - button "" [ref=f4e970]:
+                                - generic [ref=f4e971]: 
+                              - button "" [ref=f4e972]:
+                                - generic [ref=f4e973]: 
+                        - generic [ref=f4e975] [cursor=pointer]:
+                          - generic [ref=f4e976]:
+                            - generic [ref=f4e977]: 
+                            - strong [ref=f4e978]: Member Centricity
+                          - generic [ref=f4e979]:
+                            - button "Σ" [ref=f4e980]
+                            - button "" [ref=f4e981]:
+                              - generic [ref=f4e982]: 
+                            - button "" [ref=f4e983]:
+                              - generic [ref=f4e984]: 
+                            - button "" [ref=f4e985]:
+                              - generic [ref=f4e986]: 
+                        - generic [ref=f4e988] [cursor=pointer]:
+                          - generic [ref=f4e989]:
+                            - generic [ref=f4e990]: 902-000-000-00
+                            - generic [ref=f4e991]: Member Centricity
+                            - generic "Sin subsección — haz clic en Editar (✎) para asignar una Sección Secundaria" [ref=f4e992]: sin subsección
+                          - generic [ref=f4e993]:
+                            - button "" [ref=f4e994]:
+                              - generic [ref=f4e995]: 
+                            - button "" [ref=f4e996]:
+                              - generic [ref=f4e997]: 
+                        - generic [ref=f4e999] [cursor=pointer]:
+                          - generic [ref=f4e1000]:
+                            - generic [ref=f4e1001]: 
+                            - strong [ref=f4e1002]: Other (MEXICO)
+                          - generic [ref=f4e1003]:
+                            - button "Σ" [ref=f4e1004]
+                            - button "" [ref=f4e1005]:
+                              - generic [ref=f4e1006]: 
+                            - button "" [ref=f4e1007]:
+                              - generic [ref=f4e1008]: 
+                            - button "" [ref=f4e1009]:
+                              - generic [ref=f4e1010]: 
+                        - generic [ref=f4e1012] [cursor=pointer]:
+                          - generic [ref=f4e1013]:
+                            - generic [ref=f4e1014]: 
+                            - emphasis [ref=f4e1015]: Other
+                          - generic [ref=f4e1016]:
+                            - button "" [ref=f4e1017]:
+                              - generic [ref=f4e1018]: 
+                            - button "" [ref=f4e1019]:
+                              - generic [ref=f4e1020]: 
+                            - button "" [ref=f4e1021]:
+                              - generic [ref=f4e1022]: 
+                            - button "" [ref=f4e1023]:
+                              - generic [ref=f4e1024]: 
+                        - generic [ref=f4e1026] [cursor=pointer]:
+                          - generic [ref=f4e1027]:
+                            - generic [ref=f4e1028]: 413-000-000-00
+                            - generic [ref=f4e1029]: Otros Ingresos
+                          - generic [ref=f4e1030]:
+                            - button "" [ref=f4e1031]:
+                              - generic [ref=f4e1032]: 
+                            - button "" [ref=f4e1033]:
+                              - generic [ref=f4e1034]: 
+                        - generic [ref=f4e1036] [cursor=pointer]:
+                          - generic [ref=f4e1037]:
+                            - generic [ref=f4e1038]: 414-000-000-00
+                            - generic [ref=f4e1039]: Intereses Bancos
+                          - generic [ref=f4e1040]:
+                            - button "" [ref=f4e1041]:
+                              - generic [ref=f4e1042]: 
+                            - button "" [ref=f4e1043]:
+                              - generic [ref=f4e1044]: 
+                        - generic [ref=f4e1046] [cursor=pointer]:
+                          - generic [ref=f4e1047]:
+                            - generic [ref=f4e1048]: 416-000-000-00
+                            - generic [ref=f4e1049]: Utilidad Cambiaria Inversiones
+                          - generic [ref=f4e1050]:
+                            - button "" [ref=f4e1051]:
+                              - generic [ref=f4e1052]: 
+                            - button "" [ref=f4e1053]:
+                              - generic [ref=f4e1054]: 
+                        - generic [ref=f4e1056] [cursor=pointer]:
+                          - generic [ref=f4e1057]:
+                            - generic [ref=f4e1058]: 418-000-000-00
+                            - generic [ref=f4e1059]: Plusvalia/Minusvalia Portafolio Inversiones
+                          - generic [ref=f4e1060]:
+                            - button "" [ref=f4e1061]:
+                              - generic [ref=f4e1062]: 
+                            - button "" [ref=f4e1063]:
+                              - generic [ref=f4e1064]: 
+                        - generic "OPERATING RESULTS MEXICO - Member Centricity + Other (MEXICO)" [ref=f4e1065] [cursor=pointer]:
+                          - generic [ref=f4e1066]:
+                            - generic [ref=f4e1067]:
+                              - generic [ref=f4e1068]:
+                                - generic [ref=f4e1069]: 
+                                - strong [ref=f4e1070]: NET RESULTS MEXICO
+                              - generic [ref=f4e1071]: = OPERATING RESULTS MEXICO - Member Centricity + Other (MEXICO)
+                            - generic [ref=f4e1072]:
+                              - button "" [ref=f4e1073]:
+                                - generic [ref=f4e1074]: 
+                              - button "" [ref=f4e1075]:
+                                - generic [ref=f4e1076]: 
+                        - generic "OPERATING RESULTS GUADALAJARA" [ref=f4e1077] [cursor=pointer]:
+                          - generic [ref=f4e1078]:
+                            - generic [ref=f4e1079]:
+                              - generic [ref=f4e1080]:
+                                - generic [ref=f4e1081]: 
+                                - strong [ref=f4e1082]: NET RESULTS GUADALAJARA
+                              - generic [ref=f4e1083]: = OPERATING RESULTS GUADALAJARA
+                            - generic [ref=f4e1084]:
+                              - button "" [ref=f4e1085]:
+                                - generic [ref=f4e1086]: 
+                              - button "" [ref=f4e1087]:
+                                - generic [ref=f4e1088]: 
+                        - generic "OPERATING RESULTS NORTHEAS" [ref=f4e1089] [cursor=pointer]:
+                          - generic [ref=f4e1090]:
+                            - generic [ref=f4e1091]:
+                              - generic [ref=f4e1092]:
+                                - generic [ref=f4e1093]: 
+                                - strong [ref=f4e1094]: NET RESULTS MONTERREY
+                              - generic [ref=f4e1095]: = OPERATING RESULTS NORTHEAS
+                            - generic [ref=f4e1096]:
+                              - button "" [ref=f4e1097]:
+                                - generic [ref=f4e1098]: 
+                              - button "" [ref=f4e1099]:
+                                - generic [ref=f4e1100]: 
+                        - generic "OPERATING RESULTS NORTHWEST" [ref=f4e1101] [cursor=pointer]:
+                          - generic [ref=f4e1102]:
+                            - generic [ref=f4e1103]:
+                              - generic [ref=f4e1104]:
+                                - generic [ref=f4e1105]: 
+                                - strong [ref=f4e1106]: NET RESULTS NORTHWEST
+                              - generic [ref=f4e1107]: = OPERATING RESULTS NORTHWEST
+                            - generic [ref=f4e1108]:
+                              - button "" [ref=f4e1109]:
+                                - generic [ref=f4e1110]: 
+                              - button "" [ref=f4e1111]:
+                                - generic [ref=f4e1112]: 
+                        - generic "NET RESULTS MEXICO + NET RESULTS GUADALAJARA + NET RESULTS MONTERREY + NET RESULTS NORTHWEST" [ref=f4e1113] [cursor=pointer]:
+                          - generic [ref=f4e1114]:
+                            - generic [ref=f4e1115]:
+                              - generic [ref=f4e1116]:
+                                - generic [ref=f4e1117]: 
+                                - strong [ref=f4e1118]: CONSOLIDATED NET RESULTS
+                              - generic [ref=f4e1119]: = NET RESULTS MEXICO + NET RESULTS GUADALAJARA + NET RESULTS MONTERREY + NET RESULTS NORTHWEST
+                            - generic [ref=f4e1120]:
+                              - button "" [ref=f4e1121]:
+                                - generic [ref=f4e1122]: 
+                              - button "" [ref=f4e1123]:
+                                - generic [ref=f4e1124]: 
+              - generic [ref=f4e1128]:
+                - generic [ref=f4e1129]:
+                  - generic [ref=f4e1130]:
+                    - heading "Consolidación CDMX → Presupuesto" [level=2] [ref=f4e1131]
+                    - paragraph [ref=f4e1132]:
+                      - text: Define qué capítulo y qué fila del
+                      - strong [ref=f4e1133]: RESUMEN
+                      - text: (columna
+                      - strong [ref=f4e1134]: Ppto
+                      - text: ) se copia a cada cuenta consolidada (450-001/002/003 y 950-001/002/003).
+                  - generic [ref=f4e1135]:
+                    - button "Restaurar defaults" [ref=f4e1136] [cursor=pointer]
+                    - button " Aplicar a presupuesto" [disabled]:
+                      - generic: 
+                      - text: Aplicar a presupuesto
+                - generic [ref=f4e1137]:
+                  - checkbox "Habilitar consolidación (manual o automática)" [checked] [ref=f4e1138] [cursor=pointer]
+                  - generic [ref=f4e1139]: Habilitar consolidación (manual o automática)
+                - generic [ref=f4e1140]:
+                  - generic [ref=f4e1141]:
+                    - checkbox "Auto-aplicar consolidación" [checked] [ref=f4e1142] [cursor=pointer]
+                    - generic [ref=f4e1143]: Auto-aplicar consolidación
+                  - generic [ref=f4e1144]:
+                    - generic [ref=f4e1145]: Cada
+                    - spinbutton [ref=f4e1146] [cursor=pointer]: "10"
+                    - generic [ref=f4e1147]: min
+                - generic [ref=f4e1148]: Se ejecuta automáticamente mientras esta pantalla esté abierta.
+                - table [ref=f4e1150]:
+                  - rowgroup [ref=f4e1151]:
+                    - row "Cuenta destino Capítulo origen Fila RESUMEN Detalle" [ref=f4e1152]:
+                      - columnheader "Cuenta destino" [ref=f4e1153]
+                      - columnheader "Capítulo origen" [ref=f4e1154]
+                      - columnheader "Fila RESUMEN" [ref=f4e1155]
+                      - columnheader "Detalle" [ref=f4e1156]
+                  - rowgroup [ref=f4e1157]:
+                    - row "450-001-000-00 GUADALAJARA INCOME GUADALAJARA · INCOME · Ppto (mes)" [ref=f4e1158]:
+                      - cell "450-001-000-00" [ref=f4e1159]:
+                        - code [ref=f4e1160]: 450-001-000-00
+                      - cell "GUADALAJARA" [ref=f4e1161]:
+                        - combobox [ref=f4e1162] [cursor=pointer]:
+                          - option "-"
+                          - option "GUADALAJARA" [selected]
+                          - option "NORESTE"
+                          - option "NOROESTE"
+                      - cell "INCOME" [ref=f4e1163]:
+                        - combobox [ref=f4e1164] [cursor=pointer]:
+                          - option "-"
+                          - option "INCOME" [selected]
+                          - option "Membership"
+                          - option "Events"
+                          - option "Committees"
+                          - option "T&IC"
+                          - option "Services to Members"
+                          - option "EXPENSE"
+                          - option "Gastos G&A"
+                          - option "Nómina"
+                          - option "Gastos Corporativos"
+                          - option "Cargos Administrativos"
+                          - option "RESULTADOS OPERATIVOS"
+                          - option "MEMBER CENTRICITY"
+                          - option "OTHER"
+                          - option "NET RESULTS"
+                      - cell "GUADALAJARA · INCOME · Ppto (mes)" [ref=f4e1165]
+                    - row "950-001-000-00 GUADALAJARA EXPENSE GUADALAJARA · EXPENSE · Ppto (mes)" [ref=f4e1166]:
+                      - cell "950-001-000-00" [ref=f4e1167]:
+                        - code [ref=f4e1168]: 950-001-000-00
+                      - cell "GUADALAJARA" [ref=f4e1169]:
+                        - combobox [ref=f4e1170] [cursor=pointer]:
+                          - option "-"
+                          - option "GUADALAJARA" [selected]
+                          - option "NORESTE"
+                          - option "NOROESTE"
+                      - cell "EXPENSE" [ref=f4e1171]:
+                        - combobox [ref=f4e1172] [cursor=pointer]:
+                          - option "-"
+                          - option "INCOME"
+                          - option "Membership"
+                          - option "Events"
+                          - option "Committees"
+                          - option "T&IC"
+                          - option "Services to Members"
+                          - option "EXPENSE" [selected]
+                          - option "Gastos G&A"
+                          - option "Nómina"
+                          - option "Gastos Corporativos"
+                          - option "Cargos Administrativos"
+                          - option "RESULTADOS OPERATIVOS"
+                          - option "MEMBER CENTRICITY"
+                          - option "OTHER"
+                          - option "NET RESULTS"
+                      - cell "GUADALAJARA · EXPENSE · Ppto (mes)" [ref=f4e1173]
+                    - row "450-002-000-00 NORESTE INCOME NORESTE · INCOME · Ppto (mes)" [ref=f4e1174]:
+                      - cell "450-002-000-00" [ref=f4e1175]:
+                        - code [ref=f4e1176]: 450-002-000-00
+                      - cell "NORESTE" [ref=f4e1177]:
+                        - combobox [ref=f4e1178] [cursor=pointer]:
+                          - option "-"
+                          - option "GUADALAJARA"
+                          - option "NORESTE" [selected]
+                          - option "NOROESTE"
+                      - cell "INCOME" [ref=f4e1179]:
+                        - combobox [ref=f4e1180] [cursor=pointer]:
+                          - option "-"
+                          - option "INCOME" [selected]
+                          - option "Membership"
+                          - option "Events"
+                          - option "Comittees"
+                          - option "T&IC"
+                          - option "Services to Members"
+                          - option "EXPENSE"
+                          - option "Gastos G&A"
+                          - option "Nómina"
+                          - option "Gastos Corporativos"
+                          - option "Cargos Administrativos"
+                          - option "RESULTADOS OPERATIVOS"
+                          - option "MEMBER CENTRICITY"
+                          - option "OTHER"
+                          - option "NET RESULTS"
+                      - cell "NORESTE · INCOME · Ppto (mes)" [ref=f4e1181]
+                    - row "950-002-000-00 NORESTE EXPENSE NORESTE · EXPENSE · Ppto (mes)" [ref=f4e1182]:
+                      - cell "950-002-000-00" [ref=f4e1183]:
+                        - code [ref=f4e1184]: 950-002-000-00
+                      - cell "NORESTE" [ref=f4e1185]:
+                        - combobox [ref=f4e1186] [cursor=pointer]:
+                          - option "-"
+                          - option "GUADALAJARA"
+                          - option "NORESTE" [selected]
+                          - option "NOROESTE"
+                      - cell "EXPENSE" [ref=f4e1187]:
+                        - combobox [ref=f4e1188] [cursor=pointer]:
+                          - option "-"
+                          - option "INCOME"
+                          - option "Membership"
+                          - option "Events"
+                          - option "Comittees"
+                          - option "T&IC"
+                          - option "Services to Members"
+                          - option "EXPENSE" [selected]
+                          - option "Gastos G&A"
+                          - option "Nómina"
+                          - option "Gastos Corporativos"
+                          - option "Cargos Administrativos"
+                          - option "RESULTADOS OPERATIVOS"
+                          - option "MEMBER CENTRICITY"
+                          - option "OTHER"
+                          - option "NET RESULTS"
+                      - cell "NORESTE · EXPENSE · Ppto (mes)" [ref=f4e1189]
+                    - row "450-003-000-00 NOROESTE INCOME NOROESTE · INCOME · Ppto (mes)" [ref=f4e1190]:
+                      - cell "450-003-000-00" [ref=f4e1191]:
+                        - code [ref=f4e1192]: 450-003-000-00
+                      - cell "NOROESTE" [ref=f4e1193]:
+                        - combobox [ref=f4e1194] [cursor=pointer]:
+                          - option "-"
+                          - option "GUADALAJARA"
+                          - option "NORESTE"
+                          - option "NOROESTE" [selected]
+                      - cell "INCOME" [ref=f4e1195]:
+                        - combobox [ref=f4e1196] [cursor=pointer]:
+                          - option "-"
+                          - option "INCOME" [selected]
+                          - option "Membership"
+                          - option "Events"
+                          - option "Committees"
+                          - option "T&IC"
+                          - option "Services to Members"
+                          - option "EXPENSE"
+                          - option "Gastos G&A"
+                          - option "Nómina"
+                          - option "Gtos. Corporativos"
+                          - option "Cargos Administrativos"
+                          - option "RESULTADOS OPERATIVOS"
+                          - option "OTHER"
+                          - option "NET RESULTS"
+                      - cell "NOROESTE · INCOME · Ppto (mes)" [ref=f4e1197]
+                    - row "950-003-000-00 NOROESTE EXPENSE NOROESTE · EXPENSE · Ppto (mes)" [ref=f4e1198]:
+                      - cell "950-003-000-00" [ref=f4e1199]:
+                        - code [ref=f4e1200]: 950-003-000-00
+                      - cell "NOROESTE" [ref=f4e1201]:
+                        - combobox [ref=f4e1202] [cursor=pointer]:
+                          - option "-"
+                          - option "GUADALAJARA"
+                          - option "NORESTE"
+                          - option "NOROESTE" [selected]
+                      - cell "EXPENSE" [ref=f4e1203]:
+                        - combobox [ref=f4e1204] [cursor=pointer]:
+                          - option "-"
+                          - option "INCOME"
+                          - option "Membership"
+                          - option "Events"
+                          - option "Committees"
+                          - option "T&IC"
+                          - option "Services to Members"
+                          - option "EXPENSE" [selected]
+                          - option "Gastos G&A"
+                          - option "Nómina"
+                          - option "Gtos. Corporativos"
+                          - option "Cargos Administrativos"
+                          - option "RESULTADOS OPERATIVOS"
+                          - option "OTHER"
+                          - option "NET RESULTS"
+                      - cell "NOROESTE · EXPENSE · Ppto (mes)" [ref=f4e1205]
+                - generic [ref=f4e1206]: "Cargando totales de presupuesto: NORESTE (2/3)..."
+              - paragraph [ref=f4e67]: Layout RESUMEN 2026 listo para editar
+            - text:    
+        - text:                        
+        - generic: 
+        - button "Tour plantillas" [ref=f4e68] [cursor=pointer]
