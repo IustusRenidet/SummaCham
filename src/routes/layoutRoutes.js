@@ -501,12 +501,12 @@ router.post("/:modulo/:anio/:capitulo", requireAuth, (req, res, next) => {
 
     const resultadoCuentas = cuentas.length
       ? layoutService.guardarCuentas({
-          empresaId,
-          modulo,
-          anio: anioNumero,
-          capitulo,
-          cuentas,
-        })
+        empresaId,
+        modulo,
+        anio: anioNumero,
+        capitulo,
+        cuentas,
+      })
       : { insertadas: 0 };
 
     const operacionesNormalizadas = operaciones.map((op) => ({
@@ -517,11 +517,11 @@ router.post("/:modulo/:anio/:capitulo", requireAuth, (req, res, next) => {
 
     const resultadoOps = operacionesNormalizadas.length
       ? layoutService.guardarOperaciones({
-          empresaId,
-          modulo,
-          anio: anioNumero,
-          operaciones: operacionesNormalizadas,
-        })
+        empresaId,
+        modulo,
+        anio: anioNumero,
+        operaciones: operacionesNormalizadas,
+      })
       : { insertadas: 0 };
 
     // Snapshot/version para permitir deshacer.
@@ -668,11 +668,11 @@ router.post("/:modulo/:anio/operaciones", requireAuth, (req, res) => {
 
     const resultado = operaciones.length
       ? layoutService.guardarOperaciones({
-          empresaId,
-          modulo,
-          anio: parseInt(anio),
-          operaciones,
-        })
+        empresaId,
+        modulo,
+        anio: parseInt(anio),
+        operaciones,
+      })
       : { success: true, insertadas: 0 };
 
     // Crear snapshot/version para permitir deshacer (evitar duplicados por hash).
@@ -875,8 +875,8 @@ router.post("/copiar", requireAuth, (req, res) => {
 
         const fromLegacy = !fromYear
           ? db
-              .prepare("SELECT config_json FROM graficas_config WHERE empresa_id = ?")
-              .get(empresaId)
+            .prepare("SELECT config_json FROM graficas_config WHERE empresa_id = ?")
+            .get(empresaId)
           : null;
 
         const payload = fromYear?.config_json || fromLegacy?.config_json || null;
@@ -977,8 +977,8 @@ router.post("/:modulo/copiar", requireAuth, (req, res) => {
 
         const fromLegacy = !fromYear
           ? db
-              .prepare("SELECT config_json FROM graficas_config WHERE empresa_id = ?")
-              .get(empresaId)
+            .prepare("SELECT config_json FROM graficas_config WHERE empresa_id = ?")
+            .get(empresaId)
           : null;
 
         const payload = fromYear?.config_json || fromLegacy?.config_json || null;
@@ -1772,6 +1772,473 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
     res.status(500).json({
       success: false,
       mensaje: "Error al exportar layout",
+      error: error.message,
+    });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IMPORTACIÓN / EXPORTACIÓN MASIVA (plantilla normalizada v2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Convierte tokens V2 a texto legible para referencia (campo "formula_texto").
+ * Formato: "+ ACC::401-00-000-00 (Nombre)" etc. El V2 JSON es la fuente de
+ * verdad en la importación; este campo es solo informativo.
+ */
+const formulaTextoDesdeTokensV2 = (tokens = []) => {
+  if (!Array.isArray(tokens) || !tokens.length) return "";
+  return tokens
+    .map((t) => {
+      if (!t) return "";
+      const op = (t.operator || "+").trim();
+      if (t.kind === "ref") {
+        const ref = (t.refId || "").toString();
+        const lbl = (t.label && String(t.label).trim()) ? ` "${t.label}"` : "";
+        return `${op} ${ref}${lbl}`;
+      }
+      if (t.kind === "const") return `${op} ${t.value ?? 0}`;
+      if (t.kind === "op") return (t.value || "").toString();
+      return "";
+    })
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+};
+
+/**
+ * Normaliza ID al formato V2: MAYUSCULAS_CON_UNDERSCORES.
+ * Replica NORMALIZAR_ID_SEGMENTO del servicio.
+ */
+const normalizarIdV2 = (valor = "") => {
+  const limpio = (valor || "")
+    .toString()
+    .replace(/\s+/g, " ")
+    .trim();
+  return limpio
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+};
+
+/**
+ * GET /api/layouts-config/:modulo/:anio/plantilla-masiva
+ * Exporta el layout completo (operaciones + cuentas) de TODOS los capítulos
+ * del módulo/año en un JSON reutilizable para importar-masivo.
+ * Parámetro query: ?empresaId=EMPRESA01  (default EMPRESA01)
+ */
+router.get("/:modulo/:anio/plantilla-masiva", requireAuth, (req, res) => {
+  try {
+    const { modulo, anio } = req.params;
+    const empresaId =
+      req.query.empresaId ||
+      req.headers["x-empresa-id"] ||
+      req.session?.empresaId ||
+      "EMPRESA01";
+    const anioNum = parseInt(anio, 10);
+    if (!modulo || !Number.isInteger(anioNum)) {
+      return res
+        .status(400)
+        .json({ success: false, mensaje: "Parámetros inválidos" });
+    }
+
+    const empresaCanonica = layoutService.obtenerEmpresaLayoutSource(empresaId);
+
+    // ── Cargar operaciones (todos los capítulos) ──────────────────────────────
+    const opRows = db
+      .prepare(`
+        SELECT capitulo, clase, operacion_etiqueta, seccion,
+               operacion_tipo, operacion_label, signo,
+               orden, orden_presentacion, visible, formula_json
+        FROM layout_operaciones
+        WHERE empresa_id = ? AND modulo = ? AND anio = ?
+        ORDER BY COALESCE(orden_presentacion, orden, 0), capitulo, clase
+      `)
+      .all(empresaCanonica, modulo, anioNum);
+
+    // ── Agrupar por capitulo → clase normalizada ───────────────────────────────
+    // Para cada clase, recolectamos: todos sus tipos + la fórmula
+    const capMap = {};
+    opRows.forEach((row) => {
+      const cap = row.capitulo || "DEFAULT";
+      const idNorm = normalizarIdV2(row.clase);
+      if (!capMap[cap]) capMap[cap] = new Map();
+      const key = idNorm || row.clase;
+      if (!capMap[cap].has(key)) {
+        let fJson = null;
+        let fTokens = [];
+        try {
+          const parsed = JSON.parse(row.formula_json || "null");
+          if (parsed && typeof parsed === "object" && Number(parsed.version) === 2 && Array.isArray(parsed.tokens)) {
+            fJson = parsed;
+            fTokens = parsed.tokens;
+          } else if (Array.isArray(parsed) && parsed.length) {
+            // legacy → pass-through; el import lo re-normaliza
+            fJson = parsed;
+          }
+        } catch (_) { }
+        capMap[cap].set(key, {
+          operacion_id: idNorm || row.clase,
+          clase: row.operacion_etiqueta || row.clase,
+          seccion: row.seccion || "",
+          tipos: [],
+          formula_texto: formulaTextoDesdeTokensV2(fTokens),
+          formula_json: fJson,
+          orden: Number.isFinite(Number(row.orden_presentacion))
+            ? Number(row.orden_presentacion)
+            : Number.isFinite(Number(row.orden))
+              ? Number(row.orden)
+              : 0,
+          visible: row.visible !== 0,
+        });
+      }
+      const entry = capMap[cap].get(key);
+      if (row.operacion_tipo && typeof row.operacion_label === "string" && row.operacion_label.trim()) {
+        const ya = entry.tipos.find((t) => t.tipo === row.operacion_tipo);
+        if (!ya) entry.tipos.push({ tipo: row.operacion_tipo, etiqueta: row.operacion_label.trim() });
+      }
+      // Si este row tiene formula y el entry no tenía aún, usar la de este row
+      if (!entry.formula_json && row.formula_json) {
+        try {
+          const p = JSON.parse(row.formula_json);
+          entry.formula_json = p;
+          if (p && Number(p.version) === 2) {
+            entry.formula_texto = formulaTextoDesdeTokensV2(p.tokens || []);
+          }
+        } catch (_) { }
+      }
+    });
+
+    // ── Cargar cuentas (todos los capítulos) ──────────────────────────────────
+    const cuentaRows = db
+      .prepare(`
+        SELECT capitulo, cuenta, nombre, seccion_principal, seccion_secundaria,
+               operacion_factor, valor_plantilla, visible, orden_presentacion
+        FROM layout_cuentas
+        WHERE empresa_id = ? AND modulo = ? AND anio = ?
+        ORDER BY COALESCE(orden_presentacion, orden, 0), capitulo, seccion_principal
+      `)
+      .all(empresaCanonica, modulo, anioNum);
+
+    const cuentasMap = {};
+    cuentaRows.forEach((row) => {
+      const cap = row.capitulo || "DEFAULT";
+      if (!cuentasMap[cap]) cuentasMap[cap] = [];
+      cuentasMap[cap].push({
+        cuenta: row.cuenta,
+        nombre: row.nombre || "",
+        seccion_principal: row.seccion_principal || "",
+        seccion_secundaria: row.seccion_secundaria || "",
+        factor: Number.isFinite(Number(row.operacion_factor)) ? Number(row.operacion_factor) : 1,
+        valor_plantilla: Number.isFinite(Number(row.valor_plantilla)) ? Number(row.valor_plantilla) : 0,
+        visible: row.visible !== 0,
+      });
+    });
+
+    // ── Armar plantilla completa ───────────────────────────────────────────────
+    const todosCapitulos = new Set([...Object.keys(capMap), ...Object.keys(cuentasMap)]);
+    const capitulos = {};
+    todosCapitulos.forEach((cap) => {
+      capitulos[cap] = {
+        operaciones: Array.from((capMap[cap] || new Map()).values()),
+        cuentas: cuentasMap[cap] || [],
+      };
+    });
+
+    const totalOps = opRows.length;
+    const totalCuentas = cuentaRows.length;
+    const totalOpsUnicas = Object.values(capMap).reduce((s, m) => s + m.size, 0);
+
+    const plantilla = {
+      _meta: {
+        version: "2",
+        modo: "datos",
+        empresa: empresaId,
+        empresa_canonica: empresaCanonica,
+        modulo,
+        anio: anioNum,
+        generado: new Date().toISOString(),
+        total_capitulos: todosCapitulos.size,
+        total_operaciones_unicas: totalOpsUnicas,
+        total_registros_db: totalOps,
+        total_cuentas: totalCuentas,
+      },
+      _instrucciones: {
+        descripcion:
+          "Backup completo de operaciones y cuentas de todos los capítulos. " +
+          "Se puede re-importar directamente con 'Importar todos los capítulos'.",
+        advertencia:
+          "La importación hace OVERWRITE de los capítulos incluidos en este archivo. " +
+          "Los capítulos que NO aparezcan aquí no se modifican.",
+        campos_operacion: {
+          operacion_id: "ID único. Se normaliza automáticamente a MAYUSCULAS_CON_UNDERSCORES.",
+          clase: "Nombre legible de la operación.",
+          tipos: "Tipos de fila (sum-row, result-row, net-row, operation-row, etc.).",
+          formula_texto: "SOLO LECTURA. Referencia legible de la fórmula.",
+          formula_json:
+            "EDITABLE. { version:2, tokens:[{kind,refType,refId,label,operator}] } " +
+            "o texto con ACC::, OP::, SEC::.",
+        },
+        campos_cuenta: {
+          cuenta: "Código de cuenta (ej: 401-00-000-00).",
+          nombre: "Nombre descriptivo.",
+          seccion_principal: "Sección principal donde aparece la cuenta.",
+          seccion_secundaria: "Subsección (opcional).",
+          factor: "Multiplicador: 1 suma, -1 resta. Default: 1.",
+          visible: "true/false. Default: true.",
+        },
+      },
+      capitulos,
+    };
+
+    const nombreArchivo = `layout_${modulo}_${anioNum}_${empresaCanonica}.json`;
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${nombreArchivo}"`,
+    );
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.send(JSON.stringify(plantilla, null, 2));
+  } catch (error) {
+    console.error("[plantilla-masiva] Error al exportar:", error);
+    res.status(500).json({
+      success: false,
+      mensaje: "Error al exportar layout",
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/layouts-config/:modulo/:anio/importar-masivo
+ * Importa un JSON (generado por plantilla-masiva) y hace OVERWRITE de
+ * los capítulos incluidos en el archivo.  Para cada capítulo:
+ *   1) Elimina operaciones, cuentas y secciones existentes.
+ *   2) Guarda las operaciones del archivo (normaliza fórmulas → V2).
+ *   3) Guarda las cuentas del archivo.
+ *   4) Crea snapshot de versión para poder deshacer.
+ *
+ * Body: JSON con la misma estructura que el export de arriba.
+ * Header opcional: X-Empresa-Id (sobreescribe _meta.empresa del archivo)
+ */
+router.post("/:modulo/:anio/importar-masivo", requireAuth, (req, res) => {
+  try {
+    const { modulo, anio } = req.params;
+    const anioNum = parseInt(anio, 10);
+
+    if (!modulo || !Number.isInteger(anioNum)) {
+      return res
+        .status(400)
+        .json({ success: false, mensaje: "Parámetros inválidos" });
+    }
+
+    const payload = req.body;
+    if (!payload || typeof payload !== "object" || !payload.capitulos) {
+      return res.status(400).json({
+        success: false,
+        mensaje:
+          "El archivo no tiene el formato esperado. " +
+          "Genera el archivo con 'Exportar todos los capítulos'.",
+      });
+    }
+
+    // Empresa: header > archivo > sesión > default
+    const empresaId =
+      req.headers["x-empresa-id"] ||
+      payload._meta?.empresa ||
+      req.session?.empresaId ||
+      "EMPRESA01";
+
+    // Verificar permiso a nivel módulo (sin capitulo = verifica permiso general)
+    if (!tienePermisoGuardar(req, empresaId, modulo)) {
+      return res.status(403).json({
+        success: false,
+        mensaje: "Sin permiso para guardar layouts en este módulo.",
+      });
+    }
+
+    const usuarioId = req.usuarioActual?.id ?? null;
+    const resumen = {
+      empresa: empresaId,
+      modulo,
+      anio: anioNum,
+      capitulos_procesados: [],
+      total_operaciones: 0,
+      total_cuentas: 0,
+      total_errores: 0,
+      errores: [],
+    };
+
+    for (const [capituloRaw, capData] of Object.entries(payload.capitulos)) {
+      const capitulo = (capituloRaw || "").trim();
+      if (!capitulo) continue;
+
+      const operacionesTemplate = Array.isArray(capData?.operaciones)
+        ? capData.operaciones
+        : [];
+      const cuentasTemplate = Array.isArray(capData?.cuentas)
+        ? capData.cuentas
+        : [];
+
+      try {
+        // ── 1. Borrar todo lo existente en este capítulo ──
+        layoutService.eliminarLayoutCapitulo({
+          empresaId,
+          modulo,
+          anio: anioNum,
+          capitulo,
+        });
+
+        // ── 2. Guardar operaciones ────────────────────────────────────────────
+        let opsGuardadas = 0;
+        if (operacionesTemplate.length) {
+          const opsParaGuardar = operacionesTemplate
+            .map((op, idx) => {
+              const rawId = String(
+                op.operacion_id || op.clase || "",
+              ).trim();
+              const rawClase = String(
+                op.clase || op.operacion_id || "",
+              ).trim();
+              if (!rawId && !rawClase) return null;
+
+              const idNormal = normalizarIdV2(rawId || rawClase);
+
+              const opObj = {
+                OperacionId: idNormal,
+                Clase: rawClase || idNormal,
+                operacion_etiqueta: rawClase || idNormal,
+                CAPITULO: capitulo,
+                SECCION: String(op.seccion || "").trim(),
+                formula_json: op.formula_json
+                  ? typeof op.formula_json === "string"
+                    ? op.formula_json
+                    : JSON.stringify(op.formula_json)
+                  : null,
+                signo: Number.isFinite(Number(op.signo)) ? Number(op.signo) : 1,
+                orden: Number.isFinite(Number(op.orden)) ? Number(op.orden) : idx,
+                orden_presentacion: Number.isFinite(Number(op.orden))
+                  ? Number(op.orden)
+                  : idx,
+                visible: op.visible !== false,
+              };
+
+              // Tipos de fila
+              if (Array.isArray(op.tipos) && op.tipos.length) {
+                op.tipos.forEach((t) => {
+                  if (t?.tipo && typeof t.etiqueta === "string") {
+                    opObj[t.tipo] = t.etiqueta.trim();
+                  }
+                });
+              } else {
+                opObj["sum-row"] = rawClase || idNormal;
+              }
+
+              return opObj;
+            })
+            .filter(Boolean);
+
+          if (opsParaGuardar.length) {
+            const r = layoutService.guardarOperaciones({
+              empresaId,
+              modulo,
+              anio: anioNum,
+              operaciones: opsParaGuardar,
+            });
+            opsGuardadas = r?.insertadas ?? opsParaGuardar.length;
+          }
+        }
+
+        // ── 3. Guardar cuentas ────────────────────────────────────────────────
+        let cuentasGuardadas = 0;
+        if (cuentasTemplate.length) {
+          // Normalizar campos al formato que espera guardarCuentas:
+          // acepta lowercase (cuenta, seccion_principal, seccion_secundaria,
+          // factor, operacion_factor, valor_plantilla, visible, nombre)
+          const cuentasNorm = cuentasTemplate.map((c) => ({
+            cuenta: c.cuenta || c.CUENTA || "",
+            CUENTA: c.cuenta || c.CUENTA || "",
+            nombre: c.nombre || c.NOMBRE || "",
+            NOMBRE: c.nombre || c.NOMBRE || "",
+            seccion_principal:
+              c.seccion_principal || c.SECCION || c.seccion || "",
+            seccion_secundaria:
+              c.seccion_secundaria || c.subseccion || "",
+            operacion_factor: c.factor ?? c.operacion_factor ?? 1,
+            factor: c.factor ?? c.operacion_factor ?? 1,
+            valor_plantilla: c.valor_plantilla ?? c.valor ?? 0,
+            visible: c.visible !== false,
+            orden_presentacion: c.orden_presentacion ?? c.orden ?? 0,
+          }));
+
+          const rc = layoutService.guardarCuentas({
+            empresaId,
+            modulo,
+            anio: anioNum,
+            capitulo,
+            cuentas: cuentasNorm,
+          });
+          cuentasGuardadas = rc?.insertadas ?? cuentasNorm.length;
+        }
+
+        // ── 4. Snapshot de versión (para deshacer) ────────────────────────────
+        try {
+          layoutService.crearLayoutVersion({
+            empresaId,
+            modulo,
+            anio: anioNum,
+            capitulo,
+            usuarioId,
+            source: "importar-masivo",
+            motivo: `Importación masiva: ${opsGuardadas} ops, ${cuentasGuardadas} cuentas`,
+          });
+        } catch (vErr) {
+          console.warn(
+            `[importar-masivo] No se pudo crear snapshot para ${capitulo}:`,
+            vErr?.message,
+          );
+        }
+
+        resumen.capitulos_procesados.push({
+          capitulo,
+          operaciones: opsGuardadas,
+          cuentas: cuentasGuardadas,
+        });
+        resumen.total_operaciones += opsGuardadas;
+        resumen.total_cuentas += cuentasGuardadas;
+      } catch (err) {
+        console.error(
+          `[importar-masivo] Error en capítulo ${capitulo}:`,
+          err.message,
+        );
+        resumen.total_errores += 1;
+        resumen.errores.push({ capitulo, error: err.message });
+        resumen.capitulos_procesados.push({
+          capitulo,
+          operaciones: 0,
+          cuentas: 0,
+          error: err.message,
+        });
+      }
+    }
+
+    const ok = resumen.total_errores === 0;
+    res.status(ok ? 200 : 207).json({
+      success: ok,
+      mensaje: ok
+        ? `Importación completada: ${resumen.total_operaciones} operaciones y ` +
+        `${resumen.total_cuentas} cuentas en ${resumen.capitulos_procesados.length} capítulo(s)`
+        : `Importación con ${resumen.total_errores} error(es). ` +
+        `${resumen.capitulos_procesados.length - resumen.total_errores} capítulo(s) OK.`,
+      ...resumen,
+    });
+  } catch (error) {
+    console.error("[importar-masivo] Error general:", error);
+    res.status(500).json({
+      success: false,
+      mensaje: "Error al importar layout",
       error: error.message,
     });
   }

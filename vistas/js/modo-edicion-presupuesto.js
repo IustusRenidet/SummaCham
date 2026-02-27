@@ -204,7 +204,7 @@
     } catch (err) {
       try {
         celda.focus();
-      } catch (err2) {}
+      } catch (err2) { }
     }
 
     // Mostrar fill handle si el modo edición está activo
@@ -368,7 +368,7 @@
       )}&anio=${Number(anio)}`;
       const headers =
         typeof Sesion !== "undefined" &&
-        typeof Sesion.headersAutenticacion === "function"
+          typeof Sesion.headersAutenticacion === "function"
           ? Sesion.headersAutenticacion()
           : {};
 
@@ -503,11 +503,11 @@
       )}/${anioNum}/${encodeURIComponent(capituloClave || "DEFAULT")}/cuentas`;
       const headers =
         typeof Sesion !== "undefined" &&
-        typeof Sesion.headersAutenticacion === "function"
+          typeof Sesion.headersAutenticacion === "function"
           ? {
-              "Content-Type": "application/json",
-              ...Sesion.headersAutenticacion(),
-            }
+            "Content-Type": "application/json",
+            ...Sesion.headersAutenticacion(),
+          }
           : { "Content-Type": "application/json" };
       const resp = await fetch(ruta, {
         method: "POST",
@@ -593,7 +593,7 @@
       )}`;
       const headers =
         typeof Sesion !== "undefined" &&
-        typeof Sesion.headersAutenticacion === "function"
+          typeof Sesion.headersAutenticacion === "function"
           ? Sesion.headersAutenticacion()
           : null;
       const resp = await fetch(ruta, { headers });
@@ -1419,9 +1419,9 @@
         (f) =>
           (f.dataset.cuenta &&
             normalizeString(f.dataset.cuenta) ===
-              normalizeString(cuentaLayout)) ||
+            normalizeString(cuentaLayout)) ||
           (f.cells[0]?.textContent || "").trim() ===
-            (cuentaLayout || "").trim(),
+          (cuentaLayout || "").trim(),
       );
       if (filaMatch) {
         const celdaDescripcion =
@@ -1531,12 +1531,12 @@
           "keydown",
           menuContextual._keyHandler,
         );
-    } catch (err) {}
+    } catch (err) { }
     menuContextual.hidden = true;
     // return focus to the table or last active element
     try {
       document.activeElement?.blur();
-    } catch (err) {}
+    } catch (err) { }
   }
 
   function mostrarMenuContextual(x, y, opciones) {
@@ -1703,7 +1703,7 @@
 
   document.addEventListener("contextmenu", (evt) => {
     if (!estado.modoEdicionActivo) return;
-    if (estaEnGestorPlantillas() && window.ContextMenuWizard) return;
+    if (estaEnGestorPlantillas()) return;  // el gestor de plantillas tiene su propio UI de edición
     const res = resolverTabla(estado.selectorTabla);
     if (!res || !res.tabla) return;
     const tabla = res.tabla;
@@ -1910,7 +1910,7 @@
               }
             })();
           } else {
-            console.warn('[FORZADO] No se tienen parámetros válidos para pedir layout:', {empresa, anio, moduloClave, capitulo});
+            console.warn('[FORZADO] No se tienen parámetros válidos para pedir layout:', { empresa, anio, moduloClave, capitulo });
           }
         } catch (err) {
           console.error('[FORZADO] Error inesperado en el flujo de carga de layout:', err);

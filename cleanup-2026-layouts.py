@@ -1,15 +1,16 @@
 """
 cleanup-2026-layouts.py
 =======================
-Limpia la base de datos de layout_operaciones para el año 2026:
+Limpia la base de datos de layout_operaciones para TODOS los años:
 - Detecta grupos de operaciones duplicadas (misma clave normalizada, distinta clase literal)
-- Dentro de cada grupo, conserva el registro con fórmula V2 (más nueva)
-  Si ninguno tiene V2, conserva el que tenga fórmula más completa
+- Dentro de cada grupo, conserva el registro con formula V2 (mas nueva)
+  Si ninguno tiene V2, conserva el que tenga formula mas completa
 - Elimina los registros legacy/redundantes
 
 Uso:
-  python cleanup-2026-layouts.py            → modo simulación (no modifica)
-  python cleanup-2026-layouts.py --execute  → ejecuta los cambios
+  python cleanup-2026-layouts.py            -> modo simulacion (no modifica)
+  python cleanup-2026-layouts.py --execute  -> ejecuta los cambios
+  python cleanup-2026-layouts.py --anio=2026 --execute -> solo un año especifico
 
 El script emite un informe de lo que hace antes de comprometer cualquier cambio.
 """
@@ -23,6 +24,7 @@ from collections import defaultdict
 
 DB_PATH = "datos/panel.sqlite"
 DRY_RUN = "--execute" not in sys.argv
+FILTER_ANIO = next((int(a.split("=")[1]) for a in sys.argv if a.startswith("--anio=")), None)
 
 # ── normalización equivalente a NORMALIZAR_ID_SEGMENTO del backend ──────────
 def normalizar_id_segmento(s):
@@ -79,27 +81,36 @@ def token_count(formula_json):
         pass
     return 0
 
-# ── leer todos los registros 2026 ─────────────────────────────────────────────
+# ── leer registros (todos los años o uno específico) ─────────────────────────
 conn = sqlite3.connect(DB_PATH)
 conn.row_factory = sqlite3.Row
 cur = conn.cursor()
 
-cur.execute("""
-    SELECT empresa_id, modulo, anio, capitulo, clase,
-           operacion_tipo, operacion_label, formula_json
-    FROM layout_operaciones
-    WHERE anio = 2026
-    ORDER BY empresa_id, modulo, capitulo, clase, operacion_tipo
-""")
+if FILTER_ANIO:
+    cur.execute("""
+        SELECT empresa_id, modulo, anio, capitulo, clase,
+               operacion_tipo, operacion_label, formula_json
+        FROM layout_operaciones
+        WHERE anio = ?
+        ORDER BY empresa_id, modulo, anio, capitulo, clase, operacion_tipo
+    """, (FILTER_ANIO,))
+else:
+    cur.execute("""
+        SELECT empresa_id, modulo, anio, capitulo, clase,
+               operacion_tipo, operacion_label, formula_json
+        FROM layout_operaciones
+        ORDER BY empresa_id, modulo, anio, capitulo, clase, operacion_tipo
+    """)
 rows = cur.fetchall()
-print(f"Total de registros 2026 en DB: {len(rows)}")
+anio_label = str(FILTER_ANIO) if FILTER_ANIO else "todos los años"
+print(f"Total de registros ({anio_label}) en DB: {len(rows)}")
 
 # ── agrupar por (empresa, modulo, capitulo, clase_normalizada) ────────────────
 # Dentro de cada grupo capturamos los distintos valores literales de "clase"
 groups = defaultdict(lambda: defaultdict(list))
 for row in rows:
     norm = normalizar_id_segmento(row["clase"])
-    key = (row["empresa_id"], row["modulo"], row["capitulo"], norm)
+    key = (row["empresa_id"], row["modulo"], row["anio"], row["capitulo"], norm)
     d = {k: row[k] for k in row.keys()}
     groups[key][row["clase"]].append(d)
 
@@ -110,7 +121,7 @@ print(f"Grupos con clase duplicada (distinto literal, misma clave normalizada): 
 to_delete_keys = []   # (empresa_id, modulo, anio, capitulo, clase, operacion_tipo)
 summary = []
 
-for (empresa, modulo, capitulo, norm_clase), clase_variants in sorted(dup_groups.items()):
+for (empresa, modulo, anio, capitulo, norm_clase), clase_variants in sorted(dup_groups.items()):
     # Determinar la "mejor" clase literal (la que usaremos como ganadora)
     # Criterio: máximo score de sus variantes de fórmula; en empate, más tokens
     best_clase = None
@@ -160,7 +171,7 @@ for (empresa, modulo, capitulo, norm_clase), clase_variants in sorted(dup_groups
         sc, tc, fj = variant_scores[cl]
         loser_info.append(f'  ❌ BORRAR "{cl}" (score={sc}, tokens={tc}, filas={len(clase_variants[cl])})')
     summary.append(
-        f'[{empresa}/{modulo}/{capitulo}] → "{best_clase}" (score={sc_win}, tokens={tc_win}) GANA\n'
+        f'[{empresa}/{modulo}/{anio}/{capitulo}] -> "{best_clase}" (score={sc_win}, tokens={tc_win}) GANA\n'
         + "\n".join(loser_info)
     )
 
@@ -186,9 +197,12 @@ else:
     print(f"[OK] {eliminados} registros eliminados.")
 
     # Estado final
-    cur.execute("SELECT COUNT(*) FROM layout_operaciones WHERE anio = 2026")
+    if FILTER_ANIO:
+        cur.execute("SELECT COUNT(*) FROM layout_operaciones WHERE anio = ?", (FILTER_ANIO,))
+    else:
+        cur.execute("SELECT COUNT(*) FROM layout_operaciones")
     total_final = cur.fetchone()[0]
-    print(f"Registros 2026 restantes en DB: {total_final}")
+    print(f"Registros ({anio_label}) restantes en DB: {total_final}")
 
 conn.close()
 

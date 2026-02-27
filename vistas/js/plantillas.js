@@ -305,6 +305,7 @@
     dom.btnColapsar = document.getElementById("btnColapsar");
     dom.btnReordenar = document.getElementById("btnReordenar");
     dom.btnPreview = document.getElementById("btnPreview");
+    dom.btnPlantillaDropdown = document.getElementById("btnDescargarPlantilla");
     dom.btnVerificar = null;
     dom.btnDiagnosticar = null;
     dom.btnPredefinidas = null;
@@ -443,22 +444,19 @@
     );
 
     // Importación/Exportación masiva
-    const btnDescargarPlantilla = document.getElementById(
-      "btnDescargarPlantilla",
-    );
-    const btnImportarExcel = document.getElementById("btnImportarExcel");
     const fileImportInput = document.getElementById("fileImportInput");
+    const fileImportMasivoInput = document.getElementById("fileImportMasivoInput");
 
-    if (btnDescargarPlantilla) {
-      btnDescargarPlantilla.addEventListener(
-        "click",
-        descargarPlantillaImportacion,
-      );
-    }
-    if (btnImportarExcel && fileImportInput) {
-      btnImportarExcel.addEventListener("click", () => fileImportInput.click());
-      fileImportInput.addEventListener("change", importarDesdeArchivo);
-    }
+    document.getElementById("btnExportarCapitulo")
+      ?.addEventListener("click", (e) => { e.preventDefault(); descargarPlantillaImportacion(); });
+    document.getElementById("btnExportarMasivo")
+      ?.addEventListener("click", (e) => { e.preventDefault(); exportarPlantillaMasiva(); });
+    document.getElementById("btnImportarExcel")
+      ?.addEventListener("click", (e) => { e.preventDefault(); fileImportInput?.click(); });
+    document.getElementById("btnImportarMasivo")
+      ?.addEventListener("click", (e) => { e.preventDefault(); fileImportMasivoInput?.click(); });
+    if (fileImportInput) fileImportInput.addEventListener("change", importarDesdeArchivo);
+    if (fileImportMasivoInput) fileImportMasivoInput.addEventListener("change", importarPlantillaMasiva);
 
     // Search
     dom.searchInput?.addEventListener("input", handleSearch);
@@ -773,6 +771,7 @@
     if (dom.btnColapsar) dom.btnColapsar.disabled = !hasLayout;
     if (dom.btnReordenar) dom.btnReordenar.disabled = !canEdit;
     if (dom.btnPreview) dom.btnPreview.disabled = !hasLayout;
+    if (dom.btnPlantillaDropdown) dom.btnPlantillaDropdown.disabled = !hasLayout;
   }
 
   function requireEditMode() {
@@ -19244,6 +19243,172 @@
   // ==========================================
   // IMPORTACIÓN/EXPORTACIÓN MASIVA
   // ==========================================
+
+  async function exportarPlantillaMasiva() {
+    if (!state.modulo || !state.anio) {
+      showToast("Selecciona módulo y año antes de exportar.", "warning");
+      return;
+    }
+    const empresaId =
+      asegurarEmpresaIdContexto(state.capitulo, true) || "EMPRESA01";
+    const url =
+      `/api/layouts-config/${encodeURIComponent(state.modulo)}/${state.anio}/plantilla-masiva` +
+      `?empresaId=${encodeURIComponent(empresaId)}`;
+    try {
+      showToast("Generando backup del layout…", "info");
+      const res = await fetch(url, { headers: getAuthHeaders() });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showToast(
+          `Error al exportar: ${err.mensaje || res.statusText}`,
+          "error",
+        );
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      if (!data?.capitulos) {
+        showToast("La respuesta del servidor no es válida.", "error");
+        return;
+      }
+      const ncaps = Object.keys(data.capitulos).length;
+      const nops = data._meta?.total_operaciones_unicas ?? 0;
+      const ncuentas = data._meta?.total_cuentas ?? 0;
+
+      // Descarga como archivo
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const dlUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = dlUrl;
+      a.download = `layout_${state.modulo}_${state.anio}_${empresaId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(dlUrl);
+
+      showToast(
+        `✅ Backup descargado: ${ncaps} capítulo(s), ${nops} operaciones, ${ncuentas} cuentas.`,
+        "success",
+      );
+    } catch (err) {
+      showToast(`Error al exportar: ${err.message}`, "error");
+    }
+  }
+
+  async function importarPlantillaMasiva(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        showToast(
+          "El archivo no es un JSON válido. Revisa que no esté corrupto.",
+          "error",
+        );
+        return;
+      }
+
+      if (!data?.capitulos || typeof data.capitulos !== "object") {
+        showToast(
+          "El archivo no tiene el formato esperado. " +
+          "Usa 'Exportar todos los capítulos' para generarlo.",
+          "warning",
+        );
+        return;
+      }
+
+      const caps = Object.keys(data.capitulos);
+      const nops = caps.reduce(
+        (s, c) => s + (data.capitulos[c]?.operaciones?.length || 0),
+        0,
+      );
+      const ncuentas = caps.reduce(
+        (s, c) => s + (data.capitulos[c]?.cuentas?.length || 0),
+        0,
+      );
+      const empresaArchivo = data._meta?.empresa || "?";
+      const moduloArchivo = data._meta?.modulo || "?";
+      const anioArchivo = data._meta?.anio || "?";
+
+      // Advertencia si el archivo es de otro módulo/año
+      const mismatch =
+        (data._meta?.modulo && data._meta.modulo !== state.modulo) ||
+        (data._meta?.anio && Number(data._meta.anio) !== Number(state.anio));
+      const avisoMismatch = mismatch
+        ? `\n⚠️ ATENCIÓN: el archivo es de ${moduloArchivo}/${anioArchivo} ` +
+        `pero estás en ${state.modulo}/${state.anio}.\n`
+        : "";
+
+      const confirmar = confirm(
+        `¿Importar layout desde "${file.name}"?\n\n` +
+        `Archivo: ${moduloArchivo} / ${anioArchivo} / Empresa: ${empresaArchivo}\n` +
+        `Contenido: ${caps.length} capítulo(s), ${nops} operaciones, ${ncuentas} cuentas\n` +
+        `Capítulos: ${caps.join(", ")}\n` +
+        `${avisoMismatch}\n` +
+        `⚠️ Se SOBREESCRIBIRÁN los capítulos listados. Esta acción no se puede deshacer\n` +
+        `   (se creará un snapshot en Historial para poder restaurar).`,
+      );
+      if (!confirmar) {
+        event.target.value = "";
+        return;
+      }
+
+      const empresaId =
+        asegurarEmpresaIdContexto(state.capitulo, true) || "EMPRESA01";
+      const url = `/api/layouts-config/${encodeURIComponent(state.modulo)}/${state.anio}/importar-masivo`;
+
+      showToast(
+        `Importando ${caps.length} capítulo(s)… no cierres esta ventana.`,
+        "info",
+      );
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+          "X-Empresa-Id": empresaId,
+        },
+        body: JSON.stringify(data),
+      });
+
+      const resultado = await res.json().catch(() => ({}));
+
+      if (res.ok && resultado.success) {
+        showToast(`✅ ${resultado.mensaje}`, "success");
+        // Recargar layout del capítulo actual para reflejar cambios
+        if (typeof cargarLayout === "function") {
+          await cargarLayout();
+        }
+      } else if (res.status === 207) {
+        // Éxito parcial
+        const errList = (resultado.errores || [])
+          .map((e) => `• ${e.capitulo}: ${e.error}`)
+          .join("\n");
+        showToast(`⚠️ ${resultado.mensaje}`, "warning");
+        if (errList) {
+          console.warn("[importarPlantillaMasiva] Errores parciales:\n" + errList);
+          alert(
+            `Importación completada con errores:\n\n${resultado.mensaje}\n\nDetalles:\n${errList}`,
+          );
+        }
+        if (typeof cargarLayout === "function") await cargarLayout();
+      } else {
+        const msg = resultado.mensaje || resultado.error || "Error desconocido";
+        showToast(`Error al importar: ${msg}`, "error");
+        console.error("[importarPlantillaMasiva] Error:", resultado);
+      }
+    } catch (err) {
+      showToast(`Error inesperado al importar: ${err.message}`, "error");
+      console.error("[importarPlantillaMasiva]", err);
+    } finally {
+      event.target.value = "";
+    }
+  }
 
   function descargarPlantillaImportacion() {
     const plantilla = {

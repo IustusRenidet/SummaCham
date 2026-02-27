@@ -60,6 +60,19 @@ body {
   overflow: hidden;
 }
 
+/* Barra de acciones: permite que el dropdown de Plantilla no se recorte */
+#plantillasActionBar .table-card {
+  overflow: visible;
+}
+
+/* ===== CERO STICKY LATERAL EN TODA LA PÁGINA DE PLANTILLAS =============
+   Solo se neutraliza left — el sticky vertical (top) se deja intacto.     */
+
+.table th,
+.table td {
+  left: auto !important;
+}
+
 /* ===== STICKY TOOLBARS (CONTEXTO + ACCIONES) ===== */
 :root {
   --plantillas-sticky-top: 78px; /* body tiene padding-top: 70px */
@@ -599,18 +612,222 @@ body {
   flex: 1;
 }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-  body {
-    padding-top: 0;
+/* ===== RESPONSIVE — todos los breakpoints ===== */
+
+/* ── ≥1200px: layout amplio, todo visible ─────────────────────────────── */
+/* nada que overridear */
+
+/* ── 993–1199px (lg) ──────────────────────────────────────────────────── */
+@media (max-width: 1199px) {
+  /* Botones de la barra de acciones: reducir padding para que quepan */
+  #plantillasActionBar .btn {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.82rem;
   }
 
+  /* Ocultar texto largo de botones menos prioritarios */
+  #btnExpandir .d-inline,
+  #btnColapsar .d-inline,
+  #btnHistorialVersiones .d-inline {
+    display: none !important;
+  }
+}
+
+/* ── 769–992px (md/tablet) ───────────────────────────────────────────── */
+@media (max-width: 992px) {
+  /* Barra de acciones: permite wrap sin romper el layout */
+  #plantillasActionBar .card-body > div {
+    flex-wrap: wrap !important;
+  }
+
+  /* Búsqueda ocupa todo el ancho en primera línea */
+  #plantillasActionBar .flex-grow-1 {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  /* Botones en segunda línea: scroll horizontal si no caben */
+  #plantillasActionBar .card-body > div > .btn,
+  #plantillasActionBar .card-body > div > .btn-group {
+    flex-shrink: 0;
+  }
+
+  /* Filtros rápidos: scroll horizontal en lugar de wrap */
+  .quick-filters {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+  .quick-filters::-webkit-scrollbar { height: 3px; }
+
+  /* Preview un poco más pequeño en tablet */
+  .layout-preview {
+    max-height: 65vh;
+  }
+
+  /* Selectores de contexto: 2 columnas */
+  #plantillasContextBar .col-md-3 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+}
+
+/* ── 577–768px (sm/mobile landscape) ────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    padding-top: 56px;
+  }
+
+  /* Contexto: todos en 1 columna */
+  #plantillasContextBar .col-md-3,
+  #plantillasContextBar .col-sm-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+    margin-bottom: 6px;
+  }
+
+  /* Ocultar texto de botones, dejar solo iconos en acción bar */
+  #btnAgregar .me-1,
+  #btnExpandir,
+  #btnColapsar,
+  #btnHistorialVersiones {
+    display: none !important;
+  }
+
+  #btnPreview span,
+  #btnCopiar span,
+  #btnGuardar span {
+    display: none !important;
+  }
+
+  /* Solo icono para el dropdown Plantilla */
+  #btnDescargarPlantilla .me-1 ~ * {
+    display: none;
+  }
+
+  /* Barra de acciones: botones se wrappean en líneas */
+  #plantillasActionBar .card-body > div {
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+  }
+
+  #plantillasActionBar .btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  /* Preview más compacto */
+  .layout-preview {
+    max-height: 55vh;
+    min-height: 220px;
+  }
+
+  /* Tabla del preview: letra más pequeña */
+  .preview-table-realistic {
+    font-size: 0.7rem;
+  }
+  .preview-table-realistic thead th {
+    font-size: 0.62rem;
+    padding: 0.2rem 0.15rem;
+  }
+  .preview-table-realistic tbody td {
+    font-size: 0.68rem;
+    padding: 0.2rem 0.15rem;
+  }
+
+  /* Contenedor del elemento de formulario: stack vertical */
   .element-type-selector {
     grid-template-columns: repeat(2, 1fr);
   }
+}
 
+/* ── <576px (xs/mobile portrait) ────────────────────────────────────── */
+@media (max-width: 575px) {
+  /* Header card compacto */
+  .header-card .card-body {
+    padding: 0.75rem !important;
+  }
+  .header-card h1,
+  .header-card .h1 {
+    font-size: 1.1rem !important;
+  }
+
+  /* Barra de contexto: todo stacked */
+  #plantillasContextBar {
+    gap: 0;
+  }
+
+  /* Barra de acciones: solo icono + wrap */
+  #btnAgregar span,
+  #btnPreview span,
+  #btnCopiar span,
+  #btnGuardar span {
+    display: none !important;
+  }
+
+  #plantillasActionBar .btn,
+  #plantillasActionBar .btn-group > .btn {
+    padding: 0.28rem 0.45rem;
+    font-size: 0.75rem;
+  }
+
+  /* Preview */
   .layout-preview {
-    max-height: 400px;
+    max-height: 50vh;
+    min-height: 180px;
+  }
+
+  /* Tabla interior del preview: mínima */
+  .preview-table-realistic {
+    font-size: 0.62rem;
+  }
+  .preview-table-realistic th,
+  .preview-table-realistic td {
+    padding: 0.15rem 0.1rem;
+    white-space: nowrap;
+  }
+
+  /* Sin wrap de texto en celdas para evitar que la tabla se ensanche */
+  .table-comparison th,
+  .table-comparison td {
+    white-space: nowrap;
+  }
+
+  /* Tabs más compactas */
+  .plantillas-tabs .nav-link {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.82rem;
+  }
+
+  /* Element type selector */
+  .element-type-selector {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ── Scroll horizontal en TODOS los contextos de tabla ──────────────── */
+/* La tabla always scrollea dentro de su wrapper; nunca rompe el layout  */
+.layout-preview .table-responsive,
+#previewContainer .table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Asegurar que el modal de preview tenga scroll horizontal correcto */
+#modalVistaPrevia .modal-body {
+  overflow-x: auto;
+  padding: 0.75rem;
+}
+
+/* En móvil el modal ocupa todo */
+@media (max-width: 768px) {
+  #modalVistaPrevia .modal-dialog {
+    margin: 0.25rem;
+    max-width: calc(100vw - 0.5rem);
+  }
+  #modalVistaPrevia .modal-content {
+    border-radius: 8px;
   }
 }
 
