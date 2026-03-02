@@ -2795,11 +2795,11 @@
         // Años futuros: ocultar todos los month-real.
         debeOcultar = true;
       } else {
-        // Año actual: mostrar SOLO el mes anterior al actual.
+        // Año actual: mostrar TODOS los meses hasta el mes actual (inclusive).
         if (!mesNumero || !periodoVisible || periodoVisible < 1) {
           debeOcultar = true;
         } else {
-          debeOcultar = mesNumero !== periodoVisible;
+          debeOcultar = mesNumero > periodoVisible;
         }
       }
 
