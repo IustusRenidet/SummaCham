@@ -93,7 +93,9 @@ class BackupService {
   }
 
   /**
-   * Crea un backup de la base de datos
+   * Crea un backup de la base de datos usando la API nativa de SQLite.
+   * Esto hace un WAL checkpoint antes de copiar, garantizando un backup
+   * consistente sin bloquear el event loop.
    * @returns {Promise<Object>} Información del backup creado
    */
   async createBackup() {
@@ -113,18 +115,24 @@ class BackupService {
       const backupFileName = `panel_${timestamp}.sqlite`;
       const backupFilePath = path.join(this.config.backupPath, backupFileName);
 
-      // Copiar archivo de base de datos
-      fs.copyFileSync(dbPath, backupFilePath);
+      // Usar la API .backup() de better-sqlite3 en lugar de copyFileSync.
+      // Esto hace un checkpoint del WAL y copia la DB de forma consistente
+      // sin bloquear el event loop ni crear backups incompletos.
+      const { getDb } = require("../db/sqlite");
+      const db = getDb();
+
+      // Forzar checkpoint del WAL antes del backup para reducir su tamaño
+      try {
+        db.pragma("wal_checkpoint(TRUNCATE)");
+      } catch (checkpointErr) {
+        console.warn("⚠ WAL checkpoint antes de backup falló (no crítico):", checkpointErr.message);
+      }
+
+      // backup() retorna una Promise que no bloquea el event loop
+      await db.backup(backupFilePath);
 
       // Verificar integridad del backup
-      const originalStats = fs.statSync(dbPath);
       const backupStats = fs.statSync(backupFilePath);
-
-      if (originalStats.size !== backupStats.size) {
-        throw new Error(
-          "El tamaño del backup no coincide con el original"
-        );
-      }
 
       // Calcular checksum para verificación adicional
       const checksum = await this._calculateChecksum(backupFilePath);

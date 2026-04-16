@@ -288,6 +288,9 @@ const crearConexion = () => {
   db.pragma("cache_size = 10000"); // Cache de 10MB aprox
   db.pragma("temp_store = MEMORY"); // Tablas temporales en memoria
   db.pragma("busy_timeout = 5000"); // Esperar hasta 5 segundos si hay lock
+  // Checkpoint automático cada 200 páginas (~800KB) en lugar de 1000.
+  // Evita que el WAL crezca indefinidamente con los writes de sesiones.
+  db.pragma("wal_autocheckpoint = 200");
 
   console.log("✓ SQLite configurado para multi-usuario (modo WAL)");
   return db;

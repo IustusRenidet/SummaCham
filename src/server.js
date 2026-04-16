@@ -375,6 +375,17 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   return instanciaServidor;
 };
 
+// Evitar que errores no controlados derriben el proceso
+process.on("uncaughtException", (error) => {
+  console.error("❌ [CRÍTICO] Excepción no controlada:", error);
+  // No terminar el proceso — el servidor sigue vivo
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("❌ [CRÍTICO] Promesa rechazada sin manejar:", reason);
+  // No terminar el proceso — el servidor sigue vivo
+});
+
 module.exports = iniciarServidor;
 
 if (require.main === module) {

@@ -100,7 +100,11 @@ const construirSesion = async (registro) => {
   }
 
   const empresaActiva = empresasDisponibles[0];
-  const disponible = await probarConexion(empresaActiva.id);
+  // Limitar espera de Firebird a 10s para no bloquear el login indefinidamente
+  const disponible = await Promise.race([
+    probarConexion(empresaActiva.id),
+    new Promise((resolve) => setTimeout(() => resolve(false), 10000)),
+  ]).catch(() => false);
 
   return {
     usuario: {
