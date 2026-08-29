@@ -1650,6 +1650,66 @@
         this.buttons.descartar.classList.toggle("d-none", !visible);
         this.buttons.descartar.disabled = !visible;
       }
+
+      this._actualizarTooltips();
+    }
+
+    /**
+     * Explica en un tooltip nativo (atributo title) qué hace cada botón del flujo
+     * y, para los que cambian de función según el estado, cuál de las dos hace en
+     * este momento. Se recalcula cada vez que se re-renderizan los botones para
+     * que el texto nunca quede desfasado del estado real.
+     */
+    _actualizarTooltips() {
+      const estado = this._estadoSeguro();
+      const set = (btn, texto) => {
+        if (btn && texto) btn.title = texto;
+      };
+
+      if (this.buttons.guardar) {
+        set(
+          this.buttons.guardar,
+          this.state.editMode
+            ? "Guarda tus cambios sin enviarlos a revisión todavía. Puedes cerrar y continuar editando después."
+            : "Carga el presupuesto de este capítulo y año para empezar a editarlo."
+        );
+      }
+      set(
+        this.buttons.enviar,
+        "Envía el presupuesto a revisión. Deja de poder editarse hasta que lo revisen o lo rechacen."
+      );
+      set(
+        this.buttons.cancelar,
+        "Sale de edición y descarta los cambios que no hayas guardado."
+      );
+      set(
+        this.buttons.verBorrador,
+        "Abre el Centro de Borradores: estado actual, quién debe actuar y el historial completo."
+      );
+      set(
+        this.buttons.descartar,
+        "Elimina este borrador por completo, incluidos los cambios ya guardados. No se puede deshacer."
+      );
+      set(
+        this.buttons.autorizar,
+        "Autoriza el presupuesto revisado. Queda listo para guardarse en COI."
+      );
+      set(
+        this.buttons.rechazar,
+        "Rechaza el presupuesto y pide una corrección. El autor podrá editarlo de nuevo."
+      );
+      if (this.buttons.marcarRevisado) {
+        set(
+          this.buttons.marcarRevisado,
+          estado === ESTADOS.REVISADO
+            ? "Regresa el presupuesto a edición para que se hagan más cambios."
+            : "Marca el presupuesto como revisado y listo para autorizar."
+        );
+      }
+      set(
+        this.buttons.guardarCOI,
+        "Guarda el presupuesto autorizado en el sistema contable (Aspel COI). Es el último paso del flujo."
+      );
     }
 
     /**
