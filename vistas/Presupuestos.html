@@ -379,6 +379,15 @@
                   </button>
                   <button
                     type="button"
+                    class="btn btn-chip btn-outline-secondary"
+                    id="btnCopiarPresupuesto"
+                    title="Copia las cifras de presupuesto de un año a otro dentro de esta misma empresa."
+                  >
+                    <i class="bi bi-files"></i>
+                    <span>Copiar a otro año</span>
+                  </button>
+                  <button
+                    type="button"
                     class="btn btn-chip btn-primario d-none"
                     id="saveBudgetBtn"
                   >
@@ -393,6 +402,69 @@
                 accept=".csv,text/csv"
                 class="d-none"
               />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: copiar presupuesto de un año a otro -->
+      <div
+        class="modal fade"
+        id="copiarPresupuestoModal"
+        tabindex="-1"
+        aria-labelledby="copiarPresupuestoModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="copiarPresupuestoModalLabel">
+                Copiar presupuesto a otro año
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Cerrar"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <p class="text-muted small mb-3">
+                Copia las cifras mensuales de presupuesto (no el real) de un
+                año a otro, para esta misma empresa/capítulo. Solo se copian
+                cuentas que también existen en el año destino.
+              </p>
+              <div class="row g-2 mb-2">
+                <div class="col-6">
+                  <label class="form-label small fw-semibold mb-1" for="copiarAnioOrigen">Copiar desde</label>
+                  <select class="form-select form-select-sm" id="copiarAnioOrigen"></select>
+                </div>
+                <div class="col-6">
+                  <label class="form-label small fw-semibold mb-1" for="copiarAnioDestino">Copiar hacia</label>
+                  <select class="form-select form-select-sm" id="copiarAnioDestino"></select>
+                </div>
+              </div>
+              <div id="copiarPresupuestoResumen" class="d-none">
+                <div class="alert alert-secondary small mb-2" id="copiarPresupuestoResumenTexto"></div>
+                <div class="form-check d-none" id="copiarPresupuestoConfirmarWrap">
+                  <input class="form-check-input" type="checkbox" id="copiarPresupuestoConfirmarCheck">
+                  <label class="form-check-label small" for="copiarPresupuestoConfirmarCheck">
+                    Entiendo que esto sobrescribirá presupuesto que ya existe en el año destino.
+                  </label>
+                </div>
+              </div>
+              <div id="copiarPresupuestoError" class="alert alert-danger small d-none"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                Cancelar
+              </button>
+              <button type="button" class="btn btn-outline-primary btn-sm" id="btnVerVistaPreviaCopia">
+                Ver vista previa
+              </button>
+              <button type="button" class="btn btn-primario btn-sm d-none" id="btnConfirmarCopiaPresupuesto">
+                Copiar presupuesto
+              </button>
             </div>
           </div>
         </div>
@@ -722,6 +794,7 @@
     <script src="js/modo-edicion-presupuesto.js"></script>
     <script src="js/planeacion-modulo-vista.js"></script>
     <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
+    <script src="js/copiar-presupuesto.js"></script>
     <script src="js/init-modulo-planeacion.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="js/graficas-config.js?v=20260226.9"></script>

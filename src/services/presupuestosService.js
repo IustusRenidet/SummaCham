@@ -1,5 +1,6 @@
-const { ejecutarConsulta } = require('./firebirdService');
+const { ejecutarConsulta, ejecutarLote } = require('./firebirdService');
 const { listarAniosPresupuestos } = require('./presupuestosMetadataService');
+const logger = require('../utils/logger');
 
 const PERIODOS = Array.from({ length: 12 }, (_, indice) => indice + 1);
 
@@ -180,9 +181,196 @@ const obtenerTotalesPresupuestoCapitulo = async (empresaId, anio) => {
   return { income, expense };
 };
 
+const ANIO_MIN = 2000;
+const ANIO_MAX = 2100;
+
+const validarAnio = (valor, etiqueta) => {
+  const anio = Number(valor);
+  if (!Number.isInteger(anio) || anio < ANIO_MIN || anio > ANIO_MAX) {
+    const err = new Error(`${etiqueta} inválido.`);
+    err.status = 400;
+    throw err;
+  }
+  return anio;
+};
+
+const columnasPresupuesto = () => PERIODOS.map((p) => `PRESUP${formatearPeriodo(p)}`);
+
+/**
+ * Compara el presupuesto de un año contra el catálogo de cuentas del año
+ * destino, sin escribir nada todavía. Sirve para que la pantalla muestre
+ * "se copiarían X cuentas, Y ya tienen presupuesto en el año destino y se
+ * sobrescribirían, Z no existen en el año destino y no se pueden copiar"
+ * antes de que alguien confirme.
+ */
+async function obtenerVistaPreviaCopiaPresupuesto({ empresaId, anioOrigen, anioDestino }) {
+  const origen = validarAnio(anioOrigen, 'El año de origen');
+  const destino = validarAnio(anioDestino, 'El año de destino');
+  if (origen === destino) {
+    const err = new Error('El año de origen y el de destino deben ser distintos.');
+    err.status = 400;
+    throw err;
+  }
+  if (!empresaId) {
+    const err = new Error('Falta indicar la empresa/capítulo.');
+    err.status = 400;
+    throw err;
+  }
+
+  const tablaCuentasDestino = construirNombreTabla('CUENTAS', destino);
+  const tablaPresupOrigen = construirNombreTabla('PRESUP', origen);
+  const tablaPresupDestino = construirNombreTabla('PRESUP', destino);
+  const columnas = columnasPresupuesto();
+
+  const [cuentasDestino, presupOrigen, presupDestinoExistente] = await Promise.all([
+    ejecutarConsulta(empresaId, `SELECT NUM_CTA FROM ${tablaCuentasDestino} WHERE STATUS = 'A'`),
+    ejecutarConsulta(empresaId, `SELECT * FROM ${tablaPresupOrigen} WHERE EJERCICIO = ?`, [origen]),
+    ejecutarConsulta(empresaId, `SELECT NUM_CTA FROM ${tablaPresupDestino} WHERE EJERCICIO = ?`, [destino]),
+  ]);
+
+  const setCuentasDestino = new Set(cuentasDestino.map((r) => String(r.NUM_CTA).trim()));
+  const setPresupDestino = new Set(presupDestinoExistente.map((r) => String(r.NUM_CTA).trim()));
+
+  const aCopiar = [];
+  const cuentasOmitidas = [];
+  presupOrigen.forEach((fila) => {
+    const cuenta = String(fila.NUM_CTA).trim();
+    if (!cuenta) return;
+    if (!setCuentasDestino.has(cuenta)) {
+      // La cuenta no existe (o no está activa) en el catálogo del año destino:
+      // copiarle un presupuesto no serviría de nada, no aparecería en ningún reporte.
+      cuentasOmitidas.push(cuenta);
+      return;
+    }
+    aCopiar.push({
+      cuenta,
+      sobrescribe: setPresupDestino.has(cuenta),
+      valores: columnas.map((col) => Number(fila[col] ?? 0)),
+    });
+  });
+
+  return {
+    empresaId,
+    anioOrigen: origen,
+    anioDestino: destino,
+    totalEnOrigen: presupOrigen.length,
+    aCopiar,
+    totalACopiar: aCopiar.length,
+    sobrescribiran: aCopiar.filter((item) => item.sobrescribe).length,
+    omitidas: cuentasOmitidas.length,
+    cuentasOmitidas: cuentasOmitidas.slice(0, 25),
+  };
+}
+
+/**
+ * Copia el presupuesto de un año a otro dentro de la misma empresa/capítulo.
+ * Todo el lote se escribe en una sola transacción de Firebird (ejecutarLote
+ * con usarTransaccion: true): si una sola cuenta falla, ninguna se guarda --
+ * el año destino queda exactamente como estaba antes de intentarlo.
+ *
+ * Si alguna cuenta ya tiene presupuesto capturado en el año destino, por
+ * default se detiene y pide confirmación explícita (permitirSobrescritura)
+ * en vez de sobrescribir en silencio.
+ */
+async function copiarPresupuestoEntreAnios({
+  empresaId,
+  anioOrigen,
+  anioDestino,
+  usuarioId = null,
+  permitirSobrescritura = false,
+}) {
+  const preview = await obtenerVistaPreviaCopiaPresupuesto({ empresaId, anioOrigen, anioDestino });
+
+  if (!preview.totalACopiar) {
+    return {
+      empresaId: preview.empresaId,
+      anioOrigen: preview.anioOrigen,
+      anioDestino: preview.anioDestino,
+      copiadas: 0,
+      sobrescritas: 0,
+      omitidas: preview.omitidas,
+      cuentasOmitidas: preview.cuentasOmitidas,
+    };
+  }
+
+  if (preview.sobrescribiran > 0 && !permitirSobrescritura) {
+    const err = new Error(
+      `${preview.sobrescribiran} de ${preview.totalACopiar} cuenta(s) ya tienen presupuesto capturado en ${preview.anioDestino} y se sobrescribirían. Confirma para continuar.`
+    );
+    err.status = 409;
+    err.codigo = 'REQUIERE_CONFIRMACION';
+    err.preview = {
+      totalACopiar: preview.totalACopiar,
+      sobrescribiran: preview.sobrescribiran,
+      omitidas: preview.omitidas,
+    };
+    throw err;
+  }
+
+  const tablaPresupDestino = construirNombreTabla('PRESUP', preview.anioDestino);
+  const columnas = columnasPresupuesto();
+  const consulta = `
+    UPDATE OR INSERT INTO ${tablaPresupDestino}
+      (NUM_CTA, EJERCICIO, ${columnas.join(', ')})
+    VALUES (?, ?, ${columnas.map(() => '?').join(', ')})
+    MATCHING (NUM_CTA, EJERCICIO)
+  `;
+
+  const operaciones = preview.aCopiar.map((item) => ({
+    consulta,
+    parametros: [item.cuenta, preview.anioDestino, ...item.valores],
+    meta: { cuenta: item.cuenta },
+  }));
+
+  let mensajeAmigable = null;
+  try {
+    await ejecutarLote(empresaId, operaciones, { usarTransaccion: true });
+  } catch (error) {
+    mensajeAmigable = `No se pudo copiar el presupuesto de ${preview.anioOrigen} a ${preview.anioDestino} — no se guardó ningún cambio, el presupuesto de ${preview.anioDestino} sigue como estaba.`;
+    try {
+      logger.error('presupuesto.copia_fallida', {
+        empresaId,
+        anioOrigen: preview.anioOrigen,
+        anioDestino: preview.anioDestino,
+        usuarioId: usuarioId ? String(usuarioId) : null,
+        mensajeTecnico: error?.message,
+      });
+    } catch (_) {
+      // El log es secundario; lo importante es propagar el error real hacia abajo.
+    }
+    const errUsuario = new Error(mensajeAmigable);
+    errUsuario.status = 500;
+    errUsuario.causaOriginal = error?.message;
+    throw errUsuario;
+  }
+
+  const resultado = {
+    empresaId,
+    anioOrigen: preview.anioOrigen,
+    anioDestino: preview.anioDestino,
+    copiadas: operaciones.length,
+    sobrescritas: preview.sobrescribiran,
+    omitidas: preview.omitidas,
+    cuentasOmitidas: preview.cuentasOmitidas,
+  };
+
+  try {
+    logger.info('presupuesto.copiado_entre_anios', {
+      ...resultado,
+      usuarioId: usuarioId ? String(usuarioId) : null,
+    });
+  } catch (_) {
+    // No debe impedir devolver el resultado exitoso.
+  }
+
+  return resultado;
+}
+
 module.exports = {
   obtenerPresupuestosMayor,
   obtenerTotalesPresupuestoCapitulo,
   listarAniosPresupuestos,
+  obtenerVistaPreviaCopiaPresupuesto,
+  copiarPresupuestoEntreAnios,
   PERIODOS
 };

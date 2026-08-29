@@ -670,4 +670,82 @@ router.get('/totales-capitulo', async (req, res) => {
   }
 });
 
+const {
+  obtenerVistaPreviaCopiaPresupuesto,
+  copiarPresupuestoEntreAnios,
+} = require('../services/presupuestosService');
+
+const puedeCopiarPresupuesto = (req, empresaId) =>
+  req.esAdmin || tienePermisoEnModulo(req.mapaPermisos, empresaId, 'Presupuestos', 'Cargar y guardar');
+
+// Vista previa: cuántas cuentas se copiarían, cuántas ya tienen presupuesto
+// en el año destino (se sobrescribirían) y cuántas no existen en el año
+// destino (no se pueden copiar). No escribe nada en Firebird.
+router.get('/copiar/vista-previa', async (req, res) => {
+  try {
+    const empresaId = (req.query.empresaId || '').toString().trim();
+    if (!empresaId) {
+      return res.status(400).json({ mensaje: 'Falta indicar la empresa/capítulo.' });
+    }
+    if (!puedeCopiarPresupuesto(req, empresaId)) {
+      return res.status(403).json({ mensaje: 'No cuentas con permiso para copiar presupuestos en esta empresa.' });
+    }
+    const preview = await obtenerVistaPreviaCopiaPresupuesto({
+      empresaId,
+      anioOrigen: req.query.anioOrigen,
+      anioDestino: req.query.anioDestino,
+    });
+    res.json({
+      empresaId: preview.empresaId,
+      anioOrigen: preview.anioOrigen,
+      anioDestino: preview.anioDestino,
+      totalEnOrigen: preview.totalEnOrigen,
+      totalACopiar: preview.totalACopiar,
+      sobrescribiran: preview.sobrescribiran,
+      omitidas: preview.omitidas,
+      cuentasOmitidas: preview.cuentasOmitidas,
+    });
+  } catch (error) {
+    console.error('Error en vista previa de copia de presupuesto:', error);
+    if (esErrorConexionFirebird(error)) {
+      return res.status(503).json({ mensaje: 'No se pudo conectar a la base de datos. Verifica la conexión.' });
+    }
+    res.status(error.status || 500).json({ mensaje: error.message || 'No fue posible calcular la vista previa.' });
+  }
+});
+
+// Ejecuta la copia. Requiere permitirSobrescritura=true si la vista previa
+// reportó cuentas que ya tienen presupuesto en el año destino -- sin eso,
+// responde 409 en vez de sobrescribir en silencio. Todo el lote se escribe
+// en una sola transacción: si algo falla, no se guarda ningún cambio.
+router.post('/copiar', async (req, res) => {
+  try {
+    const { empresaId, anioOrigen, anioDestino, permitirSobrescritura } = req.body || {};
+    const empresaIdTexto = (empresaId || '').toString().trim();
+    if (!empresaIdTexto) {
+      return res.status(400).json({ mensaje: 'Falta indicar la empresa/capítulo.' });
+    }
+    if (!puedeCopiarPresupuesto(req, empresaIdTexto)) {
+      return res.status(403).json({ mensaje: 'No cuentas con permiso para copiar presupuestos en esta empresa.' });
+    }
+    const resultado = await copiarPresupuestoEntreAnios({
+      empresaId: empresaIdTexto,
+      anioOrigen,
+      anioDestino,
+      usuarioId: req.usuarioActual?.id || null,
+      permitirSobrescritura: Boolean(permitirSobrescritura),
+    });
+    res.json(resultado);
+  } catch (error) {
+    console.error('Error al copiar presupuesto entre años:', error);
+    if (error?.codigo === 'REQUIERE_CONFIRMACION') {
+      return res.status(409).json({ mensaje: error.message, preview: error.preview });
+    }
+    if (esErrorConexionFirebird(error)) {
+      return res.status(503).json({ mensaje: 'No se pudo conectar a la base de datos. Verifica la conexión.' });
+    }
+    res.status(error.status || 500).json({ mensaje: error.message || 'No fue posible copiar el presupuesto.' });
+  }
+});
+
 module.exports = router;
