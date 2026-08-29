@@ -756,7 +756,51 @@
       this._setupButtons();
       this._prepareToast();
       this._refreshEstado();
+      this._iniciarPollingEstadoBorrador();
       return this;
+    }
+
+    /**
+     * Refresca el estado del borrador cada cierto tiempo sin que nadie recargue
+     * la página, para que dos personas viendo el mismo presupuesto vean el mismo
+     * estado (p. ej. si alguien más lo autoriza o lo rechaza mientras lo tienes
+     * abierto). Reutiliza _refreshEstado(), que ya sabe pintar badge, botones,
+     * pasos e historial.
+     *
+     * Dos resguardos para no estorbar:
+     * - Se salta el refresco mientras this.state.editMode es true, para no
+     *   pisar una edición en curso de quien tiene el borrador abierto.
+     * - Se salta mientras la pestaña está oculta (document.hidden), para no
+     *   generar peticiones de fondo sin que nadie las vea; al volver a la
+     *   pestaña se refresca una vez de inmediato.
+     */
+    _iniciarPollingEstadoBorrador() {
+      if (this._pollingEstadoActivo) return;
+      this._pollingEstadoActivo = true;
+      const INTERVALO_MS = 12000;
+      const tick = () => {
+        if (!this._pollingEstadoActivo) return;
+        if (document.hidden) return;
+        if (this.state.editMode) return;
+        this._refreshEstado();
+      };
+      this._pollingEstadoTimer = setInterval(tick, INTERVALO_MS);
+      if (!this._pollingVisibilidadBound) {
+        this._pollingVisibilidadBound = true;
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden && this._pollingEstadoActivo && !this.state.editMode) {
+            this._refreshEstado();
+          }
+        });
+      }
+    }
+
+    _detenerPollingEstadoBorrador() {
+      this._pollingEstadoActivo = false;
+      if (this._pollingEstadoTimer) {
+        clearInterval(this._pollingEstadoTimer);
+        this._pollingEstadoTimer = null;
+      }
     }
 
     _hydrateContext() {
