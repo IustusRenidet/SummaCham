@@ -378,11 +378,27 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
 // Evitar que errores no controlados derriben el proceso
 process.on("uncaughtException", (error) => {
   console.error("❌ [CRÍTICO] Excepción no controlada:", error);
+  try {
+    require("./utils/logger").error("uncaughtException", {
+      mensaje: error?.message,
+      stack: error?.stack,
+    });
+  } catch (_) {
+    // El logger nunca debe impedir que este handler siga protegiendo el proceso.
+  }
   // No terminar el proceso — el servidor sigue vivo
 });
 
 process.on("unhandledRejection", (reason, promise) => {
   console.error("❌ [CRÍTICO] Promesa rechazada sin manejar:", reason);
+  try {
+    require("./utils/logger").error("unhandledRejection", {
+      mensaje: reason?.message || String(reason),
+      stack: reason?.stack,
+    });
+  } catch (_) {
+    // El logger nunca debe impedir que este handler siga protegiendo el proceso.
+  }
   // No terminar el proceso — el servidor sigue vivo
 });
 

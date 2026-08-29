@@ -1,4 +1,5 @@
 const { db, registrarPresupuestoGuardado } = require("../db/sqlite");
+const logger = require("../utils/logger");
 
 const ESTADOS = {
   EDITANDO: "EDITANDO",
@@ -370,6 +371,21 @@ const registrarEventoHistorial = ({
     comentarios || null,
     usuarioId ? String(usuarioId) : null
   );
+  try {
+    logger.info("borrador.transicion", {
+      borradorId: borradorId || null,
+      empresaId,
+      modulo,
+      anio: Number(anio),
+      capitulo: capitulo || "DEFAULT",
+      estado,
+      accion,
+      usuarioId: usuarioId ? String(usuarioId) : null,
+    });
+  } catch (_) {
+    // El log es un espejo del historial en BD (que ya quedó guardado arriba);
+    // que falle escribir a archivo nunca debe afectar la transición real.
+  }
 };
 
 const mapData = (texto) => {
