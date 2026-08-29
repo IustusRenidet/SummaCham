@@ -1234,6 +1234,11 @@
     },
     operacionesResultadoOperativo: new Map(),
     valoresPorCuenta: new Map(),
+    // Copia intocable de los valores reales tal como llegaron de Firebird la última vez
+    // que se cargaron desde el servidor. A diferencia de valoresPorCuenta (que un borrador
+    // puede sobrescribir para previsualizarse), este mapa nunca se actualiza con datos de
+    // un borrador — es la base real contra la que se calcula "qué cambió".
+    valoresReales: new Map(),
     nombresPorCuenta: new Map(),
     capitulo: "",
     placeholdersPorFila: 0,
@@ -2588,6 +2593,9 @@
     });
     estadoModulo.mesActual = mesActualClave || "";
     estadoModulo.mesActualIndex = mesActualIndex;
+    // Base real congelada: se toma aquí, justo tras cargar de Firebird, antes de que
+    // cualquier borrador pueda sobrescribir valoresPorCuenta para previsualizarse.
+    estadoModulo.valoresReales = clonarMapaValores(estadoModulo.valoresPorCuenta);
     recalcularSumas();
     estadoModulo.hayCambios = false;
     estadoModulo.editSnapshot = null;
@@ -2658,11 +2666,17 @@
   };
 
   const obtenerCambiosPendientes = () => {
-    if (!estadoModulo.editSnapshot) {
+    // IMPORTANTE: se compara siempre contra valoresReales (la foto de Firebird tomada en
+    // contarSaldos), nunca contra editSnapshot. editSnapshot puede contener valores que un
+    // borrador ya cargó para previsualizarse — usarlo aquí era el bug: al reabrir un borrador
+    // rechazado para seguir editando, sus cambios ya guardados "desaparecían" del cálculo de
+    // diferencias porque ya coincidían con la foto tomada después de cargarlos, y solo se
+    // detectaba (y por lo tanto solo se volvía a enviar al guardar) la edición más reciente.
+    if (!estadoModulo.valoresReales || !estadoModulo.valoresReales.size) {
       return { presupuesto: [], nombres: [] };
     }
     const cambiosPresupuesto = [];
-    const baseValores = estadoModulo.editSnapshot.valores || new Map();
+    const baseValores = estadoModulo.valoresReales;
 
     estadoModulo.valoresPorCuenta.forEach((valores, cuenta) => {
       const prev = baseValores.get(cuenta) || {};
