@@ -8792,7 +8792,8 @@
       .trim();
   };
 
-  const cargarBorrador = (presupuesto = []) => {
+  const cargarBorrador = (presupuesto = [], opciones = {}) => {
+    const { pintarCeldas = true, marcarHayCambios = true } = opciones;
     if (!Array.isArray(presupuesto) || !estadoModulo.tabla) return false;
     if (!estadoModulo.columnas || !Object.keys(estadoModulo.columnas).length) {
       estadoModulo.columnas = construirMapaColumnas(estadoModulo.tabla);
@@ -8847,9 +8848,11 @@
         if (!celda) return;
         const numero = Number(valor);
         const finalValor = Number.isFinite(numero) ? numero : 0;
-        celda.textContent = formatearNumero(finalValor);
+        if (pintarCeldas) {
+          celda.textContent = formatearNumero(finalValor);
+          resaltarCeldaPresupuesto(celda);
+        }
         almacen[clave] = finalValor;
-        resaltarCeldaPresupuesto(celda);
         aplicado = true;
       });
 
@@ -8858,9 +8861,15 @@
     });
 
     if (aplicado) {
+      // Los totales/fórmulas se recalculan siempre, se pinten o no las celdas
+      // individuales -- es justo lo que necesita una vista previa de solo
+      // lectura: números de cuenta ya actualizados por quien llama, y aquí se
+      // hace que las filas de suma reflejen esos valores en el acto.
       recalcularSumas();
-      estadoModulo.hayCambios = true;
-      notificarCambios();
+      if (marcarHayCambios) {
+        estadoModulo.hayCambios = true;
+        notificarCambios();
+      }
     }
 
     return aplicado;
@@ -8923,8 +8932,33 @@
     cargarBorrador(presupuesto) {
       return cargarBorrador(presupuesto);
     },
+    // Igual que cargarBorrador, pero solo para previsualizar: recalcula las
+    // filas de suma/fórmula con los valores propuestos sin pintar cada celda
+    // de cuenta ni marcar la tabla como "con cambios sin guardar". Pensado
+    // para ver un borrador en un estado no editable (Pendiente, Revisado,
+    // Rechazado, Autorizado, Guardado) con sus totales ya reflejados.
+    previsualizarBorrador(presupuesto) {
+      return cargarBorrador(presupuesto, {
+        pintarCeldas: false,
+        marcarHayCambios: false,
+      });
+    },
     getCambios() {
       return obtenerCambiosPendientes();
+    },
+    // Contraparte de previsualizarBorrador(): regresa la tabla (celdas de
+    // suma/fórmula incluidas) a los valores reales tal como se cargaron de
+    // Firebird la última vez, usando la misma base protegida (valoresReales)
+    // que ya usa el cálculo de "qué cambió" de un borrador.
+    restaurarValoresReales() {
+      if (!estadoModulo.valoresReales || !estadoModulo.valoresReales.size) {
+        return false;
+      }
+      restablecerDesdeSnapshot({
+        valores: estadoModulo.valoresReales,
+        nombres: estadoModulo.nombresPorCuenta,
+      });
+      return true;
     },
   };
 })();

@@ -3488,12 +3488,24 @@
         celda.classList.add("celda-borrador");
       });
     });
+    // Que las celdas de cuenta ya muestren el valor propuesto no alcanza para
+    // ver "cómo quedaría" el presupuesto -- las filas de suma/fórmula seguían
+    // mostrando el total real. previsualizarBorrador() actualiza el mismo
+    // mapa en memoria que usa recalcularSumas() (sin volver a pintar celdas
+    // ni marcar la tabla como editada) para que esos totales también
+    // reflejen los cambios propuestos, en cualquier estado del borrador.
+    try {
+      window.CuentasModulo?.previsualizarBorrador?.(cambios);
+    } catch (err) {
+      console.warn("No se pudieron recalcular las fórmulas del borrador:", err);
+    }
     return true;
   };
 
   FlujoAutorizacion.limpiarBorrador = (tabla) => {
     if (!tabla) return;
     const marcadas = Array.from(tabla.querySelectorAll(".celda-borrador"));
+    const habiaAlgoQueLimpiar = marcadas.length > 0;
     marcadas.forEach((celda) => {
       if (celda.dataset.borradorValorOriginal != null) {
         celda.textContent = celda.dataset.borradorValorOriginal;
@@ -3501,6 +3513,16 @@
       }
       celda.classList.remove("celda-borrador");
     });
+    // pintarBorrador() también recalculó las filas de suma/fórmula con los
+    // valores propuestos (ver previsualizarBorrador) -- hay que regresarlas
+    // a los valores reales, no solo las celdas de cuenta individuales.
+    if (habiaAlgoQueLimpiar) {
+      try {
+        window.CuentasModulo?.restaurarValoresReales?.();
+      } catch (err) {
+        console.warn("No se pudieron restaurar los totales reales:", err);
+      }
+    }
   };
 
   const DraftHistoryCenter = (() => {
