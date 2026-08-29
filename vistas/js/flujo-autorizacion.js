@@ -1549,6 +1549,63 @@
             : leyenda;
         }
       }
+      this._renderPasosCOI(estado);
+    }
+
+    /**
+     * Dibuja la línea de pasos que faltan para "Guardado en COI":
+     * Editando → Pendiente → Revisado → Autorizado → Guardado en COI,
+     * con el paso actual resaltado y los que ya pasaron marcados como hechos.
+     * Si el borrador está rechazado no forma parte de esa línea (no es "un
+     * paso más adelante", es un desvío que regresa a edición) — se muestra
+     * aparte, en rojo.
+     */
+    _renderPasosCOI(estado) {
+      const cont = document.getElementById("workflowSteps");
+      if (!cont) return;
+
+      const tieneBorrador = Boolean(this.state.borrador?.id || this.state.borrador?.esTemporal);
+      if (!tieneBorrador || !estado) {
+        cont.innerHTML = "";
+        return;
+      }
+
+      if (estado === ESTADOS.RECHAZADO) {
+        cont.innerHTML = "";
+        const paso = document.createElement("span");
+        paso.className = "workflow-step rechazado";
+        paso.innerHTML = `<span class="dot"></span><span>Rechazado — hay que editarlo de nuevo para volver a enviarlo</span>`;
+        cont.appendChild(paso);
+        return;
+      }
+
+      const secuencia = [
+        [ESTADOS.EDITANDO, "Editando"],
+        [ESTADOS.PENDIENTE, "Pendiente"],
+        [ESTADOS.REVISADO, "Revisado"],
+        [ESTADOS.APROBADO, "Autorizado"],
+        [ESTADOS.GUARDADO, "Guardado en COI"],
+      ];
+      const indiceActual = secuencia.findIndex(([clave]) => clave === estado);
+      if (indiceActual === -1) {
+        cont.innerHTML = "";
+        return;
+      }
+
+      cont.innerHTML = "";
+      secuencia.forEach(([, etiqueta], idx) => {
+        if (idx > 0) {
+          const sep = document.createElement("span");
+          sep.className = `workflow-step-sep${idx <= indiceActual ? " hecho" : ""}`;
+          cont.appendChild(sep);
+        }
+        const paso = document.createElement("span");
+        const estadoPaso =
+          idx === indiceActual ? "actual" : idx < indiceActual ? "hecho" : "";
+        paso.className = `workflow-step${estadoPaso ? ` ${estadoPaso}` : ""}`;
+        paso.innerHTML = `<span class="dot"></span><span>${etiqueta}</span>`;
+        cont.appendChild(paso);
+      });
     }
 
     _renderBotones() {
