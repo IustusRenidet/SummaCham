@@ -4171,6 +4171,13 @@
         };
 
         // Obtener labels del snapshot
+        // refId (SEC::/SUB::/ACC::/GRP::) por label, tal como lo capturó el
+        // snapshot de RESUMEN -- permite que el picker guarde una referencia
+        // estable en vez de solo el texto. Solo cubre labels que vienen del
+        // snapshot (no los de state.cuentas/DOM del layout, que no llevan
+        // refId hasta este punto).
+        const snapshotRefIdByLabel = new Map();
+
         const getSnapshotLabels = (moduleValue) => {
           const moduleKey = normalizeModuleKey(
             moduleValue || currentModule || "RESUMEN",
@@ -4178,9 +4185,13 @@
           if (!isSummaryModuleKey(moduleKey)) return [];
           const snapshot = getSnapshot();
           if (!snapshot || !Array.isArray(snapshot.filas)) return [];
-          const labels = snapshot.filas
-            .map((row) => (row?.label || "").toString().trim())
-            .filter(Boolean);
+          const labels = [];
+          snapshot.filas.forEach((row) => {
+            const label = (row?.label || "").toString().trim();
+            if (!label) return;
+            labels.push(label);
+            if (row?.refId) snapshotRefIdByLabel.set(label, row.refId);
+          });
           return Array.from(new Set(labels)).sort((a, b) => a.localeCompare(b));
         };
 
@@ -4580,7 +4591,7 @@
           },
         ];
 
-        const buildRowEntry = (label, variants, color) => {
+        const buildRowEntry = (label, variants, color, refId) => {
           const alias = normalizeRowLabel(label);
           if (!alias) return null;
           const cleanedVariants = Array.isArray(variants)
@@ -4589,6 +4600,10 @@
           if (!cleanedVariants.length) cleanedVariants.push(alias);
           const entry = { alias, variants: cleanedVariants };
           if (color && typeof color === "string") entry.color = color;
+          // refId estable (viene del picker cuando la fila salió del
+          // snapshot de RESUMEN, que ya trae el refId del motor de reportes).
+          const cleanRefId = (refId || "").toString().trim();
+          if (cleanRefId) entry.refId = cleanRefId;
           return entry;
         };
 
@@ -5196,6 +5211,8 @@
             const option = document.createElement("option");
             option.value = label;
             option.textContent = label;
+            const refId = snapshotRefIdByLabel.get(label);
+            if (refId) option.dataset.refId = refId;
             rowPicker.appendChild(option);
           });
         };
@@ -5298,7 +5315,11 @@
             }
           }
           if (!value) return;
-          const entry = buildRowEntry(value, [value]);
+          const selectedRefId =
+            rowPicker.selectedOptions?.[0]?.dataset?.refId ||
+            snapshotRefIdByLabel.get(value) ||
+            "";
+          const entry = buildRowEntry(value, [value], null, selectedRefId);
           if (!entry) return;
           const exists = selectedRows.some(
             (row) =>
@@ -5479,13 +5500,20 @@
 
           const buildDatasetsFromSnapshot = (snapshot) => {
             const snapshotMap = new Map();
+            const snapshotRefMap = new Map();
             if (snapshot && Array.isArray(snapshot.filas)) {
               snapshot.filas.forEach((row) => {
                 const label = (row?.label || "").toString().trim().toUpperCase();
                 if (label) snapshotMap.set(label, row?.totals || {});
+                if (row?.refId) snapshotRefMap.set(row.refId, row?.totals || {});
               });
             }
-            const resolveTotalsForVariants = (variants) => {
+            const resolveTotalsForVariants = (variants, refId) => {
+              // Prioridad: refId estable, igual que en Graficas.html -- la
+              // preview debe reflejar exactamente lo que verá el usuario.
+              if (refId && snapshotRefMap.has(refId)) {
+                return snapshotRefMap.get(refId);
+              }
               if (!variants || variants.length === 0) return {};
               const normalized = variants.map(normalizeRowKey).filter(Boolean);
               for (const key of normalized) {
@@ -5502,7 +5530,7 @@
 
             const missingRows = [];
             const resolvedRows = selectedRows.map((row) => {
-              const totals = resolveTotalsForVariants(row.variants || []);
+              const totals = resolveTotalsForVariants(row.variants || [], row.refId);
               const found = totals && Object.keys(totals).length > 0;
               if (!found) {
                 missingRows.push(row.alias || "(sin nombre)");
@@ -5864,6 +5892,7 @@
                       : [row.alias],
                 };
                 if (row.color) r.color = row.color;
+                if (row.refId) r.refId = row.refId;
                 return r;
               }),
             };

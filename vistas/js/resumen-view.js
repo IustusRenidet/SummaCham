@@ -3277,6 +3277,7 @@
         const safeNumber = (celda) => parseNumber(celda?.textContent || "");
         const registro = {
           label,
+          refId: fila.dataset.refId || "",
           totals: {
             actual: safeNumber(celdas[1]),
             plan: safeNumber(celdas[2]),
@@ -6503,6 +6504,13 @@
           ]
             .filter(Boolean)
             .join("::");
+          // refId estable (SEC::/SUB::/ACC::/GRP::) calculado en el motor de
+          // reportes -- permite que Graficas identifique esta fila por algo
+          // distinto de su texto renderizado, para que un renombre no rompa
+          // silenciosamente una gráfica que ya la referenciaba.
+          if (block?.refId) {
+            row.dataset.refId = block.refId;
+          }
         };
 
         // Helper: render a principal header row
