@@ -148,6 +148,16 @@
   const formatoMonto = (valor) =>
     Number(valor || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  // El backend entrega el NUM_CTA largo de Firebird (ej. "501000000000000000001");
+  // el resto de la app siempre muestra el formato corto con guiones
+  // (ej. "501-000-000-00"), tomando los primeros 11 dígitos.
+  const formatearCuentaVisible = (cuentaLarga) => {
+    const soloDigitos = (cuentaLarga || "").toString().replace(/[^0-9]/g, "");
+    if (!soloDigitos) return cuentaLarga || "";
+    const visible = soloDigitos.slice(0, 11).padEnd(11, "0");
+    return `${visible.slice(0, 3)}-${visible.slice(3, 6)}-${visible.slice(6, 9)}-${visible.slice(9, 11)}`;
+  };
+
   const construirResumenDetalle = (detalle) => {
     if (detalle.tipo === "Copia entre años") {
       return `Copia de presupuesto de ${detalle.anioOrigen} a ${detalle.anioDestino}, ` +
@@ -167,10 +177,10 @@
       const tr = document.createElement("tr");
       if (item.sobrescribe) tr.classList.add("table-warning");
       const tdCuenta = document.createElement("td");
-      tdCuenta.className = "font-monospace small";
-      tdCuenta.textContent = item.cuenta;
+      tdCuenta.className = "font-monospace small text-nowrap";
+      tdCuenta.textContent = formatearCuentaVisible(item.cuenta);
       const tdNombre = document.createElement("td");
-      tdNombre.className = "small";
+      tdNombre.className = "small text-nowrap";
       tdNombre.textContent = item.nombre || "";
       tr.append(tdCuenta, tdNombre);
       (item.valores || []).forEach((valor) => {
