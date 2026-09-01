@@ -1618,7 +1618,19 @@
         cont.innerHTML = "";
         const paso = document.createElement("span");
         paso.className = "workflow-step rechazado";
-        paso.innerHTML = `<span class="dot"></span><span>Rechazado — hay que editarlo de nuevo para volver a enviarlo</span>`;
+        const dot = document.createElement("span");
+        dot.className = "dot";
+        const texto = document.createElement("span");
+        // El badge de arriba ya dice "Rechazado" -- aquí no se repite, se
+        // dice qué sigue. El motivo (si el revisor lo escribió al
+        // rechazar) se muestra completo: es la pregunta que más se hace
+        // el autor y hoy solo vivía escondida en el historial.
+        const motivo = (this.state.borrador?.comentarios || "").toString().trim();
+        texto.textContent = motivo
+          ? `Hay que editarlo de nuevo para volver a enviarlo — motivo: "${motivo}"`
+          : "Hay que editarlo de nuevo para volver a enviarlo.";
+        paso.appendChild(dot);
+        paso.appendChild(texto);
         cont.appendChild(paso);
         return;
       }
@@ -1834,8 +1846,14 @@
         return;
       }
       
-      // Si existe un borrador EDITANDO, preparar modo edicion primero y luego cargarlo
-      if (this.state.borrador?.estado === ESTADOS.EDITANDO) {
+      // Si ya existe contenido de borrador (EDITANDO, o RECHAZADO que se va a
+      // corregir), cargarlo a la tabla antes de activar edicion -- si no, se
+      // perdia la propuesta anterior y se empezaba a editar desde los valores
+      // reales, como si el borrador rechazado nunca hubiera existido.
+      const tieneContenidoPrevio = Boolean(
+        this.state.borrador?.data?.presupuesto?.length
+      );
+      if (tieneContenidoPrevio) {
         console.log("?? Cargando borrador existente antes de activar modo edicion...");
         this._enterEditMode(true);
         await this._cargarBorradorEnTabla();
