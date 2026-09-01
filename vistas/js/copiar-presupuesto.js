@@ -111,8 +111,11 @@
       if (status === 409) {
         const totalACopiar = data.preview?.totalACopiar ?? "varias";
         const sobrescribiran = data.preview?.sobrescribiran ?? "algunas";
+        const omitidasAviso = data.preview?.omitidas
+          ? `\n(${data.preview.omitidas} cuenta(s) de ${anioOrigen} no existen en el catálogo de ${anioDestino} y no se copiarán.)`
+          : "";
         const confirmado = confirm(
-          `El presupuesto ${anioDestino} ya tiene capturadas ${sobrescribiran} de las ${totalACopiar} cuentas que se copiarían desde ${anioOrigen}.\n\n` +
+          `El presupuesto ${anioDestino} ya tiene capturadas ${sobrescribiran} de las ${totalACopiar} cuentas que se copiarían desde ${anioOrigen}.${omitidasAviso}\n\n` +
             `¿Sobrescribir esas cuentas con los valores de ${anioOrigen}?`
         );
         if (!confirmado) {
@@ -129,7 +132,10 @@
       if (modalEl && window.bootstrap?.Modal) {
         window.bootstrap.Modal.getInstance(modalEl)?.hide();
       }
-      alert(`Presupuesto copiado: ${data.copiadas} cuenta(s) de ${data.anioOrigen} a ${data.anioDestino}.`);
+      const avisoOmitidas = data.omitidas
+        ? ` (${data.omitidas} cuenta(s) de ${data.anioOrigen} no existen en el catálogo de ${data.anioDestino} y no se copiaron.)`
+        : "";
+      alert(`Presupuesto copiado: ${data.copiadas} cuenta(s) de ${data.anioOrigen} a ${data.anioDestino}.${avisoOmitidas}`);
       if (String($("presupuestosYearSelect")?.value) === String(data.anioDestino)) {
         window.location.reload();
       }

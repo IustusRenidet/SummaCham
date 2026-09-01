@@ -197,12 +197,14 @@ const validarAnio = (valor, etiqueta) => {
 const columnasPresupuesto = () => PERIODOS.map((p) => `PRESUP${formatearPeriodo(p)}`);
 
 /**
- * Lee el presupuesto completo del año origen (todas las cuentas que tengan
- * fila en PRESUP{origen}, sin filtrarlas contra el catálogo de cuentas del
- * año destino) y de una vez ve cuáles de esas cuentas ya tienen presupuesto
- * capturado en el año destino, para saber si hay que confirmar antes de
- * sobrescribir. Es un solo paso interno -- no es una pantalla de vista
- * previa aparte, la usa directo copiarPresupuestoEntreAnios().
+ * Lee el presupuesto del año origen y lo deja listo para copiar SOLO a las
+ * cuentas que ya existen en el catálogo del año destino (CUENTAS{destino})
+ * -- si una cuenta de origen no existe todavía en destino, se omite (no se
+ * crean cuentas nuevas en el año destino). De paso ve cuáles de las que sí
+ * coinciden ya tienen presupuesto capturado en destino, para saber si hay
+ * que confirmar antes de sobrescribir. Es un solo paso interno -- no es una
+ * pantalla de vista previa aparte, la usa directo
+ * copiarPresupuestoEntreAnios().
  */
 async function _leerPresupuestoParaCopiar({ empresaId, anioOrigen, anioDestino }) {
   const origen = validarAnio(anioOrigen, 'El año de origen');
@@ -218,26 +220,32 @@ async function _leerPresupuestoParaCopiar({ empresaId, anioOrigen, anioDestino }
     throw err;
   }
 
+  const tablaCuentasDestino = construirNombreTabla('CUENTAS', destino);
   const tablaPresupOrigen = construirNombreTabla('PRESUP', origen);
   const tablaPresupDestino = construirNombreTabla('PRESUP', destino);
   const columnas = columnasPresupuesto();
 
-  const [presupOrigen, presupDestinoExistente] = await Promise.all([
+  const [cuentasDestino, presupOrigen, presupDestinoExistente] = await Promise.all([
+    ejecutarConsulta(empresaId, `SELECT NUM_CTA FROM ${tablaCuentasDestino} WHERE STATUS = 'A'`),
     ejecutarConsulta(empresaId, `SELECT * FROM ${tablaPresupOrigen} WHERE EJERCICIO = ?`, [origen]),
     ejecutarConsulta(empresaId, `SELECT NUM_CTA FROM ${tablaPresupDestino} WHERE EJERCICIO = ?`, [destino]),
   ]);
 
+  const setCuentasDestino = new Set(cuentasDestino.map((r) => String(r.NUM_CTA).trim()));
   const setPresupDestino = new Set(presupDestinoExistente.map((r) => String(r.NUM_CTA).trim()));
 
-  // Presupuesto completo: se copia toda cuenta que tenga fila en el año
-  // origen, exista o no todavía en el catálogo de cuentas del año destino
-  // (una fila de más en PRESUP sin cuenta correspondiente simplemente no
-  // aparece en ningún reporte -- no rompe nada, y así no hay que andar
-  // adivinando qué cuentas "sí cuentan").
+  let omitidas = 0;
+  // Solo se copian cuentas que ya existen en el catálogo del año destino --
+  // copiar a una cuenta que no existe ahí crearía una cuenta "fantasma" en
+  // ese año, que es justo lo que no se quiere.
   const cuentas = presupOrigen
     .map((fila) => {
       const cuenta = String(fila.NUM_CTA).trim();
       if (!cuenta) return null;
+      if (!setCuentasDestino.has(cuenta)) {
+        omitidas += 1;
+        return null;
+      }
       return {
         cuenta,
         sobrescribe: setPresupDestino.has(cuenta),
@@ -253,6 +261,7 @@ async function _leerPresupuestoParaCopiar({ empresaId, anioOrigen, anioDestino }
     cuentas,
     totalACopiar: cuentas.length,
     sobrescribiran: cuentas.filter((item) => item.sobrescribe).length,
+    omitidas,
   };
 }
 
@@ -276,7 +285,10 @@ async function copiarPresupuestoEntreAnios({
   const datos = await _leerPresupuestoParaCopiar({ empresaId, anioOrigen, anioDestino });
 
   if (!datos.totalACopiar) {
-    const err = new Error(`${datos.anioOrigen} no tiene presupuesto capturado para esta empresa. No hay nada que copiar.`);
+    const razon = datos.omitidas > 0
+      ? `ninguna de las cuentas con presupuesto en ${datos.anioOrigen} existe en el catálogo de ${datos.anioDestino}`
+      : `${datos.anioOrigen} no tiene presupuesto capturado para esta empresa`;
+    const err = new Error(`No hay nada que copiar: ${razon}.`);
     err.status = 400;
     throw err;
   }
@@ -290,6 +302,7 @@ async function copiarPresupuestoEntreAnios({
     err.preview = {
       totalACopiar: datos.totalACopiar,
       sobrescribiran: datos.sobrescribiran,
+      omitidas: datos.omitidas,
     };
     throw err;
   }
@@ -336,6 +349,7 @@ async function copiarPresupuestoEntreAnios({
     anioDestino: datos.anioDestino,
     copiadas: operaciones.length,
     sobrescritas: datos.sobrescribiran,
+    omitidas: datos.omitidas,
   };
 
   try {
