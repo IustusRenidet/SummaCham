@@ -379,12 +379,21 @@
                   </button>
                   <button
                     type="button"
-                    class="btn btn-chip btn-outline-secondary"
+                    class="btn btn-chip btn-outline-secondary d-none"
                     id="btnCopiarPresupuesto"
-                    title="Copia las cifras de presupuesto de un año a otro dentro de esta misma empresa."
+                    title="Copia las cifras de presupuesto de un año a otro dentro de esta misma empresa. Solo administradores globales."
                   >
                     <i class="bi bi-files"></i>
                     <span>Copiar a otro año</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-chip btn-outline-secondary d-none"
+                    id="btnHistorialCoi"
+                    title="Historial de todos los cambios guardados en COI desde este programa: quién, cuándo y qué."
+                  >
+                    <i class="bi bi-clock-history"></i>
+                    <span>Historial de COI</span>
                   </button>
                   <button
                     type="button"
@@ -407,7 +416,7 @@
         </div>
       </div>
 
-      <!-- Modal: copiar presupuesto de un año a otro -->
+      <!-- Modal: copiar presupuesto de un año a otro (solo admin global) -->
       <div
         class="modal fade"
         id="copiarPresupuestoModal"
@@ -415,7 +424,7 @@
         aria-labelledby="copiarPresupuestoModalLabel"
         aria-hidden="true"
       >
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title" id="copiarPresupuestoModalLabel">
@@ -429,11 +438,14 @@
               ></button>
             </div>
             <div class="modal-body">
-              <p class="text-muted small mb-3">
-                Copia el presupuesto completo (todas las cuentas, los 12
-                meses) de un año a otro, para esta misma empresa/capítulo.
-              </p>
-              <div class="row g-2 mb-2">
+              <div class="alert alert-warning small mb-3">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Esta acción escribe directo en COI. Solo administradores
+                globales pueden usarla. Revisa el detalle antes de confirmar
+                — se pedirá confirmación dos veces.
+              </div>
+
+              <div class="row g-2 mb-3">
                 <div class="col-6">
                   <label class="form-label small fw-semibold mb-1" for="copiarAnioOrigen">Copiar desde</label>
                   <select class="form-select form-select-sm" id="copiarAnioOrigen"></select>
@@ -443,14 +455,118 @@
                   <select class="form-select form-select-sm" id="copiarAnioDestino"></select>
                 </div>
               </div>
+
               <div id="copiarPresupuestoError" class="alert alert-danger small d-none"></div>
+
+              <div id="copiarPresupuestoResumen" class="d-none">
+                <div class="row g-2 mb-3 text-center">
+                  <div class="col-3">
+                    <div class="border rounded p-2">
+                      <div class="fs-5 fw-bold" id="resumenTotal">0</div>
+                      <div class="small text-muted">Total en origen</div>
+                    </div>
+                  </div>
+                  <div class="col-3">
+                    <div class="border rounded p-2 bg-light">
+                      <div class="fs-5 fw-bold text-body" id="resumenNuevas">0</div>
+                      <div class="small text-muted">Nuevas (destino en $0)</div>
+                    </div>
+                  </div>
+                  <div class="col-3">
+                    <div class="border border-warning rounded p-2 bg-warning bg-opacity-10">
+                      <div class="fs-5 fw-bold text-warning-emphasis" id="resumenSobrescriben">0</div>
+                      <div class="small text-muted">Se sobrescriben</div>
+                    </div>
+                  </div>
+                  <div class="col-3">
+                    <div class="border rounded p-2 bg-light">
+                      <div class="fs-5 fw-bold text-body" id="resumenOmitidas">0</div>
+                      <div class="small text-muted">Omitidas (no existen)</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="small fw-semibold">Detalle por cuenta</span>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" id="btnDescargarReporteCopia">
+                    <i class="bi bi-download me-1"></i>Descargar reporte
+                  </button>
+                </div>
+                <div class="table-responsive border rounded" style="max-height: 260px; overflow-y: auto;">
+                  <table class="table table-sm table-hover mb-0" id="tablaDetalleCopia">
+                    <thead class="table-light" style="position: sticky; top: 0;">
+                      <tr>
+                        <th>Cuenta</th>
+                        <th>Nombre</th>
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
                 Cancelar
               </button>
-              <button type="button" class="btn btn-primario btn-sm" id="btnConfirmarCopiaPresupuesto">
+              <button type="button" class="btn btn-outline-primary btn-sm" id="btnRevisarCopiaPresupuesto">
+                Revisar cambios
+              </button>
+              <button type="button" class="btn btn-primario btn-sm d-none" id="btnConfirmarCopiaPresupuesto">
                 Copiar presupuesto
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: historial de cambios guardados en COI (control de versiones) -->
+      <div
+        class="modal fade"
+        id="historialCoiModal"
+        tabindex="-1"
+        aria-labelledby="historialCoiModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="historialCoiModalLabel">
+                Historial de cambios en COI
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Cerrar"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <p class="text-muted small mb-3">
+                Cada vez que este programa escribe en COI (Guardar en COI por
+                módulo, o Copiar a otro año) queda un registro aquí: quién,
+                cuándo y qué cambió.
+              </p>
+              <div id="historialCoiEstado" class="alert alert-secondary small">Cargando historial...</div>
+              <div class="table-responsive border rounded" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-hover mb-0" id="tablaHistorialCoi">
+                  <thead class="table-light" style="position: sticky; top: 0;">
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Usuario</th>
+                      <th>Tipo</th>
+                      <th>Año</th>
+                      <th>Detalle</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                Cerrar
               </button>
             </div>
           </div>
@@ -782,6 +898,7 @@
     <script src="js/planeacion-modulo-vista.js"></script>
     <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
     <script src="js/copiar-presupuesto.js"></script>
+    <script src="js/historial-coi.js"></script>
     <script src="js/init-modulo-planeacion.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="js/graficas-config.js?v=20260226.9"></script>

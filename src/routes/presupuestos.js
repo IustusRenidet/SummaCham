@@ -670,18 +670,53 @@ router.get('/totales-capitulo', async (req, res) => {
   }
 });
 
-const { copiarPresupuestoEntreAnios } = require('../services/presupuestosService');
+const {
+  copiarPresupuestoEntreAnios,
+  obtenerDetalleCopiaPresupuesto,
+  listarHistorialCoi,
+} = require('../services/presupuestosService');
 
-const puedeCopiarPresupuesto = (req, empresaId) =>
-  req.esAdmin || tienePermisoEnModulo(req.mapaPermisos, empresaId, 'Presupuestos', 'Cargar y guardar');
+// Copiar presupuesto entre años es una operación de riesgo (sobrescribe
+// datos reales de captura) -- solo administradores globales, sin excepción
+// por permiso de módulo.
+const puedeCopiarPresupuesto = (req) => Boolean(req.esAdmin);
 
-// Copia el presupuesto COMPLETO (todas las cuentas con fila en el año
-// origen, sin filtrarlas contra el catálogo del año destino) en un solo
-// paso. Si alguna cuenta ya tiene presupuesto en el año destino, responde
-// 409 con el conteo de cuántas se sobrescribirían en vez de sobrescribir en
-// silencio -- el frontend le pregunta al usuario y reintenta con
-// permitirSobrescritura=true si confirma. Todo el lote se escribe en una
-// sola transacción: si algo falla, no se guarda ningún cambio.
+// Detalle completo (sin escribir nada): cuántas cuentas se copiarían,
+// cuáles ya tienen valor real en destino y se sobrescribirían, cuáles son
+// "nuevas" (destino en ceros) y cuáles se omiten por no existir en el
+// catálogo del año destino -- con nombre de cuenta, para el modal de
+// revisión y el reporte descargable.
+router.get('/copiar/detalle', async (req, res) => {
+  try {
+    const empresaId = (req.query.empresaId || '').toString().trim();
+    if (!empresaId) {
+      return res.status(400).json({ mensaje: 'Falta indicar la empresa/capítulo.' });
+    }
+    if (!puedeCopiarPresupuesto(req)) {
+      return res.status(403).json({ mensaje: 'Solo un administrador global puede copiar presupuestos entre años.' });
+    }
+    const detalle = await obtenerDetalleCopiaPresupuesto({
+      empresaId,
+      anioOrigen: req.query.anioOrigen,
+      anioDestino: req.query.anioDestino,
+    });
+    res.json(detalle);
+  } catch (error) {
+    console.error('Error en detalle de copia de presupuesto:', error);
+    if (esErrorConexionFirebird(error)) {
+      return res.status(503).json({ mensaje: 'No se pudo conectar a la base de datos. Verifica la conexión.' });
+    }
+    res.status(error.status || 500).json({ mensaje: error.message || 'No fue posible calcular el detalle.' });
+  }
+});
+
+// Copia el presupuesto SOLO a cuentas que coinciden con el catálogo del año
+// destino (no crea cuentas nuevas). Si alguna cuenta destino ya tiene un
+// valor real (distinto de cero), responde 409 con el conteo en vez de
+// sobrescribir en silencio -- el frontend confirma dos veces y reintenta
+// con permitirSobrescritura=true. Todo el lote se escribe en una sola
+// transacción: si algo falla, no se guarda ningún cambio. Queda registrado
+// en el historial de COI (presupuestos_guardados).
 router.post('/copiar', async (req, res) => {
   try {
     const { empresaId, anioOrigen, anioDestino, permitirSobrescritura } = req.body || {};
@@ -689,8 +724,8 @@ router.post('/copiar', async (req, res) => {
     if (!empresaIdTexto) {
       return res.status(400).json({ mensaje: 'Falta indicar la empresa/capítulo.' });
     }
-    if (!puedeCopiarPresupuesto(req, empresaIdTexto)) {
-      return res.status(403).json({ mensaje: 'No cuentas con permiso para copiar presupuestos en esta empresa.' });
+    if (!puedeCopiarPresupuesto(req)) {
+      return res.status(403).json({ mensaje: 'Solo un administrador global puede copiar presupuestos entre años.' });
     }
     const resultado = await copiarPresupuestoEntreAnios({
       empresaId: empresaIdTexto,
@@ -709,6 +744,24 @@ router.post('/copiar', async (req, res) => {
       return res.status(503).json({ mensaje: 'No se pudo conectar a la base de datos. Verifica la conexión.' });
     }
     res.status(error.status || 500).json({ mensaje: error.message || 'No fue posible copiar el presupuesto.' });
+  }
+});
+
+// Historial de cambios guardados en COI desde este programa -- control de
+// versiones del presupuesto: incluye tanto "Guardar en COI" normal por
+// módulo como las copias entre años, con quién y cuándo.
+router.get('/historial-coi', (req, res) => {
+  try {
+    if (!req.esAdmin) {
+      return res.status(403).json({ mensaje: 'Solo un administrador global puede consultar el historial de COI.' });
+    }
+    const empresaId = (req.query.empresaId || '').toString().trim() || undefined;
+    const anio = req.query.anio ? Number(req.query.anio) : undefined;
+    const historial = listarHistorialCoi({ empresaId, anio, limite: req.query.limite });
+    res.json({ historial });
+  } catch (error) {
+    console.error('Error al listar historial de COI:', error);
+    res.status(500).json({ mensaje: 'No fue posible obtener el historial.' });
   }
 });
 

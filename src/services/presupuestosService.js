@@ -1,5 +1,6 @@
 const { ejecutarConsulta, ejecutarLote } = require('./firebirdService');
 const { listarAniosPresupuestos } = require('./presupuestosMetadataService');
+const { db, registrarPresupuestoGuardado } = require('../db/sqlite');
 const logger = require('../utils/logger');
 
 const PERIODOS = Array.from({ length: 12 }, (_, indice) => indice + 1);
@@ -197,14 +198,21 @@ const validarAnio = (valor, etiqueta) => {
 const columnasPresupuesto = () => PERIODOS.map((p) => `PRESUP${formatearPeriodo(p)}`);
 
 /**
- * Lee el presupuesto del año origen y lo deja listo para copiar SOLO a las
- * cuentas que ya existen en el catálogo del año destino (CUENTAS{destino})
- * -- si una cuenta de origen no existe todavía en destino, se omite (no se
- * crean cuentas nuevas en el año destino). De paso ve cuáles de las que sí
- * coinciden ya tienen presupuesto capturado en destino, para saber si hay
- * que confirmar antes de sobrescribir. Es un solo paso interno -- no es una
- * pantalla de vista previa aparte, la usa directo
- * copiarPresupuestoEntreAnios().
+ * Lee el presupuesto del año origen y arma el detalle completo de una copia
+ * entre años: SOLO se copia a cuentas que ya existen en el catálogo del año
+ * destino (CUENTAS{destino}) -- si una cuenta de origen no existe todavía en
+ * destino, se omite (no se crean cuentas nuevas en el año destino).
+ *
+ * Clasifica cada cuenta candidata en tres grupos:
+ * - nuevas: no existe fila en PRESUP{destino}, o existe pero en ceros --
+ *   escribir ahí no sobrescribe nada real.
+ * - sobrescriben: PRESUP{destino} ya tiene algún valor distinto de cero en
+ *   alguno de los 12 meses -- aquí sí se pierde un valor capturado.
+ * - omitidas: la cuenta de origen no existe en el catálogo del año destino.
+ *
+ * Esto alimenta tanto el aviso de confirmación como el reporte descargable
+ * -- no es una pantalla de vista previa aparte, la usa directo
+ * copiarPresupuestoEntreAnios() y la ruta de detalle para el modal/reporte.
  */
 async function _leerPresupuestoParaCopiar({ empresaId, anioOrigen, anioDestino }) {
   const origen = validarAnio(anioOrigen, 'El año de origen');
@@ -220,48 +228,58 @@ async function _leerPresupuestoParaCopiar({ empresaId, anioOrigen, anioDestino }
     throw err;
   }
 
+  const tablaCuentasOrigen = construirNombreTabla('CUENTAS', origen);
   const tablaCuentasDestino = construirNombreTabla('CUENTAS', destino);
   const tablaPresupOrigen = construirNombreTabla('PRESUP', origen);
   const tablaPresupDestino = construirNombreTabla('PRESUP', destino);
   const columnas = columnasPresupuesto();
 
-  const [cuentasDestino, presupOrigen, presupDestinoExistente] = await Promise.all([
-    ejecutarConsulta(empresaId, `SELECT NUM_CTA FROM ${tablaCuentasDestino} WHERE STATUS = 'A'`),
+  const [cuentasOrigenCat, cuentasDestinoCat, presupOrigen, presupDestino] = await Promise.all([
+    ejecutarConsulta(empresaId, `SELECT NUM_CTA, NOMBRE FROM ${tablaCuentasOrigen} WHERE STATUS = 'A'`),
+    ejecutarConsulta(empresaId, `SELECT NUM_CTA, NOMBRE FROM ${tablaCuentasDestino} WHERE STATUS = 'A'`),
     ejecutarConsulta(empresaId, `SELECT * FROM ${tablaPresupOrigen} WHERE EJERCICIO = ?`, [origen]),
-    ejecutarConsulta(empresaId, `SELECT NUM_CTA FROM ${tablaPresupDestino} WHERE EJERCICIO = ?`, [destino]),
+    ejecutarConsulta(empresaId, `SELECT * FROM ${tablaPresupDestino} WHERE EJERCICIO = ?`, [destino]),
   ]);
 
-  const setCuentasDestino = new Set(cuentasDestino.map((r) => String(r.NUM_CTA).trim()));
-  const setPresupDestino = new Set(presupDestinoExistente.map((r) => String(r.NUM_CTA).trim()));
+  const nombreOrigenPorCuenta = new Map(cuentasOrigenCat.map((r) => [String(r.NUM_CTA).trim(), (r.NOMBRE || '').trim()]));
+  const nombreDestinoPorCuenta = new Map(cuentasDestinoCat.map((r) => [String(r.NUM_CTA).trim(), (r.NOMBRE || '').trim()]));
+  const setCuentasDestino = new Set(cuentasDestinoCat.map((r) => String(r.NUM_CTA).trim()));
+  const presupDestinoPorCuenta = new Map(presupDestino.map((r) => [String(r.NUM_CTA).trim(), r]));
 
-  let omitidas = 0;
-  // Solo se copian cuentas que ya existen en el catálogo del año destino --
-  // copiar a una cuenta que no existe ahí crearía una cuenta "fantasma" en
-  // ese año, que es justo lo que no se quiere.
-  const cuentas = presupOrigen
-    .map((fila) => {
-      const cuenta = String(fila.NUM_CTA).trim();
-      if (!cuenta) return null;
-      if (!setCuentasDestino.has(cuenta)) {
-        omitidas += 1;
-        return null;
-      }
-      return {
-        cuenta,
-        sobrescribe: setPresupDestino.has(cuenta),
-        valores: columnas.map((col) => Number(fila[col] ?? 0)),
-      };
-    })
-    .filter(Boolean);
+  const tieneValorReal = (fila) => columnas.some((col) => Math.abs(Number(fila?.[col] ?? 0)) > 0.004);
+
+  const cuentas = [];
+  const omitidasDetalle = [];
+
+  presupOrigen.forEach((fila) => {
+    const cuenta = String(fila.NUM_CTA).trim();
+    if (!cuenta) return;
+    const nombre = nombreOrigenPorCuenta.get(cuenta) || '';
+    if (!setCuentasDestino.has(cuenta)) {
+      omitidasDetalle.push({ cuenta, nombre });
+      return;
+    }
+    const filaDestino = presupDestinoPorCuenta.get(cuenta);
+    const sobrescribe = tieneValorReal(filaDestino);
+    cuentas.push({
+      cuenta,
+      nombre: nombreDestinoPorCuenta.get(cuenta) || nombre,
+      sobrescribe,
+      valoresOrigen: columnas.map((col) => Number(fila[col] ?? 0)),
+      valoresDestinoActual: filaDestino ? columnas.map((col) => Number(filaDestino[col] ?? 0)) : columnas.map(() => 0),
+    });
+  });
 
   return {
     empresaId,
     anioOrigen: origen,
     anioDestino: destino,
     cuentas,
+    omitidasDetalle,
     totalACopiar: cuentas.length,
     sobrescribiran: cuentas.filter((item) => item.sobrescribe).length,
-    omitidas,
+    nuevas: cuentas.filter((item) => !item.sobrescribe).length,
+    omitidas: omitidasDetalle.length,
   };
 }
 
@@ -318,7 +336,7 @@ async function copiarPresupuestoEntreAnios({
 
   const operaciones = datos.cuentas.map((item) => ({
     consulta,
-    parametros: [item.cuenta, datos.anioDestino, ...item.valores],
+    parametros: [item.cuenta, datos.anioDestino, ...item.valoresOrigen],
     meta: { cuenta: item.cuenta },
   }));
 
@@ -361,7 +379,110 @@ async function copiarPresupuestoEntreAnios({
     // No debe impedir devolver el resultado exitoso.
   }
 
+  // Historial de cambios en COI: mismo mecanismo que ya usa "Guardar en COI"
+  // normal (registrarPresupuestoGuardado -> tabla presupuestos_guardados),
+  // asi que una copia entre años queda en el mismo historial unificado, con
+  // el detalle cuenta por cuenta (valor anterior en destino y valor nuevo)
+  // para poder reconstruir exactamente que cambio.
+  try {
+    registrarPresupuestoGuardado({
+      empresaId,
+      modulo: 'COPIA_PRESUPUESTO',
+      anio: datos.anioDestino,
+      datos: {
+        tipo: 'copia_entre_anios',
+        anioOrigen: datos.anioOrigen,
+        anioDestino: datos.anioDestino,
+        copiadas: operaciones.length,
+        sobrescritas: datos.sobrescribiran,
+        omitidas: datos.omitidas,
+        cuentas: datos.cuentas.map((item) => ({
+          cuenta: item.cuenta,
+          nombre: item.nombre,
+          valorAnterior: item.valoresDestinoActual,
+          valorNuevo: item.valoresOrigen,
+        })),
+      },
+      guardadoPor: usuarioId ? Number(usuarioId) : null,
+    });
+  } catch (histError) {
+    console.warn('[presupuestosService] No se pudo registrar en el historial de COI:', histError.message);
+    // No es motivo para deshacer la copia -- ya se escribio en Firebird.
+  }
+
   return resultado;
+}
+
+/**
+ * Detalle completo de lo que copiaría (o copió) una operación año->año, para
+ * el modal de revisión y el reporte descargable. No escribe nada.
+ */
+async function obtenerDetalleCopiaPresupuesto({ empresaId, anioOrigen, anioDestino }) {
+  return _leerPresupuestoParaCopiar({ empresaId, anioOrigen, anioDestino });
+}
+
+/**
+ * Historial de cambios guardados en COI desde este programa (incluye tanto
+ * los "Guardar en COI" normales por módulo como las copias entre años,
+ * porque ambos pasan por registrarPresupuestoGuardado). Es el control de
+ * versiones del presupuesto: quién cambió qué y cuándo.
+ */
+function listarHistorialCoi({ empresaId, anio, limite = 100 } = {}) {
+  const condiciones = [];
+  const parametros = [];
+  if (empresaId) {
+    condiciones.push('pg.empresa_id = ?');
+    parametros.push(empresaId);
+  }
+  if (anio) {
+    condiciones.push('pg.anio = ?');
+    parametros.push(Number(anio));
+  }
+  const whereSql = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+  const limiteSeguro = Math.min(Math.max(Number(limite) || 100, 1), 500);
+
+  const filas = db
+    .prepare(
+      `
+      SELECT pg.id, pg.empresa_id, pg.modulo, pg.anio, pg.datos, pg.guardado_en,
+             u.usuario AS guardado_por_usuario, u.nombres AS guardado_por_nombres
+      FROM presupuestos_guardados pg
+      LEFT JOIN usuarios u ON u.id = pg.guardado_por
+      ${whereSql}
+      ORDER BY pg.id DESC
+      LIMIT ${limiteSeguro}
+    `
+    )
+    .all(...parametros);
+
+  return filas.map((fila) => {
+    let datos = null;
+    try {
+      datos = JSON.parse(fila.datos);
+    } catch (_) {
+      datos = null;
+    }
+    const esCopiaEntreAnios = datos?.tipo === 'copia_entre_anios';
+    const cuentasAfectadas = esCopiaEntreAnios
+      ? datos.copiadas
+      : Array.isArray(datos?.presupuesto)
+        ? datos.presupuesto.length
+        : null;
+    return {
+      id: fila.id,
+      empresaId: fila.empresa_id,
+      modulo: fila.modulo,
+      anio: fila.anio,
+      guardadoEn: fila.guardado_en,
+      guardadoPor: fila.guardado_por_nombres || fila.guardado_por_usuario || 'Desconocido',
+      tipo: esCopiaEntreAnios ? 'Copia entre años' : 'Guardado en COI',
+      resumen: esCopiaEntreAnios
+        ? `Copió ${datos.copiadas} cuenta(s) de ${datos.anioOrigen} a ${datos.anioDestino} (${datos.sobrescritas} sobrescritas, ${datos.omitidas} omitidas)`
+        : `${cuentasAfectadas ?? '?'} cuenta(s) actualizadas`,
+      cuentasAfectadas,
+      detalle: datos,
+    };
+  });
 }
 
 module.exports = {
@@ -369,5 +490,7 @@ module.exports = {
   obtenerTotalesPresupuestoCapitulo,
   listarAniosPresupuestos,
   copiarPresupuestoEntreAnios,
+  obtenerDetalleCopiaPresupuesto,
+  listarHistorialCoi,
   PERIODOS
 };
