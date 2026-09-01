@@ -197,13 +197,14 @@ const validarAnio = (valor, etiqueta) => {
 const columnasPresupuesto = () => PERIODOS.map((p) => `PRESUP${formatearPeriodo(p)}`);
 
 /**
- * Compara el presupuesto de un año contra el catálogo de cuentas del año
- * destino, sin escribir nada todavía. Sirve para que la pantalla muestre
- * "se copiarían X cuentas, Y ya tienen presupuesto en el año destino y se
- * sobrescribirían, Z no existen en el año destino y no se pueden copiar"
- * antes de que alguien confirme.
+ * Lee el presupuesto completo del año origen (todas las cuentas que tengan
+ * fila en PRESUP{origen}, sin filtrarlas contra el catálogo de cuentas del
+ * año destino) y de una vez ve cuáles de esas cuentas ya tienen presupuesto
+ * capturado en el año destino, para saber si hay que confirmar antes de
+ * sobrescribir. Es un solo paso interno -- no es una pantalla de vista
+ * previa aparte, la usa directo copiarPresupuestoEntreAnios().
  */
-async function obtenerVistaPreviaCopiaPresupuesto({ empresaId, anioOrigen, anioDestino }) {
+async function _leerPresupuestoParaCopiar({ empresaId, anioOrigen, anioDestino }) {
   const origen = validarAnio(anioOrigen, 'El año de origen');
   const destino = validarAnio(anioDestino, 'El año de destino');
   if (origen === destino) {
@@ -217,48 +218,41 @@ async function obtenerVistaPreviaCopiaPresupuesto({ empresaId, anioOrigen, anioD
     throw err;
   }
 
-  const tablaCuentasDestino = construirNombreTabla('CUENTAS', destino);
   const tablaPresupOrigen = construirNombreTabla('PRESUP', origen);
   const tablaPresupDestino = construirNombreTabla('PRESUP', destino);
   const columnas = columnasPresupuesto();
 
-  const [cuentasDestino, presupOrigen, presupDestinoExistente] = await Promise.all([
-    ejecutarConsulta(empresaId, `SELECT NUM_CTA FROM ${tablaCuentasDestino} WHERE STATUS = 'A'`),
+  const [presupOrigen, presupDestinoExistente] = await Promise.all([
     ejecutarConsulta(empresaId, `SELECT * FROM ${tablaPresupOrigen} WHERE EJERCICIO = ?`, [origen]),
     ejecutarConsulta(empresaId, `SELECT NUM_CTA FROM ${tablaPresupDestino} WHERE EJERCICIO = ?`, [destino]),
   ]);
 
-  const setCuentasDestino = new Set(cuentasDestino.map((r) => String(r.NUM_CTA).trim()));
   const setPresupDestino = new Set(presupDestinoExistente.map((r) => String(r.NUM_CTA).trim()));
 
-  const aCopiar = [];
-  const cuentasOmitidas = [];
-  presupOrigen.forEach((fila) => {
-    const cuenta = String(fila.NUM_CTA).trim();
-    if (!cuenta) return;
-    if (!setCuentasDestino.has(cuenta)) {
-      // La cuenta no existe (o no está activa) en el catálogo del año destino:
-      // copiarle un presupuesto no serviría de nada, no aparecería en ningún reporte.
-      cuentasOmitidas.push(cuenta);
-      return;
-    }
-    aCopiar.push({
-      cuenta,
-      sobrescribe: setPresupDestino.has(cuenta),
-      valores: columnas.map((col) => Number(fila[col] ?? 0)),
-    });
-  });
+  // Presupuesto completo: se copia toda cuenta que tenga fila en el año
+  // origen, exista o no todavía en el catálogo de cuentas del año destino
+  // (una fila de más en PRESUP sin cuenta correspondiente simplemente no
+  // aparece en ningún reporte -- no rompe nada, y así no hay que andar
+  // adivinando qué cuentas "sí cuentan").
+  const cuentas = presupOrigen
+    .map((fila) => {
+      const cuenta = String(fila.NUM_CTA).trim();
+      if (!cuenta) return null;
+      return {
+        cuenta,
+        sobrescribe: setPresupDestino.has(cuenta),
+        valores: columnas.map((col) => Number(fila[col] ?? 0)),
+      };
+    })
+    .filter(Boolean);
 
   return {
     empresaId,
     anioOrigen: origen,
     anioDestino: destino,
-    totalEnOrigen: presupOrigen.length,
-    aCopiar,
-    totalACopiar: aCopiar.length,
-    sobrescribiran: aCopiar.filter((item) => item.sobrescribe).length,
-    omitidas: cuentasOmitidas.length,
-    cuentasOmitidas: cuentasOmitidas.slice(0, 25),
+    cuentas,
+    totalACopiar: cuentas.length,
+    sobrescribiran: cuentas.filter((item) => item.sobrescribe).length,
   };
 }
 
@@ -279,35 +273,28 @@ async function copiarPresupuestoEntreAnios({
   usuarioId = null,
   permitirSobrescritura = false,
 }) {
-  const preview = await obtenerVistaPreviaCopiaPresupuesto({ empresaId, anioOrigen, anioDestino });
+  const datos = await _leerPresupuestoParaCopiar({ empresaId, anioOrigen, anioDestino });
 
-  if (!preview.totalACopiar) {
-    return {
-      empresaId: preview.empresaId,
-      anioOrigen: preview.anioOrigen,
-      anioDestino: preview.anioDestino,
-      copiadas: 0,
-      sobrescritas: 0,
-      omitidas: preview.omitidas,
-      cuentasOmitidas: preview.cuentasOmitidas,
-    };
+  if (!datos.totalACopiar) {
+    const err = new Error(`${datos.anioOrigen} no tiene presupuesto capturado para esta empresa. No hay nada que copiar.`);
+    err.status = 400;
+    throw err;
   }
 
-  if (preview.sobrescribiran > 0 && !permitirSobrescritura) {
+  if (datos.sobrescribiran > 0 && !permitirSobrescritura) {
     const err = new Error(
-      `${preview.sobrescribiran} de ${preview.totalACopiar} cuenta(s) ya tienen presupuesto capturado en ${preview.anioDestino} y se sobrescribirían. Confirma para continuar.`
+      `${datos.anioDestino} ya tiene presupuesto capturado en ${datos.sobrescribiran} de las ${datos.totalACopiar} cuentas de ${datos.anioOrigen}. Confirma para sobrescribirlo.`
     );
     err.status = 409;
     err.codigo = 'REQUIERE_CONFIRMACION';
     err.preview = {
-      totalACopiar: preview.totalACopiar,
-      sobrescribiran: preview.sobrescribiran,
-      omitidas: preview.omitidas,
+      totalACopiar: datos.totalACopiar,
+      sobrescribiran: datos.sobrescribiran,
     };
     throw err;
   }
 
-  const tablaPresupDestino = construirNombreTabla('PRESUP', preview.anioDestino);
+  const tablaPresupDestino = construirNombreTabla('PRESUP', datos.anioDestino);
   const columnas = columnasPresupuesto();
   const consulta = `
     UPDATE OR INSERT INTO ${tablaPresupDestino}
@@ -316,22 +303,21 @@ async function copiarPresupuestoEntreAnios({
     MATCHING (NUM_CTA, EJERCICIO)
   `;
 
-  const operaciones = preview.aCopiar.map((item) => ({
+  const operaciones = datos.cuentas.map((item) => ({
     consulta,
-    parametros: [item.cuenta, preview.anioDestino, ...item.valores],
+    parametros: [item.cuenta, datos.anioDestino, ...item.valores],
     meta: { cuenta: item.cuenta },
   }));
 
-  let mensajeAmigable = null;
   try {
     await ejecutarLote(empresaId, operaciones, { usarTransaccion: true });
   } catch (error) {
-    mensajeAmigable = `No se pudo copiar el presupuesto de ${preview.anioOrigen} a ${preview.anioDestino} — no se guardó ningún cambio, el presupuesto de ${preview.anioDestino} sigue como estaba.`;
+    const mensajeAmigable = `No se pudo copiar el presupuesto de ${datos.anioOrigen} a ${datos.anioDestino} — no se guardó ningún cambio, el presupuesto de ${datos.anioDestino} sigue como estaba.`;
     try {
       logger.error('presupuesto.copia_fallida', {
         empresaId,
-        anioOrigen: preview.anioOrigen,
-        anioDestino: preview.anioDestino,
+        anioOrigen: datos.anioOrigen,
+        anioDestino: datos.anioDestino,
         usuarioId: usuarioId ? String(usuarioId) : null,
         mensajeTecnico: error?.message,
       });
@@ -346,12 +332,10 @@ async function copiarPresupuestoEntreAnios({
 
   const resultado = {
     empresaId,
-    anioOrigen: preview.anioOrigen,
-    anioDestino: preview.anioDestino,
+    anioOrigen: datos.anioOrigen,
+    anioDestino: datos.anioDestino,
     copiadas: operaciones.length,
-    sobrescritas: preview.sobrescribiran,
-    omitidas: preview.omitidas,
-    cuentasOmitidas: preview.cuentasOmitidas,
+    sobrescritas: datos.sobrescribiran,
   };
 
   try {
@@ -370,7 +354,6 @@ module.exports = {
   obtenerPresupuestosMayor,
   obtenerTotalesPresupuestoCapitulo,
   listarAniosPresupuestos,
-  obtenerVistaPreviaCopiaPresupuesto,
   copiarPresupuestoEntreAnios,
   PERIODOS
 };

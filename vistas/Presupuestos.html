@@ -430,9 +430,8 @@
             </div>
             <div class="modal-body">
               <p class="text-muted small mb-3">
-                Copia las cifras mensuales de presupuesto (no el real) de un
-                año a otro, para esta misma empresa/capítulo. Solo se copian
-                cuentas que también existen en el año destino.
+                Copia el presupuesto completo (todas las cuentas, los 12
+                meses) de un año a otro, para esta misma empresa/capítulo.
               </p>
               <div class="row g-2 mb-2">
                 <div class="col-6">
@@ -444,25 +443,13 @@
                   <select class="form-select form-select-sm" id="copiarAnioDestino"></select>
                 </div>
               </div>
-              <div id="copiarPresupuestoResumen" class="d-none">
-                <div class="alert alert-secondary small mb-2" id="copiarPresupuestoResumenTexto"></div>
-                <div class="form-check d-none" id="copiarPresupuestoConfirmarWrap">
-                  <input class="form-check-input" type="checkbox" id="copiarPresupuestoConfirmarCheck">
-                  <label class="form-check-label small" for="copiarPresupuestoConfirmarCheck">
-                    Entiendo que esto sobrescribirá presupuesto que ya existe en el año destino.
-                  </label>
-                </div>
-              </div>
               <div id="copiarPresupuestoError" class="alert alert-danger small d-none"></div>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
                 Cancelar
               </button>
-              <button type="button" class="btn btn-outline-primary btn-sm" id="btnVerVistaPreviaCopia">
-                Ver vista previa
-              </button>
-              <button type="button" class="btn btn-primario btn-sm d-none" id="btnConfirmarCopiaPresupuesto">
+              <button type="button" class="btn btn-primario btn-sm" id="btnConfirmarCopiaPresupuesto">
                 Copiar presupuesto
               </button>
             </div>
