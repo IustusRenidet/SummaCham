@@ -674,6 +674,7 @@ const {
   copiarPresupuestoEntreAnios,
   obtenerDetalleCopiaPresupuesto,
   listarHistorialCoi,
+  obtenerDetalleHistorialCoi,
 } = require('../services/presupuestosService');
 
 // Copiar presupuesto entre años es una operación de riesgo (sobrescribe
@@ -762,6 +763,25 @@ router.get('/historial-coi', (req, res) => {
   } catch (error) {
     console.error('Error al listar historial de COI:', error);
     res.status(500).json({ mensaje: 'No fue posible obtener el historial.' });
+  }
+});
+
+// Detalle completo de un registro del historial: qué cuentas y qué valores
+// mensuales se introdujeron exactamente (con el nombre de cada cuenta),
+// para la vista "ver detalle" del historial de COI.
+router.get('/historial-coi/:id/detalle', async (req, res) => {
+  try {
+    if (!req.esAdmin) {
+      return res.status(403).json({ mensaje: 'Solo un administrador global puede consultar el historial de COI.' });
+    }
+    const detalle = await obtenerDetalleHistorialCoi({ id: req.params.id });
+    res.json(detalle);
+  } catch (error) {
+    console.error('Error al obtener detalle del historial de COI:', error);
+    if (esErrorConexionFirebird(error)) {
+      return res.status(503).json({ mensaje: 'No se pudo conectar a la base de datos. Verifica la conexión.' });
+    }
+    res.status(error.status || 500).json({ mensaje: error.message || 'No fue posible obtener el detalle.' });
   }
 });
 

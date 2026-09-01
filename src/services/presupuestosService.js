@@ -485,6 +485,92 @@ function listarHistorialCoi({ empresaId, anio, limite = 100 } = {}) {
   });
 }
 
+/**
+ * Detalle completo de un registro del historial de COI: qué cuentas y qué
+ * valores mensuales se introdujeron exactamente en ese guardado (o esa
+ * copia entre años), con el nombre de cada cuenta resuelto contra el
+ * catálogo de Firebird del año correspondiente.
+ */
+async function obtenerDetalleHistorialCoi({ id }) {
+  const fila = db
+    .prepare(
+      `
+      SELECT pg.id, pg.empresa_id, pg.modulo, pg.anio, pg.datos, pg.guardado_en,
+             u.usuario AS guardado_por_usuario, u.nombres AS guardado_por_nombres
+      FROM presupuestos_guardados pg
+      LEFT JOIN usuarios u ON u.id = pg.guardado_por
+      WHERE pg.id = ?
+    `
+    )
+    .get(Number(id));
+
+  if (!fila) {
+    const error = new Error('No existe ese registro en el historial de COI.');
+    error.status = 404;
+    throw error;
+  }
+
+  let datos = null;
+  try {
+    datos = JSON.parse(fila.datos);
+  } catch (_) {
+    datos = null;
+  }
+
+  const base = {
+    id: fila.id,
+    empresaId: fila.empresa_id,
+    modulo: fila.modulo,
+    anio: fila.anio,
+    guardadoEn: fila.guardado_en,
+    guardadoPor: fila.guardado_por_nombres || fila.guardado_por_usuario || 'Desconocido',
+  };
+
+  const esCopiaEntreAnios = datos?.tipo === 'copia_entre_anios';
+
+  if (esCopiaEntreAnios) {
+    return {
+      ...base,
+      tipo: 'Copia entre años',
+      anioOrigen: datos.anioOrigen,
+      anioDestino: datos.anioDestino,
+      cuentas: (datos.cuentas || []).map((item) => ({
+        cuenta: item.cuenta,
+        nombre: item.nombre || '',
+        sobrescribe: (item.valorAnterior || []).some((v) => Math.abs(Number(v) || 0) > 0.004),
+        valores: item.valorNuevo || [],
+      })),
+    };
+  }
+
+  const presupuesto = Array.isArray(datos?.presupuesto) ? datos.presupuesto : [];
+  let nombrePorCuenta = new Map();
+  try {
+    const tablaCuentas = construirNombreTabla('CUENTAS', fila.anio);
+    const catalogo = await ejecutarConsulta(
+      fila.empresa_id,
+      `SELECT NUM_CTA, NOMBRE FROM ${tablaCuentas}`
+    );
+    nombrePorCuenta = new Map(
+      catalogo.map((registro) => [String(registro.NUM_CTA).trim(), (registro.NOMBRE || '').trim()])
+    );
+  } catch (error) {
+    logger.warn('No fue posible resolver nombres de cuenta para el detalle del historial de COI.', {
+      mensaje: error?.message,
+    });
+  }
+
+  return {
+    ...base,
+    tipo: 'Guardado en COI',
+    cuentas: presupuesto.map((item) => ({
+      cuenta: item.cuenta,
+      nombre: nombrePorCuenta.get(String(item.cuenta).trim()) || '',
+      valores: MESES.map(({ clave }) => Number(item.valores?.[`budget-${clave}`] ?? 0)),
+    })),
+  };
+}
+
 module.exports = {
   obtenerPresupuestosMayor,
   obtenerTotalesPresupuestoCapitulo,
@@ -492,5 +578,6 @@ module.exports = {
   copiarPresupuestoEntreAnios,
   obtenerDetalleCopiaPresupuesto,
   listarHistorialCoi,
+  obtenerDetalleHistorialCoi,
   PERIODOS
 };

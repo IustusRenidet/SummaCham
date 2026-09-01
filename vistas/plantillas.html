@@ -277,6 +277,264 @@
         </div>
       </div>
 
+      <!-- Presupuesto en COI: acciones directas sobre las cifras de
+           presupuesto en Firebird/COI. Es una sección aparte de la barra de
+           arriba (que edita la ESTRUCTURA del layout, no las cifras) para no
+           confundir "Copiar a otro año" del layout con "Copiar presupuesto a
+           otro año" (las cantidades). Solo administradores globales. -->
+      <div class="row mb-3" id="presupuestoCoiActionBar">
+        <div class="col-12">
+          <div class="card table-card fade-in border-start border-4 border-warning-subtle">
+            <div class="card-body p-3">
+              <div class="d-flex flex-column flex-md-row gap-2 align-items-stretch align-items-md-center justify-content-between">
+                <div>
+                  <h6 class="mb-0 fw-semibold">
+                    <i class="bi bi-cash-coin me-1 text-warning-emphasis"></i>Presupuesto en COI
+                  </h6>
+                  <small class="text-muted">
+                    Cifras de presupuesto (Firebird), no la estructura del layout. Solo administradores globales.
+                  </small>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    id="btnCopiarPresupuesto"
+                    class="btn btn-outline-primary d-none"
+                    title="Copia las cifras de presupuesto de un año a otro dentro de esta misma empresa. Solo administradores globales."
+                  >
+                    <i class="bi bi-files me-1"></i> Copiar presupuesto a otro año
+                  </button>
+                  <button
+                    type="button"
+                    id="btnHistorialCoi"
+                    class="btn btn-outline-secondary d-none"
+                    title="Historial de todos los cambios guardados en COI desde este programa: quién, cuándo y qué."
+                  >
+                    <i class="bi bi-clock-history me-1"></i> Historial de COI
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: copiar presupuesto de un año a otro (solo admin global) -->
+      <div
+        class="modal fade"
+        id="copiarPresupuestoModal"
+        tabindex="-1"
+        aria-labelledby="copiarPresupuestoModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="copiarPresupuestoModalLabel">
+                Copiar presupuesto a otro año
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Cerrar"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="alert alert-warning small mb-3">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Esta acción escribe directo en COI. Solo administradores
+                globales pueden usarla. Revisa el detalle antes de confirmar
+                — se pedirá confirmación dos veces.
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="form-label small fw-semibold mb-1" for="copiarAnioOrigen">Copiar desde</label>
+                  <select class="form-select form-select-sm" id="copiarAnioOrigen"></select>
+                </div>
+                <div class="col-6">
+                  <label class="form-label small fw-semibold mb-1" for="copiarAnioDestino">Copiar hacia</label>
+                  <select class="form-select form-select-sm" id="copiarAnioDestino"></select>
+                </div>
+              </div>
+
+              <div id="copiarPresupuestoError" class="alert alert-danger small d-none"></div>
+
+              <div id="copiarPresupuestoResumen" class="d-none">
+                <div class="row g-2 mb-3 text-center">
+                  <div class="col-3">
+                    <div class="border rounded p-2">
+                      <div class="fs-5 fw-bold" id="resumenTotal">0</div>
+                      <div class="small text-muted">Total en origen</div>
+                    </div>
+                  </div>
+                  <div class="col-3">
+                    <div class="border rounded p-2 bg-light">
+                      <div class="fs-5 fw-bold text-body" id="resumenNuevas">0</div>
+                      <div class="small text-muted">Nuevas (destino en $0)</div>
+                    </div>
+                  </div>
+                  <div class="col-3">
+                    <div class="border border-warning rounded p-2 bg-warning bg-opacity-10">
+                      <div class="fs-5 fw-bold text-warning-emphasis" id="resumenSobrescriben">0</div>
+                      <div class="small text-muted">Se sobrescriben</div>
+                    </div>
+                  </div>
+                  <div class="col-3">
+                    <div class="border rounded p-2 bg-light">
+                      <div class="fs-5 fw-bold text-body" id="resumenOmitidas">0</div>
+                      <div class="small text-muted">Omitidas (no existen)</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="small fw-semibold">Detalle por cuenta</span>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" id="btnDescargarReporteCopia">
+                    <i class="bi bi-download me-1"></i>Descargar reporte
+                  </button>
+                </div>
+                <div class="table-responsive border rounded" style="max-height: 260px; overflow-y: auto;">
+                  <table class="table table-sm table-hover mb-0" id="tablaDetalleCopia">
+                    <thead class="table-light" style="position: sticky; top: 0;">
+                      <tr>
+                        <th>Cuenta</th>
+                        <th>Nombre</th>
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                Cancelar
+              </button>
+              <button type="button" class="btn btn-outline-primary btn-sm" id="btnRevisarCopiaPresupuesto">
+                Revisar cambios
+              </button>
+              <button type="button" class="btn btn-primario btn-sm d-none" id="btnConfirmarCopiaPresupuesto">
+                Copiar presupuesto
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: historial de cambios guardados en COI (control de versiones) -->
+      <div
+        class="modal fade"
+        id="historialCoiModal"
+        tabindex="-1"
+        aria-labelledby="historialCoiModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="historialCoiModalLabel">
+                Historial de cambios en COI
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Cerrar"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <p class="text-muted small mb-3">
+                Cada vez que este programa escribe en COI (Guardar en COI por
+                módulo, o Copiar a otro año) queda un registro aquí: quién,
+                cuándo y qué cambió.
+              </p>
+              <div id="historialCoiEstado" class="alert alert-secondary small">Cargando historial...</div>
+              <div class="table-responsive border rounded" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-hover mb-0" id="tablaHistorialCoi">
+                  <thead class="table-light" style="position: sticky; top: 0;">
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Usuario</th>
+                      <th>Tipo</th>
+                      <th>Año</th>
+                      <th>Detalle</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: detalle completo de un registro del historial de COI --
+           qué cuentas y qué valores mensuales se introdujeron exactamente. -->
+      <div
+        class="modal fade"
+        id="historialCoiDetalleModal"
+        tabindex="-1"
+        aria-labelledby="historialCoiDetalleModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="historialCoiDetalleModalLabel">
+                Detalle del cambio
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Cerrar"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <p id="historialCoiDetalleResumen" class="text-muted small mb-3"></p>
+              <div id="historialCoiDetalleEstado" class="alert alert-secondary small">Cargando detalle...</div>
+              <div class="table-responsive border rounded" style="max-height: 420px; overflow-y: auto;">
+                <table class="table table-sm table-hover mb-0" id="tablaHistorialCoiDetalle">
+                  <thead class="table-light" style="position: sticky; top: 0;">
+                    <tr>
+                      <th>Cuenta</th>
+                      <th>Nombre</th>
+                      <th class="text-end">Ene</th>
+                      <th class="text-end">Feb</th>
+                      <th class="text-end">Mar</th>
+                      <th class="text-end">Abr</th>
+                      <th class="text-end">May</th>
+                      <th class="text-end">Jun</th>
+                      <th class="text-end">Jul</th>
+                      <th class="text-end">Ago</th>
+                      <th class="text-end">Sep</th>
+                      <th class="text-end">Oct</th>
+                      <th class="text-end">Nov</th>
+                      <th class="text-end">Dic</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="row mb-3">
         <div class="col-12">
           <ul
@@ -5759,6 +6017,8 @@
     <script src="js/guided-tour.js"></script>
     <script src="js/plantillas-graficas.js?v=20260226.5"></script>
     <script src="js/drag-and-drop-reorder.js?v=20260212193000"></script>
+    <script src="js/copiar-presupuesto.js"></script>
+    <script src="js/historial-coi.js"></script>
     <script src="js/plantillas.js?v=20260219130000"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {

@@ -1,5 +1,8 @@
 /**
  * copiar-presupuesto.js
+ * Vive en el Gestor de Plantillas (plantillas.html), en la sección aparte
+ * "Presupuesto en COI" -- distinta de "Copiar a otro año" del layout de esa
+ * misma pantalla, que copia la ESTRUCTURA, no las cifras.
  * Modal para copiar el presupuesto (PRESUP de Firebird) de un año a otro,
  * completo (solo a cuentas que coinciden con el catálogo del año destino),
  * dentro de la misma empresa/capítulo. Solo administradores globales ven el
@@ -34,6 +37,7 @@
 
   const obtenerEmpresaActivaId = () => {
     try {
+      if (window.state?.empresaId) return window.state.empresaId;
       return Sesion?.obtenerEmpresaActiva?.()?.id || null;
     } catch (_) {
       return null;
@@ -49,7 +53,7 @@
   };
 
   const poblarSelectAnios = (select, anioSeleccionadoPreferido) => {
-    const origenSelect = $("presupuestosYearSelect");
+    const origenSelect = $("anioSelect") || $("presupuestosYearSelect");
     if (!select || !origenSelect) return;
     const opciones = Array.from(origenSelect.options)
       .map((op) => op.value)
@@ -98,7 +102,7 @@
       alert("Selecciona una empresa antes de copiar presupuesto.");
       return;
     }
-    const anioActual = $("presupuestosYearSelect")?.value || "";
+    const anioActual = window.state?.anio || $("anioSelect")?.value || "";
     poblarSelectAnios($("copiarAnioOrigen"), anioActual);
     poblarSelectAnios($("copiarAnioDestino"), "");
     resetPaso();
@@ -282,7 +286,7 @@
           (data.omitidas ? ` (${data.omitidas} omitida(s)).` : ".") +
           `\n\nQuedó registrado en el historial de COI.`
       );
-      if (String($("presupuestosYearSelect")?.value) === String(data.anioDestino)) {
+      if (String(window.state?.anio || $("anioSelect")?.value) === String(data.anioDestino)) {
         window.location.reload();
       }
     } catch (err) {
