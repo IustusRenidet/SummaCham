@@ -8094,6 +8094,40 @@
         celda.addEventListener("blur", () =>
           actualizarPresupuestoCelda(fila, clave, celda)
         );
+        // Edicion tipo Excel:
+        // - Un clic selecciona todo el contenido de la celda, para que
+        //   escribir de inmediato reemplace el valor completo (como al
+        //   seleccionar una celda en Excel y empezar a teclear).
+        // - Doble clic (o mas) posiciona el cursor exacto donde se hizo
+        //   clic, sin seleccionar nada, para poder corregir un digito
+        //   puntual sin borrar el resto del numero.
+        celda.addEventListener("mouseup", (evt) => {
+          const docCelda = celda.ownerDocument;
+          const winCelda = docCelda.defaultView || window;
+          const seleccion = winCelda.getSelection();
+          if (evt.detail >= 2) {
+            let rango = null;
+            if (docCelda.caretRangeFromPoint) {
+              rango = docCelda.caretRangeFromPoint(evt.clientX, evt.clientY);
+            } else if (docCelda.caretPositionFromPoint) {
+              const pos = docCelda.caretPositionFromPoint(evt.clientX, evt.clientY);
+              if (pos) {
+                rango = docCelda.createRange();
+                rango.setStart(pos.offsetNode, pos.offset);
+                rango.collapse(true);
+              }
+            }
+            if (rango) {
+              seleccion.removeAllRanges();
+              seleccion.addRange(rango);
+            }
+            return;
+          }
+          const rangoTodo = docCelda.createRange();
+          rangoTodo.selectNodeContents(celda);
+          seleccion.removeAllRanges();
+          seleccion.addRange(rangoTodo);
+        });
         celda.addEventListener("keydown", (evt) => {
           const accel = evt.ctrlKey || evt.metaKey;
           if (accel && !evt.altKey) {
