@@ -1195,6 +1195,22 @@
     setComparativaStatus(mensaje);
   };
 
+  // A partir de 2027 el comparativo entre empresas deja de ofrecerse: se
+  // oculta el control completo (no solo se deshabilita) y se apaga si
+  // estaba activo, para que el reporte no siga pidiendo esa comparación en
+  // silencio. Años 2026 y anteriores conservan el comportamiento normal.
+  const PRIMER_ANIO_SIN_COMPARATIVA = 2027;
+  const actualizarVisibilidadComparativa = (anio) => {
+    const columna = document.getElementById("resumenComparativaCol");
+    if (!columna) return;
+    const ocultar = Number(anio) >= PRIMER_ANIO_SIN_COMPARATIVA;
+    columna.classList.toggle("d-none", ocultar);
+    if (ocultar && comparativaToggle?.checked) {
+      comparativaToggle.checked = false;
+      localStorage.setItem(COMPARATIVA_STORAGE_KEY, "0");
+    }
+  };
+
   const inicializarComparativaToggle = () => {
     if (!comparativaToggle) return;
     comparativaToggle.checked = true;
@@ -7115,6 +7131,7 @@
     const mesInicial = elegirMesValido(mesPreferido, valorInicial);
     if (yearSelect) yearSelect.value = String(valorInicial);
     if (monthSelect) monthSelect.value = String(mesInicial);
+    actualizarVisibilidadComparativa(valorInicial);
 
     actualizarEncabezado(empresaId, valorInicial);
     actualizarMesContexto(mesInicial);
@@ -8973,6 +8990,7 @@
       const anio = leerAnioSeleccionado();
       const mes = leerMesSeleccionado();
       actualizarEtiquetaMes(mes);
+      actualizarVisibilidadComparativa(anio);
       if (!empresaActual?.id) return;
       actualizarEncabezado(empresaActual.id, anio);
       persistirContextoSeleccion(anio, mes);
