@@ -1046,6 +1046,214 @@
         )
     );
   };
+  const ESTADO_MODULO_ETIQUETAS = {
+    EDITANDO: "En edición",
+    PENDIENTE: "Pendiente de revisión",
+    REVISADO: "Revisado",
+    RECHAZADO: "Rechazado",
+    APROBADO: "Aprobado",
+    GUARDADO: "Guardado en COI",
+  };
+  const normalizarClaveModuloEstado = (valor) =>
+    (valor || "")
+      .toString()
+      .trim()
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "");
+  // Quick view: en qué módulos del capítulo activo hay avance (cualquier
+  // estado distinto de "Sin cargar"), filtrado a los módulos que el usuario
+  // actual puede ver -- responde "¿qué falta revisar/aprobar aquí?" sin
+  // tener que entrar módulo por módulo.
+  const ModuleStatusPanel = ({ empresaActualId, modulosVisibles = [] }) => {
+    const [open, setOpen] = useState(false);
+    const [cargando, setCargando] = useState(false);
+    const [error, setError] = useState("");
+    const [estados, setEstados] = useState([]);
+    const panelRef = React.useRef(null);
+    const anioActual = new Date().getFullYear();
+
+    useEffect(() => {
+      const handleClick = (event) => {
+        if (!open) return;
+        if (panelRef.current && !panelRef.current.contains(event.target)) {
+          setOpen(false);
+        }
+      };
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }, [open]);
+
+    const cargarEstados = useCallback(async () => {
+      if (!empresaActualId) return;
+      setCargando(true);
+      setError("");
+      try {
+        const params = new URLSearchParams({
+          empresaId: empresaActualId,
+          anio: anioActual,
+        });
+        const respuesta = await fetch(
+          `${API_BASE}/borradores/estado/resumen?${params}`,
+          { headers: Sesion.headersAutenticacion() }
+        );
+        const datos = await respuesta.json().catch(() => ({}));
+        if (!respuesta.ok) {
+          throw new Error(datos?.mensaje || "No fue posible consultar el estado de los módulos.");
+        }
+        setEstados(Array.isArray(datos.estados) ? datos.estados : []);
+      } catch (err) {
+        setError(err?.message || "No fue posible consultar el estado de los módulos.");
+      } finally {
+        setCargando(false);
+      }
+    }, [empresaActualId, anioActual]);
+
+    useEffect(() => {
+      if (open) cargarEstados();
+    }, [open, cargarEstados]);
+
+    const clavesVisibles = useMemo(
+      () =>
+        new Set(
+          modulosVisibles
+            .map((item) => normalizarClaveModuloEstado(item.permiso || item.label))
+            .filter(Boolean)
+        ),
+      [modulosVisibles]
+    );
+    const etiquetaPorClave = useMemo(() => {
+      const mapa = new Map();
+      modulosVisibles.forEach((item) => {
+        const clave = normalizarClaveModuloEstado(item.permiso || item.label);
+        if (clave) mapa.set(clave, item.label || item.permiso);
+      });
+      return mapa;
+    }, [modulosVisibles]);
+
+    const estadosVisibles = estados.filter((item) =>
+      clavesVisibles.has(normalizarClaveModuloEstado(item.modulo))
+    );
+
+    const toggle = () => setOpen((prev) => !prev);
+
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: `module-status-panel${open ? " module-status-panel--open" : ""}`,
+        ref: panelRef,
+      },
+      /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          className: "module-status-panel__button",
+          onClick: toggle,
+          "aria-expanded": open,
+          "aria-label": "Estado de los módulos",
+          title: "Estado de los módulos del capítulo",
+          "data-tour": "module-status-panel",
+        },
+        /* @__PURE__ */ React.createElement(
+          "svg",
+          {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "20",
+            height: "20",
+            fill: "currentColor",
+            viewBox: "0 0 16 16",
+            "aria-hidden": "true",
+          },
+          /* @__PURE__ */ React.createElement("path", {
+            d: "M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1z",
+          })
+        )
+      ),
+      open &&
+        /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            className: "notification-panel module-status-panel__panel",
+            role: "dialog",
+            "aria-label": "Estado de los módulos",
+          },
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "notification-panel__header" },
+            /* @__PURE__ */ React.createElement("strong", null, "Estado de los módulos"),
+            /* @__PURE__ */ React.createElement(
+              "button",
+              {
+                type: "button",
+                className: "btn btn-link btn-sm p-0",
+                onClick: cargarEstados,
+              },
+              "Actualizar"
+            )
+          ),
+          cargando &&
+            /* @__PURE__ */ React.createElement(
+              "p",
+              { className: "text-muted small mb-0" },
+              "Consultando..."
+            ),
+          !cargando &&
+            error &&
+            /* @__PURE__ */ React.createElement(
+              "p",
+              { className: "text-danger small mb-0" },
+              error
+            ),
+          !cargando &&
+            !error &&
+            estadosVisibles.length === 0 &&
+            /* @__PURE__ */ React.createElement(
+              "p",
+              { className: "text-muted small mb-0" },
+              "Ningún módulo tiene avance todavía este año -- todos siguen “Sin cargar”."
+            ),
+          !cargando &&
+            !error &&
+            estadosVisibles.length > 0 &&
+            /* @__PURE__ */ React.createElement(
+              "ul",
+              { className: "notification-panel__list" },
+              estadosVisibles.map((item) => {
+                const clave = normalizarClaveModuloEstado(item.modulo);
+                const etiquetaModulo = etiquetaPorClave.get(clave) || item.modulo;
+                const etiquetaEstado = ESTADO_MODULO_ETIQUETAS[item.estado] || item.estado;
+                return /* @__PURE__ */ React.createElement(
+                  "li",
+                  { key: item.modulo, className: "notification-panel__item" },
+                  /* @__PURE__ */ React.createElement(
+                    "div",
+                    null,
+                    /* @__PURE__ */ React.createElement(
+                      "p",
+                      { className: "notification-panel__title mb-1" },
+                      etiquetaModulo
+                    ),
+                    item.actualizadoPor &&
+                      /* @__PURE__ */ React.createElement(
+                        "small",
+                        { className: "text-muted" },
+                        item.actualizadoPor
+                      )
+                  ),
+                  /* @__PURE__ */ React.createElement(
+                    "span",
+                    {
+                      className: "module-status-badge",
+                      "data-estado": item.estado,
+                    },
+                    etiquetaEstado
+                  )
+                );
+              })
+            )
+        )
+    );
+  };
   const GuidedTourOverlay = ({
     active,
     step,
@@ -2085,6 +2293,10 @@
                       )
                   )
               ),
+            /* @__PURE__ */ React.createElement(ModuleStatusPanel, {
+              empresaActualId,
+              modulosVisibles: modulosDisponibles,
+            }),
             /* @__PURE__ */ React.createElement(NotificationBell, {
               notifications,
               onRefresh: manejarActualizarNotificaciones,
