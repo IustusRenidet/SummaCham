@@ -7886,10 +7886,13 @@
     const enfocarCelda = (celda) => {
       if (!celda) return;
       celda.focus();
+      // Igual que al hacer un solo clic: seleccionar todo el contenido, para
+      // que moverse con flechas/Tab y escribir de inmediato reemplace el
+      // valor completo (como en Excel), en vez de insertar el nuevo dígito
+      // al final del valor anterior.
       const range = document.createRange();
       const sel = window.getSelection();
       range.selectNodeContents(celda);
-      range.collapse(false);
       sel.removeAllRanges();
       sel.addRange(range);
     };
