@@ -1629,7 +1629,21 @@
         case "verBorradores":
           return true;
         case "descartar":
-          return (p.admin || p.cargar) && Boolean(this.state.borrador);
+          // Antes se podía descartar en CUALQUIER estado con solo tener
+          // permiso de "cargar" -- incluyendo Pendiente/Revisado/Aprobado,
+          // es decir, el autor podía borrar su propio borrador mientras ya
+          // estaba en manos de un revisor/aprobador. Ahora: un admin puede
+          // descartar en cualquier estado (via de escape si algo se traba),
+          // pero quien solo tiene "cargar" únicamente puede descartar en
+          // los estados que sigue siendo suyo (Editando/Rechazado). Una vez
+          // enviado a revisión, la única forma de "deshacerlo" es que lo
+          // rechacen -- no borrarlo por su cuenta.
+          if (!this.state.borrador) return false;
+          if (p.admin) return true;
+          return (
+            Boolean(p.cargar) &&
+            [ESTADOS.EDITANDO, ESTADOS.RECHAZADO].includes(estado)
+          );
         default:
           return false;
       }

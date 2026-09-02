@@ -2445,6 +2445,30 @@
       }
     };
 
+    // Las etiquetas de fila (ej. "Resultado Operativo: Briefing T&IC") son
+    // largas -- sin esto, Chart.js las corta con "..." en una sola línea
+    // ("Resultado Operativo: Br..."), perdiendo la información. Partirlas
+    // en varias líneas (Chart.js soporta un array de strings por tick) las
+    // deja completas y legibles.
+    const wrapTickLabel = (label, maxLineLength = 16) => {
+      const texto = (label ?? "").toString();
+      if (texto.length <= maxLineLength) return texto;
+      const palabras = texto.split(" ");
+      const lineas = [];
+      let actual = "";
+      palabras.forEach((palabra) => {
+        const candidato = actual ? `${actual} ${palabra}` : palabra;
+        if (candidato.length > maxLineLength && actual) {
+          lineas.push(actual);
+          actual = palabra;
+        } else {
+          actual = candidato;
+        }
+      });
+      if (actual) lineas.push(actual);
+      return lineas.length > 1 ? lineas : texto;
+    };
+
     const renderChart = (canvasEl, emptyEl, data, chartType, barDirection = "inherit") => {
       if (!canvasEl || !data) return;
       if (emptyEl) emptyEl.style.display = "none";
@@ -2500,7 +2524,13 @@
                 },
               },
               x: {
-                ticks: { font: { size: 11 } },
+                ticks: {
+                  font: { size: 11 },
+                  autoSkip: false,
+                  callback: function (value) {
+                    return wrapTickLabel(this.getLabelForValue(value));
+                  },
+                },
               },
             },
           },
