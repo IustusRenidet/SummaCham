@@ -2063,57 +2063,14 @@
         }
       }
 
-      const intentarDescartar = async (payload) => {
-        try {
-          const resp = await fetch(`${API_BASE}/borradores/descartar`, {
-            method: "POST",
-            headers: this._construirHeaders(),
-            body: JSON.stringify(payload),
-          });
-          const data = await resp.json().catch(() => ({}));
-          if (!resp.ok) {
-            console.warn(
-              "No se pudo descartar el borrador en el servidor:",
-              data?.mensaje || resp.statusText
-            );
-            return { ok: false, status: resp.status };
-          }
-          return { ok: true };
-        } catch (error) {
-          console.error("Error al descartar borrador:", error);
-          return { ok: false, status: 0 };
-        }
-      };
-
-      if (this.state.borrador?.id || this._contextoCompleto()) {
-        const moduloLimpio = this._sanitizarModulo(this.state.contexto.modulo);
-        const capitulo = this._extraerCapitulo(this.state.contexto.modulo);
-        const contextoPayload = {
-          empresaId: this.state.contexto.empresaId,
-          modulo: moduloLimpio,
-          anio: this.state.contexto.anio,
-        };
-        if (capitulo) {
-          contextoPayload.capitulo = capitulo;
-        }
-        let resultado = null;
-        if (this.state.borrador?.id) {
-          resultado = await intentarDescartar({
-            borradorId: this.state.borrador.id,
-          });
-          if (resultado?.status === 404) {
-            resultado = await intentarDescartar(contextoPayload);
-          }
-        } else {
-          resultado = await intentarDescartar(contextoPayload);
-        }
-        if (!resultado?.ok) {
-          console.info(
-            "Continuando con limpieza local aun sin descartar borrador remoto."
-          );
-        }
-      }
-
+      // "Cancelar" ya no borra el borrador del servidor -- eso es lo que
+      // hace "Descartar borrador" (acción distinta e irreversible). Cancelar
+      // solo debe deshacer lo que se editó en ESTA sesión y regresar a lo
+      // último guardado (con "Guardar para más tarde") o, si nunca se
+      // guardó nada, a los valores originales. Como no tocamos el borrador
+      // en el servidor, recargar la página ya trae de vuelta ese último
+      // estado guardado tal cual estaba -- sin necesidad de reconstruirlo
+      // a mano aquí.
       this._limpiarEventListeners();
       // Resetear flag y re-bindear después de limpiar
       this._handlersBindeados = false;
@@ -2136,7 +2093,7 @@
       window.CuentasModulo?.setEditMode?.(false);
       this._renderInfo();
       this._renderBotones();
-      this._toast("Edicion cancelada. Presupuesto descartado.", "info");
+      this._toast("Edición cancelada. Se descartaron los cambios sin guardar.", "info");
       setTimeout(() => {
         try {
           window.location.reload();

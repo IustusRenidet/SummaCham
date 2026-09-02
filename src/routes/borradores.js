@@ -363,12 +363,17 @@ router.get("/estado", (req, res) => {
   }
 });
 
-// Resumen del estado de TODOS los módulos de un capítulo/año en una sola
+// Resumen del estado de TODOS los módulos de un capítulo en una sola
 // consulta -- para el quick view de la barra superior ("¿qué módulos tienen
 // avance distinto de 'Sin cargar'?"). PLAN_BORRADORES solo guarda filas
 // mientras hay trabajo en curso (EDITANDO/PENDIENTE/REVISADO/RECHAZADO/
 // APROBADO); en cuanto se guarda en COI la fila se borra, así que listar
 // lo que hay en la tabla ya excluye "Sin cargar" y "Guardado" por diseño.
+// Sin filtro de año a propósito: un usuario puede tener trabajo en curso en
+// el año actual Y en el siguiente (ej. cerrando 2026 mientras arma el
+// presupuesto 2027) -- filtrar por "el año de hoy" escondía justo ese caso.
+// Como estas filas son pocas por naturaleza (solo existen mientras hay
+// trabajo pendiente), no hay volumen de datos que cuidar.
 // El filtrado por permiso de módulo lo hace el cliente (ya tiene la lista
 // de módulos visibles para el usuario); aquí solo se exige algún acceso a
 // la empresa.
@@ -385,19 +390,16 @@ router.get("/estado/resumen", (req, res) => {
     if (!req.esAdmin && !req.mapaPermisos?.[empresa.id]) {
       return res.status(403).json({ mensaje: "No cuentas con permisos para consultar esta empresa." });
     }
-    const anio = Number(req.query.anio) || new Date().getFullYear();
-    if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
-      return res.status(400).json({ mensaje: "El año indicado no es válido." });
-    }
-    const borradores = listarBorradores({ empresaId: empresa.id, anio });
+    const borradores = listarBorradores({ empresaId: empresa.id });
     const estados = borradores.map((b) => ({
       modulo: b.modulo,
       capitulo: b.capitulo,
+      anio: b.anio,
       estado: b.estado,
       actualizadoEn: b.fechaEnvio || b.fechaCreacion,
       actualizadoPor: b.autorNombre || b.autorUsuario || "",
     }));
-    res.json({ anio, estados });
+    res.json({ estados });
   } catch (err) {
     console.error("Error en GET /api/borradores/estado/resumen:", err);
     res.status(500).json({

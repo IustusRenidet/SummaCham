@@ -1071,7 +1071,6 @@
     const [error, setError] = useState("");
     const [estados, setEstados] = useState([]);
     const panelRef = React.useRef(null);
-    const anioActual = new Date().getFullYear();
 
     useEffect(() => {
       const handleClick = (event) => {
@@ -1089,10 +1088,7 @@
       setCargando(true);
       setError("");
       try {
-        const params = new URLSearchParams({
-          empresaId: empresaActualId,
-          anio: anioActual,
-        });
+        const params = new URLSearchParams({ empresaId: empresaActualId });
         const respuesta = await fetch(
           `${API_BASE}/borradores/estado/resumen?${params}`,
           { headers: Sesion.headersAutenticacion() }
@@ -1107,7 +1103,7 @@
       } finally {
         setCargando(false);
       }
-    }, [empresaActualId, anioActual]);
+    }, [empresaActualId]);
 
     useEffect(() => {
       if (open) cargarEstados();
@@ -1210,7 +1206,7 @@
             /* @__PURE__ */ React.createElement(
               "p",
               { className: "text-muted small mb-0" },
-              "Ningún módulo tiene avance todavía este año -- todos siguen “Sin cargar”."
+              "Ningún módulo tiene avance todavía -- todos siguen “Sin cargar”."
             ),
           !cargando &&
             !error &&
@@ -1224,14 +1220,14 @@
                 const etiquetaEstado = ESTADO_MODULO_ETIQUETAS[item.estado] || item.estado;
                 return /* @__PURE__ */ React.createElement(
                   "li",
-                  { key: item.modulo, className: "notification-panel__item" },
+                  { key: `${item.modulo}-${item.anio}-${item.capitulo}`, className: "notification-panel__item" },
                   /* @__PURE__ */ React.createElement(
                     "div",
                     null,
                     /* @__PURE__ */ React.createElement(
                       "p",
                       { className: "notification-panel__title mb-1" },
-                      etiquetaModulo
+                      `${etiquetaModulo} · ${item.anio}`
                     ),
                     item.actualizadoPor &&
                       /* @__PURE__ */ React.createElement(
