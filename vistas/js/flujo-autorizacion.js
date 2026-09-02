@@ -1599,7 +1599,11 @@
             (!estado ||
               estado === ESTADOS.SIN_CARGAR ||
               estado === ESTADOS.GUARDADO ||
-              (estado === ESTADOS.RECHAZADO && esAutor) ||
+              // Un rechazado antes solo lo podía corregir el autor original
+              // -- si esa persona no está disponible, la única salida era
+              // descartarlo y perder todo el trabajo previo. Un admin
+              // global también puede entrar a corregirlo.
+              (estado === ESTADOS.RECHAZADO && (esAutor || p.admin)) ||
               (estado === ESTADOS.EDITANDO && esAutor))
           );
         case "guardarTemporal":
@@ -1638,6 +1642,25 @@
       const estado = this._estadoSeguro();
       badge.textContent = ETIQUETAS_ESTADO[estado] || estado;
       badge.dataset.estado = estado;
+
+      // Indicador de "a quién le toca actuar ahora" -- el badge ya dice el
+      // estado, pero no dice si te toca a ti o a otra persona. Se crea
+      // dinámicamente junto al badge (no requiere tocar el HTML de cada
+      // módulo).
+      let turno = document.getElementById("workflowTurno");
+      if (!turno && badge.parentElement) {
+        turno = document.createElement("div");
+        turno.id = "workflowTurno";
+        turno.className = "workflow-turno small mt-1";
+        badge.insertAdjacentElement("afterend", turno);
+      }
+      if (turno) {
+        const { texto, esTuTurno } = this._obtenerTextoTurno(estado);
+        turno.textContent = texto;
+        turno.classList.toggle("d-none", !texto);
+        turno.classList.toggle("workflow-turno--tuyo", Boolean(esTuTurno));
+      }
+
       if (meta) {
         const fecha = this.state.borrador?.fechaEnvio
           ? formatDateTime(this.state.borrador.fechaEnvio)
@@ -1659,6 +1682,62 @@
         }
       }
       this._renderPasosCOI(estado);
+    }
+
+    /**
+     * Texto de "a quién le toca actuar ahora" según el estado, mostrando
+     * si le toca al usuario actual (esTuTurno) o a alguien más (con su
+     * nombre, si se conoce).
+     */
+    _obtenerTextoTurno(estado) {
+      if (!this.state.borrador) return { texto: "", esTuTurno: false };
+      const p = this.state.permisos || {};
+      const esAutor = this._esAutor();
+      const autorNombre = this.state.borrador?.autorNombre || "el autor";
+      switch (estado) {
+        case ESTADOS.EDITANDO:
+          return esAutor
+            ? { texto: "Te toca a ti: sigue editando o envíalo a revisión.", esTuTurno: true }
+            : { texto: `Esperando a ${autorNombre} (está editando).`, esTuTurno: false };
+        case ESTADOS.PENDIENTE: {
+          const tuTurno = Boolean(p.admin || p.revisar);
+          return {
+            texto: tuTurno
+              ? "Te toca a ti: márcalo como revisado o recházalo."
+              : "Esperando revisión.",
+            esTuTurno: tuTurno,
+          };
+        }
+        case ESTADOS.REVISADO: {
+          const tuTurno = Boolean(p.admin || p.aprobar);
+          return {
+            texto: tuTurno
+              ? "Te toca a ti: autorízalo o recházalo."
+              : "Esperando autorización.",
+            esTuTurno: tuTurno,
+          };
+        }
+        case ESTADOS.APROBADO: {
+          const tuTurno = Boolean(p.admin || p.cargar);
+          return {
+            texto: tuTurno
+              ? "Te toca a ti: guárdalo en COI."
+              : "Esperando que se guarde en COI.",
+            esTuTurno: tuTurno,
+          };
+        }
+        case ESTADOS.RECHAZADO: {
+          const tuTurno = Boolean(esAutor || p.admin);
+          return {
+            texto: tuTurno
+              ? "Te toca a ti: corrígelo o descártalo."
+              : `Esperando corrección de ${autorNombre}.`,
+            esTuTurno: tuTurno,
+          };
+        }
+        default:
+          return { texto: "", esTuTurno: false };
+      }
     }
 
     /**
