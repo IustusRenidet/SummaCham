@@ -3611,28 +3611,32 @@
       </div>
     </div>
 
-    <!-- Panel lateral: Editor de Graficas -->
+    <!-- Editor de Graficas: modal ancho (antes era un panel lateral de
+         500px -- muy angosto para elegir filas/columnas y ver la vista
+         previa a la vez). -->
     <div
-      class="offcanvas offcanvas-end template-editor-panel"
+      class="modal fade template-editor-panel"
       tabindex="-1"
       id="chartEditorPanel"
       aria-labelledby="chartEditorTitle"
-      style="width: 500px"
+      aria-hidden="true"
     >
-      <div class="offcanvas-header">
-        <div>
-          <h5 class="offcanvas-title" id="chartEditorTitle">
-            Editor de Grafica
-          </h5>
-          <div class="small text-muted" id="chartEditorSubtitle"></div>
-        </div>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="offcanvas"
-        ></button>
-      </div>
-      <div class="offcanvas-body">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h5 class="modal-title" id="chartEditorTitle">
+                Editor de Grafica
+              </h5>
+              <div class="small text-muted" id="chartEditorSubtitle"></div>
+            </div>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
         <form id="chartEditorForm">
           <div class="alert alert-primary py-2 px-3 mb-3 small" role="alert">
             <div class="fw-semibold mb-1">Uso rapido (3 pasos)</div>
@@ -3841,7 +3845,7 @@
             <button
               type="button"
               class="btn btn-outline-secondary btn-sm"
-              data-bs-dismiss="offcanvas"
+              data-bs-dismiss="modal"
             >
               Cerrar
             </button>
@@ -3852,6 +3856,8 @@
             >
               <i class="bi bi-check me-1"></i>Guardar
             </button>
+          </div>
+        </div>
           </div>
         </div>
       </div>
@@ -5682,11 +5688,11 @@
           renderSelectedRows();
           updateExtractionSummary();
 
-          // Abrir panel
-          if (window.bootstrap?.Offcanvas) {
-            const offcanvas =
-              window.bootstrap.Offcanvas.getOrCreateInstance(panel);
-            offcanvas.show();
+          // Abrir modal
+          if (window.bootstrap?.Modal) {
+            const modalInstancia =
+              window.bootstrap.Modal.getOrCreateInstance(panel);
+            modalInstancia.show();
           }
         };
 
@@ -5903,10 +5909,10 @@
                 window.reloadCustomCharts(savedConfig);
               }
 
-              // Cerrar panel
-              if (window.bootstrap?.Offcanvas) {
-                const offcanvas = window.bootstrap.Offcanvas.getInstance(panel);
-                offcanvas?.hide();
+              // Cerrar modal
+              if (window.bootstrap?.Modal) {
+                const modalInstancia = window.bootstrap.Modal.getInstance(panel);
+                modalInstancia?.hide();
               }
             } catch (error) {
               console.error("Error al guardar gráfica:", error);
@@ -5968,11 +5974,11 @@
                   window.reloadCustomCharts(savedConfig);
                 }
 
-                // Cerrar panel
-                if (window.bootstrap?.Offcanvas) {
-                  const offcanvas =
-                    window.bootstrap.Offcanvas.getInstance(panel);
-                  offcanvas?.hide();
+                // Cerrar modal
+                if (window.bootstrap?.Modal) {
+                  const modalInstancia =
+                    window.bootstrap.Modal.getInstance(panel);
+                  modalInstancia?.hide();
                 }
               } else {
                 alert("No se encontró la gráfica para eliminar");
@@ -5989,7 +5995,7 @@
         syncBarDirectionVisibility();
 
         // Limpiar al cerrar
-        panel.addEventListener("hidden.bs.offcanvas", () => {
+        panel.addEventListener("hidden.bs.modal", () => {
           clearRowPickerRetry();
           if (previewChartInstance) {
             previewChartInstance.destroy();

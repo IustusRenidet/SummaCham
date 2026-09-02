@@ -1721,14 +1721,20 @@ body {
 }
 
 /* ===== OPERATION EDITOR PANEL ===== */
-.template-editor-panel {
-  width: min(560px, 96vw);
-}
-
+/* El editor de operacion (panel lateral, sin cambios) sigue usando
+   .offcanvas-body; el editor de graficas ahora es un modal ancho y usa
+   .modal-body -- misma clase contenedora, dos selectores distintos. */
 .template-editor-panel .offcanvas-body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.template-editor-panel .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 70vh;
 }
 
 .editor-tabs .nav-link {
