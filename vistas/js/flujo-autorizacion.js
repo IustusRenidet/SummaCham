@@ -1017,19 +1017,84 @@
         });
       }
 
-      agregarListener(this.buttons.autorizar, () => this._handleAutorizar());
-      agregarListener(this.buttons.rechazar, () => this._handleRechazar());
-      agregarListener(this.buttons.marcarRevisado, () =>
-        this._handleMarcarRevisado()
-      );
+      // Estos 4 botones del toolbar principal tienen el mismo problema que
+      // ya se resolvió para el Centro de Borradores: se pueden pulsar sin
+      // haber visto nunca las cifras del borrador (el badge de estado se
+      // actualiza solo, sin necesidad de "Cargar presupuesto"). Antes de
+      // ejecutar la acción real, _asegurarVistoAntesDeAccion sugiere
+      // cargarlas si hace falta.
+      agregarListener(this.buttons.autorizar, async () => {
+        if (await this._asegurarVistoAntesDeAccion("autorizar")) {
+          this._handleAutorizar();
+        }
+      });
+      agregarListener(this.buttons.rechazar, async () => {
+        if (await this._asegurarVistoAntesDeAccion("rechazar")) {
+          this._handleRechazar();
+        }
+      });
+      agregarListener(this.buttons.marcarRevisado, async () => {
+        if (await this._asegurarVistoAntesDeAccion("revisar")) {
+          this._handleMarcarRevisado();
+        }
+      });
 
       if (this.buttons.guardarCOI) {
         const span = this.buttons.guardarCOI.querySelector("span");
         if (span) span.textContent = "Guardar en COI";
-        agregarListener(this.buttons.guardarCOI, () =>
-          this._handleGuardarCOI()
-        );
+        agregarListener(this.buttons.guardarCOI, async () => {
+          if (await this._asegurarVistoAntesDeAccion("guardarCoi")) {
+            this._handleGuardarCOI();
+          }
+        });
       }
+    }
+
+    /**
+     * Antes de ejecutar revisar/autorizar/rechazar/guardarCoi/enviar, si el
+     * usuario no ha visto las cifras de ESTE borrador en la sesión actual,
+     * sugiere cargarlas primero (con acceso directo: si acepta, se pintan
+     * en la tabla ahí mismo -- this.state.borrador ya trae los datos por el
+     * refresco automático de estado, no hace falta pedirlos de nuevo -- y
+     * la acción sigue de inmediato). Devuelve true si la acción debe
+     * continuar, false si el usuario canceló la sugerencia.
+     */
+    async _asegurarVistoAntesDeAccion(accion) {
+      const ETIQUETAS_ACCION = {
+        enviar: "enviarlo a revisión",
+        revisar: "marcarlo como revisado",
+        autorizar: "autorizarlo",
+        rechazar: "rechazarlo",
+        guardarCoi: "guardarlo en COI",
+      };
+      const borradorId = this.state.borrador?.id;
+      this._borradoresVistos = this._borradoresVistos || new Set();
+      if (!borradorId || this._borradoresVistos.has(borradorId)) {
+        return true;
+      }
+      const confirmar = await this._mostrarConfirmacion({
+        titulo: "Revisa las cifras primero",
+        mensaje: `Todavía no has visto las cifras de este borrador. Te recomendamos cargarlas antes de ${
+          ETIQUETAS_ACCION[accion] || "continuar"
+        }.`,
+        etiquetaBoton: "Cargar y continuar",
+        tipoBoton: "primary",
+      });
+      if (!confirmar) return false;
+
+      const puedeEditar =
+        this.state.borrador?.estado === ESTADOS.EDITANDO &&
+        this._puede({ accion: "editar", estadoOverride: ESTADOS.EDITANDO });
+      if (puedeEditar) {
+        this._enterEditMode(true);
+        await this._cargarBorradorEnTabla();
+      } else {
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.state.borrador);
+        this._renderInfo();
+        this._renderBotones();
+      }
+      this._borradoresVistos.add(borradorId);
+      return true;
     }
 
     _limpiarEventListeners() {
@@ -2590,7 +2655,7 @@
       // Mostrar modal de confirmación mejorado
       const confirmado = await this._mostrarConfirmacion({
         titulo: "💾 Guardar en Base de Datos COI",
-        mensaje: `¿Estás seguro de que deseas guardar este presupuesto <strong>autorizado</strong> en la base de datos de COI?<br><small class="text-muted">Esta es una acción irreversible. El presupuesto no podrá editarse más.</small>`,
+        mensaje: `¿Estás seguro de que deseas guardar este presupuesto <strong>autorizado</strong> en la base de datos de COI?<br><small class="text-muted">Esta es una acción irreversible.</small>`,
         etiquetaBoton: "Guardar en COI",
         tipoBoton: "primary",
       });
@@ -2626,6 +2691,19 @@
         this._renderInfo();
         this._renderBotones();
         window.__workflowRefreshTimeline?.();
+        // Lo anterior solo limpia el resaltado del borrador y el badge de
+        // estado -- las CIFRAS de la tabla (las que acaban de escribirse en
+        // COI) seguían siendo las de antes de guardar hasta recargar la
+        // página. Volver a pedirle al módulo que se re-dibuje con los
+        // valores reales ya actualizados.
+        try {
+          await window.CuentasModulo?.refresh?.();
+        } catch (refreshError) {
+          console.warn(
+            "No fue posible refrescar la tabla tras guardar en COI:",
+            refreshError
+          );
+        }
          
         // Cerrar drawer de flujo al completar el guardado exitosamente
         setTimeout(() => {
@@ -3402,39 +3480,27 @@
     /**
      * Ejecuta una acción (enviar/revisar/autorizar/rechazar/guardarCoi)
      * sobre un borrador desde la fila del Centro de Borradores, SIN pasar
-     * por "Cargar" primero -- salvo que el usuario todavía no haya visto
-     * las cifras de ESE borrador en esta sesión, en cuyo caso se le
-     * sugiere cargarlo antes, con acceso directo a la misma acción que
-     * intentaba hacer (cargar + ejecutar en un solo paso).
+     * por "Cargar" primero -- reutiliza la misma sugerencia
+     * (_asegurarVistoAntesDeAccion) que ya protege los botones del toolbar
+     * principal, para no tener dos lógicas distintas del mismo aviso.
      */
     async _ejecutarAccionBorradorDesdeCentro(item, accion) {
-      const ETIQUETAS_ACCION = {
-        enviar: "enviarlo a revisión",
-        revisar: "marcarlo como revisado",
-        autorizar: "autorizarlo",
-        rechazar: "rechazarlo",
-        guardarCoi: "guardarlo en COI",
-      };
-      this._borradoresVistos = this._borradoresVistos || new Set();
-      const yaVisto = this._borradoresVistos.has(item.id);
-
-      if (!yaVisto) {
-        const confirmar = await this._mostrarConfirmacion({
-          titulo: "Revisa las cifras primero",
-          mensaje: `Todavía no has visto las cifras de este borrador. Te recomendamos cargarlo antes de ${
-            ETIQUETAS_ACCION[accion] || "continuar"
-          }.`,
-          etiquetaBoton: "Cargar y continuar",
-          tipoBoton: "primary",
-        });
-        if (!confirmar) return;
-        await this._verBorradorDesdeCentro(item.id);
-      } else if (!this.state.borrador || this.state.borrador.id !== item.id) {
-        // Ya lo vio antes pero el borrador activo ahora es otro -- recargarlo
-        // silenciosamente (sin volver a preguntar) para que la acción actúe
-        // sobre el borrador correcto.
-        await this._verBorradorDesdeCentro(item.id);
+      if (!this.state.borrador || this.state.borrador.id !== item.id) {
+        // El contexto (Centro de Borradores está scoped al mismo módulo/
+        // año/capítulo que la página) normalmente ya trae este borrador en
+        // memoria por el refresco automático; si no, sincronizar sin
+        // pintarlo todavía -- _asegurarVistoAntesDeAccion decide eso según
+        // si el usuario acepta la sugerencia.
+        await this._refreshEstado();
       }
+      const continuar = await this._asegurarVistoAntesDeAccion(accion);
+      if (!continuar) return;
+
+      const drawer = document.getElementById("workflowDraftsDrawer");
+      const offcanvas = drawer
+        ? window.bootstrap?.Offcanvas?.getInstance(drawer)
+        : null;
+      offcanvas?.hide();
 
       const ejecutores = {
         enviar: () => this._handleEnviar(),
