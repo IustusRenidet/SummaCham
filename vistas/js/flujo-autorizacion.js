@@ -1853,6 +1853,25 @@
       const tieneContenidoPrevio = Boolean(
         this.state.borrador?.data?.presupuesto?.length
       );
+
+      // Si está RECHAZADO, no seguir en silencio: preguntar qué hacer con
+      // él (editar y corregir, o descartarlo), mostrando el motivo del
+      // rechazo. Antes esto se decidía solo (siempre "editar"), sin que el
+      // usuario viera por qué se rechazó ni tuviera la opción de descartar
+      // ahí mismo.
+      if (tieneContenidoPrevio && this.state.borrador?.estado === ESTADOS.RECHAZADO) {
+        const motivo = (this.state.borrador?.comentarios || "").toString().trim();
+        const decision = await this._mostrarOpcionesRechazado({ motivo });
+        if (decision === "descartar") {
+          await this._descartarBorrador();
+          return;
+        }
+        if (decision !== "editar") {
+          return; // Canceló el modal, no hacer nada.
+        }
+        // decision === "editar": continúa abajo, mismo flujo que ya existía.
+      }
+
       if (tieneContenidoPrevio) {
         console.log("?? Cargando borrador existente antes de activar modo edicion...");
         this._enterEditMode(true);
@@ -2796,6 +2815,96 @@
       });
     }
 
+    /**
+     * Se muestra al hacer clic en "Cargar presupuesto" sobre un borrador
+     * RECHAZADO -- en vez de cargarlo a edición en silencio, se pregunta
+     * explícitamente qué hacer, mostrando el motivo del rechazo (si lo
+     * hay). Devuelve "editar" | "descartar" | null (canceló).
+     */
+    async _mostrarOpcionesRechazado({ motivo }) {
+      if (this._modalRechazadoActiva) {
+        return null;
+      }
+      this._modalRechazadoActiva = true;
+      return new Promise((resolve) => {
+        try {
+          const modalId = "modal-rechazado-" + Date.now();
+          const modal = document.createElement("div");
+          modal.id = modalId;
+          modal.className = "modal fade";
+          modal.setAttribute("tabindex", "-1");
+          modal.setAttribute("aria-hidden", "true");
+          modal.setAttribute("role", "dialog");
+          modal.setAttribute("aria-modal", "true");
+
+          const motivoHTML = motivo
+            ? `<div class="alert alert-secondary small mb-0"><strong>Motivo del rechazo:</strong><br>${motivo}</div>`
+            : `<p class="text-muted small mb-0">Quien lo rechazó no dejó un motivo escrito.</p>`;
+
+          modal.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header border-bottom">
+                  <h5 class="modal-title">❌ Este borrador fue rechazado</h5>
+                  <button type="button" class="btn-close btn-cerrar-modal" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                  <p>¿Qué quieres hacer con él?</p>
+                  ${motivoHTML}
+                </div>
+                <div class="modal-footer border-top">
+                  <button type="button" class="btn btn-outline-danger btn-descartar-rechazado">Descartar borrador</button>
+                  <button type="button" class="btn btn-primary btn-editar-rechazado">Editar y corregir</button>
+                </div>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(modal);
+
+          const bsModal = window.bootstrap?.Modal
+            ? new window.bootstrap.Modal(modal, { backdrop: "static", keyboard: false })
+            : null;
+          if (!bsModal) {
+            console.error("Bootstrap Modal no esta disponible");
+            document.body.removeChild(modal);
+            this._modalRechazadoActiva = false;
+            resolve(null);
+            return;
+          }
+
+          let resultado = null;
+          const finalizar = (valor) => {
+            resultado = valor;
+            bsModal.hide();
+          };
+          modal.addEventListener(
+            "hidden.bs.modal",
+            () => {
+              this._modalRechazadoActiva = false;
+              modal.remove();
+              resolve(resultado);
+            },
+            { once: true }
+          );
+          modal
+            .querySelector(".btn-cerrar-modal")
+            .addEventListener("click", () => finalizar(null), { once: true });
+          modal
+            .querySelector(".btn-editar-rechazado")
+            .addEventListener("click", () => finalizar("editar"), { once: true });
+          modal
+            .querySelector(".btn-descartar-rechazado")
+            .addEventListener("click", () => finalizar("descartar"), { once: true });
+
+          bsModal.show();
+        } catch (error) {
+          console.error("Error en _mostrarOpcionesRechazado:", error);
+          this._modalRechazadoActiva = false;
+          resolve(null);
+        }
+      });
+    }
+
     async _mostrarEntradaConfirmacion({
       titulo,
       mensaje,
@@ -3197,6 +3306,50 @@
         else if (item.estado === "APROBADO") badgeClass = "bg-success";
         else if (item.estado === "RECHAZADO") badgeClass = "bg-danger";
 
+        // Acciones directas por estado -- para no obligar a "Cargar" solo
+        // para revisar/autorizar/rechazar/guardar en COI o enviar, que no
+        // necesitan ver la tabla para ejecutarse (ya validado: los
+        // handlers solo dependen de this.state.borrador.id).
+        const ACCIONES_POR_ESTADO = {
+          EDITANDO: [{ accion: "enviar", etiqueta: "Enviar a revisión", clase: "btn-outline-primary" }],
+          PENDIENTE: [
+            { accion: "revisar", etiqueta: "Marcar revisado", clase: "btn-outline-primary" },
+            { accion: "rechazar", etiqueta: "Rechazar", clase: "btn-outline-danger" },
+          ],
+          REVISADO: [
+            { accion: "autorizar", etiqueta: "Autorizar", clase: "btn-outline-success" },
+            { accion: "rechazar", etiqueta: "Rechazar", clase: "btn-outline-danger" },
+          ],
+          APROBADO: [
+            { accion: "guardarCoi", etiqueta: "Guardar en COI", clase: "btn-outline-success" },
+            { accion: "rechazar", etiqueta: "Rechazar", clase: "btn-outline-danger" },
+          ],
+        };
+        // "enviar" exige this.state.editMode === true en _puede(), pero
+        // aquí NUNCA se está en modo edición todavía (la fila no está
+        // cargada) -- el propio flujo de "cargar y continuar" entra a
+        // edición antes de enviar, así que ese permiso se valida con la
+        // base (admin/cargar + ser el autor) en vez de con _puede().
+        const puedeAccionCentro = (accion) => {
+          if (accion === "enviar") {
+            const p = this.state.permisos;
+            const esAutorItem =
+              this.state.usuario &&
+              String(this.state.usuario.id) === String(item.usuarioId);
+            return Boolean((p.admin || p.cargar) && esAutorItem);
+          }
+          return this._puede({ accion, estadoOverride: item.estado });
+        };
+        const accionesDisponibles = (ACCIONES_POR_ESTADO[item.estado] || []).filter(
+          ({ accion }) => puedeAccionCentro(accion)
+        );
+        const botonesAccion = accionesDisponibles
+          .map(
+            ({ accion, etiqueta, clase }) =>
+              `<button type="button" class="btn btn-sm ${clase} btn-accion-borrador" data-accion="${accion}" data-borrador-id="${item.id}">${etiqueta}</button>`
+          )
+          .join(" ");
+
         row.innerHTML = `
           <td>
             <span class="badge ${badgeClass}">${etiquetaEstado}</span>
@@ -3211,11 +3364,14 @@
             )}</small>
           </td>
           <td class="text-end">
-            <button class="btn btn-sm btn-primary btn-cargar-borrador" 
-                    data-borrador-id="${item.id}"
-                    style="pointer-events: auto !important; cursor: pointer !important; position: relative; z-index: 9999;">
-              <i class="bi bi-box-arrow-in-down me-1"></i>Cargar
-            </button>
+            <div class="d-flex gap-1 justify-content-end flex-wrap">
+              ${botonesAccion}
+              <button class="btn btn-sm btn-primary btn-cargar-borrador"
+                      data-borrador-id="${item.id}"
+                      style="pointer-events: auto !important; cursor: pointer !important; position: relative; z-index: 9999;">
+                <i class="bi bi-box-arrow-in-down me-1"></i>Cargar
+              </button>
+            </div>
           </td>
         `;
 
@@ -3229,11 +3385,68 @@
             this._verBorradorDesdeCentro(item.id);
           };
         }
+        row.querySelectorAll(".btn-accion-borrador").forEach((btnAccion) => {
+          btnAccion.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this._ejecutarAccionBorradorDesdeCentro(item, btnAccion.dataset.accion);
+          };
+        });
 
         frag.appendChild(row);
       });
 
       body.appendChild(frag);
+    }
+
+    /**
+     * Ejecuta una acción (enviar/revisar/autorizar/rechazar/guardarCoi)
+     * sobre un borrador desde la fila del Centro de Borradores, SIN pasar
+     * por "Cargar" primero -- salvo que el usuario todavía no haya visto
+     * las cifras de ESE borrador en esta sesión, en cuyo caso se le
+     * sugiere cargarlo antes, con acceso directo a la misma acción que
+     * intentaba hacer (cargar + ejecutar en un solo paso).
+     */
+    async _ejecutarAccionBorradorDesdeCentro(item, accion) {
+      const ETIQUETAS_ACCION = {
+        enviar: "enviarlo a revisión",
+        revisar: "marcarlo como revisado",
+        autorizar: "autorizarlo",
+        rechazar: "rechazarlo",
+        guardarCoi: "guardarlo en COI",
+      };
+      this._borradoresVistos = this._borradoresVistos || new Set();
+      const yaVisto = this._borradoresVistos.has(item.id);
+
+      if (!yaVisto) {
+        const confirmar = await this._mostrarConfirmacion({
+          titulo: "Revisa las cifras primero",
+          mensaje: `Todavía no has visto las cifras de este borrador. Te recomendamos cargarlo antes de ${
+            ETIQUETAS_ACCION[accion] || "continuar"
+          }.`,
+          etiquetaBoton: "Cargar y continuar",
+          tipoBoton: "primary",
+        });
+        if (!confirmar) return;
+        await this._verBorradorDesdeCentro(item.id);
+      } else if (!this.state.borrador || this.state.borrador.id !== item.id) {
+        // Ya lo vio antes pero el borrador activo ahora es otro -- recargarlo
+        // silenciosamente (sin volver a preguntar) para que la acción actúe
+        // sobre el borrador correcto.
+        await this._verBorradorDesdeCentro(item.id);
+      }
+
+      const ejecutores = {
+        enviar: () => this._handleEnviar(),
+        revisar: () => this._handleMarcarRevisado(),
+        autorizar: () => this._handleAutorizar(),
+        rechazar: () => this._handleRechazar(),
+        guardarCoi: () => this._handleGuardarCOI(),
+      };
+      const ejecutar = ejecutores[accion];
+      if (ejecutar) {
+        await ejecutar();
+      }
     }
 
     /**
@@ -3265,6 +3478,9 @@
         this.state.borrador = data.borrador || null;
         if (!this.state.borrador)
           throw new Error("No se recibió información del borrador.");
+
+        this._borradoresVistos = this._borradoresVistos || new Set();
+        this._borradoresVistos.add(this.state.borrador.id);
 
         // Cerrar el drawer
         const drawer = document.getElementById("workflowDraftsDrawer");
