@@ -1,0 +1,96 @@
+- generic [active] [ref=f29e1]:
+  - generic [ref=f29e2]:
+    - generic [ref=f29e7]:
+      - generic [ref=f29e8]:
+        - heading "Presupuestos" [level=1] [ref=f29e9]
+        - paragraph [ref=f29e10]: Ejercicio - -
+      - button "Ver flujo de autorizacion" [ref=f29e11] [cursor=pointer]:
+        - generic [ref=f29e12]: 
+    - generic [ref=f29e14]:
+      - generic [ref=f29e15]: Ejercicio
+      - combobox "Ejercicio" [ref=f29e16] [cursor=pointer]:
+        - option "Cargando ejercicios..."
+    - generic [ref=f29e21]:
+      - generic [ref=f29e22]:
+        - generic [ref=f29e23] [cursor=pointer]: Redondear
+        - generic [ref=f29e24]:
+          - checkbox "Redondear"
+          - generic [ref=f29e25] [cursor=pointer]
+      - generic [ref=f29e26]:
+        - paragraph [ref=f29e27]: Estado del presupuesto
+        - generic [ref=f29e28]: Sin cargar
+        - paragraph
+      - group [ref=f29e29]:
+        - text:        
+        - button " Copiar a otro año" [ref=f29e30] [cursor=pointer]:
+          - generic [ref=f29e31]: 
+          - generic [ref=f29e32]: Copiar a otro año
+        - button " Historial de COI" [ref=f29e33] [cursor=pointer]:
+          - generic [ref=f29e34]: 
+          - generic [ref=f29e35]: Historial de COI
+        - text: 
+      - group [ref=f29e36]:
+        - button " Colapsar" [ref=f29e37] [cursor=pointer]:
+          - generic [ref=f29e38]: 
+          - text: Colapsar
+        - button " Expandir" [ref=f29e39] [cursor=pointer]:
+          - generic [ref=f29e40]: 
+          - text: Expandir
+    - text:  
+    - generic [ref=f29e43]:
+      - textbox "Buscar cuenta o descripcion..." [ref=f29e46] [cursor=pointer]
+      - button "Ocultar cuentas" [pressed] [ref=f29e47] [cursor=pointer]
+      - button " Graficas" [ref=f29e48] [cursor=pointer]:
+        - generic [ref=f29e49]: 
+        - text: Graficas
+      - button " Excel" [ref=f29e50] [cursor=pointer]:
+        - generic [ref=f29e51]: 
+        - text: Excel
+      - button " PDF" [ref=f29e52] [cursor=pointer]:
+        - generic [ref=f29e53]: 
+        - text: PDF
+    - table [ref=f29e58]:
+      - rowgroup [ref=f29e59]:
+        - row [ref=f29e60]:
+          - columnheader [ref=f29e61]
+          - columnheader "PRESUPUESTOS" [ref=f29e62]
+          - columnheader "Presupuesto 2026" [ref=f29e63]
+          - columnheader "ENE-26" [ref=f29e64]
+          - columnheader "ENE-26" [ref=f29e65]
+          - columnheader "FEB-26" [ref=f29e66]
+          - columnheader "FEB-26" [ref=f29e67]
+          - columnheader "MAR-26" [ref=f29e68]
+          - columnheader "MAR-26" [ref=f29e69]
+          - columnheader "ABR-26" [ref=f29e70]
+          - columnheader "ABR-26" [ref=f29e71]
+          - columnheader "MAY-26" [ref=f29e72]
+          - columnheader "MAY-26" [ref=f29e73]
+          - columnheader "JUN-26" [ref=f29e74]
+          - columnheader "JUN-26" [ref=f29e75]
+          - columnheader "JUL-26" [ref=f29e76]
+          - columnheader "JUL-26" [ref=f29e77]
+          - columnheader "AGO-26" [ref=f29e78]
+          - columnheader "AGO-26" [ref=f29e79]
+          - columnheader "SEP-26" [ref=f29e80]
+          - columnheader "SEP-26" [ref=f29e81]
+          - columnheader "OCT-26" [ref=f29e82]
+          - columnheader "OCT-26" [ref=f29e83]
+          - columnheader "NOV-26" [ref=f29e84]
+          - columnheader "NOV-26" [ref=f29e85]
+          - columnheader "DIC-26" [ref=f29e86]
+          - columnheader "DIC-26" [ref=f29e87]
+          - columnheader "Ppto. Acumulado 2026" [ref=f29e88]
+          - columnheader "Real Acumulado 2026" [ref=f29e89]
+      - rowgroup
+  - text:     
+  - generic:
+    - button " Ver globos" [ref=f29e91] [cursor=pointer]:
+      - generic [ref=f29e92]: 
+      - text: Ver globos
+    - button " Comentarios" [ref=f29e93] [cursor=pointer]:
+      - generic [ref=f29e94]: 
+      - text: Comentarios
+  - button " Descargas" [ref=f29e95] [cursor=pointer]:
+    - generic [ref=f29e96]: 
+    - text: Descargas
+  - button "Tour presupuesto" [ref=f29e97] [cursor=pointer]

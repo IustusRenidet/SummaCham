@@ -1,0 +1,91 @@
+- generic [active] [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - generic [ref=f7e7]:
+      - generic [ref=f7e8]:
+        - heading "Servicio a la Membresía" [level=1] [ref=f7e9]
+        - paragraph [ref=f7e10]: Ejercicio 2026 · Ciudad de México
+      - button "Ver flujo de autorización" [ref=f7e11] [cursor=pointer]:
+        - generic [ref=f7e12]: 
+    - generic [ref=f7e14]:
+      - generic [ref=f7e15]: Ejercicio
+      - combobox "Ejercicio" [ref=f7e16] [cursor=pointer]:
+        - option "Cargando ejercicios..."
+    - generic [ref=f7e21]:
+      - generic [ref=f7e22]:
+        - paragraph [ref=f7e23]: Estado del presupuesto
+        - generic [ref=f7e24]: Sin cargar
+        - paragraph
+      - group [ref=f7e25]:
+        - button " Cargar presupuesto" [ref=f7e26] [cursor=pointer]:
+          - generic [ref=f7e27]: 
+          - generic [ref=f7e28]: Cargar presupuesto
+        - text:     
+        - button " Centro de borradores" [ref=f7e29] [cursor=pointer]:
+          - generic [ref=f7e30]: 
+          - generic [ref=f7e31]: Centro de borradores
+        - text:  
+      - group [ref=f7e32]:
+        - button " Colapsar" [ref=f7e33] [cursor=pointer]:
+          - generic [ref=f7e34]: 
+          - text: Colapsar
+        - button " Expandir" [ref=f7e35] [cursor=pointer]:
+          - generic [ref=f7e36]: 
+          - text: Expandir
+    - generic [ref=f7e39]:
+      - textbox "Buscar cuenta o descripción..." [ref=f7e42] [cursor=pointer]
+      - button "Ocultar cuentas" [pressed] [ref=f7e43] [cursor=pointer]
+      - button " Graficas" [ref=f7e44] [cursor=pointer]:
+        - generic [ref=f7e45]: 
+        - text: Graficas
+      - button " Excel" [ref=f7e46] [cursor=pointer]:
+        - generic [ref=f7e47]: 
+        - text: Excel
+      - button " PDF" [ref=f7e48] [cursor=pointer]:
+        - generic [ref=f7e49]: 
+        - text: PDF
+    - table [ref=f7e54]:
+      - rowgroup [ref=f7e55]:
+        - row [ref=f7e56]:
+          - columnheader [ref=f7e57]
+          - columnheader "SERV A LA MEMBRESÍA" [ref=f7e58]
+          - columnheader "Presupuesto 2026" [ref=f7e59]
+          - columnheader "Ppto ENE-26" [ref=f7e60]
+          - columnheader "Real ENE-26" [ref=f7e61]
+          - columnheader "Ppto FEB-26" [ref=f7e62]
+          - columnheader "Real FEB-26" [ref=f7e63]
+          - columnheader "Ppto MAR-26" [ref=f7e64]
+          - columnheader "Real MAR-26" [ref=f7e65]
+          - columnheader "Ppto ABR-26" [ref=f7e66]
+          - columnheader "Real ABR-26" [ref=f7e67]
+          - columnheader "Ppto MAY-26" [ref=f7e68]
+          - columnheader "Real MAY-26" [ref=f7e69]
+          - columnheader "Ppto JUN-26" [ref=f7e70]
+          - columnheader "Real JUN-26" [ref=f7e71]
+          - columnheader "Ppto JUL-26" [ref=f7e72]
+          - columnheader "Real JUL-26" [ref=f7e73]
+          - columnheader "Ppto AGO-26" [ref=f7e74]
+          - columnheader "Real AGO-26" [ref=f7e75]
+          - columnheader "Ppto SEP-26" [ref=f7e76]
+          - columnheader "Real SEP-26" [ref=f7e77]
+          - columnheader "Ppto OCT-26" [ref=f7e78]
+          - columnheader "Real OCT-26" [ref=f7e79]
+          - columnheader "Ppto NOV-26" [ref=f7e80]
+          - columnheader "Real NOV-26" [ref=f7e81]
+          - columnheader "Ppto DIC-26" [ref=f7e82]
+          - columnheader "Real DIC-26" [ref=f7e83]
+          - columnheader "Ppto. Acumulado 2026" [ref=f7e84]
+          - columnheader "Real Acumulado 2026" [ref=f7e85]
+      - rowgroup [ref=f7e86]:
+        - row [ref=f7e87]:
+          - cell "No hay informacion disponible para esta vista." [ref=f7e88]
+  - text:     
+  - generic:
+    - button " Ver globos" [ref=f7e90] [cursor=pointer]:
+      - generic [ref=f7e91]: 
+      - text: Ver globos
+    - button " Comentarios" [ref=f7e92] [cursor=pointer]:
+      - generic [ref=f7e93]: 
+      - text: Comentarios
+  - button " Descargas" [ref=f7e94] [cursor=pointer]:
+    - generic [ref=f7e95]: 
+    - text: Descargas

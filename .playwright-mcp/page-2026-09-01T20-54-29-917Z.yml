@@ -1,0 +1,87 @@
+- generic [active] [ref=f39e1]:
+  - generic [ref=f39e2]:
+    - generic [ref=f39e8]:
+      - heading "Resumen" [level=1] [ref=f39e9]
+      - paragraph [ref=f39e10]: Capítulo - · Periodo -
+    - generic [ref=f39e11]:
+      - generic [ref=f39e12]:
+        - generic [ref=f39e13]: Ejercicio
+        - combobox "Ejercicio" [ref=f39e14] [cursor=pointer]:
+          - option "Cargando ejercicios..." [selected]
+      - generic [ref=f39e15]:
+        - generic [ref=f39e16]: Periodo
+        - combobox "Periodo" [ref=f39e17] [cursor=pointer]:
+          - option "Enero" [selected]
+          - option "Febrero"
+          - option "Marzo"
+          - option "Abril"
+          - option "Mayo"
+          - option "Junio"
+          - option "Julio"
+          - option "Agosto"
+          - option "Septiembre"
+          - option "Octubre"
+          - option "Noviembre"
+          - option "Diciembre"
+      - generic [ref=f39e18]:
+        - generic [ref=f39e19]: Comparar con
+        - generic [ref=f39e20]:
+          - generic [ref=f39e21]:
+            - checkbox "Comparar con" [checked]
+          - generic [ref=f39e24]: Empresa 12
+    - generic:
+      - button "" [ref=f39e26] [cursor=pointer]
+      - text:  
+    - generic [ref=f39e30]:
+      - textbox "Buscar cuenta o descripción..." [ref=f39e33] [cursor=pointer]
+      - generic [ref=f39e34]:
+        - group "Colapsar/Expandir secciones" [ref=f39e35]:
+          - button " Colapsar" [ref=f39e36] [cursor=pointer]:
+            - generic [ref=f39e37]: 
+            - generic [ref=f39e38]: Colapsar
+          - button " Expandir" [ref=f39e39] [cursor=pointer]:
+            - generic [ref=f39e40]: 
+            - generic [ref=f39e41]: Expandir
+        - button " Graficas" [ref=f39e42] [cursor=pointer]:
+          - generic [ref=f39e43]: 
+          - generic [ref=f39e44]: Graficas
+        - button " Imprimir PDF" [ref=f39e45] [cursor=pointer]:
+          - generic [ref=f39e46]: 
+          - generic [ref=f39e47]: Imprimir PDF
+        - button " Exportar XLSX" [ref=f39e48] [cursor=pointer]:
+          - generic [ref=f39e49]: 
+          - generic [ref=f39e50]: Exportar XLSX
+    - generic:  
+    - table [ref=f39e56]:
+      - rowgroup [ref=f39e62]:
+        - row [ref=f39e63]:
+          - columnheader "Cuenta" [ref=f39e64] [cursor=pointer]
+          - columnheader "DICIEMBRE" [ref=f39e65] [cursor=pointer]
+          - columnheader "Descripción" [ref=f39e66] [cursor=pointer]
+          - columnheader "YTD" [ref=f39e67] [cursor=pointer]
+        - row [ref=f39e68]:
+          - columnheader "Real" [ref=f39e69] [cursor=pointer]
+          - columnheader "Ppto." [ref=f39e70] [cursor=pointer]
+          - columnheader "Real DIC" [ref=f39e71] [cursor=pointer]
+          - columnheader "B/(W)% vs. Ppto." [ref=f39e72] [cursor=pointer]
+          - columnheader "B/(W)% vs. Real DIC" [ref=f39e73] [cursor=pointer]
+          - columnheader "Real acumulado" [ref=f39e74] [cursor=pointer]
+          - columnheader "Ppto. acumulado" [ref=f39e75] [cursor=pointer]
+          - columnheader "Real acumulado" [ref=f39e76] [cursor=pointer]
+          - columnheader "B/(W)% vs. Ppto. acumulado" [ref=f39e77] [cursor=pointer]
+          - columnheader "B/(W)% vs. Real acumulado" [ref=f39e78] [cursor=pointer]
+      - rowgroup [ref=f39e79]:
+        - row [ref=f39e80]:
+          - cell "Construyendo el resumen financiero, espera un momento..." [ref=f39e81] [cursor=pointer]
+  - button " Descargas" [ref=f39e83] [cursor=pointer]:
+    - generic [ref=f39e84]: 
+    - text: Descargas
+  - text:     
+  - generic:
+    - button " Ver globos" [ref=f39e85] [cursor=pointer]:
+      - generic [ref=f39e86]: 
+      - text: Ver globos
+    - button " Comentarios" [ref=f39e87] [cursor=pointer]:
+      - generic [ref=f39e88]: 
+      - text: Comentarios
+  - button "Tour resumen" [ref=f39e89] [cursor=pointer]

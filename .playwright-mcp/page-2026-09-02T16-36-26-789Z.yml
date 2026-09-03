@@ -1,0 +1,63 @@
+- generic [active] [ref=f19e1]:
+  - generic [ref=f19e2]:
+    - generic [ref=f19e6]:
+      - generic [ref=f19e7]:
+        - heading "Graficas de Resumen" [level=1] [ref=f19e8]
+        - paragraph [ref=f19e9]: Comparativo de Resultados Operativos y Netos por capitulo
+      - generic [ref=f19e10]:
+        - generic [ref=f19e11]:
+          - generic [ref=f19e12]: Ejercicio
+          - combobox "Ejercicio" [ref=f19e13] [cursor=pointer]:
+            - option "2026" [selected]
+            - option "2025"
+            - option "2024"
+            - option "2023"
+            - option "2022"
+            - option "2021"
+            - option "2020"
+            - option "2019"
+            - option "2018"
+            - option "2017"
+            - option "2016"
+            - option "2015"
+            - option "2014"
+            - option "2013"
+            - option "2012"
+            - option "2011"
+            - option "2010"
+            - option "2009"
+            - option "2008"
+            - option "2007"
+            - option "2006"
+            - option "2005"
+        - generic [ref=f19e14]:
+          - generic [ref=f19e15]: Periodo
+          - combobox "Periodo" [ref=f19e16] [cursor=pointer]:
+            - option "Enero" [selected]
+            - option "Febrero"
+            - option "Marzo"
+            - option "Abril"
+            - option "Mayo"
+            - option "Junio"
+            - option "Julio"
+            - option "Agosto"
+            - option "Septiembre"
+            - option "Octubre"
+            - option "Noviembre"
+            - option "Diciembre"
+        - generic [ref=f19e17]: "Capitulo: Ciudad de México"
+        - group [ref=f19e18]:
+          - button " Excel" [ref=f19e19] [cursor=pointer]:
+            - generic [ref=f19e20]: 
+            - text: Excel
+          - button " PDF" [ref=f19e21] [cursor=pointer]:
+            - generic [ref=f19e22]: 
+            - text: PDF
+          - button " Imprimir" [ref=f19e23] [cursor=pointer]:
+            - generic [ref=f19e24]: 
+            - text: Imprimir
+    - generic [ref=f19e25]:
+      - heading "Resultado Operativo por Capítulo" [level=5] [ref=f19e29]
+      - heading "Resumen Neto por Capítulo" [level=5] [ref=f19e35]
+      - heading "Consolidados Operativos vs Netos" [level=5] [ref=f19e41]
+  - button "Tour graficas" [ref=f19e44] [cursor=pointer]

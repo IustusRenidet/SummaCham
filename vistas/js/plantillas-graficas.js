@@ -524,6 +524,44 @@
     return EMPTY_TOTALS;
   };
 
+  // Filas + valores reales de un modulo (que no es RESUMEN), leidos directo
+  // del backend via window.ModuloDatosPlaneacion (layout + planeacion de
+  // cuentas) -- ver vistas/js/modulo-datos-planeacion.js. Sin snapshots ni
+  // paginas intermedias; el resultado ya trae los totals con las claves
+  // sinteticas de OPERATIVO_CUSTOM_SERIES, listas para
+  // buildDatasetsFromSnapshot.
+  const moduleDatosRealesMapCache = new Map();
+  const fetchModuleSnapshotMap = async (moduleValue, empresaId, anio) => {
+    if (!moduleValue || !empresaId || !anio || !window.ModuloDatosPlaneacion) {
+      return null;
+    }
+    const cacheKey = `${empresaId}:${moduleValue}:${anio}`;
+    if (moduleDatosRealesMapCache.has(cacheKey)) {
+      return moduleDatosRealesMapCache.get(cacheKey);
+    }
+    let resultado = null;
+    try {
+      const datos = await window.ModuloDatosPlaneacion.fetchFilasModulo(
+        moduleValue,
+        anio,
+        empresaId
+      );
+      if (datos && Array.isArray(datos.filas)) {
+        const map = new Map();
+        datos.filas.forEach((fila) => {
+          const label = normalizeLabel(fila?.label || "");
+          if (!label) return;
+          map.set(label, fila.totals || {});
+        });
+        resultado = map;
+      }
+    } catch (_) {
+      resultado = null;
+    }
+    moduleDatosRealesMapCache.set(cacheKey, resultado);
+    return resultado;
+  };
+
   const API_BASE = (() => {
     if (window.location.protocol === "file:") {
       return "http://localhost:3005";
@@ -546,6 +584,60 @@
     "Nov",
     "Dic",
   ];
+
+  const OPERATIVO_MONTH_KEYS = [
+    "ene", "feb", "mar", "abr", "may", "jun",
+    "jul", "ago", "sep", "oct", "nov", "dic",
+  ];
+
+  // Mismas claves sinteticas que usa el editor (Gestor de Plantillas,
+  // vistas/plantillas.html) y el renderizador real en cada pagina de
+  // modulo (operativo-sidebar.js) para graficas personalizadas en modulos
+  // que NO son RESUMEN -- necesarias aqui para que la miniatura de la
+  // galeria use las MISMAS columnas que el chart guardado, no el esquema
+  // de 3 claves (budget/real/annual) de la grafica predefinida.
+  const OPERATIVO_CUSTOM_SERIES = [
+    { key: "budgetAnnual", label: "Presupuesto anual", color: "#22c55e", enabled: true },
+    ...OPERATIVO_MONTH_KEYS.flatMap((mes, idx) => [
+      { key: `monthBudget_${mes}`, label: `${MONTH_LABELS[idx]} Ppto.`, color: "#60a5fa", enabled: true },
+      { key: `monthReal_${mes}`, label: `${MONTH_LABELS[idx]} Real`, color: "#f59e0b", enabled: true },
+    ]),
+    { key: "totalBudget", label: "Ppto. acumulado", color: "#4472c4", enabled: true },
+    { key: "totalReal", label: "Real acumulado", color: "#ffc000", enabled: true },
+  ];
+
+  // Graficas guardadas con el esquema viejo de 3 columnas (antes de que
+  // existieran las claves granulares de arriba) -- ver misma constante en
+  // vistas/plantillas.html y operativo-sidebar.js.
+  const LEGACY_OPERATIVO_SERIES_KEY_MAP = {
+    annual: "budgetAnnual",
+    budget: "totalBudget",
+    real: "totalReal",
+  };
+
+  // definition.module en una grafica guardada puede venir sin acentos
+  // ("Comites") si se creo/edito antes de que ese campo se guardara igual
+  // al valor exacto del selector superior -- pero /api/layouts/:modulo/...
+  // necesita el nombre EXACTO con acentos ("Comités"), o responde vacio.
+  // Se resuelve por clave normalizada en vez de confiar en el texto crudo.
+  const MODULE_DISPLAY_NAME_BY_KEY = {
+    FINANZAS: "Finanzas",
+    GASTOSGENERALES: "Gastos Generales",
+    NOMINA: "Nomina",
+    MEMBRESIA: "Membresía",
+    SERVMEMBRESIA: "Serv Membresía",
+    RH: "RH",
+    EVENTOS: "Eventos",
+    COMITES: "Comités",
+    COMUNICACION: "Comunicación",
+    DIRECCION: "Dirección",
+    GTOSCORPORATIVOS: "Gtos Corporativos",
+    TIC: "T&IC",
+    VPE: "VPE",
+  };
+  const resolveModuleDisplayName = (moduleValue) =>
+    MODULE_DISPLAY_NAME_BY_KEY[normalizeModuleKey(moduleValue || "")] ||
+    (moduleValue || "").toString().trim();
 
   const readPlaneacionContext = () => {
     try {
@@ -3077,7 +3169,61 @@
     }
     if (definition.previewKind === "custom") {
       const rows = Array.isArray(definition.rows) ? definition.rows : [];
-      if (!customIsSummaryModule) return null;
+      if (!customIsSummaryModule) {
+        // Modulo distinto de RESUMEN: usa las cifras reales de ESE modulo
+        // (mismo mecanismo que el editor de Gestor de Plantillas -- ver
+        // modulo-datos-planeacion.js), con las claves sinteticas de
+        // OPERATIVO_CUSTOM_SERIES -- no el esquema de 3 series
+        // (budget/real/annual) de la grafica predefinida, que es lo que
+        // traia customSeriesList aqui.
+        //
+        // OJO: empresaId/anio de "context" priorizan la URL sobre la
+        // sesion (getPreviewEmpresaId), pero el backend siempre resuelve la
+        // empresa activa via Sesion -- hay que resolver con esa misma
+        // prioridad para no pedir datos de la empresa equivocada.
+        const empresaSesionActiva = window.Sesion?.obtenerEmpresaActiva?.()?.id;
+        const moduleValueReal = resolveModuleDisplayName(
+          definition?.module || getCurrentModuleValue() || ""
+        );
+        // Graficas guardadas antes de existir las claves granulares
+        // (monthBudget_ene, budgetAnnual, totalBudget, totalReal) usaban el
+        // esquema viejo de 3 columnas (annual/budget/real) -- sin esto no
+        // hacen match con nada aqui y la miniatura se ve vacia con valores
+        // en cero.
+        const normalizedSeriesKeys = (definition?.seriesKeys || []).map(
+          (key) => LEGACY_OPERATIVO_SERIES_KEY_MAP[key] || key
+        );
+        const normalizedSeriesOverrides = (definition?.series || []).map(
+          (serie) => ({
+            ...serie,
+            key: LEGACY_OPERATIVO_SERIES_KEY_MAP[serie?.key] || serie?.key,
+          })
+        );
+        return fetchModuleSnapshotMap(
+          moduleValueReal,
+          empresaSesionActiva || empresaId,
+          anio
+        ).then((moduleSnapshotMap) => {
+          if (!moduleSnapshotMap) return null;
+          const operativoCustomSeries = filterSeriesByKeys(
+            mergeSeriesListWithOverrides(
+              OPERATIVO_CUSTOM_SERIES,
+              normalizedSeriesKeys,
+              normalizedSeriesOverrides
+            ),
+            normalizedSeriesKeys
+          );
+          const data = buildDatasetsFromSnapshot({
+            rows,
+            snapshotMap: moduleSnapshotMap,
+            seriesList: operativoCustomSeries,
+            chartType,
+            capituloLabel,
+            looseMatch: true,
+          });
+          return data ? { chartType, ...data } : null;
+        });
+      }
       const sourceType = (definition.sourceType || "snapshot").toString().toLowerCase();
       if (sourceType === "mensual") {
         return buildCustomMensualPreviewData({
@@ -3324,7 +3470,13 @@
     if (definition.previewKind === "custom") {
       const chartModule = normalizeModuleKey(definition.module || "RESUMEN");
       if (!isSummaryModuleKey(chartModule)) {
-        return "Agrega filas y columnas para ver la vista previa.";
+        const rows = Array.isArray(definition.rows) ? definition.rows : [];
+        if (!rows.length) {
+          return "Agrega filas y columnas para ver la vista previa.";
+        }
+        return `Abre la pagina de ${
+          definition.module || chartModule
+        } para generar datos, o vuelve a intentarlo.`;
       }
     }
     if (
@@ -4564,6 +4716,50 @@
     return true;
   };
 
+  const editChartDefinition = (definition) => {
+    if (!definition) return;
+    if (
+      definition.previewKind === "custom" ||
+      String(definition.id || "").startsWith("custom-")
+    ) {
+      openCustomEditorForDefinition(definition);
+    } else {
+      openConfigSection(definition);
+    }
+  };
+
+  const deleteChartWithConfirm = (definition) => {
+    if (!definition) return;
+    const chartId = String(
+      definition.chartId || definition.id || ""
+    ).trim();
+    if (!chartId) {
+      setStatus("No se encontro el identificador de la grafica.", "danger");
+      return;
+    }
+    const title = (definition.title || "esta grafica").toString().trim();
+    const customChart = isCustomChartDefinition(definition);
+    const confirmed = window.confirm(
+      customChart
+        ? `Eliminar la grafica "${title}"? Esta accion no se puede deshacer.`
+        : `Eliminar la grafica "${title}" del gestor? Quedara oculta en panel/exportaciones.`
+    );
+    if (!confirmed) return;
+    const removed = deleteChartDefinition(definition);
+    if (!removed) {
+      setStatus("No se pudo eliminar la grafica seleccionada.", "danger");
+      return;
+    }
+    const api = getGraficasConfigApi();
+    const refreshed = api?.load ? api.load() : null;
+    if (refreshed) {
+      applyConfigToForm(refreshed);
+      renderGallery(refreshed);
+      updateSourceHints(refreshed);
+    }
+    setStatus("Grafica eliminada correctamente.", "success");
+  };
+
   const renderGallery = (config) => {
     // Validar elementos requeridos
     if (!galleryEl) {
@@ -4814,31 +5010,24 @@
           );
         }
 
-        node.addEventListener("click", () => {
-          // Si la grafica pertenece a otro modulo, sincronizar el selector superior.
-          try {
-            const desiredKey = normalizeModuleRawKey(definition?.module || definition?.moduleFile || "");
-            const currentKey = normalizeModuleRawKey(moduloSelect?.value || "");
-            if (desiredKey && desiredKey !== currentKey && moduloSelect?.options?.length) {
-              const option = Array.from(moduloSelect.options).find(
-                (opt) => normalizeModuleRawKey(opt?.value || "") === desiredKey
-              );
-              moduloSelect.value = option ? option.value : definition?.module || moduloSelect.value;
-              moduloSelect.dispatchEvent(new Event("change", { bubbles: true }));
-            }
-          } catch (_) {
-            // ignore
-          }
-
-          const prev = galleryState.selectedId;
-          if (prev && galleryState.cards.has(prev)) {
-            galleryState.cards.get(prev).node.classList.remove("active");
-          }
-          galleryState.selectedId = definition.id;
-          node.classList.add("active");
-          updateDetailCard(definition);
-          openConfigSection(definition);
-        });
+        const cardEditBtn = node.querySelector("[data-card-edit]");
+        if (cardEditBtn) {
+          cardEditBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            editChartDefinition(definition);
+          });
+        }
+        const cardDeleteBtn = node.querySelector("[data-card-delete]");
+        if (cardDeleteBtn) {
+          const chartId = String(
+            definition?.chartId || definition?.id || ""
+          ).trim();
+          cardDeleteBtn.classList.toggle("d-none", !chartId);
+          cardDeleteBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            deleteChartWithConfirm(definition);
+          });
+        }
 
         galleryState.cards.set(definition.id, { node, definition });
       } catch (cardError) {
@@ -5054,18 +5243,7 @@
     detailEditBtn.addEventListener("click", () => {
       const selected = galleryState.selectedId;
       const item = selected ? galleryState.cards.get(selected) : null;
-      if (!item) return;
-
-      // Si es una grafica personalizada o de tipo custom, abrir editor inline
-      if (
-        item.definition.previewKind === "custom" ||
-        item.definition.id.startsWith("custom-")
-      ) {
-        openCustomEditorForDefinition(item.definition);
-      } else {
-        // Para graficas predefinidas, abrir la seccion de configuracion
-        openConfigSection(item.definition);
-      }
+      if (item) editChartDefinition(item.definition);
     });
   }
 
@@ -5073,35 +5251,7 @@
     detailDeleteBtn.addEventListener("click", () => {
       const selected = galleryState.selectedId;
       const item = selected ? galleryState.cards.get(selected) : null;
-      if (!item?.definition) return;
-      const chartId = String(
-        item.definition.chartId || item.definition.id || ""
-      ).trim();
-      if (!chartId) {
-        setStatus("No se encontro el identificador de la grafica.", "danger");
-        return;
-      }
-      const title = (item.definition.title || "esta grafica").toString().trim();
-      const customChart = isCustomChartDefinition(item.definition);
-      const confirmed = window.confirm(
-        customChart
-          ? `Eliminar la grafica "${title}"? Esta accion no se puede deshacer.`
-          : `Eliminar la grafica "${title}" del gestor? Quedara oculta en panel/exportaciones.`
-      );
-      if (!confirmed) return;
-      const removed = deleteChartDefinition(item.definition);
-      if (!removed) {
-        setStatus("No se pudo eliminar la grafica seleccionada.", "danger");
-        return;
-      }
-      const api = getGraficasConfigApi();
-      const refreshed = api?.load ? api.load() : null;
-      if (refreshed) {
-        applyConfigToForm(refreshed);
-        renderGallery(refreshed);
-        updateSourceHints(refreshed);
-      }
-      setStatus("Grafica eliminada correctamente.", "success");
+      if (item) deleteChartWithConfirm(item.definition);
     });
   }
 

@@ -1,0 +1,270 @@
+- generic [ref=f32e1]:
+  - generic [ref=f32e2]:
+    - generic [ref=f32e7]:
+      - generic [ref=f32e8]:
+        - heading "Gestor de Plantillas" [level=1] [ref=f32e9]
+        - paragraph [ref=f32e10]: Membresía · 2026 · NOROESTE
+      - generic [ref=f32e11]:
+        - generic [ref=f32e281]: 
+        - text: Edición forzada (local)
+    - generic [ref=f32e13]:
+      - generic [ref=f32e14]:
+        - generic [ref=f32e15]: Módulo
+        - combobox "Módulo" [ref=f32e16] [cursor=pointer]:
+          - option "RESUMEN"
+          - option "Finanzas"
+          - option "Gastos Generales"
+          - option "Nómina"
+          - option "Membresía" [selected]
+          - option "Serv Membresía"
+          - option "RH"
+          - option "Eventos"
+          - option "Comités"
+          - option "Comunicación"
+          - option "Dirección"
+          - option "Gtos Corporativos"
+          - option "T&IC"
+          - option "VPE"
+      - generic [ref=f32e17]:
+        - generic [ref=f32e18]: Año
+        - combobox "Año" [ref=f32e19] [cursor=pointer]:
+          - option "2027"
+          - option "2026" [selected]
+          - option "2025"
+          - option "2024"
+          - option "2023"
+          - option "2022"
+          - option "2021"
+          - option "2020"
+          - option "2019"
+          - option "2018"
+          - option "2017"
+      - generic [ref=f32e20]:
+        - generic [ref=f32e21]: Capítulo
+        - combobox "Capítulo" [ref=f32e22] [cursor=pointer]:
+          - option "NOROESTE" [selected]
+      - button " Cargar Layout" [ref=f32e24] [cursor=pointer]:
+        - generic [ref=f32e25]: 
+        - text: Cargar Layout
+    - generic [ref=f32e30]:
+      - generic [ref=f32e32]:
+        - textbox "Buscar en el layout..." [ref=f32e33] [cursor=pointer]
+        - generic [ref=f32e34]:
+          - generic [ref=f32e35]: "Filtrar:"
+          - group [ref=f32e36]:
+            - radio "Todo" [checked] [ref=f32e37] [cursor=pointer]
+            - generic [ref=f32e38] [cursor=pointer]: Todo
+            - radio "Secciones" [ref=f32e39] [cursor=pointer]
+            - generic [ref=f32e40] [cursor=pointer]: Secciones
+            - radio "Cuentas" [ref=f32e41] [cursor=pointer]
+            - generic [ref=f32e42] [cursor=pointer]: Cuentas
+            - radio "Operaciones" [ref=f32e43] [cursor=pointer]
+            - generic [ref=f32e44] [cursor=pointer]: Operaciones
+      - button " Agregar" [ref=f32e73] [cursor=pointer]:
+        - generic [ref=f32e74]: 
+        - text: Agregar
+      - button " Expandir" [ref=f32e75] [cursor=pointer]:
+        - generic [ref=f32e76]: 
+        - text: Expandir
+      - button " Colapsar" [ref=f32e77] [cursor=pointer]:
+        - generic [ref=f32e78]: 
+        - text: Colapsar
+      - button " Vista Previa" [ref=f32e79] [cursor=pointer]:
+        - generic [ref=f32e80]: 
+        - text: Vista Previa
+      - button " Copiar a otro año" [ref=f32e81] [cursor=pointer]:
+        - generic [ref=f32e82]: 
+        - text: Copiar a otro año
+      - group [ref=f32e45]:
+        - button " Plantilla" [expanded] [active] [ref=f32e83] [cursor=pointer]:
+          - generic [ref=f32e84]: 
+          - text: Plantilla
+        - list [ref=f32e282]:
+          - listitem [ref=f32e283]:
+            - heading "Exportar" [level=6] [ref=f32e284]
+          - listitem [ref=f32e285]:
+            - link " Este capítulo (JSON)" [ref=f32e286] [cursor=pointer]:
+              - /url: "#"
+              - generic [ref=f32e287]: 
+              - text: Este capítulo (JSON)
+          - listitem [ref=f32e288]:
+            - link " Todos los capítulos (masivo)" [ref=f32e289] [cursor=pointer]:
+              - /url: "#"
+              - generic [ref=f32e290]: 
+              - text: Todos los capítulos (masivo)
+          - listitem [ref=f32e291]:
+            - separator [ref=f32e292]
+          - listitem [ref=f32e293]:
+            - heading "Importar" [level=6] [ref=f32e294]
+          - listitem [ref=f32e295]:
+            - link " Este capítulo (JSON)" [ref=f32e296] [cursor=pointer]:
+              - /url: "#"
+              - generic [ref=f32e297]: 
+              - text: Este capítulo (JSON)
+          - listitem [ref=f32e298]:
+            - link " Todos los capítulos (masivo)" [ref=f32e299] [cursor=pointer]:
+              - /url: "#"
+              - generic [ref=f32e300]: 
+              - text: Todos los capítulos (masivo)
+      - button " Guardar" [disabled]:
+        - generic: 
+        - text: Guardar
+      - button " Historial" [ref=f32e85] [cursor=pointer]:
+        - generic [ref=f32e86]: 
+        - text: Historial
+    - tablist [ref=f32e48]:
+      - tab "Layout" [selected] [ref=f32e49] [cursor=pointer]
+      - tab "Graficas" [ref=f32e50] [cursor=pointer]
+    - generic [ref=f32e51]:
+      - tabpanel "Layout" [ref=f32e52]:
+        - generic [ref=f32e54]:
+          - text:   
+          - generic [ref=f32e88]:
+            - generic [ref=f32e89]: Membresía · 2026 · NOROESTE
+            - generic [ref=f32e92]:
+              - generic [ref=f32e94]:
+                - generic [ref=f32e95]:
+                  - generic [ref=f32e96]:
+                    - generic [ref=f32e97]: Secciones
+                    - generic [ref=f32e98]: "2"
+                  - generic [ref=f32e99]:
+                    - generic [ref=f32e100]: Subsecciones
+                    - generic [ref=f32e101]: "2"
+                  - generic [ref=f32e102]:
+                    - generic [ref=f32e103]: Cuentas
+                    - generic [ref=f32e104]: "7"
+                  - generic [ref=f32e105]:
+                    - generic [ref=f32e106]: Operaciones
+                    - generic [ref=f32e107]: "3"
+                - generic [ref=f32e108]: Orden real de aparicion. Click en una fila para editar.
+              - generic [ref=f32e109]:
+                - generic [ref=f32e110]:
+                  - generic [ref=f32e111]: Elementos de la plantilla
+                  - generic [ref=f32e114]:
+                    - checkbox " Ordenar" [ref=f32e115] [cursor=pointer]
+                    - generic [ref=f32e116]:
+                      - generic [ref=f32e117]: 
+                      - text: Ordenar
+                - generic [ref=f32e119]:
+                  - generic [ref=f32e121] [cursor=pointer]:
+                    - generic [ref=f32e122]:
+                      - generic [ref=f32e123]: 
+                      - strong [ref=f32e124]: Ingresos Membresía
+                      - generic [ref=f32e125]: Suma Ingresos Membresía
+                    - generic [ref=f32e126]:
+                      - button "Σ" [ref=f32e127]
+                      - button "" [ref=f32e128]
+                      - button "" [ref=f32e130]
+                      - button "" [ref=f32e132]
+                  - generic "400-001-000-00 + 400-002-000-00 + 400-003-000-00 + 401-000-000-00" [ref=f32e134] [cursor=pointer]:
+                    - generic [ref=f32e135]:
+                      - generic [ref=f32e136]:
+                        - generic [ref=f32e137]:
+                          - generic [ref=f32e138]: 
+                          - strong [ref=f32e139]: Suma Ingresos Membresía
+                        - generic [ref=f32e140]: = 400-001-000-00 + 400-002-000-00 + 400-003-000-00 + 401-000-000-00
+                      - generic [ref=f32e141]:
+                        - button "" [ref=f32e142]
+                        - button "" [ref=f32e144]
+                  - generic [ref=f32e147] [cursor=pointer]:
+                    - generic [ref=f32e148]:
+                      - generic [ref=f32e149]: 
+                      - emphasis [ref=f32e150]: Ingresos Membresía
+                    - generic [ref=f32e151]:
+                      - button "" [ref=f32e152]
+                      - button "" [ref=f32e154]
+                      - button "" [ref=f32e156]
+                      - button "" [ref=f32e158]
+                  - generic [ref=f32e161] [cursor=pointer]:
+                    - generic [ref=f32e162]:
+                      - generic [ref=f32e163]: 400-001-000-00
+                      - generic [ref=f32e164]: Renovaciones
+                    - generic [ref=f32e165]:
+                      - button "" [ref=f32e166]
+                      - button "" [ref=f32e168]
+                  - generic [ref=f32e171] [cursor=pointer]:
+                    - generic [ref=f32e172]:
+                      - generic [ref=f32e173]: 400-002-000-00
+                      - generic [ref=f32e174]: Descuentos
+                    - generic [ref=f32e175]:
+                      - button "" [ref=f32e176]
+                      - button "" [ref=f32e178]
+                  - generic [ref=f32e181] [cursor=pointer]:
+                    - generic [ref=f32e182]:
+                      - generic [ref=f32e183]: 400-003-000-00
+                      - generic [ref=f32e184]: Socios Nuevos
+                    - generic [ref=f32e185]:
+                      - button "" [ref=f32e186]
+                      - button "" [ref=f32e188]
+                  - generic [ref=f32e191] [cursor=pointer]:
+                    - generic [ref=f32e192]:
+                      - generic [ref=f32e193]: 401-000-000-00
+                      - generic [ref=f32e194]: Cuotas Suscripción
+                    - generic [ref=f32e195]:
+                      - button "" [ref=f32e196]
+                      - button "" [ref=f32e198]
+                  - generic [ref=f32e201] [cursor=pointer]:
+                    - generic [ref=f32e202]:
+                      - generic [ref=f32e203]: 
+                      - strong [ref=f32e204]: Gastos Membresía
+                    - generic [ref=f32e205]:
+                      - button "Σ" [ref=f32e206]
+                      - button "" [ref=f32e207]
+                      - button "" [ref=f32e209]
+                      - button "" [ref=f32e211]
+                  - generic [ref=f32e214] [cursor=pointer]:
+                    - generic [ref=f32e215]:
+                      - generic [ref=f32e216]: 
+                      - emphasis [ref=f32e217]: Gastos Membresía
+                    - generic [ref=f32e218]:
+                      - button "" [ref=f32e219]
+                      - button "" [ref=f32e221]
+                      - button "" [ref=f32e223]
+                      - button "" [ref=f32e225]
+                  - generic [ref=f32e228] [cursor=pointer]:
+                    - generic [ref=f32e229]:
+                      - generic [ref=f32e230]: 503-000-000-00
+                      - generic [ref=f32e231]: Comisiones KAM'S
+                    - generic [ref=f32e232]:
+                      - button "" [ref=f32e233]
+                      - button "" [ref=f32e235]
+                  - generic [ref=f32e238] [cursor=pointer]:
+                    - generic [ref=f32e239]:
+                      - generic [ref=f32e240]: 605-001-000-00
+                      - generic [ref=f32e241]: Onboarding
+                    - generic [ref=f32e242]:
+                      - button "" [ref=f32e243]
+                      - button "" [ref=f32e245]
+                  - generic [ref=f32e248] [cursor=pointer]:
+                    - generic [ref=f32e249]:
+                      - generic [ref=f32e250]: 605-002-000-00
+                      - generic [ref=f32e251]: Intercambios
+                    - generic [ref=f32e252]:
+                      - button "" [ref=f32e253]
+                      - button "" [ref=f32e255]
+                  - generic "Gastos Membresía" [ref=f32e257] [cursor=pointer]:
+                    - generic [ref=f32e258]:
+                      - generic [ref=f32e259]:
+                        - generic [ref=f32e260]:
+                          - generic [ref=f32e261]: 
+                          - strong [ref=f32e262]: Suma de Gastos Membresía
+                        - generic [ref=f32e263]: = Gastos Membresía
+                      - generic [ref=f32e264]:
+                        - button "" [ref=f32e265]
+                        - button "" [ref=f32e267]
+                  - generic "Ingresos Membresía - Gastos Membresía" [ref=f32e269] [cursor=pointer]:
+                    - generic [ref=f32e270]:
+                      - generic [ref=f32e271]:
+                        - generic [ref=f32e272]:
+                          - generic [ref=f32e273]: 
+                          - strong [ref=f32e274]: Resultado Membresía
+                        - generic [ref=f32e275]: = Ingresos Membresía - Gastos Membresía
+                      - generic [ref=f32e276]:
+                        - button "" [ref=f32e277]
+                        - button "" [ref=f32e279]
+        - text: 
+        - paragraph [ref=f32e68]: Layout Membresía 2026 listo para editar
+      - text:    
+  - text:                        
+  - generic: 
+  - button "Tour plantillas" [ref=f32e69] [cursor=pointer]

@@ -1,0 +1,96 @@
+- generic [active] [ref=f6e1]:
+  - generic [ref=f6e2]:
+    - generic [ref=f6e7]:
+      - generic [ref=f6e8]:
+        - heading "Eventos" [level=1] [ref=f6e9]
+        - paragraph [ref=f6e10]: Ejercicio 2026 · Ciudad de México
+      - button "Ver flujo de autorización" [ref=f6e11] [cursor=pointer]:
+        - generic [ref=f6e12]: 
+    - generic [ref=f6e14]:
+      - generic [ref=f6e15]: Ejercicio
+      - combobox "Ejercicio" [ref=f6e16] [cursor=pointer]:
+        - option "Cargando ejercicios..."
+    - generic [ref=f6e21]:
+      - generic [ref=f6e22]:
+        - generic [ref=f6e23] [cursor=pointer]: Redondear
+        - generic [ref=f6e24]:
+          - checkbox "Redondear"
+          - generic [ref=f6e25] [cursor=pointer]
+      - generic [ref=f6e26]:
+        - paragraph [ref=f6e27]: Estado del presupuesto
+        - generic [ref=f6e28]: Sin cargar
+        - paragraph
+      - group [ref=f6e29]:
+        - button " Cargar presupuesto" [ref=f6e30] [cursor=pointer]:
+          - generic [ref=f6e31]: 
+          - generic [ref=f6e32]: Cargar presupuesto
+        - text:     
+        - button " Centro de borradores" [ref=f6e33] [cursor=pointer]:
+          - generic [ref=f6e34]: 
+          - generic [ref=f6e35]: Centro de borradores
+        - text:  
+      - group [ref=f6e36]:
+        - button " Colapsar" [ref=f6e37] [cursor=pointer]:
+          - generic [ref=f6e38]: 
+          - text: Colapsar
+        - button " Expandir" [ref=f6e39] [cursor=pointer]:
+          - generic [ref=f6e40]: 
+          - text: Expandir
+    - generic [ref=f6e43]:
+      - textbox "Buscar cuenta o descripción..." [ref=f6e46] [cursor=pointer]
+      - button "Ocultar cuentas" [pressed] [ref=f6e47] [cursor=pointer]
+      - button " Graficas" [ref=f6e48] [cursor=pointer]:
+        - generic [ref=f6e49]: 
+        - text: Graficas
+      - button " Excel" [ref=f6e50] [cursor=pointer]:
+        - generic [ref=f6e51]: 
+        - text: Excel
+      - button " PDF" [ref=f6e52] [cursor=pointer]:
+        - generic [ref=f6e53]: 
+        - text: PDF
+    - table [ref=f6e58]:
+      - rowgroup [ref=f6e59]:
+        - row [ref=f6e60]:
+          - columnheader [ref=f6e61]
+          - columnheader "EVENTOS" [ref=f6e62]
+          - columnheader "Presupuesto 2026" [ref=f6e63]
+          - columnheader "Ppto ENE-26" [ref=f6e64]
+          - columnheader "Real ENE-26" [ref=f6e65]
+          - columnheader "Ppto FEB-26" [ref=f6e66]
+          - columnheader "Real FEB-26" [ref=f6e67]
+          - columnheader "Ppto MAR-26" [ref=f6e68]
+          - columnheader "Real MAR-26" [ref=f6e69]
+          - columnheader "Ppto ABR-26" [ref=f6e70]
+          - columnheader "Real ABR-26" [ref=f6e71]
+          - columnheader "Ppto MAY-26" [ref=f6e72]
+          - columnheader "Real MAY-26" [ref=f6e73]
+          - columnheader "Ppto JUN-26" [ref=f6e74]
+          - columnheader "Real JUN-26" [ref=f6e75]
+          - columnheader "Ppto JUL-26" [ref=f6e76]
+          - columnheader "Real JUL-26" [ref=f6e77]
+          - columnheader "Ppto AGO-26" [ref=f6e78]
+          - columnheader "Real AGO-26" [ref=f6e79]
+          - columnheader "Ppto SEP-26" [ref=f6e80]
+          - columnheader "Real SEP-26" [ref=f6e81]
+          - columnheader "Ppto OCT-26" [ref=f6e82]
+          - columnheader "Real OCT-26" [ref=f6e83]
+          - columnheader "Ppto NOV-26" [ref=f6e84]
+          - columnheader "Real NOV-26" [ref=f6e85]
+          - columnheader "Ppto DIC-26" [ref=f6e86]
+          - columnheader "Real DIC-26" [ref=f6e87]
+          - columnheader "Ppto. Acumulado 2026" [ref=f6e88]
+          - columnheader "Real Acumulado 2026" [ref=f6e89]
+      - rowgroup [ref=f6e90]:
+        - row [ref=f6e91]:
+          - cell "No hay informacion disponible para esta vista." [ref=f6e92]
+  - text:     
+  - generic:
+    - button " Ver globos" [ref=f6e94] [cursor=pointer]:
+      - generic [ref=f6e95]: 
+      - text: Ver globos
+    - button " Comentarios" [ref=f6e96] [cursor=pointer]:
+      - generic [ref=f6e97]: 
+      - text: Comentarios
+  - button " Descargas" [ref=f6e98] [cursor=pointer]:
+    - generic [ref=f6e99]: 
+    - text: Descargas

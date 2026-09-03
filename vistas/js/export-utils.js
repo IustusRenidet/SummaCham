@@ -1589,9 +1589,11 @@
             box-shadow: 0 16px 42px rgba(2,6,23,.28);
             border: 1px solid rgba(148,163,184,.38);
           }
-          #exportJobsList { max-height: min(52vh, 450px); overflow: auto; }
-          #exportJobsList .job-row { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; }
-          #exportJobsList .job-meta { font-size: .78rem; color: #64748b; }
+          #exportJobsList { max-height: min(52vh, 450px); overflow-y: auto; overflow-x: hidden; }
+          #exportJobsList .job-row { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; max-width: 100%; }
+          #exportJobsList .job-row-info { min-width: 0; flex: 1 1 auto; }
+          #exportJobsList .job-row-info .fw-semibold { overflow-wrap: anywhere; word-break: break-word; }
+          #exportJobsList .job-meta { font-size: .78rem; color: #64748b; overflow-wrap: anywhere; word-break: break-word; }
         `;
         document.head.appendChild(style);
       }
@@ -1824,11 +1826,11 @@
           return `
             <div class="job-row">
               <div class="d-flex justify-content-between align-items-start gap-2">
-                <div>
+                <div class="job-row-info">
                   <div class="fw-semibold">${name}</div>
                   <div class="job-meta">${msg || status}${isLocal ? " · local" : ""} · ${durationText}</div>
                 </div>
-                ${badgeFor(status)}
+                <div class="flex-shrink-0">${badgeFor(status)}</div>
               </div>
               ${progressBar}
               <div class="d-flex gap-2 mt-2">${actions}</div>
@@ -4090,28 +4092,48 @@
         return count;
       };
 
+      // El ancho de columna se estima a partir del texto (encabezado y datos),
+      // NO del ancho renderizado en pantalla (getBoundingClientRect): una
+      // tabla con muchas columnas de mes se ve comprimida en pantalla, y
+      // heredar ese ancho de pixeles hacia el PDF deja columnas demasiado
+      // angostas -- autoTable entonces corta el texto letra por letra
+      // ("Ppto ENE-26" -> "P/pt/o/E/N/E-/26") en vez de por palabra.
       const columnWidths = [];
-      if (headerInfo?.row) {
+      const acumularAnchoTexto = (row, { skipWideSpans = false } = {}) => {
+        if (!row) return;
         let colIndex = 0;
-        Array.from(headerInfo.row.children).forEach((cell) => {
+        Array.from(row.children).forEach((cell) => {
           const colSpan = parseSpan(cell, "colspan");
           const hidden = isHidden(cell);
-          const rect = cell.getBoundingClientRect();
-          const baseWidth = rect?.width || cell.offsetWidth || 0;
-          const perCol = colSpan ? baseWidth / colSpan : baseWidth;
-          for (let i = 0; i < colSpan; i += 1) {
-            if (!hidden) {
-              columnWidths[colIndex + i] = perCol;
+          // Filas divisoras de sección/subsección usan un colspan que cubre
+          // casi toda la tabla (ej. "Ingresos Servicios a la Membresía") --
+          // si se cuentan, ese texto largo "gana" en TODAS las columnas y
+          // anula la diferencia real entre una columna angosta de mes y una
+          // ancha de descripción.
+          const esDivisorAncho = skipWideSpans && colSpan > 2;
+          if (!hidden && !esDivisorAncho) {
+            const texto = (cell.textContent || "").replace(/\s+/g, " ").trim();
+            const largo = texto.length;
+            for (let i = 0; i < colSpan; i += 1) {
+              const idx = colIndex + i;
+              if (largo > (columnWidths[idx] || 0)) columnWidths[idx] = largo;
             }
           }
           colIndex += colSpan;
         });
+      };
+      headerRows.forEach((row) => acumularAnchoTexto(row));
+      if (tbody) {
+        Array.from(tbody.querySelectorAll("tr")).forEach((row) =>
+          acumularAnchoTexto(row, { skipWideSpans: true })
+        );
       }
+      const MIN_CHARS = 6;
       const visibleColumnWidths = [];
       if (columnWidths.length) {
-        columnWidths.forEach((width, idx) => {
+        columnWidths.forEach((chars, idx) => {
           if (!visibleColumns || visibleColumns[idx] !== false) {
-            visibleColumnWidths.push(width);
+            visibleColumnWidths.push(Math.max(MIN_CHARS, chars || 0) + 2);
           }
         });
       }

@@ -1,0 +1,59 @@
+- generic [active] [ref=f41e1]:
+  - generic [ref=f41e2]:
+    - generic [ref=f41e6]:
+      - generic [ref=f41e7]:
+        - heading "Graficas de Resumen" [level=1] [ref=f41e8]
+        - paragraph [ref=f41e9]: Comparativo de Resultados Operativos y Netos por capitulo
+      - generic [ref=f41e10]:
+        - generic [ref=f41e11]:
+          - generic [ref=f41e12]: Ejercicio
+          - combobox "Ejercicio" [ref=f41e13] [cursor=pointer]:
+            - option "2027"
+            - option "2026" [selected]
+            - option "2025"
+            - option "2024"
+            - option "2023"
+            - option "2022"
+            - option "2021"
+            - option "2020"
+            - option "2019"
+            - option "2018"
+            - option "2017"
+        - generic [ref=f41e14]:
+          - generic [ref=f41e15]: Periodo
+          - combobox "Periodo" [ref=f41e16] [cursor=pointer]:
+            - option "Enero" [selected]
+            - option "Febrero"
+            - option "Marzo"
+            - option "Abril"
+            - option "Mayo"
+            - option "Junio"
+            - option "Julio"
+            - option "Agosto"
+            - option "Septiembre"
+            - option "Octubre"
+            - option "Noviembre"
+            - option "Diciembre"
+        - generic [ref=f41e17]: "Capitulo: Noroeste"
+        - group [ref=f41e18]:
+          - button " Excel" [ref=f41e19] [cursor=pointer]:
+            - generic [ref=f41e20]: 
+            - text: Excel
+          - button " PDF" [ref=f41e21] [cursor=pointer]:
+            - generic [ref=f41e22]: 
+            - text: PDF
+          - button " Imprimir" [ref=f41e23] [cursor=pointer]:
+            - generic [ref=f41e24]: 
+            - text: Imprimir
+    - generic [ref=f41e55]:
+      - generic [ref=f41e58]:
+        - heading "Resultados Operativos" [level=5] [ref=f41e59]
+        - generic [ref=f41e60]: Noroeste
+      - generic [ref=f41e65]:
+        - heading "Resultados Netos" [level=5] [ref=f41e66]
+        - generic [ref=f41e67]: Noroeste
+      - generic [ref=f41e72]:
+        - heading "Resultados Operativos vs Netos" [level=5] [ref=f41e73]
+        - generic [ref=f41e74]: Noroeste
+      - heading "Prueba refId" [level=5] [ref=f41e80]
+  - button "Tour graficas" [ref=f41e54] [cursor=pointer]

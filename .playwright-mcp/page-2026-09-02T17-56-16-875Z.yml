@@ -1,0 +1,135 @@
+- generic [active] [ref=f12e1]:
+  - generic [ref=f12e2]:
+    - generic [ref=f12e7]:
+      - generic [ref=f12e8]:
+        - heading "Gestor de Plantillas" [level=1] [ref=f12e9]
+        - paragraph [ref=f12e10]: Comités · 2026 · CDMX
+      - generic [ref=f12e11]:
+        - generic [ref=f12e12]: 
+        - text: Edición forzada (local)
+    - generic [ref=f12e13]:
+      - generic [ref=f12e14]:
+        - generic [ref=f12e15]: Módulo
+        - combobox "Módulo" [ref=f12e16] [cursor=pointer]:
+          - option "RESUMEN"
+          - option "Finanzas"
+          - option "Gastos Generales"
+          - option "Nómina"
+          - option "Membresía"
+          - option "Serv Membresía"
+          - option "RH"
+          - option "Eventos"
+          - option "Comités" [selected]
+          - option "Comunicación"
+          - option "Dirección"
+          - option "Gtos Corporativos"
+          - option "T&IC"
+          - option "VPE"
+      - generic [ref=f12e17]:
+        - generic [ref=f12e18]: Año
+        - combobox "Año" [ref=f12e19] [cursor=pointer]:
+          - option "2026" [selected]
+          - option "2025"
+          - option "2024"
+          - option "2023"
+          - option "2022"
+          - option "2021"
+          - option "2020"
+          - option "2019"
+          - option "2018"
+          - option "2017"
+          - option "2016"
+          - option "2015"
+          - option "2014"
+          - option "2013"
+          - option "2012"
+          - option "2011"
+          - option "2010"
+          - option "2009"
+          - option "2008"
+          - option "2007"
+          - option "2006"
+          - option "2005"
+      - generic [ref=f12e20]:
+        - generic [ref=f12e21]: Capítulo
+        - combobox "Capítulo" [ref=f12e22] [cursor=pointer]:
+          - option "CDMX" [selected]
+          - option "CIUDAD DE MEXICO"
+          - option "GUADALAJARA"
+          - option "MONTERREY"
+          - option "NORESTE"
+          - option "NOROESTE"
+      - button " Cargar Layout" [ref=f12e24] [cursor=pointer]:
+        - generic [ref=f12e25]: 
+        - text: Cargar Layout
+    - generic [ref=f12e30]:
+      - generic [ref=f12e32]:
+        - textbox "Buscar en el layout..." [ref=f12e33] [cursor=pointer]
+        - generic [ref=f12e34]:
+          - generic [ref=f12e35]: "Filtrar:"
+          - group [ref=f12e36]:
+            - radio "Todo" [checked] [ref=f12e37] [cursor=pointer]
+            - generic [ref=f12e38] [cursor=pointer]: Todo
+            - radio "Secciones" [ref=f12e39] [cursor=pointer]
+            - generic [ref=f12e40] [cursor=pointer]: Secciones
+            - radio "Cuentas" [ref=f12e41] [cursor=pointer]
+            - generic [ref=f12e42] [cursor=pointer]: Cuentas
+            - radio "Operaciones" [ref=f12e43] [cursor=pointer]
+            - generic [ref=f12e44] [cursor=pointer]: Operaciones
+      - button " Agregar" [disabled]:
+        - generic: 
+        - text: Agregar
+      - button " Expandir" [disabled]:
+        - generic: 
+        - text: Expandir
+      - button " Colapsar" [disabled]:
+        - generic: 
+        - text: Colapsar
+      - button " Vista Previa" [disabled]:
+        - generic: 
+        - text: Vista Previa
+      - button " Copiar a otro año" [disabled]:
+        - generic: 
+        - text: Copiar a otro año
+      - button " Guardar" [disabled]:
+        - generic: 
+        - text: Guardar
+      - button " Historial" [disabled]:
+        - generic: 
+        - text: Historial
+    - generic [ref=f12e49]:
+      - generic [ref=f12e50]:
+        - heading " Presupuesto en COI" [level=6] [ref=f12e51]:
+          - generic [ref=f12e52]: 
+          - text: Presupuesto en COI
+        - text: Cifras de presupuesto (Firebird), no la estructura del layout. Solo administradores globales.
+      - generic [ref=f12e53]:
+        - button " Copiar presupuesto a otro año" [ref=f12e54] [cursor=pointer]:
+          - generic [ref=f12e55]: 
+          - text: Copiar presupuesto a otro año
+        - button " Historial de COI" [ref=f12e56] [cursor=pointer]:
+          - generic [ref=f12e57]: 
+          - text: Historial de COI
+    - text:  
+    - tablist [ref=f12e60]:
+      - tab "Layout" [selected] [ref=f12e61] [cursor=pointer]
+      - tab "Graficas" [ref=f12e62] [cursor=pointer]
+    - generic [ref=f12e63]:
+      - tabpanel "Layout" [ref=f12e64]:
+        - generic [ref=f12e68]:
+          - generic [ref=f12e69]: 
+          - heading "Selecciona un contexto" [level=2] [ref=f12e71]
+          - paragraph [ref=f12e72]: Elige un módulo, año y capítulo para comenzar a editar el layout.
+          - generic [ref=f12e73]:
+            - generic [ref=f12e74]:
+              - generic [ref=f12e75]: 
+              - text: Carga el layout primero
+            - generic [ref=f12e76]:
+              - generic [ref=f12e77]: 
+              - text: Permisos en administración
+        - text: 
+        - paragraph [ref=f12e80]: Cargando layout...
+      - text:                            
+  - text:                           
+  - generic: 
+  - button "Tour plantillas" [ref=f12e81] [cursor=pointer]

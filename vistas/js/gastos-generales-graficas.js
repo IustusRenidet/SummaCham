@@ -495,6 +495,28 @@
     return `${text.slice(0, Math.max(0, limit - 1)).trimEnd()}…`;
   };
 
+  // Para las etiquetas del eje de categoria es mejor partir en varias
+  // lineas que cortar con "..." y perder texto -- Chart.js acepta un array
+  // de strings por tick para eso.
+  const wrapTickLabel = (value, maxLineLength = 16) => {
+    const texto = normalizeWhitespace(value);
+    if (!texto || texto.length <= maxLineLength) return texto;
+    const palabras = texto.split(" ");
+    const lineas = [];
+    let actual = "";
+    palabras.forEach((palabra) => {
+      const candidato = actual ? `${actual} ${palabra}` : palabra;
+      if (candidato.length > maxLineLength && actual) {
+        lineas.push(actual);
+        actual = palabra;
+      } else {
+        actual = candidato;
+      }
+    });
+    if (actual) lineas.push(actual);
+    return lineas.length > 1 ? lineas : texto;
+  };
+
   const obtenerAnioSeleccionado = () => {
     const select =
       document.querySelector('[data-role="module-year-select"]') ||
@@ -1533,7 +1555,11 @@
           return dataset;
         });
       } else {
-        labels = resolvedRows.map((row) => row.label);
+        // Texto completo (sin truncar): el callback de ticks lo parte en
+        // varias lineas con wrapTickLabel en vez de cortarlo con "...".
+        labels = resolvedRows.map(
+          (row) => row.fullLabel || row.baseLabel || row.label
+        );
         baseLabels = resolvedRows.map(
           (row) => row.fullLabel || row.baseLabel || row.label
         );
@@ -1602,7 +1628,7 @@
                   font: { size: 10 },
                   callback: (_value, idx) => {
                     const source = Array.isArray(labels) ? labels[idx] : "";
-                    return truncateLabel(source, 42);
+                    return wrapTickLabel(source, 20);
                   },
                 },
               },
@@ -1621,7 +1647,7 @@
                   minRotation: 0,
                   callback: (_value, idx) => {
                     const source = Array.isArray(labels) ? labels[idx] : "";
-                    return truncateLabel(source, 28);
+                    return wrapTickLabel(source, 14);
                   },
                 },
               },

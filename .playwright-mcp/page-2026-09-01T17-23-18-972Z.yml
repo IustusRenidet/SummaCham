@@ -1,0 +1,75 @@
+- generic [ref=f24e3]:
+  - complementary "Navegación principal" [ref=f24e4]:
+    - img "AmCham" [ref=f24e6]
+    - generic [ref=f24e7]:
+      - generic [ref=f24e8]:
+        - button "Resumen 1" [expanded] [ref=f24e9] [cursor=pointer]:
+          - generic [ref=f24e10]: Resumen
+          - generic [ref=f24e11]: "1"
+        - button "Resumen summary" [ref=f24e13] [cursor=pointer]:
+          - generic [ref=f24e14]: Resumen
+          - generic [ref=f24e15]: summary
+      - generic [ref=f24e16]:
+        - button "Divisiones 11" [expanded] [ref=f24e17] [cursor=pointer]:
+          - generic [ref=f24e18]: Divisiones
+          - generic [ref=f24e19]: "11"
+        - generic [ref=f24e20]:
+          - button "Presupuestos ppto" [ref=f24e21] [cursor=pointer]:
+            - generic [ref=f24e22]: Presupuestos
+            - generic [ref=f24e23]: ppto
+          - button "Comités" [ref=f24e24] [cursor=pointer]
+          - button "Comunicación" [ref=f24e26] [cursor=pointer]
+          - button "Eventos" [ref=f24e28] [cursor=pointer]
+          - generic [ref=f24e30]:
+            - button "Finanzas 3" [expanded] [ref=f24e31] [cursor=pointer]:
+              - generic [ref=f24e32]: Finanzas
+              - generic [ref=f24e33]: "3"
+            - generic [ref=f24e34]:
+              - button "Finanzas finanzas" [ref=f24e35] [cursor=pointer]:
+                - generic [ref=f24e36]: Finanzas
+                - generic [ref=f24e37]: finanzas
+              - button "Gastos Generales finanzas" [ref=f24e38] [cursor=pointer]:
+                - generic [ref=f24e39]: Gastos Generales
+                - generic [ref=f24e40]: finanzas
+              - button "Nómina finanzas" [ref=f24e41] [cursor=pointer]:
+                - generic [ref=f24e42]: Nómina
+                - generic [ref=f24e43]: finanzas
+          - button "Gastos Corporativos" [ref=f24e44] [cursor=pointer]
+          - button "Membresía" [ref=f24e46] [cursor=pointer]
+          - button "Recursos Humanos" [ref=f24e48] [cursor=pointer]
+          - button "Servicios a la Membresía" [ref=f24e50] [cursor=pointer]
+          - button "T&IC" [ref=f24e52] [cursor=pointer]
+          - button "VPE" [ref=f24e54] [cursor=pointer]
+      - generic [ref=f24e56]:
+        - button "Configuración 5" [expanded] [ref=f24e57] [cursor=pointer]:
+          - generic [ref=f24e58]: Configuración
+          - generic [ref=f24e59]: "5"
+        - generic [ref=f24e60]:
+          - button "Mi Perfil perfil" [ref=f24e61] [cursor=pointer]:
+            - generic [ref=f24e62]: Mi Perfil
+            - generic [ref=f24e63]: perfil
+          - button "Administrar usuarios Permisos" [ref=f24e64] [cursor=pointer]:
+            - generic [ref=f24e65]: Administrar usuarios
+            - generic [ref=f24e66]: Permisos
+          - button "Crear usuario" [ref=f24e67] [cursor=pointer]
+          - button "Gestor de Plantillas" [ref=f24e69] [cursor=pointer]
+          - button "Administrar conexiones" [ref=f24e71] [cursor=pointer]
+  - main [ref=f24e73]:
+    - generic [ref=f24e74]:
+      - generic [ref=f24e75]:
+        - button "Ocultar menú lateral" [expanded] [ref=f24e76] [cursor=pointer]:
+          - generic [ref=f24e77]: ☰
+        - heading "Selecciona un módulo" [level=2] [ref=f24e79]
+      - generic [ref=f24e80]:
+        - generic [ref=f24e81]:
+          - button "Tour guiado" [ref=f24e82] [cursor=pointer]
+          - button "Opciones" [ref=f24e83] [cursor=pointer]
+        - button "Notificaciones" [ref=f24e86] [cursor=pointer]
+        - generic [ref=f24e89]:
+          - generic [ref=f24e90]: "Empresa:"
+          - combobox "Empresa:" [ref=f24e91]:
+            - option "Ciudad de México" [selected]
+            - option "Guadalajara"
+            - option "Noreste"
+            - option "Noroeste"
+        - button "Cerrar sesión" [ref=f24e92] [cursor=pointer]

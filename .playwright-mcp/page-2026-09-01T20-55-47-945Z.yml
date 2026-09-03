@@ -1,0 +1,51 @@
+- generic [active] [ref=f41e1]:
+  - generic [ref=f41e2]:
+    - generic [ref=f41e6]:
+      - generic [ref=f41e7]:
+        - heading "Graficas de Resumen" [level=1] [ref=f41e8]
+        - paragraph [ref=f41e9]: Comparativo de Resultados Operativos y Netos por capitulo
+      - generic [ref=f41e10]:
+        - generic [ref=f41e11]:
+          - generic [ref=f41e12]: Ejercicio
+          - combobox "Ejercicio" [ref=f41e13] [cursor=pointer]:
+            - option "Cargando..." [selected]
+        - generic [ref=f41e14]:
+          - generic [ref=f41e15]: Periodo
+          - combobox "Periodo" [ref=f41e16] [cursor=pointer]:
+            - option "Enero"
+            - option "Febrero"
+            - option "Marzo"
+            - option "Abril"
+            - option "Mayo"
+            - option "Junio"
+            - option "Julio"
+            - option "Agosto"
+            - option "Septiembre"
+            - option "Octubre"
+            - option "Noviembre"
+            - option "Diciembre" [selected]
+        - generic [ref=f41e17]: "Capitulo: -"
+        - group [ref=f41e18]:
+          - button " Excel" [ref=f41e19] [cursor=pointer]:
+            - generic [ref=f41e20]: 
+            - text: Excel
+          - button " PDF" [ref=f41e21] [cursor=pointer]:
+            - generic [ref=f41e22]: 
+            - text: PDF
+          - button " Imprimir" [ref=f41e23] [cursor=pointer]:
+            - generic [ref=f41e24]: 
+            - text: Imprimir
+    - generic [ref=f41e25]:
+      - generic [ref=f41e28]:
+        - heading "Resultado Operativo por Capítulo" [level=5] [ref=f41e29]
+        - generic [ref=f41e30]: Real Acum · Ppto. Acum · Real Acum AA
+      - generic [ref=f41e35]:
+        - heading "Resumen Neto por Capítulo" [level=5] [ref=f41e36]
+        - generic [ref=f41e37]: Real Acum · Ppto. Acum · Real Acum AA
+      - generic [ref=f41e42]:
+        - heading "Ingreso por capitulo" [level=5] [ref=f41e43]
+        - generic [ref=f41e44]: Real acumulado por mes
+      - generic [ref=f41e49]:
+        - heading "Ingreso nacional" [level=5] [ref=f41e50]
+        - generic [ref=f41e51]: Real acumulado por mes
+  - button "Tour graficas" [ref=f41e54] [cursor=pointer]

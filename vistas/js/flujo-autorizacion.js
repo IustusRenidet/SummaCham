@@ -3477,50 +3477,6 @@
         else if (item.estado === "APROBADO") badgeClass = "bg-success";
         else if (item.estado === "RECHAZADO") badgeClass = "bg-danger";
 
-        // Acciones directas por estado -- para no obligar a "Cargar" solo
-        // para revisar/autorizar/rechazar/guardar en COI o enviar, que no
-        // necesitan ver la tabla para ejecutarse (ya validado: los
-        // handlers solo dependen de this.state.borrador.id).
-        const ACCIONES_POR_ESTADO = {
-          EDITANDO: [{ accion: "enviar", etiqueta: "Enviar a revisión", clase: "btn-outline-primary" }],
-          PENDIENTE: [
-            { accion: "revisar", etiqueta: "Marcar revisado", clase: "btn-outline-primary" },
-            { accion: "rechazar", etiqueta: "Rechazar", clase: "btn-outline-danger" },
-          ],
-          REVISADO: [
-            { accion: "autorizar", etiqueta: "Autorizar", clase: "btn-outline-success" },
-            { accion: "rechazar", etiqueta: "Rechazar", clase: "btn-outline-danger" },
-          ],
-          APROBADO: [
-            { accion: "guardarCoi", etiqueta: "Guardar en COI", clase: "btn-outline-success" },
-            { accion: "rechazar", etiqueta: "Rechazar", clase: "btn-outline-danger" },
-          ],
-        };
-        // "enviar" exige this.state.editMode === true en _puede(), pero
-        // aquí NUNCA se está en modo edición todavía (la fila no está
-        // cargada) -- el propio flujo de "cargar y continuar" entra a
-        // edición antes de enviar, así que ese permiso se valida con la
-        // base (admin/cargar + ser el autor) en vez de con _puede().
-        const puedeAccionCentro = (accion) => {
-          if (accion === "enviar") {
-            const p = this.state.permisos;
-            const esAutorItem =
-              this.state.usuario &&
-              String(this.state.usuario.id) === String(item.usuarioId);
-            return Boolean((p.admin || p.cargar) && esAutorItem);
-          }
-          return this._puede({ accion, estadoOverride: item.estado });
-        };
-        const accionesDisponibles = (ACCIONES_POR_ESTADO[item.estado] || []).filter(
-          ({ accion }) => puedeAccionCentro(accion)
-        );
-        const botonesAccion = accionesDisponibles
-          .map(
-            ({ accion, etiqueta, clase }) =>
-              `<button type="button" class="btn btn-sm ${clase} btn-accion-borrador" data-accion="${accion}" data-borrador-id="${item.id}">${etiqueta}</button>`
-          )
-          .join(" ");
-
         row.innerHTML = `
           <td>
             <span class="badge ${badgeClass}">${etiquetaEstado}</span>
@@ -3536,7 +3492,6 @@
           </td>
           <td class="text-end">
             <div class="d-flex gap-1 justify-content-end flex-wrap">
-              ${botonesAccion}
               <button class="btn btn-sm btn-primary btn-cargar-borrador"
                       data-borrador-id="${item.id}"
                       style="pointer-events: auto !important; cursor: pointer !important; position: relative; z-index: 9999;">
@@ -3556,56 +3511,10 @@
             this._verBorradorDesdeCentro(item.id);
           };
         }
-        row.querySelectorAll(".btn-accion-borrador").forEach((btnAccion) => {
-          btnAccion.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this._ejecutarAccionBorradorDesdeCentro(item, btnAccion.dataset.accion);
-          };
-        });
-
         frag.appendChild(row);
       });
 
       body.appendChild(frag);
-    }
-
-    /**
-     * Ejecuta una acción (enviar/revisar/autorizar/rechazar/guardarCoi)
-     * sobre un borrador desde la fila del Centro de Borradores, SIN pasar
-     * por "Cargar" primero -- reutiliza la misma sugerencia
-     * (_asegurarVistoAntesDeAccion) que ya protege los botones del toolbar
-     * principal, para no tener dos lógicas distintas del mismo aviso.
-     */
-    async _ejecutarAccionBorradorDesdeCentro(item, accion) {
-      if (!this.state.borrador || this.state.borrador.id !== item.id) {
-        // El contexto (Centro de Borradores está scoped al mismo módulo/
-        // año/capítulo que la página) normalmente ya trae este borrador en
-        // memoria por el refresco automático; si no, sincronizar sin
-        // pintarlo todavía -- _asegurarVistoAntesDeAccion decide eso según
-        // si el usuario acepta la sugerencia.
-        await this._refreshEstado();
-      }
-      const continuar = await this._asegurarVistoAntesDeAccion(accion);
-      if (!continuar) return;
-
-      const drawer = document.getElementById("workflowDraftsDrawer");
-      const offcanvas = drawer
-        ? window.bootstrap?.Offcanvas?.getInstance(drawer)
-        : null;
-      offcanvas?.hide();
-
-      const ejecutores = {
-        enviar: () => this._handleEnviar(),
-        revisar: () => this._handleMarcarRevisado(),
-        autorizar: () => this._handleAutorizar(),
-        rechazar: () => this._handleRechazar(),
-        guardarCoi: () => this._handleGuardarCOI(),
-      };
-      const ejecutar = ejecutores[accion];
-      if (ejecutar) {
-        await ejecutar();
-      }
     }
 
     /**

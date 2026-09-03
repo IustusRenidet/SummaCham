@@ -1,0 +1,103 @@
+- generic [active] [ref=f31e1]:
+  - generic [ref=f31e2]:
+    - generic [ref=f31e7]:
+      - generic [ref=f31e8]:
+        - heading "Presupuestos" [level=1] [ref=f31e9]
+        - paragraph [ref=f31e10]: Ejercicio - -
+      - button "Ver flujo de autorizacion" [ref=f31e11] [cursor=pointer]:
+        - generic [ref=f31e12]: 
+    - generic [ref=f31e14]:
+      - generic [ref=f31e15]: Ejercicio
+      - combobox "Ejercicio" [ref=f31e16] [cursor=pointer]:
+        - option "Cargando ejercicios..."
+    - generic [ref=f31e21]:
+      - generic [ref=f31e22]:
+        - generic [ref=f31e23] [cursor=pointer]: Redondear
+        - generic [ref=f31e24]:
+          - checkbox "Redondear"
+          - generic [ref=f31e25] [cursor=pointer]
+      - generic [ref=f31e26]:
+        - paragraph [ref=f31e27]: Estado del presupuesto
+        - generic [ref=f31e28]: Sin cargar
+        - paragraph
+      - group [ref=f31e29]:
+        - button " Cargar presupuesto" [ref=f31e30] [cursor=pointer]:
+          - generic [ref=f31e31]: 
+          - generic [ref=f31e32]: Cargar presupuesto
+        - text:     
+        - button " Centro de borradores" [ref=f31e33] [cursor=pointer]:
+          - generic [ref=f31e34]: 
+          - generic [ref=f31e35]: Centro de borradores
+        - text: 
+        - button " Copiar a otro año" [ref=f31e36] [cursor=pointer]:
+          - generic [ref=f31e37]: 
+          - generic [ref=f31e38]: Copiar a otro año
+        - button " Historial de COI" [ref=f31e39] [cursor=pointer]:
+          - generic [ref=f31e40]: 
+          - generic [ref=f31e41]: Historial de COI
+        - text: 
+      - group [ref=f31e42]:
+        - button " Colapsar" [ref=f31e43] [cursor=pointer]:
+          - generic [ref=f31e44]: 
+          - text: Colapsar
+        - button " Expandir" [ref=f31e45] [cursor=pointer]:
+          - generic [ref=f31e46]: 
+          - text: Expandir
+    - text:  
+    - generic [ref=f31e49]:
+      - textbox "Buscar cuenta o descripcion..." [ref=f31e52] [cursor=pointer]
+      - button "Ocultar cuentas" [pressed] [ref=f31e53] [cursor=pointer]
+      - button " Graficas" [ref=f31e54] [cursor=pointer]:
+        - generic [ref=f31e55]: 
+        - text: Graficas
+      - button " Excel" [ref=f31e56] [cursor=pointer]:
+        - generic [ref=f31e57]: 
+        - text: Excel
+      - button " PDF" [ref=f31e58] [cursor=pointer]:
+        - generic [ref=f31e59]: 
+        - text: PDF
+    - table [ref=f31e64]:
+      - rowgroup [ref=f31e65]:
+        - row [ref=f31e66]:
+          - columnheader [ref=f31e67]
+          - columnheader "PRESUPUESTOS" [ref=f31e68]
+          - columnheader "Presupuesto 2026" [ref=f31e69]
+          - columnheader "ENE-26" [ref=f31e70]
+          - columnheader "ENE-26" [ref=f31e71]
+          - columnheader "FEB-26" [ref=f31e72]
+          - columnheader "FEB-26" [ref=f31e73]
+          - columnheader "MAR-26" [ref=f31e74]
+          - columnheader "MAR-26" [ref=f31e75]
+          - columnheader "ABR-26" [ref=f31e76]
+          - columnheader "ABR-26" [ref=f31e77]
+          - columnheader "MAY-26" [ref=f31e78]
+          - columnheader "MAY-26" [ref=f31e79]
+          - columnheader "JUN-26" [ref=f31e80]
+          - columnheader "JUN-26" [ref=f31e81]
+          - columnheader "JUL-26" [ref=f31e82]
+          - columnheader "JUL-26" [ref=f31e83]
+          - columnheader "AGO-26" [ref=f31e84]
+          - columnheader "AGO-26" [ref=f31e85]
+          - columnheader "SEP-26" [ref=f31e86]
+          - columnheader "SEP-26" [ref=f31e87]
+          - columnheader "OCT-26" [ref=f31e88]
+          - columnheader "OCT-26" [ref=f31e89]
+          - columnheader "NOV-26" [ref=f31e90]
+          - columnheader "NOV-26" [ref=f31e91]
+          - columnheader "DIC-26" [ref=f31e92]
+          - columnheader "DIC-26" [ref=f31e93]
+          - columnheader "Ppto. Acumulado 2026" [ref=f31e94]
+          - columnheader "Real Acumulado 2026" [ref=f31e95]
+      - rowgroup
+  - text:     
+  - generic:
+    - button " Ver globos" [ref=f31e97] [cursor=pointer]:
+      - generic [ref=f31e98]: 
+      - text: Ver globos
+    - button " Comentarios" [ref=f31e99] [cursor=pointer]:
+      - generic [ref=f31e100]: 
+      - text: Comentarios
+  - button " Descargas" [ref=f31e101] [cursor=pointer]:
+    - generic [ref=f31e102]: 
+    - text: Descargas
+  - button "Tour presupuesto" [ref=f31e103] [cursor=pointer]

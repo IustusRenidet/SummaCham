@@ -1,0 +1,165 @@
+- generic [ref=f9e3]:
+  - complementary "Navegación principal" [ref=f9e4]:
+    - img "AmCham" [ref=f9e6]
+    - generic [ref=f9e7]:
+      - generic [ref=f9e8]:
+        - button "Resumen 1" [expanded] [ref=f9e9] [cursor=pointer]:
+          - generic [ref=f9e10]: Resumen
+          - generic [ref=f9e11]: "1"
+        - button "Resumen summary" [ref=f9e13] [cursor=pointer]:
+          - generic [ref=f9e14]: Resumen
+          - generic [ref=f9e15]: summary
+      - generic [ref=f9e16]:
+        - button "Divisiones 11" [expanded] [ref=f9e17] [cursor=pointer]:
+          - generic [ref=f9e18]: Divisiones
+          - generic [ref=f9e19]: "11"
+        - generic [ref=f9e20]:
+          - button "Presupuestos ppto" [ref=f9e21] [cursor=pointer]:
+            - generic [ref=f9e22]: Presupuestos
+            - generic [ref=f9e23]: ppto
+          - button "Comités" [ref=f9e24] [cursor=pointer]
+          - button "Comunicación" [ref=f9e26] [cursor=pointer]
+          - button "Eventos" [ref=f9e28] [cursor=pointer]
+          - generic [ref=f9e30]:
+            - button "Finanzas 3" [expanded] [ref=f9e31] [cursor=pointer]:
+              - generic [ref=f9e32]: Finanzas
+              - generic [ref=f9e33]: "3"
+            - generic [ref=f9e34]:
+              - button "Finanzas finanzas" [ref=f9e35] [cursor=pointer]:
+                - generic [ref=f9e36]: Finanzas
+                - generic [ref=f9e37]: finanzas
+              - button "Gastos Generales finanzas" [ref=f9e38] [cursor=pointer]:
+                - generic [ref=f9e39]: Gastos Generales
+                - generic [ref=f9e40]: finanzas
+              - button "Nómina finanzas" [ref=f9e41] [cursor=pointer]:
+                - generic [ref=f9e42]: Nómina
+                - generic [ref=f9e43]: finanzas
+          - button "Gastos Corporativos" [ref=f9e44] [cursor=pointer]
+          - button "Membresía" [ref=f9e46] [cursor=pointer]
+          - button "Recursos Humanos" [ref=f9e48] [cursor=pointer]
+          - button "Servicios a la Membresía" [ref=f9e50] [cursor=pointer]
+          - button "T&IC" [ref=f9e52] [cursor=pointer]
+          - button "VPE" [ref=f9e54] [cursor=pointer]
+      - generic [ref=f9e56]:
+        - button "Configuración 5" [expanded] [ref=f9e57] [cursor=pointer]:
+          - generic [ref=f9e58]: Configuración
+          - generic [ref=f9e59]: "5"
+        - generic [ref=f9e60]:
+          - button "Mi Perfil perfil" [ref=f9e61] [cursor=pointer]:
+            - generic [ref=f9e62]: Mi Perfil
+            - generic [ref=f9e63]: perfil
+          - button "Administrar usuarios Permisos" [ref=f9e64] [cursor=pointer]:
+            - generic [ref=f9e65]: Administrar usuarios
+            - generic [ref=f9e66]: Permisos
+          - button "Crear usuario" [ref=f9e67] [cursor=pointer]
+          - button "Gestor de Plantillas" [ref=f9e69] [cursor=pointer]
+          - button "Administrar conexiones" [ref=f9e71] [cursor=pointer]
+  - main [ref=f9e73]:
+    - generic [ref=f9e74]:
+      - generic [ref=f9e75]:
+        - button "Ocultar menú lateral" [expanded] [ref=f9e76] [cursor=pointer]:
+          - generic [ref=f9e77]: ☰
+        - generic [ref=f9e78]:
+          - heading "Resumen" [level=2] [ref=f9e79]
+          - generic [ref=f9e80]: summary
+      - generic [ref=f9e81]:
+        - generic [ref=f9e82]:
+          - button "Tour guiado" [ref=f9e83] [cursor=pointer]
+          - button "Opciones" [ref=f9e84] [cursor=pointer]
+        - button "Notificaciones" [ref=f9e87] [cursor=pointer]
+        - generic [ref=f9e90]:
+          - generic [ref=f9e91]: "Empresa:"
+          - combobox "Empresa:" [ref=f9e92]:
+            - option "Ciudad de México" [selected]
+            - option "Guadalajara"
+            - option "Noreste"
+            - option "Noroeste"
+        - button "Cerrar sesión" [ref=f9e93] [cursor=pointer]
+    - iframe [ref=f9e96]:
+      - generic [ref=f10e1]:
+        - generic [ref=f10e2]:
+          - generic [ref=f10e8]:
+            - heading "Resumen" [level=1] [ref=f10e9]
+            - paragraph [ref=f10e10]: Capítulo - · Periodo -
+          - generic [ref=f10e11]:
+            - generic [ref=f10e12]:
+              - generic [ref=f10e13]: Ejercicio
+              - combobox "Ejercicio" [ref=f10e14] [cursor=pointer]:
+                - option "Cargando ejercicios..." [selected]
+            - generic [ref=f10e15]:
+              - generic [ref=f10e16]: Periodo
+              - combobox "Periodo" [ref=f10e17] [cursor=pointer]:
+                - option "Enero" [selected]
+                - option "Febrero"
+                - option "Marzo"
+                - option "Abril"
+                - option "Mayo"
+                - option "Junio"
+                - option "Julio"
+                - option "Agosto"
+                - option "Septiembre"
+                - option "Octubre"
+                - option "Noviembre"
+                - option "Diciembre"
+            - generic [ref=f10e18]:
+              - generic [ref=f10e19]: Comparar con
+              - generic [ref=f10e20]:
+                - generic [ref=f10e21]:
+                  - checkbox "Comparar con" [checked]
+                - generic [ref=f10e24]: Empresa 9
+          - generic:
+            - button "" [ref=f10e26] [cursor=pointer]
+            - text:  
+          - generic [ref=f10e30]:
+            - textbox "Buscar cuenta o descripción..." [ref=f10e33] [cursor=pointer]
+            - generic [ref=f10e34]:
+              - group "Colapsar/Expandir secciones" [ref=f10e35]:
+                - button " Colapsar" [ref=f10e36] [cursor=pointer]:
+                  - generic [ref=f10e37]: 
+                  - generic [ref=f10e38]: Colapsar
+                - button " Expandir" [ref=f10e39] [cursor=pointer]:
+                  - generic [ref=f10e40]: 
+                  - generic [ref=f10e41]: Expandir
+              - button " Graficas" [ref=f10e42] [cursor=pointer]:
+                - generic [ref=f10e43]: 
+                - generic [ref=f10e44]: Graficas
+              - button " Imprimir PDF" [ref=f10e45] [cursor=pointer]:
+                - generic [ref=f10e46]: 
+                - generic [ref=f10e47]: Imprimir PDF
+              - button " Exportar XLSX" [ref=f10e48] [cursor=pointer]:
+                - generic [ref=f10e49]: 
+                - generic [ref=f10e50]: Exportar XLSX
+          - generic:  
+          - table [ref=f10e56]:
+            - rowgroup [ref=f10e62]:
+              - row [ref=f10e63]:
+                - columnheader "Cuenta" [ref=f10e64] [cursor=pointer]
+                - columnheader "DICIEMBRE" [ref=f10e65] [cursor=pointer]
+                - columnheader "Descripción" [ref=f10e66] [cursor=pointer]
+                - columnheader "YTD" [ref=f10e67] [cursor=pointer]
+              - row [ref=f10e68]:
+                - columnheader "Real" [ref=f10e69] [cursor=pointer]
+                - columnheader "Ppto." [ref=f10e70] [cursor=pointer]
+                - columnheader "Real DIC" [ref=f10e71] [cursor=pointer]
+                - columnheader "B/(W)% vs. Ppto." [ref=f10e72] [cursor=pointer]
+                - columnheader "B/(W)% vs. Real DIC" [ref=f10e73] [cursor=pointer]
+                - columnheader "Real acumulado" [ref=f10e74] [cursor=pointer]
+                - columnheader "Ppto. acumulado" [ref=f10e75] [cursor=pointer]
+                - columnheader "Real acumulado" [ref=f10e76] [cursor=pointer]
+                - columnheader "B/(W)% vs. Ppto. acumulado" [ref=f10e77] [cursor=pointer]
+                - columnheader "B/(W)% vs. Real acumulado" [ref=f10e78] [cursor=pointer]
+            - rowgroup [ref=f10e79]:
+              - row [ref=f10e80]:
+                - cell "Construyendo el resumen financiero, espera un momento..." [ref=f10e81] [cursor=pointer]
+        - button " Descargas" [ref=f10e83] [cursor=pointer]:
+          - generic [ref=f10e84]: 
+          - text: Descargas
+        - text:     
+        - generic:
+          - button " Ver globos" [ref=f10e85] [cursor=pointer]:
+            - generic [ref=f10e86]: 
+            - text: Ver globos
+          - button " Comentarios" [ref=f10e87] [cursor=pointer]:
+            - generic [ref=f10e88]: 
+            - text: Comentarios
+        - button "Tour resumen" [ref=f10e89] [cursor=pointer]

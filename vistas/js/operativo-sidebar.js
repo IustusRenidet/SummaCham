@@ -232,6 +232,29 @@
     return `${text.slice(0, Math.max(0, limit - 1)).trimEnd()}…`;
   };
 
+  // Para las etiquetas del eje de categoria (ej. "Resultado Operativo:
+  // Encuesta de Sueldos y Prestaciones") es mejor partir en varias lineas
+  // que cortar con "..." y perder la mitad del texto -- Chart.js acepta un
+  // array de strings por tick para eso.
+  const wrapTickLabel = (value, maxLineLength = 16) => {
+    const texto = normalizeWhitespace(value);
+    if (!texto || texto.length <= maxLineLength) return texto;
+    const palabras = texto.split(" ");
+    const lineas = [];
+    let actual = "";
+    palabras.forEach((palabra) => {
+      const candidato = actual ? `${actual} ${palabra}` : palabra;
+      if (candidato.length > maxLineLength && actual) {
+        lineas.push(actual);
+        actual = palabra;
+      } else {
+        actual = candidato;
+      }
+    });
+    if (actual) lineas.push(actual);
+    return lineas.length > 1 ? lineas : texto;
+  };
+
   const filterSeriesByKeys = (seriesList = [], keys = []) => {
     if (!Array.isArray(keys) || keys.length === 0) return seriesList;
     const keySet = new Set(
@@ -931,64 +954,6 @@
     return null;
   };
 
-  const eliminarGraficaManual = (chartId) => {
-    const targetId = String(chartId || "").trim();
-    if (!targetId) return false;
-    const api = window.GraficasConfig;
-    if (
-      !api ||
-      typeof api.load !== "function" ||
-      typeof api.save !== "function"
-    ) {
-      return false;
-    }
-    try {
-      const current = api.load();
-      const currentCharts = Array.isArray(current?.customCharts)
-        ? current.customCharts
-        : [];
-      const defaultCharts = Array.isArray(api.defaults?.customCharts)
-        ? api.defaults.customCharts
-        : [];
-      const isDefault = defaultCharts.some(
-        (chart) => String(chart?.id || "").trim() === targetId
-      );
-      const filteredCharts = currentCharts.filter(
-        (chart) => String(chart?.id || "").trim() !== targetId
-      );
-      if (filteredCharts.length === currentCharts.length) {
-        return false;
-      }
-      const nextConfig = {
-        ...current,
-        customCharts: filteredCharts,
-      };
-      if (isDefault) {
-        const deletedIds = Array.isArray(current?.deletedChartIds)
-          ? [...current.deletedChartIds]
-          : [];
-        if (!deletedIds.includes(targetId)) {
-          deletedIds.push(targetId);
-        }
-        nextConfig.deletedChartIds = deletedIds;
-      }
-      const hasEnabledCharts = filteredCharts.some(
-        (chart) =>
-          chart?.enabled !== false &&
-          Array.isArray(chart?.rows) &&
-          chart.rows.length > 0
-      );
-      if (!hasEnabledCharts) {
-        nextConfig.manualOnly = false;
-      }
-      api.save(nextConfig);
-      return true;
-    } catch (error) {
-      console.warn("No se pudo eliminar la grafica manual.", error);
-      return false;
-    }
-  };
-
   const ajustarAltura = (contenedor, total) => {
     if (!contenedor) return;
     const altura = Math.min(760, Math.max(260, total * 36 + 140));
@@ -1242,7 +1207,7 @@
                     padding: 4,
                     callback: function (valor) {
                       if (this.type === "category") {
-                        return truncateLabel(this.getLabelForValue(valor), 42);
+                        return wrapTickLabel(this.getLabelForValue(valor), 20);
                       }
                       return formatearNumero(valor);
                     },
@@ -1263,7 +1228,7 @@
                     font: { size: 9, weight: "500" },
                     callback: function (valor) {
                       if (this.type === "category") {
-                        return truncateLabel(this.getLabelForValue(valor), 24);
+                        return wrapTickLabel(this.getLabelForValue(valor), 14);
                       }
                       return formatearNumero(valor);
                     },
@@ -1460,12 +1425,23 @@
         "columns"
       );
 
-      const requestedSeriesKeys =
+      // Graficas guardadas con el esquema viejo de 3 columnas (antes de
+      // existir monthBudget_ene/budgetAnnual/totalBudget/totalReal) --
+      // sin esto no hacen match contra baseDatasetDefs (que siempre usa las
+      // claves nuevas, leidas de las clases reales de la tabla) y la
+      // grafica cae al respaldo de "mostrar todas las columnas".
+      const LEGACY_OPERATIVO_SERIES_KEY_MAP = {
+        annual: "budgetAnnual",
+        budget: "totalBudget",
+        real: "totalReal",
+      };
+      const requestedSeriesKeys = (
         Array.isArray(chart?.seriesKeys) && chart.seriesKeys.length
           ? chart.seriesKeys
           : Array.isArray(chart?.columns) && chart.columns.length
             ? chart.columns
-            : [];
+            : []
+      ).map((key) => LEGACY_OPERATIVO_SERIES_KEY_MAP[key] || key);
       const filteredDatasetDefs = requestedSeriesKeys.length
         ? filterSeriesByKeys(baseDatasetDefs, requestedSeriesKeys)
         : baseDatasetDefs;
@@ -1538,12 +1514,11 @@
           return dataset;
         });
       } else {
-        labels = resolvedRows.map((row) =>
-          truncateLabel(
-            row.fullLabel || row.baseLabel || "",
-            indexAxis === "y" ? 42 : 24
-          )
-        );
+        // Se pasa el texto completo (sin truncar) porque ahora el callback
+        // de ticks lo parte en varias lineas (wrapTickLabel) en vez de
+        // cortarlo con "..." -- truncar aqui perdia informacion antes de
+        // que el eje pudiera mostrarla envuelta.
+        labels = resolvedRows.map((row) => row.fullLabel || row.baseLabel || "");
         baseLabels = resolvedRows.map((row) => row.fullLabel || row.baseLabel || "");
         datasets = datasetDefs.map((def) => {
           const data = resolvedRows.map((row) => resolveSeriesValue(row, def));
@@ -1583,7 +1558,6 @@
         .replace(/[^a-zA-Z0-9_-]/g, "");
       const canvasId = `operativoChartCustom-${safeId || index + 1}`;
       const chartKey = `custom-${safeId || index + 1}`;
-      const chartIdRaw = String(chart?.id || "").trim();
       const titleTemplate = chart?.title || `Grafica personalizada ${index + 1}`;
       const titleText =
         applyTemplate(titleTemplate, templateValues || {}).trim() ||
@@ -1600,14 +1574,6 @@
         <div class="chart-block">
           <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
             <div class="chart-title mb-0">${escapeHtml(titleText)}</div>
-            ${chartIdRaw
-          ? `<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" data-operativo-delete-chart data-chart-id="${escapeHtml(
-            chartIdRaw
-          )}" title="Eliminar grafica">
-                    <i class="bi bi-trash"></i>
-                  </button>`
-          : ""
-        }
           </div>
           ${subtitleText ? `<div class="text-muted small mb-1">${escapeHtml(subtitleText)}</div>` : ""}
           <div class="chart-container" data-operativo-chart="${chartKey}">
@@ -1621,20 +1587,6 @@
 
       container.appendChild(wrapper);
       rendered += 1;
-
-      const deleteButton = wrapper.querySelector("[data-operativo-delete-chart]");
-      if (deleteButton) {
-        deleteButton.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const chartId = deleteButton.getAttribute("data-chart-id") || "";
-          const confirmed = window.confirm(
-            "Esta grafica se eliminara del gestor. Deseas continuar?"
-          );
-          if (!confirmed) return;
-          eliminarGraficaManual(chartId);
-        });
-      }
 
       const canvas = wrapper.querySelector("canvas");
       const empty = wrapper.querySelector(`[data-operativo-empty="${chartKey}"]`);
@@ -1728,7 +1680,7 @@
                       padding: 4,
                       callback: function (valor) {
                         if (this.type === "category") {
-                          return truncateLabel(this.getLabelForValue(valor), 42);
+                          return wrapTickLabel(this.getLabelForValue(valor), 20);
                         }
                         return formatearNumero(valor);
                       },
@@ -1761,7 +1713,7 @@
                       padding: 4,
                       callback: function (valor) {
                         if (this.type === "category") {
-                          return truncateLabel(this.getLabelForValue(valor), 28);
+                          return wrapTickLabel(this.getLabelForValue(valor), 14);
                         }
                         return formatearNumero(valor);
                       },

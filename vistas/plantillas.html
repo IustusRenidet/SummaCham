@@ -722,8 +722,7 @@
                         <div>
                           <h2 class="h5 mb-1">Graficas</h2>
                           <p class="small text-muted mb-0">
-                            Personaliza las graficas manuales y revisa su fuente
-                            (tabla, filas y columnas).
+                            
                           </p>
                         </div>
                         <div class="d-flex align-items-center gap-2">
@@ -779,7 +778,7 @@
                               <div>
                                 <h3 class="h6 mb-1">Panel de graficas</h3>
                                 <p class="text-muted small mb-0">
-                                  Vista previa, fuente y estructura de datos.
+                                  
                                 </p>
                               </div>
                               <button
@@ -797,11 +796,7 @@
                             ></div>
 
                             <template id="plantillasGraficasCardTemplate">
-                              <button
-                                type="button"
-                                class="plantillas-graficas-card"
-                                data-chart-card
-                              >
+                              <div class="plantillas-graficas-card" data-chart-card>
                                 <div class="plantillas-graficas-card-inner">
                                   <div class="plantillas-graficas-preview">
                                     <canvas data-chart-canvas></canvas>
@@ -845,13 +840,31 @@
                                       class="plantillas-graficas-card-source"
                                       data-chart-source
                                     ></div>
+                                    <div class="plantillas-graficas-card-actions">
+                                      <button
+                                        type="button"
+                                        class="btn btn-primary btn-sm"
+                                        data-card-edit
+                                      >
+                                        <i class="bi bi-sliders me-1"></i>
+                                        Editar
+                                      </button>
+                                      <button
+                                        type="button"
+                                        class="btn btn-outline-danger btn-sm"
+                                        data-card-delete
+                                      >
+                                        <i class="bi bi-trash me-1"></i>
+                                        Eliminar
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
-                              </button>
+                              </div>
                             </template>
                           </section>
 
-                          <section class="plantillas-graficas-editor">
+                          <section class="plantillas-graficas-editor d-none">
                             <div
                               class="card plantillas-graficas-focus"
                               id="plantillasGraficasDetailCard"
@@ -3647,7 +3660,7 @@
             </ol>
           </div>
 
-          <div class="border rounded-3 p-3 mb-4 bg-light">
+          <div class="border rounded-3 p-3 mb-4 bg-light d-none">
             <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
               <div class="fw-semibold small">Origen real de la informacion</div>
               <span class="badge text-bg-light border" id="chartEditorSourceModuleBadge"
@@ -3731,7 +3744,7 @@
                 <option value="horizontal">Acostadas</option>
               </select>
             </div>
-            <div class="mb-3">
+            <div class="mb-3" id="chartEditorSourceTypeGroup">
               <label for="chartEditorSourceType" class="form-label">Fuente de datos</label>
               <select class="form-select" id="chartEditorSourceType">
                 <option value="snapshot">Snapshot (mes actual)</option>
@@ -3740,6 +3753,8 @@
               <div class="form-text">
                 <em>Mensual</em> muestra la progresión acumulada mes a mes.
                 <em>Snapshot</em> compara valores del mes seleccionado.
+                Solo aplica a RESUMEN; en otros módulos siempre se usan las
+                columnas reales de su propia tabla.
               </div>
             </div>
             <div class="mb-3">
@@ -3883,6 +3898,7 @@
     <script src="js/sesion.js"></script>
     <script src="js/verificar-sesion.js"></script>
     <script src="js/capitulos-modulos.js"></script>
+    <script src="js/modulo-datos-planeacion.js"></script>
     <script src="js/modo-edicion-presupuesto.js"></script>
     <script src="js/flujo-autorizacion.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -3966,6 +3982,7 @@
         let currentChart = null;
         let currentChartId = null;
         let previewChartInstance = null;
+        let previewRequestToken = 0;
         let selectedRows = [];
         let currentModule = null;
         let availableSeries = [];
@@ -3977,100 +3994,101 @@
         // Importante: el snapshot se guarda por empresa/anio/mes en `resumen-view.js`.
         // Aquí intentamos usar el snapshot que corresponda al contexto del Gestor (empresa + año)
         // para que seleccionar filas sea fiel y no pida cambiar "a mano" el módulo/año.
+        // Extraidos del cuerpo de getSnapshot para poder reutilizarlos en
+        // fetchLiveResumenSnapshot (fallback en vivo cuando no hay snapshot
+        // guardado en localStorage).
+        const resolveEmpresa = () => {
+          try {
+            const fromSesion = window.Sesion?.obtenerEmpresaActiva?.()?.id;
+            if (fromSesion) return String(fromSesion);
+          } catch (_) {
+            // ignore
+          }
+          try {
+            const params = new URLSearchParams(window.location.search || "");
+            const fromUrl =
+              params.get("empresa") ||
+              params.get("empresaId") ||
+              params.get("empresa_id");
+            if (fromUrl) return String(fromUrl);
+          } catch (_) {
+            // ignore
+          }
+          return null;
+        };
+
+        const resolveAnio = () => {
+          const parseYear = (value) => {
+            const text = (value ?? "").toString().trim();
+            if (!text) return null;
+            const parsed = Number(text);
+            if (!Number.isInteger(parsed)) return null;
+            if (parsed < 2000 || parsed > 2100) return null;
+            return parsed;
+          };
+
+          const select = document.getElementById("anioSelect");
+          const parsedSelect = parseYear(select?.value);
+          if (parsedSelect != null) return parsedSelect;
+          const label = document.getElementById("anioLabel")?.textContent || "";
+          const parsedLabel = parseYear(label);
+          if (parsedLabel != null) return parsedLabel;
+          try {
+            const ctx = window.Sesion?.obtenerContextoPlaneacion?.() || {};
+            const parsedCtx = parseYear(ctx?.anio);
+            if (parsedCtx != null) return parsedCtx;
+          } catch (_) {
+            // ignore
+          }
+          return null;
+        };
+
+        const resolveMes = () => {
+          const parseMes = (value) => {
+            const text = (value ?? "").toString().trim();
+            if (!text) return null;
+            const parsed = Number(text);
+            if (!Number.isInteger(parsed)) return null;
+            if (parsed < 1 || parsed > 12) return null;
+            return parsed;
+          };
+
+          try {
+            const ctx = window.Sesion?.obtenerContextoPlaneacion?.() || {};
+            const parsedCtx = parseMes(ctx?.mes);
+            if (parsedCtx != null) return parsedCtx;
+          } catch (_) {
+            // ignore
+          }
+
+          try {
+            const raw =
+              localStorage.getItem("planeacionContexto") ||
+              localStorage.getItem("planeacion_contexto") ||
+              "{}";
+            const ctx = JSON.parse(raw || "{}");
+            const parsedCtx = parseMes(ctx?.mes);
+            if (parsedCtx != null) return parsedCtx;
+          } catch (_) {
+            // ignore
+          }
+
+          try {
+            const params = new URLSearchParams(window.location.search || "");
+            const fromUrl =
+              params.get("mes") || params.get("month") || params.get("m");
+            const parsedUrl = parseMes(fromUrl);
+            if (parsedUrl != null) return parsedUrl;
+          } catch (_) {
+            // ignore
+          }
+
+          return null;
+        };
+
         const getSnapshot = () => {
           const SNAPSHOT_PREFIX = "resumen_tabla_snapshot";
           if (typeof localStorage === "undefined") return null;
-
-          const resolveEmpresa = () => {
-            try {
-              const fromSesion = window.Sesion?.obtenerEmpresaActiva?.()?.id;
-              if (fromSesion) return String(fromSesion);
-            } catch (_) {
-              // ignore
-            }
-            try {
-              const params = new URLSearchParams(window.location.search || "");
-              const fromUrl =
-                params.get("empresa") ||
-                params.get("empresaId") ||
-                params.get("empresa_id");
-              if (fromUrl) return String(fromUrl);
-            } catch (_) {
-              // ignore
-            }
-            return null;
-          };
-
-          const resolveAnio = () => {
-            const parseYear = (value) => {
-              const text = (value ?? "").toString().trim();
-              if (!text) return null;
-              const parsed = Number(text);
-              if (!Number.isInteger(parsed)) return null;
-              if (parsed < 2000 || parsed > 2100) return null;
-              return parsed;
-            };
-
-            const select = document.getElementById("anioSelect");
-            const parsedSelect = parseYear(select?.value);
-            if (parsedSelect != null) return parsedSelect;
-            const label = document.getElementById("anioLabel")?.textContent || "";
-            const parsedLabel = parseYear(label);
-            if (parsedLabel != null) return parsedLabel;
-            try {
-              const ctx = window.Sesion?.obtenerContextoPlaneacion?.() || {};
-              const parsedCtx = parseYear(ctx?.anio);
-              if (parsedCtx != null) return parsedCtx;
-            } catch (_) {
-              // ignore
-            }
-            return null;
-          };
-
-          const resolveMes = () => {
-            const parseMes = (value) => {
-              const text = (value ?? "").toString().trim();
-              if (!text) return null;
-              const parsed = Number(text);
-              if (!Number.isInteger(parsed)) return null;
-              if (parsed < 1 || parsed > 12) return null;
-              return parsed;
-            };
-
-            try {
-              const ctx = window.Sesion?.obtenerContextoPlaneacion?.() || {};
-              const parsedCtx = parseMes(ctx?.mes);
-              if (parsedCtx != null) return parsedCtx;
-            } catch (_) {
-              // ignore
-            }
-
-            try {
-              const raw =
-                localStorage.getItem("planeacionContexto") ||
-                localStorage.getItem("planeacion_contexto") ||
-                "{}";
-              const ctx = JSON.parse(raw || "{}");
-              const parsedCtx = parseMes(ctx?.mes);
-              if (parsedCtx != null) return parsedCtx;
-            } catch (_) {
-              // ignore
-            }
-
-            try {
-              const params = new URLSearchParams(window.location.search || "");
-              const fromUrl =
-                params.get("mes") ||
-                params.get("month") ||
-                params.get("m");
-              const parsedUrl = parseMes(fromUrl);
-              if (parsedUrl != null) return parsedUrl;
-            } catch (_) {
-              // ignore
-            }
-
-            return null;
-          };
 
           const desiredEmpresa = resolveEmpresa();
           const desiredAnio = resolveAnio();
@@ -4135,6 +4153,54 @@
           }
 
           return latestMatchEmpresaAnioMes || latestMatchEmpresaAnio || latestAny;
+        };
+
+        // Fallback en vivo cuando no hay snapshot guardado en localStorage
+        // (nunca se visitó RESUMEN.html para esa empresa/año/mes). Llama al
+        // mismo endpoint que usa RESUMEN.html/Graficas.html en producción
+        // (api/reportes/resumen), así que la cifra es la real del servidor,
+        // no una aproximación local.
+        const liveResumenCache = new Map();
+        const fetchLiveResumenSnapshot = async () => {
+          const empresaId = resolveEmpresa();
+          const anio = resolveAnio();
+          const mes = resolveMes() || new Date().getMonth() + 1;
+          if (!empresaId || anio == null) return null;
+
+          const cacheKey = `${empresaId}:${anio}:${mes}`;
+          if (liveResumenCache.has(cacheKey)) return liveResumenCache.get(cacheKey);
+
+          const base =
+            window.location.protocol === "file:"
+              ? "http://localhost:3005"
+              : window.location.origin;
+          const params = new URLSearchParams({
+            empresaId,
+            anio: String(anio),
+            mes: String(mes),
+          });
+          try {
+            const resp = await fetch(
+              `${base}/api/reportes/resumen?${params.toString()}`,
+              { headers: window.Sesion?.headersAutenticacion?.() || {} },
+            );
+            if (!resp.ok) {
+              liveResumenCache.set(cacheKey, null);
+              return null;
+            }
+            const data = await resp.json().catch(() => null);
+            const layout = data?.resumen?.[0]?.layout;
+            if (!Array.isArray(layout) || !layout.length) {
+              liveResumenCache.set(cacheKey, null);
+              return null;
+            }
+            const snapshot = { empresaId, anio, mes, filas: layout, live: true };
+            liveResumenCache.set(cacheKey, snapshot);
+            return snapshot;
+          } catch (_) {
+            liveResumenCache.set(cacheKey, null);
+            return null;
+          }
         };
 
         // Obtener labels del snapshot
@@ -4285,17 +4351,87 @@
           return Array.isArray(cached) ? [...cached] : [];
         };
 
+        // Cuando ya hay snapshot real de la tabla del modulo (el mismo que
+        // usa la vista previa), esas son las filas que de verdad importan
+        // -- cuentas reales, no solo las operaciones manuales del Layout --
+        // y en el orden en que aparecen en la tabla, no alfabetico.
+        // Filas y valores reales de un modulo, leidos directo del backend
+        // (layout + planeacion/cuentas via window.ModuloDatosPlaneacion) --
+        // sin snapshots ni paginas intermedias. moduleDatosRealesCache
+        // guarda el ULTIMO resultado ya resuelto por modulo para que el
+        // picker (sincrono) tenga algo que mostrar de inmediato; la primera
+        // vez que se pide un modulo se dispara el fetch y se refresca el
+        // picker/preview cuando responde.
+        const moduleDatosRealesCache = new Map();
+        const moduleDatosRealesFetchInFlight = new Set();
+
+        const fetchModuleDatosReales = (moduleValue) => {
+          const moduleKey = normalizeModuleKey(moduleValue || "");
+          if (!moduleKey || !window.ModuloDatosPlaneacion) return Promise.resolve(null);
+          const empresaId = window.Sesion?.obtenerEmpresaActiva?.()?.id || resolveEmpresa();
+          const anio = resolveAnio();
+          if (!empresaId || anio == null) return Promise.resolve(null);
+          return window.ModuloDatosPlaneacion.fetchFilasModulo(
+            moduleValue,
+            anio,
+            empresaId,
+          );
+        };
+
+        const getModuleRowOptionsFromDatosReales = (moduleKey) => {
+          const resultado = moduleDatosRealesCache.get(moduleKey);
+          if (!resultado || !Array.isArray(resultado.filas)) return [];
+          const vistos = new Set();
+          const ordenadas = [];
+          resultado.filas.forEach((fila) => {
+            const label = (fila?.label || "").toString().trim();
+            if (!label || vistos.has(label)) return;
+            vistos.add(label);
+            ordenadas.push(label);
+          });
+          return ordenadas;
+        };
+
         const getModuleRowOptions = (moduleValue) => {
           const moduleKey = normalizeModuleKey(
             moduleValue || currentModule || "RESUMEN",
           );
+          if (!isSummaryModuleKey(moduleKey)) {
+            const reales = getModuleRowOptionsFromDatosReales(moduleKey);
+            if (reales.length) {
+              cacheRowsForModule(moduleKey, reales);
+              return reales;
+            }
+            if (!moduleDatosRealesFetchInFlight.has(moduleKey)) {
+              moduleDatosRealesFetchInFlight.add(moduleKey);
+              fetchModuleDatosReales(moduleValue || currentModule).then((resultado) => {
+                moduleDatosRealesFetchInFlight.delete(moduleKey);
+                if (resultado) moduleDatosRealesCache.set(moduleKey, resultado);
+                if (normalizeModuleKey(currentModule || "") === moduleKey) {
+                  loadRowPicker();
+                  updatePreview();
+                }
+              });
+            }
+          }
           const activeModuleKey = normalizeModuleKey(
             window.state?.modulo ||
               document.getElementById("moduloSelect")?.value ||
               "",
           );
-          const stateRows = collectRowsFromState();
-          const domRows = collectRowsFromLayoutDom();
+          // El estado/DOM "en vivo" solo describe el modulo que el
+          // selector superior tiene cargado EN ESTE MOMENTO. Si se pide un
+          // modulo distinto (ej. justo mientras el cambio de modulo
+          // superior todavia esta cargando de forma asincrona), usarlos
+          // igual mezclaria filas del modulo anterior -- y las cachearia
+          // bajo la llave del modulo nuevo, dejando el picker mostrando
+          // filas equivocadas hasta que algo mas las corrija.
+          const liveCoincideConObjetivo =
+            isSummaryModuleKey(moduleKey) ||
+            !activeModuleKey ||
+            activeModuleKey === moduleKey;
+          const stateRows = liveCoincideConObjetivo ? collectRowsFromState() : [];
+          const domRows = liveCoincideConObjetivo ? collectRowsFromLayoutDom() : [];
           const snapshotRows = getSnapshotLabels(moduleValue);
           const combinedLive = isSummaryModuleKey(moduleKey)
             ? [...snapshotRows, ...stateRows, ...domRows]
@@ -4674,6 +4810,21 @@
           return Array.from(normalized.values());
         };
 
+        // Graficas guardadas antes de que existieran las claves granulares
+        // (monthBudget_ene, budgetAnnual, totalBudget, totalReal) usaban un
+        // esquema viejo de 3 columnas (annual/budget/real). Sin esto, una
+        // grafica vieja muestra sus casillas duplicadas (la vieja Y la
+        // nueva con la misma etiqueta) y sus valores en cero, porque
+        // "budget" nunca hace match con "totalBudget" en ningun lado.
+        const LEGACY_OPERATIVO_SERIES_KEY_MAP = {
+          annual: "budgetAnnual",
+          budget: "totalBudget",
+          real: "totalReal",
+        };
+        const normalizeOperativoSeriesKey = (key) =>
+          LEGACY_OPERATIVO_SERIES_KEY_MAP[(key || "").toString().trim()] ||
+          (key || "").toString().trim();
+
         const mergeSeriesForEditor = (baseSeries, chartSeries, chartSeriesKeys) => {
           const merged = new Map(
             (Array.isArray(baseSeries) ? baseSeries : [])
@@ -4689,7 +4840,7 @@
             chartSeriesKeys,
           );
           normalizedSeries.forEach((serie) => {
-            const key = (serie?.key || "").toString().trim();
+            const key = normalizeOperativoSeriesKey(serie?.key);
             if (!key) return;
             const current = merged.get(key) || {
               key,
@@ -4883,7 +5034,10 @@
             const label = document.createElement("label");
             label.className = "form-check-label";
             label.htmlFor = checkbox.id;
-            label.textContent = serie.label;
+            label.textContent = (serie.label || "").replace(
+              /\{year\}/g,
+              resolveAnio() || "",
+            );
 
             wrapper.appendChild(checkbox);
             wrapper.appendChild(label);
@@ -5138,17 +5292,31 @@
         };
 
         const refreshSeriesForCurrentModule = (preferredKeys = []) => {
+          // "Mensual vs Snapshot" solo tiene efecto real para RESUMEN; en
+          // cualquier otro modulo las graficas personalizadas siempre usan
+          // las columnas reales de su propia tabla, sin importar este
+          // valor -- mostrarlo ahi solo confunde, mejor ocultarlo.
+          const sourceTypeGroup = document.getElementById(
+            "chartEditorSourceTypeGroup",
+          );
+          if (sourceTypeGroup) {
+            sourceTypeGroup.classList.toggle(
+              "d-none",
+              !isSummaryModuleKey(normalizeModuleKey(currentModule || "")),
+            );
+          }
           availableSeries = mergeSeriesForEditor(
             getAvailableSeries(currentModule),
             currentChart?.series,
             currentChart?.seriesKeys,
           );
-          const fallbackKeys =
+          const fallbackKeys = (
             Array.isArray(preferredKeys) && preferredKeys.length
               ? preferredKeys
               : Array.isArray(currentChart?.seriesKeys)
                 ? currentChart.seriesKeys
-                : [];
+                : []
+          ).map(normalizeOperativoSeriesKey);
           renderSeriesChecks(fallbackKeys);
           renderSeriesConfigRows();
           updatePreview();
@@ -5437,6 +5605,12 @@
 
         // Actualizar preview
         const updatePreview = () => {
+          // Se incrementa aqui, al inicio de CADA llamada (no solo en la
+          // rama async) -- si no, una llamada anterior que sigue esperando
+          // su fetch puede resolver despues y pisar un render sincrono ya
+          // correcto de una llamada mas nueva, porque su token seguia
+          // "vigente" al no haberse tocado desde una ruta sincrona.
+          const requestToken = (previewRequestToken += 1);
           updateExtractionSummary();
           if (!window.Chart || !previewCanvas) return;
 
@@ -5528,73 +5702,112 @@
             return { datasets, missingRows };
           };
 
+          const renderFromSnapshot = (snapshotToUse) => {
+            const { datasets, missingRows } = buildDatasetsFromSnapshot(snapshotToUse);
+            if (missingRows.length) {
+              previewCanvas.classList.add("d-none");
+              previewFallback.classList.remove("d-none");
+              const first = missingRows[0] || "";
+              previewFallback.textContent =
+                missingRows.length === 1
+                  ? `No se encontró la fila en el reporte: ${first}`
+                  : `No se encontraron ${missingRows.length} filas en el reporte (ej. ${first}).`;
+              return;
+            }
+
+            if (!datasets.length) {
+              previewCanvas.classList.add("d-none");
+              previewFallback.classList.remove("d-none");
+              previewFallback.textContent = "Sin datos";
+              return;
+            }
+
+            previewCanvas.classList.remove("d-none");
+            previewFallback.classList.add("d-none");
+
+            // Crear chart
+            const chartType =
+              typeSelect?.value === "inherit"
+                ? "bar"
+                : typeSelect?.value || "bar";
+            const previewBarDirection = resolvePreviewBarDirection(
+              barDirectionSelect?.value || currentChart?.barDirection || "inherit",
+            );
+            const isHorizontalBar =
+              chartType === "bar" && previewBarDirection === "horizontal";
+            const indexAxis = isHorizontalBar ? "y" : "x";
+            previewChartInstance = new window.Chart(previewCanvas, {
+              type: chartType,
+              data: { labels, datasets },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: chartType === "bar" ? indexAxis : "x",
+                plugins: {
+                  legend: { display: true, position: "bottom" },
+                },
+                scales:
+                  chartType === "pie" || chartType === "doughnut"
+                    ? {}
+                    : isHorizontalBar
+                      ? {
+                          x: { beginAtZero: true },
+                        }
+                      : {
+                          y: { beginAtZero: true },
+                        },
+              },
+            });
+          };
+
           const moduleKey = normalizeModuleKey(currentModule || "RESUMEN");
           const snapshot = getSnapshot();
           const canUseSnapshot =
             isSummaryModuleKey(moduleKey) && snapshot && Array.isArray(snapshot.filas);
-          if (!canUseSnapshot) {
-            previewCanvas.classList.add("d-none");
-            previewFallback.classList.remove("d-none");
-            previewFallback.textContent =
-              isSummaryModuleKey(moduleKey)
-                ? "Sin snapshot de RESUMEN. Abre RESUMEN y guarda para generar el snapshot."
-                : "Vista previa disponible solo para RESUMEN (snapshot).";
+          if (canUseSnapshot) {
+            renderFromSnapshot(snapshot);
             return;
           }
-          const { datasets, missingRows } = buildDatasetsFromSnapshot(snapshot);
-          if (missingRows.length) {
-            previewCanvas.classList.add("d-none");
-            previewFallback.classList.remove("d-none");
-            const first = missingRows[0] || "";
-            previewFallback.textContent =
-              missingRows.length === 1
-                ? `No se encontró la fila en el snapshot: ${first}`
-                : `No se encontraron ${missingRows.length} filas en el snapshot (ej. ${first}).`;
+          if (!isSummaryModuleKey(moduleKey)) {
+            const datosReales = moduleDatosRealesCache.get(moduleKey);
+            if (datosReales) {
+              renderFromSnapshot(datosReales);
+              return;
+            }
+          }
+
+          // Sin datos en cache todavia -- pedir la cifra real en vivo.
+          // RESUMEN usa el mismo endpoint que RESUMEN.html/Graficas.html; el
+          // resto de módulos usa /api/layouts + /api/planeacion/cuentas
+          // directo (ver js/modulo-datos-planeacion.js) -- en ambos casos
+          // son cifras reales del servidor, no un cálculo aparte hecho aquí.
+          previewCanvas.classList.add("d-none");
+          previewFallback.classList.remove("d-none");
+
+          if (isSummaryModuleKey(moduleKey)) {
+            previewFallback.textContent = "Buscando cifras reales de RESUMEN...";
+            fetchLiveResumenSnapshot().then((liveSnapshot) => {
+              if (requestToken !== previewRequestToken) return; // superado por otro cambio
+              if (!liveSnapshot) {
+                previewFallback.textContent =
+                  "Sin datos de RESUMEN para esta empresa/año/mes.";
+                return;
+              }
+              renderFromSnapshot(liveSnapshot);
+            });
             return;
           }
 
-          if (!datasets.length) {
-            previewCanvas.classList.add("d-none");
-            previewFallback.classList.remove("d-none");
-            previewFallback.textContent = "Sin datos";
-            return;
-          }
-
-          previewCanvas.classList.remove("d-none");
-          previewFallback.classList.add("d-none");
-
-          // Crear chart
-          const chartType =
-            typeSelect?.value === "inherit"
-              ? "bar"
-              : typeSelect?.value || "bar";
-          const previewBarDirection = resolvePreviewBarDirection(
-            barDirectionSelect?.value || currentChart?.barDirection || "inherit",
-          );
-          const isHorizontalBar =
-            chartType === "bar" && previewBarDirection === "horizontal";
-          const indexAxis = isHorizontalBar ? "y" : "x";
-          previewChartInstance = new window.Chart(previewCanvas, {
-            type: chartType,
-            data: { labels, datasets },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              indexAxis: chartType === "bar" ? indexAxis : "x",
-              plugins: {
-                legend: { display: true, position: "bottom" },
-              },
-              scales:
-                chartType === "pie" || chartType === "doughnut"
-                  ? {}
-                  : isHorizontalBar
-                    ? {
-                        x: { beginAtZero: true },
-                      }
-                    : {
-                        y: { beginAtZero: true },
-                      },
-            },
+          previewFallback.textContent = `Buscando cifras reales de ${moduleKey}...`;
+          fetchModuleDatosReales(currentModule).then((resultado) => {
+            if (requestToken !== previewRequestToken) return;
+            if (resultado) moduleDatosRealesCache.set(moduleKey, resultado);
+            if (!resultado || !resultado.filas?.length) {
+              previewFallback.textContent =
+                "No se pudo leer los datos reales de este módulo.";
+              return;
+            }
+            renderFromSnapshot(resultado);
           });
         };
 

@@ -1,0 +1,16 @@
+- main [ref=f2e2]:
+  - heading "AmCham" [level=1] [ref=f2e4]
+  - alert [ref=f2e5]
+  - generic [ref=f2e6]:
+    - generic [ref=f2e7]:
+      - generic [ref=f2e8]: Usuario *
+      - textbox "Usuario" [ref=f2e9]:
+        - /placeholder: ""
+    - generic [ref=f2e10]:
+      - generic [ref=f2e11]: Contraseña *
+      - generic [ref=f2e12]:
+        - textbox "Contraseña" [ref=f2e13]
+        - button "Mostrar contraseña" [ref=f2e14] [cursor=pointer]
+    - button "Ingresar" [ref=f2e18] [cursor=pointer]:
+      - status [ref=f2e19]
+      - text: Ingresar

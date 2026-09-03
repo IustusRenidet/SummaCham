@@ -1,0 +1,130 @@
+- generic [active] [ref=f26e1]:
+  - generic [ref=f26e2]:
+    - generic [ref=f26e7]:
+      - generic [ref=f26e8]:
+        - heading "Gestor de Plantillas" [level=1] [ref=f26e9]
+        - paragraph [ref=f26e10]: Comités · 2026 · CDMX
+      - generic [ref=f26e11]:
+        - generic [ref=f26e12]: 
+        - text: Edición forzada (local)
+    - generic [ref=f26e13]:
+      - generic [ref=f26e14]:
+        - generic [ref=f26e15]: Módulo
+        - combobox "Módulo" [ref=f26e16] [cursor=pointer]:
+          - option "RESUMEN"
+          - option "Finanzas"
+          - option "Gastos Generales"
+          - option "Nómina"
+          - option "Membresía"
+          - option "Serv Membresía"
+          - option "RH"
+          - option "Eventos"
+          - option "Comités" [selected]
+          - option "Comunicación"
+          - option "Dirección"
+          - option "Gtos Corporativos"
+          - option "T&IC"
+          - option "VPE"
+      - generic [ref=f26e17]:
+        - generic [ref=f26e18]: Año
+        - combobox "Año" [ref=f26e19] [cursor=pointer]:
+          - option "2026" [selected]
+          - option "2025"
+          - option "2024"
+          - option "2023"
+          - option "2022"
+          - option "2021"
+          - option "2020"
+          - option "2019"
+          - option "2018"
+          - option "2017"
+          - option "2016"
+          - option "2015"
+          - option "2014"
+          - option "2013"
+          - option "2012"
+          - option "2011"
+          - option "2010"
+          - option "2009"
+          - option "2008"
+          - option "2007"
+          - option "2006"
+          - option "2005"
+      - generic [ref=f26e20]:
+        - generic [ref=f26e21]: Capítulo
+        - combobox "Capítulo" [ref=f26e22] [cursor=pointer]:
+          - option "Sin capítulo"
+      - button " Cargar Layout" [ref=f26e24] [cursor=pointer]:
+        - generic [ref=f26e25]: 
+        - text: Cargar Layout
+    - generic [ref=f26e30]:
+      - generic [ref=f26e32]:
+        - textbox "Buscar en el layout..." [ref=f26e33] [cursor=pointer]
+        - generic [ref=f26e34]:
+          - generic [ref=f26e35]: "Filtrar:"
+          - group [ref=f26e36]:
+            - radio "Todo" [checked] [ref=f26e37] [cursor=pointer]
+            - generic [ref=f26e38] [cursor=pointer]: Todo
+            - radio "Secciones" [ref=f26e39] [cursor=pointer]
+            - generic [ref=f26e40] [cursor=pointer]: Secciones
+            - radio "Cuentas" [ref=f26e41] [cursor=pointer]
+            - generic [ref=f26e42] [cursor=pointer]: Cuentas
+            - radio "Operaciones" [ref=f26e43] [cursor=pointer]
+            - generic [ref=f26e44] [cursor=pointer]: Operaciones
+      - button " Agregar" [disabled]:
+        - generic: 
+        - text: Agregar
+      - button " Expandir" [disabled]:
+        - generic: 
+        - text: Expandir
+      - button " Colapsar" [disabled]:
+        - generic: 
+        - text: Colapsar
+      - button " Vista Previa" [disabled]:
+        - generic: 
+        - text: Vista Previa
+      - button " Copiar a otro año" [disabled]:
+        - generic: 
+        - text: Copiar a otro año
+      - button " Guardar" [disabled]:
+        - generic: 
+        - text: Guardar
+      - button " Historial" [disabled]:
+        - generic: 
+        - text: Historial
+    - generic [ref=f26e49]:
+      - generic [ref=f26e50]:
+        - heading " Presupuesto en COI" [level=6] [ref=f26e51]:
+          - generic [ref=f26e52]: 
+          - text: Presupuesto en COI
+        - text: Cifras de presupuesto (Firebird), no la estructura del layout. Solo administradores globales.
+      - generic [ref=f26e53]:
+        - button " Copiar presupuesto a otro año" [ref=f26e54] [cursor=pointer]:
+          - generic [ref=f26e55]: 
+          - text: Copiar presupuesto a otro año
+        - button " Historial de COI" [ref=f26e56] [cursor=pointer]:
+          - generic [ref=f26e57]: 
+          - text: Historial de COI
+    - text:  
+    - tablist [ref=f26e60]:
+      - tab "Layout" [selected] [ref=f26e61] [cursor=pointer]
+      - tab "Graficas" [ref=f26e62] [cursor=pointer]
+    - generic [ref=f26e63]:
+      - tabpanel "Layout" [ref=f26e64]:
+        - generic [ref=f26e68]:
+          - generic [ref=f26e69]: 
+          - heading "Selecciona un contexto" [level=2] [ref=f26e71]
+          - paragraph [ref=f26e72]: Elige un módulo, año y capítulo para comenzar a editar el layout.
+          - generic [ref=f26e73]:
+            - generic [ref=f26e74]:
+              - generic [ref=f26e75]: 
+              - text: Carga el layout primero
+            - generic [ref=f26e76]:
+              - generic [ref=f26e77]: 
+              - text: Permisos en administración
+        - text: 
+        - paragraph [ref=f26e80]: Listo
+      - text:                            
+  - text:                           
+  - generic: 
+  - button "Tour plantillas" [ref=f26e81] [cursor=pointer]
