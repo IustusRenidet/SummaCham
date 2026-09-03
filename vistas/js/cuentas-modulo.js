@@ -1234,6 +1234,11 @@
     },
     operacionesResultadoOperativo: new Map(),
     valoresPorCuenta: new Map(),
+    // Copia intocable de los valores reales tal como llegaron de Firebird la última vez
+    // que se cargaron desde el servidor. A diferencia de valoresPorCuenta (que un borrador
+    // puede sobrescribir para previsualizarse), este mapa nunca se actualiza con datos de
+    // un borrador — es la base real contra la que se calcula "qué cambió".
+    valoresReales: new Map(),
     nombresPorCuenta: new Map(),
     capitulo: "",
     placeholdersPorFila: 0,
@@ -2588,6 +2593,9 @@
     });
     estadoModulo.mesActual = mesActualClave || "";
     estadoModulo.mesActualIndex = mesActualIndex;
+    // Base real congelada: se toma aquí, justo tras cargar de Firebird, antes de que
+    // cualquier borrador pueda sobrescribir valoresPorCuenta para previsualizarse.
+    estadoModulo.valoresReales = clonarMapaValores(estadoModulo.valoresPorCuenta);
     recalcularSumas();
     estadoModulo.hayCambios = false;
     estadoModulo.editSnapshot = null;
@@ -2658,11 +2666,17 @@
   };
 
   const obtenerCambiosPendientes = () => {
-    if (!estadoModulo.editSnapshot) {
+    // IMPORTANTE: se compara siempre contra valoresReales (la foto de Firebird tomada en
+    // contarSaldos), nunca contra editSnapshot. editSnapshot puede contener valores que un
+    // borrador ya cargó para previsualizarse — usarlo aquí era el bug: al reabrir un borrador
+    // rechazado para seguir editando, sus cambios ya guardados "desaparecían" del cálculo de
+    // diferencias porque ya coincidían con la foto tomada después de cargarlos, y solo se
+    // detectaba (y por lo tanto solo se volvía a enviar al guardar) la edición más reciente.
+    if (!estadoModulo.valoresReales || !estadoModulo.valoresReales.size) {
       return { presupuesto: [], nombres: [] };
     }
     const cambiosPresupuesto = [];
-    const baseValores = estadoModulo.editSnapshot.valores || new Map();
+    const baseValores = estadoModulo.valoresReales;
 
     estadoModulo.valoresPorCuenta.forEach((valores, cuenta) => {
       const prev = baseValores.get(cuenta) || {};
@@ -7872,10 +7886,13 @@
     const enfocarCelda = (celda) => {
       if (!celda) return;
       celda.focus();
+      // Igual que al hacer un solo clic: seleccionar todo el contenido, para
+      // que moverse con flechas/Tab y escribir de inmediato reemplace el
+      // valor completo (como en Excel), en vez de insertar el nuevo dígito
+      // al final del valor anterior.
       const range = document.createRange();
       const sel = window.getSelection();
       range.selectNodeContents(celda);
-      range.collapse(false);
       sel.removeAllRanges();
       sel.addRange(range);
     };
@@ -8080,6 +8097,40 @@
         celda.addEventListener("blur", () =>
           actualizarPresupuestoCelda(fila, clave, celda)
         );
+        // Edicion tipo Excel:
+        // - Un clic selecciona todo el contenido de la celda, para que
+        //   escribir de inmediato reemplace el valor completo (como al
+        //   seleccionar una celda en Excel y empezar a teclear).
+        // - Doble clic (o mas) posiciona el cursor exacto donde se hizo
+        //   clic, sin seleccionar nada, para poder corregir un digito
+        //   puntual sin borrar el resto del numero.
+        celda.addEventListener("mouseup", (evt) => {
+          const docCelda = celda.ownerDocument;
+          const winCelda = docCelda.defaultView || window;
+          const seleccion = winCelda.getSelection();
+          if (evt.detail >= 2) {
+            let rango = null;
+            if (docCelda.caretRangeFromPoint) {
+              rango = docCelda.caretRangeFromPoint(evt.clientX, evt.clientY);
+            } else if (docCelda.caretPositionFromPoint) {
+              const pos = docCelda.caretPositionFromPoint(evt.clientX, evt.clientY);
+              if (pos) {
+                rango = docCelda.createRange();
+                rango.setStart(pos.offsetNode, pos.offset);
+                rango.collapse(true);
+              }
+            }
+            if (rango) {
+              seleccion.removeAllRanges();
+              seleccion.addRange(rango);
+            }
+            return;
+          }
+          const rangoTodo = docCelda.createRange();
+          rangoTodo.selectNodeContents(celda);
+          seleccion.removeAllRanges();
+          seleccion.addRange(rangoTodo);
+        });
         celda.addEventListener("keydown", (evt) => {
           const accel = evt.ctrlKey || evt.metaKey;
           if (accel && !evt.altKey) {
@@ -8778,7 +8829,8 @@
       .trim();
   };
 
-  const cargarBorrador = (presupuesto = []) => {
+  const cargarBorrador = (presupuesto = [], opciones = {}) => {
+    const { pintarCeldas = true, marcarHayCambios = true } = opciones;
     if (!Array.isArray(presupuesto) || !estadoModulo.tabla) return false;
     if (!estadoModulo.columnas || !Object.keys(estadoModulo.columnas).length) {
       estadoModulo.columnas = construirMapaColumnas(estadoModulo.tabla);
@@ -8833,9 +8885,11 @@
         if (!celda) return;
         const numero = Number(valor);
         const finalValor = Number.isFinite(numero) ? numero : 0;
-        celda.textContent = formatearNumero(finalValor);
+        if (pintarCeldas) {
+          celda.textContent = formatearNumero(finalValor);
+          resaltarCeldaPresupuesto(celda);
+        }
         almacen[clave] = finalValor;
-        resaltarCeldaPresupuesto(celda);
         aplicado = true;
       });
 
@@ -8844,9 +8898,15 @@
     });
 
     if (aplicado) {
+      // Los totales/fórmulas se recalculan siempre, se pinten o no las celdas
+      // individuales -- es justo lo que necesita una vista previa de solo
+      // lectura: números de cuenta ya actualizados por quien llama, y aquí se
+      // hace que las filas de suma reflejen esos valores en el acto.
       recalcularSumas();
-      estadoModulo.hayCambios = true;
-      notificarCambios();
+      if (marcarHayCambios) {
+        estadoModulo.hayCambios = true;
+        notificarCambios();
+      }
     }
 
     return aplicado;
@@ -8909,8 +8969,33 @@
     cargarBorrador(presupuesto) {
       return cargarBorrador(presupuesto);
     },
+    // Igual que cargarBorrador, pero solo para previsualizar: recalcula las
+    // filas de suma/fórmula con los valores propuestos sin pintar cada celda
+    // de cuenta ni marcar la tabla como "con cambios sin guardar". Pensado
+    // para ver un borrador en un estado no editable (Pendiente, Revisado,
+    // Rechazado, Autorizado, Guardado) con sus totales ya reflejados.
+    previsualizarBorrador(presupuesto) {
+      return cargarBorrador(presupuesto, {
+        pintarCeldas: false,
+        marcarHayCambios: false,
+      });
+    },
     getCambios() {
       return obtenerCambiosPendientes();
+    },
+    // Contraparte de previsualizarBorrador(): regresa la tabla (celdas de
+    // suma/fórmula incluidas) a los valores reales tal como se cargaron de
+    // Firebird la última vez, usando la misma base protegida (valoresReales)
+    // que ya usa el cálculo de "qué cambió" de un borrador.
+    restaurarValoresReales() {
+      if (!estadoModulo.valoresReales || !estadoModulo.valoresReales.size) {
+        return false;
+      }
+      restablecerDesdeSnapshot({
+        valores: estadoModulo.valoresReales,
+        nombres: estadoModulo.nombresPorCuenta,
+      });
+      return true;
     },
   };
 })();

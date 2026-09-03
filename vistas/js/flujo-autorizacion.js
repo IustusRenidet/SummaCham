@@ -756,7 +756,51 @@
       this._setupButtons();
       this._prepareToast();
       this._refreshEstado();
+      this._iniciarPollingEstadoBorrador();
       return this;
+    }
+
+    /**
+     * Refresca el estado del borrador cada cierto tiempo sin que nadie recargue
+     * la página, para que dos personas viendo el mismo presupuesto vean el mismo
+     * estado (p. ej. si alguien más lo autoriza o lo rechaza mientras lo tienes
+     * abierto). Reutiliza _refreshEstado(), que ya sabe pintar badge, botones,
+     * pasos e historial.
+     *
+     * Dos resguardos para no estorbar:
+     * - Se salta el refresco mientras this.state.editMode es true, para no
+     *   pisar una edición en curso de quien tiene el borrador abierto.
+     * - Se salta mientras la pestaña está oculta (document.hidden), para no
+     *   generar peticiones de fondo sin que nadie las vea; al volver a la
+     *   pestaña se refresca una vez de inmediato.
+     */
+    _iniciarPollingEstadoBorrador() {
+      if (this._pollingEstadoActivo) return;
+      this._pollingEstadoActivo = true;
+      const INTERVALO_MS = 12000;
+      const tick = () => {
+        if (!this._pollingEstadoActivo) return;
+        if (document.hidden) return;
+        if (this.state.editMode) return;
+        this._refreshEstado();
+      };
+      this._pollingEstadoTimer = setInterval(tick, INTERVALO_MS);
+      if (!this._pollingVisibilidadBound) {
+        this._pollingVisibilidadBound = true;
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden && this._pollingEstadoActivo && !this.state.editMode) {
+            this._refreshEstado();
+          }
+        });
+      }
+    }
+
+    _detenerPollingEstadoBorrador() {
+      this._pollingEstadoActivo = false;
+      if (this._pollingEstadoTimer) {
+        clearInterval(this._pollingEstadoTimer);
+        this._pollingEstadoTimer = null;
+      }
     }
 
     _hydrateContext() {
@@ -973,19 +1017,84 @@
         });
       }
 
-      agregarListener(this.buttons.autorizar, () => this._handleAutorizar());
-      agregarListener(this.buttons.rechazar, () => this._handleRechazar());
-      agregarListener(this.buttons.marcarRevisado, () =>
-        this._handleMarcarRevisado()
-      );
+      // Estos 4 botones del toolbar principal tienen el mismo problema que
+      // ya se resolvió para el Centro de Borradores: se pueden pulsar sin
+      // haber visto nunca las cifras del borrador (el badge de estado se
+      // actualiza solo, sin necesidad de "Cargar presupuesto"). Antes de
+      // ejecutar la acción real, _asegurarVistoAntesDeAccion sugiere
+      // cargarlas si hace falta.
+      agregarListener(this.buttons.autorizar, async () => {
+        if (await this._asegurarVistoAntesDeAccion("autorizar")) {
+          this._handleAutorizar();
+        }
+      });
+      agregarListener(this.buttons.rechazar, async () => {
+        if (await this._asegurarVistoAntesDeAccion("rechazar")) {
+          this._handleRechazar();
+        }
+      });
+      agregarListener(this.buttons.marcarRevisado, async () => {
+        if (await this._asegurarVistoAntesDeAccion("revisar")) {
+          this._handleMarcarRevisado();
+        }
+      });
 
       if (this.buttons.guardarCOI) {
         const span = this.buttons.guardarCOI.querySelector("span");
         if (span) span.textContent = "Guardar en COI";
-        agregarListener(this.buttons.guardarCOI, () =>
-          this._handleGuardarCOI()
-        );
+        agregarListener(this.buttons.guardarCOI, async () => {
+          if (await this._asegurarVistoAntesDeAccion("guardarCoi")) {
+            this._handleGuardarCOI();
+          }
+        });
       }
+    }
+
+    /**
+     * Antes de ejecutar revisar/autorizar/rechazar/guardarCoi/enviar, si el
+     * usuario no ha visto las cifras de ESTE borrador en la sesión actual,
+     * sugiere cargarlas primero (con acceso directo: si acepta, se pintan
+     * en la tabla ahí mismo -- this.state.borrador ya trae los datos por el
+     * refresco automático de estado, no hace falta pedirlos de nuevo -- y
+     * la acción sigue de inmediato). Devuelve true si la acción debe
+     * continuar, false si el usuario canceló la sugerencia.
+     */
+    async _asegurarVistoAntesDeAccion(accion) {
+      const ETIQUETAS_ACCION = {
+        enviar: "enviarlo a revisión",
+        revisar: "marcarlo como revisado",
+        autorizar: "autorizarlo",
+        rechazar: "rechazarlo",
+        guardarCoi: "guardarlo en COI",
+      };
+      const borradorId = this.state.borrador?.id;
+      this._borradoresVistos = this._borradoresVistos || new Set();
+      if (!borradorId || this._borradoresVistos.has(borradorId)) {
+        return true;
+      }
+      const confirmar = await this._mostrarConfirmacion({
+        titulo: "Revisa las cifras primero",
+        mensaje: `Todavía no has visto las cifras de este borrador. Te recomendamos cargarlas antes de ${
+          ETIQUETAS_ACCION[accion] || "continuar"
+        }.`,
+        etiquetaBoton: "Cargar y continuar",
+        tipoBoton: "primary",
+      });
+      if (!confirmar) return false;
+
+      const puedeEditar =
+        this.state.borrador?.estado === ESTADOS.EDITANDO &&
+        this._puede({ accion: "editar", estadoOverride: ESTADOS.EDITANDO });
+      if (puedeEditar) {
+        this._enterEditMode(true);
+        await this._cargarBorradorEnTabla();
+      } else {
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.state.borrador);
+        this._renderInfo();
+        this._renderBotones();
+      }
+      this._borradoresVistos.add(borradorId);
+      return true;
     }
 
     _limpiarEventListeners() {
@@ -1490,7 +1599,11 @@
             (!estado ||
               estado === ESTADOS.SIN_CARGAR ||
               estado === ESTADOS.GUARDADO ||
-              (estado === ESTADOS.RECHAZADO && esAutor) ||
+              // Un rechazado antes solo lo podía corregir el autor original
+              // -- si esa persona no está disponible, la única salida era
+              // descartarlo y perder todo el trabajo previo. Un admin
+              // global también puede entrar a corregirlo.
+              (estado === ESTADOS.RECHAZADO && (esAutor || p.admin)) ||
               (estado === ESTADOS.EDITANDO && esAutor))
           );
         case "guardarTemporal":
@@ -1516,7 +1629,21 @@
         case "verBorradores":
           return true;
         case "descartar":
-          return (p.admin || p.cargar) && Boolean(this.state.borrador);
+          // Antes se podía descartar en CUALQUIER estado con solo tener
+          // permiso de "cargar" -- incluyendo Pendiente/Revisado/Aprobado,
+          // es decir, el autor podía borrar su propio borrador mientras ya
+          // estaba en manos de un revisor/aprobador. Ahora: un admin puede
+          // descartar en cualquier estado (via de escape si algo se traba),
+          // pero quien solo tiene "cargar" únicamente puede descartar en
+          // los estados que sigue siendo suyo (Editando/Rechazado). Una vez
+          // enviado a revisión, la única forma de "deshacerlo" es que lo
+          // rechacen -- no borrarlo por su cuenta.
+          if (!this.state.borrador) return false;
+          if (p.admin) return true;
+          return (
+            Boolean(p.cargar) &&
+            [ESTADOS.EDITANDO, ESTADOS.RECHAZADO].includes(estado)
+          );
         default:
           return false;
       }
@@ -1529,6 +1656,25 @@
       const estado = this._estadoSeguro();
       badge.textContent = ETIQUETAS_ESTADO[estado] || estado;
       badge.dataset.estado = estado;
+
+      // Indicador de "a quién le toca actuar ahora" -- el badge ya dice el
+      // estado, pero no dice si te toca a ti o a otra persona. Se crea
+      // dinámicamente junto al badge (no requiere tocar el HTML de cada
+      // módulo).
+      let turno = document.getElementById("workflowTurno");
+      if (!turno && badge.parentElement) {
+        turno = document.createElement("div");
+        turno.id = "workflowTurno";
+        turno.className = "workflow-turno small mt-1";
+        badge.insertAdjacentElement("afterend", turno);
+      }
+      if (turno) {
+        const { texto, esTuTurno } = this._obtenerTextoTurno(estado);
+        turno.textContent = texto;
+        turno.classList.toggle("d-none", !texto);
+        turno.classList.toggle("workflow-turno--tuyo", Boolean(esTuTurno));
+      }
+
       if (meta) {
         const fecha = this.state.borrador?.fechaEnvio
           ? formatDateTime(this.state.borrador.fechaEnvio)
@@ -1549,6 +1695,131 @@
             : leyenda;
         }
       }
+      this._renderPasosCOI(estado);
+    }
+
+    /**
+     * Texto de "a quién le toca actuar ahora" según el estado, mostrando
+     * si le toca al usuario actual (esTuTurno) o a alguien más (con su
+     * nombre, si se conoce).
+     */
+    _obtenerTextoTurno(estado) {
+      if (!this.state.borrador) return { texto: "", esTuTurno: false };
+      const p = this.state.permisos || {};
+      const esAutor = this._esAutor();
+      const autorNombre = this.state.borrador?.autorNombre || "el autor";
+      switch (estado) {
+        case ESTADOS.EDITANDO:
+          return esAutor
+            ? { texto: "Te toca a ti: sigue editando o envíalo a revisión.", esTuTurno: true }
+            : { texto: `Esperando a ${autorNombre} (está editando).`, esTuTurno: false };
+        case ESTADOS.PENDIENTE: {
+          const tuTurno = Boolean(p.admin || p.revisar);
+          return {
+            texto: tuTurno
+              ? "Te toca a ti: márcalo como revisado o recházalo."
+              : "Esperando revisión.",
+            esTuTurno: tuTurno,
+          };
+        }
+        case ESTADOS.REVISADO: {
+          const tuTurno = Boolean(p.admin || p.aprobar);
+          return {
+            texto: tuTurno
+              ? "Te toca a ti: autorízalo o recházalo."
+              : "Esperando autorización.",
+            esTuTurno: tuTurno,
+          };
+        }
+        case ESTADOS.APROBADO: {
+          const tuTurno = Boolean(p.admin || p.cargar);
+          return {
+            texto: tuTurno
+              ? "Te toca a ti: guárdalo en COI."
+              : "Esperando que se guarde en COI.",
+            esTuTurno: tuTurno,
+          };
+        }
+        case ESTADOS.RECHAZADO: {
+          const tuTurno = Boolean(esAutor || p.admin);
+          return {
+            texto: tuTurno
+              ? "Te toca a ti: corrígelo o descártalo."
+              : `Esperando corrección de ${autorNombre}.`,
+            esTuTurno: tuTurno,
+          };
+        }
+        default:
+          return { texto: "", esTuTurno: false };
+      }
+    }
+
+    /**
+     * Dibuja la línea de pasos que faltan para "Guardado en COI":
+     * Editando → Pendiente → Revisado → Autorizado → Guardado en COI,
+     * con el paso actual resaltado y los que ya pasaron marcados como hechos.
+     * Si el borrador está rechazado no forma parte de esa línea (no es "un
+     * paso más adelante", es un desvío que regresa a edición) — se muestra
+     * aparte, en rojo.
+     */
+    _renderPasosCOI(estado) {
+      const cont = document.getElementById("workflowSteps");
+      if (!cont) return;
+
+      const tieneBorrador = Boolean(this.state.borrador?.id || this.state.borrador?.esTemporal);
+      if (!tieneBorrador || !estado) {
+        cont.innerHTML = "";
+        return;
+      }
+
+      if (estado === ESTADOS.RECHAZADO) {
+        cont.innerHTML = "";
+        const paso = document.createElement("span");
+        paso.className = "workflow-step rechazado";
+        const dot = document.createElement("span");
+        dot.className = "dot";
+        const texto = document.createElement("span");
+        // El badge de arriba ya dice "Rechazado" -- aquí no se repite, se
+        // dice qué sigue. El motivo (si el revisor lo escribió al
+        // rechazar) se muestra completo: es la pregunta que más se hace
+        // el autor y hoy solo vivía escondida en el historial.
+        const motivo = (this.state.borrador?.comentarios || "").toString().trim();
+        texto.textContent = motivo
+          ? `Hay que editarlo de nuevo para volver a enviarlo — motivo: "${motivo}"`
+          : "Hay que editarlo de nuevo para volver a enviarlo.";
+        paso.appendChild(dot);
+        paso.appendChild(texto);
+        cont.appendChild(paso);
+        return;
+      }
+
+      const secuencia = [
+        [ESTADOS.EDITANDO, "Editando"],
+        [ESTADOS.PENDIENTE, "Pendiente"],
+        [ESTADOS.REVISADO, "Revisado"],
+        [ESTADOS.APROBADO, "Autorizado"],
+        [ESTADOS.GUARDADO, "Guardado en COI"],
+      ];
+      const indiceActual = secuencia.findIndex(([clave]) => clave === estado);
+      if (indiceActual === -1) {
+        cont.innerHTML = "";
+        return;
+      }
+
+      cont.innerHTML = "";
+      secuencia.forEach(([, etiqueta], idx) => {
+        if (idx > 0) {
+          const sep = document.createElement("span");
+          sep.className = `workflow-step-sep${idx <= indiceActual ? " hecho" : ""}`;
+          cont.appendChild(sep);
+        }
+        const paso = document.createElement("span");
+        const estadoPaso =
+          idx === indiceActual ? "actual" : idx < indiceActual ? "hecho" : "";
+        paso.className = `workflow-step${estadoPaso ? ` ${estadoPaso}` : ""}`;
+        paso.innerHTML = `<span class="dot"></span><span>${etiqueta}</span>`;
+        cont.appendChild(paso);
+      });
     }
 
     _renderBotones() {
@@ -1650,6 +1921,66 @@
         this.buttons.descartar.classList.toggle("d-none", !visible);
         this.buttons.descartar.disabled = !visible;
       }
+
+      this._actualizarTooltips();
+    }
+
+    /**
+     * Explica en un tooltip nativo (atributo title) qué hace cada botón del flujo
+     * y, para los que cambian de función según el estado, cuál de las dos hace en
+     * este momento. Se recalcula cada vez que se re-renderizan los botones para
+     * que el texto nunca quede desfasado del estado real.
+     */
+    _actualizarTooltips() {
+      const estado = this._estadoSeguro();
+      const set = (btn, texto) => {
+        if (btn && texto) btn.title = texto;
+      };
+
+      if (this.buttons.guardar) {
+        set(
+          this.buttons.guardar,
+          this.state.editMode
+            ? "Guarda tus cambios sin enviarlos a revisión todavía. Puedes cerrar y continuar editando después."
+            : "Carga el presupuesto de este capítulo y año para empezar a editarlo."
+        );
+      }
+      set(
+        this.buttons.enviar,
+        "Envía el presupuesto a revisión. Deja de poder editarse hasta que lo revisen o lo rechacen."
+      );
+      set(
+        this.buttons.cancelar,
+        "Sale de edición y descarta los cambios que no hayas guardado."
+      );
+      set(
+        this.buttons.verBorrador,
+        "Abre el Centro de Borradores: estado actual, quién debe actuar y el historial completo."
+      );
+      set(
+        this.buttons.descartar,
+        "Elimina este borrador por completo, incluidos los cambios ya guardados. No se puede deshacer."
+      );
+      set(
+        this.buttons.autorizar,
+        "Autoriza el presupuesto revisado. Queda listo para guardarse en COI."
+      );
+      set(
+        this.buttons.rechazar,
+        "Rechaza el presupuesto y pide una corrección. El autor podrá editarlo de nuevo."
+      );
+      if (this.buttons.marcarRevisado) {
+        set(
+          this.buttons.marcarRevisado,
+          estado === ESTADOS.REVISADO
+            ? "Regresa el presupuesto a edición para que se hagan más cambios."
+            : "Marca el presupuesto como revisado y listo para autorizar."
+        );
+      }
+      set(
+        this.buttons.guardarCOI,
+        "Guarda el presupuesto autorizado en el sistema contable (Aspel COI). Es el último paso del flujo."
+      );
     }
 
     /**
@@ -1673,8 +2004,33 @@
         return;
       }
       
-      // Si existe un borrador EDITANDO, preparar modo edicion primero y luego cargarlo
-      if (this.state.borrador?.estado === ESTADOS.EDITANDO) {
+      // Si ya existe contenido de borrador (EDITANDO, o RECHAZADO que se va a
+      // corregir), cargarlo a la tabla antes de activar edicion -- si no, se
+      // perdia la propuesta anterior y se empezaba a editar desde los valores
+      // reales, como si el borrador rechazado nunca hubiera existido.
+      const tieneContenidoPrevio = Boolean(
+        this.state.borrador?.data?.presupuesto?.length
+      );
+
+      // Si está RECHAZADO, no seguir en silencio: preguntar qué hacer con
+      // él (editar y corregir, o descartarlo), mostrando el motivo del
+      // rechazo. Antes esto se decidía solo (siempre "editar"), sin que el
+      // usuario viera por qué se rechazó ni tuviera la opción de descartar
+      // ahí mismo.
+      if (tieneContenidoPrevio && this.state.borrador?.estado === ESTADOS.RECHAZADO) {
+        const motivo = (this.state.borrador?.comentarios || "").toString().trim();
+        const decision = await this._mostrarOpcionesRechazado({ motivo });
+        if (decision === "descartar") {
+          await this._descartarBorrador();
+          return;
+        }
+        if (decision !== "editar") {
+          return; // Canceló el modal, no hacer nada.
+        }
+        // decision === "editar": continúa abajo, mismo flujo que ya existía.
+      }
+
+      if (tieneContenidoPrevio) {
         console.log("?? Cargando borrador existente antes de activar modo edicion...");
         this._enterEditMode(true);
         await this._cargarBorradorEnTabla();
@@ -1884,57 +2240,14 @@
         }
       }
 
-      const intentarDescartar = async (payload) => {
-        try {
-          const resp = await fetch(`${API_BASE}/borradores/descartar`, {
-            method: "POST",
-            headers: this._construirHeaders(),
-            body: JSON.stringify(payload),
-          });
-          const data = await resp.json().catch(() => ({}));
-          if (!resp.ok) {
-            console.warn(
-              "No se pudo descartar el borrador en el servidor:",
-              data?.mensaje || resp.statusText
-            );
-            return { ok: false, status: resp.status };
-          }
-          return { ok: true };
-        } catch (error) {
-          console.error("Error al descartar borrador:", error);
-          return { ok: false, status: 0 };
-        }
-      };
-
-      if (this.state.borrador?.id || this._contextoCompleto()) {
-        const moduloLimpio = this._sanitizarModulo(this.state.contexto.modulo);
-        const capitulo = this._extraerCapitulo(this.state.contexto.modulo);
-        const contextoPayload = {
-          empresaId: this.state.contexto.empresaId,
-          modulo: moduloLimpio,
-          anio: this.state.contexto.anio,
-        };
-        if (capitulo) {
-          contextoPayload.capitulo = capitulo;
-        }
-        let resultado = null;
-        if (this.state.borrador?.id) {
-          resultado = await intentarDescartar({
-            borradorId: this.state.borrador.id,
-          });
-          if (resultado?.status === 404) {
-            resultado = await intentarDescartar(contextoPayload);
-          }
-        } else {
-          resultado = await intentarDescartar(contextoPayload);
-        }
-        if (!resultado?.ok) {
-          console.info(
-            "Continuando con limpieza local aun sin descartar borrador remoto."
-          );
-        }
-      }
-
+      // "Cancelar" ya no borra el borrador del servidor -- eso es lo que
+      // hace "Descartar borrador" (acción distinta e irreversible). Cancelar
+      // solo debe deshacer lo que se editó en ESTA sesión y regresar a lo
+      // último guardado (con "Guardar para más tarde") o, si nunca se
+      // guardó nada, a los valores originales. Como no tocamos el borrador
+      // en el servidor, recargar la página ya trae de vuelta ese último
+      // estado guardado tal cual estaba -- sin necesidad de reconstruirlo
+      // a mano aquí.
       this._limpiarEventListeners();
       // Resetear flag y re-bindear después de limpiar
       this._handlersBindeados = false;
@@ -1957,7 +2270,7 @@
       window.CuentasModulo?.setEditMode?.(false);
       this._renderInfo();
       this._renderBotones();
-      this._toast("Edicion cancelada. Presupuesto descartado.", "info");
+      this._toast("Edición cancelada. Se descartaron los cambios sin guardar.", "info");
       setTimeout(() => {
         try {
           window.location.reload();
@@ -2435,7 +2748,7 @@
       // Mostrar modal de confirmación mejorado
       const confirmado = await this._mostrarConfirmacion({
         titulo: "💾 Guardar en Base de Datos COI",
-        mensaje: `¿Estás seguro de que deseas guardar este presupuesto <strong>autorizado</strong> en la base de datos de COI?<br><small class="text-muted">Esta es una acción irreversible. El presupuesto no podrá editarse más.</small>`,
+        mensaje: `¿Estás seguro de que deseas guardar este presupuesto <strong>autorizado</strong> en la base de datos de COI?<br><small class="text-muted">Esta es una acción irreversible.</small>`,
         etiquetaBoton: "Guardar en COI",
         tipoBoton: "primary",
       });
@@ -2471,6 +2784,19 @@
         this._renderInfo();
         this._renderBotones();
         window.__workflowRefreshTimeline?.();
+        // Lo anterior solo limpia el resaltado del borrador y el badge de
+        // estado -- las CIFRAS de la tabla (las que acaban de escribirse en
+        // COI) seguían siendo las de antes de guardar hasta recargar la
+        // página. Volver a pedirle al módulo que se re-dibuje con los
+        // valores reales ya actualizados.
+        try {
+          await window.CuentasModulo?.refresh?.();
+        } catch (refreshError) {
+          console.warn(
+            "No fue posible refrescar la tabla tras guardar en COI:",
+            refreshError
+          );
+        }
          
         // Cerrar drawer de flujo al completar el guardado exitosamente
         setTimeout(() => {
@@ -2656,6 +2982,96 @@
           console.error("Error en _mostrarConfirmacion:", error);
           this._modalConfirmacionActiva = false;
           resolve(false);
+        }
+      });
+    }
+
+    /**
+     * Se muestra al hacer clic en "Cargar presupuesto" sobre un borrador
+     * RECHAZADO -- en vez de cargarlo a edición en silencio, se pregunta
+     * explícitamente qué hacer, mostrando el motivo del rechazo (si lo
+     * hay). Devuelve "editar" | "descartar" | null (canceló).
+     */
+    async _mostrarOpcionesRechazado({ motivo }) {
+      if (this._modalRechazadoActiva) {
+        return null;
+      }
+      this._modalRechazadoActiva = true;
+      return new Promise((resolve) => {
+        try {
+          const modalId = "modal-rechazado-" + Date.now();
+          const modal = document.createElement("div");
+          modal.id = modalId;
+          modal.className = "modal fade";
+          modal.setAttribute("tabindex", "-1");
+          modal.setAttribute("aria-hidden", "true");
+          modal.setAttribute("role", "dialog");
+          modal.setAttribute("aria-modal", "true");
+
+          const motivoHTML = motivo
+            ? `<div class="alert alert-secondary small mb-0"><strong>Motivo del rechazo:</strong><br>${motivo}</div>`
+            : `<p class="text-muted small mb-0">Quien lo rechazó no dejó un motivo escrito.</p>`;
+
+          modal.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header border-bottom">
+                  <h5 class="modal-title">❌ Este borrador fue rechazado</h5>
+                  <button type="button" class="btn-close btn-cerrar-modal" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                  <p>¿Qué quieres hacer con él?</p>
+                  ${motivoHTML}
+                </div>
+                <div class="modal-footer border-top">
+                  <button type="button" class="btn btn-outline-danger btn-descartar-rechazado">Descartar borrador</button>
+                  <button type="button" class="btn btn-primary btn-editar-rechazado">Editar y corregir</button>
+                </div>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(modal);
+
+          const bsModal = window.bootstrap?.Modal
+            ? new window.bootstrap.Modal(modal, { backdrop: "static", keyboard: false })
+            : null;
+          if (!bsModal) {
+            console.error("Bootstrap Modal no esta disponible");
+            document.body.removeChild(modal);
+            this._modalRechazadoActiva = false;
+            resolve(null);
+            return;
+          }
+
+          let resultado = null;
+          const finalizar = (valor) => {
+            resultado = valor;
+            bsModal.hide();
+          };
+          modal.addEventListener(
+            "hidden.bs.modal",
+            () => {
+              this._modalRechazadoActiva = false;
+              modal.remove();
+              resolve(resultado);
+            },
+            { once: true }
+          );
+          modal
+            .querySelector(".btn-cerrar-modal")
+            .addEventListener("click", () => finalizar(null), { once: true });
+          modal
+            .querySelector(".btn-editar-rechazado")
+            .addEventListener("click", () => finalizar("editar"), { once: true });
+          modal
+            .querySelector(".btn-descartar-rechazado")
+            .addEventListener("click", () => finalizar("descartar"), { once: true });
+
+          bsModal.show();
+        } catch (error) {
+          console.error("Error en _mostrarOpcionesRechazado:", error);
+          this._modalRechazadoActiva = false;
+          resolve(null);
         }
       });
     }
@@ -3075,11 +3491,13 @@
             )}</small>
           </td>
           <td class="text-end">
-            <button class="btn btn-sm btn-primary btn-cargar-borrador" 
-                    data-borrador-id="${item.id}"
-                    style="pointer-events: auto !important; cursor: pointer !important; position: relative; z-index: 9999;">
-              <i class="bi bi-box-arrow-in-down me-1"></i>Cargar
-            </button>
+            <div class="d-flex gap-1 justify-content-end flex-wrap">
+              <button class="btn btn-sm btn-primary btn-cargar-borrador"
+                      data-borrador-id="${item.id}"
+                      style="pointer-events: auto !important; cursor: pointer !important; position: relative; z-index: 9999;">
+                <i class="bi bi-box-arrow-in-down me-1"></i>Cargar
+              </button>
+            </div>
           </td>
         `;
 
@@ -3093,7 +3511,6 @@
             this._verBorradorDesdeCentro(item.id);
           };
         }
-
         frag.appendChild(row);
       });
 
@@ -3129,6 +3546,9 @@
         this.state.borrador = data.borrador || null;
         if (!this.state.borrador)
           throw new Error("No se recibió información del borrador.");
+
+        this._borradoresVistos = this._borradoresVistos || new Set();
+        this._borradoresVistos.add(this.state.borrador.id);
 
         // Cerrar el drawer
         const drawer = document.getElementById("workflowDraftsDrawer");
@@ -3327,12 +3747,24 @@
         celda.classList.add("celda-borrador");
       });
     });
+    // Que las celdas de cuenta ya muestren el valor propuesto no alcanza para
+    // ver "cómo quedaría" el presupuesto -- las filas de suma/fórmula seguían
+    // mostrando el total real. previsualizarBorrador() actualiza el mismo
+    // mapa en memoria que usa recalcularSumas() (sin volver a pintar celdas
+    // ni marcar la tabla como editada) para que esos totales también
+    // reflejen los cambios propuestos, en cualquier estado del borrador.
+    try {
+      window.CuentasModulo?.previsualizarBorrador?.(cambios);
+    } catch (err) {
+      console.warn("No se pudieron recalcular las fórmulas del borrador:", err);
+    }
     return true;
   };
 
   FlujoAutorizacion.limpiarBorrador = (tabla) => {
     if (!tabla) return;
     const marcadas = Array.from(tabla.querySelectorAll(".celda-borrador"));
+    const habiaAlgoQueLimpiar = marcadas.length > 0;
     marcadas.forEach((celda) => {
       if (celda.dataset.borradorValorOriginal != null) {
         celda.textContent = celda.dataset.borradorValorOriginal;
@@ -3340,6 +3772,16 @@
       }
       celda.classList.remove("celda-borrador");
     });
+    // pintarBorrador() también recalculó las filas de suma/fórmula con los
+    // valores propuestos (ver previsualizarBorrador) -- hay que regresarlas
+    // a los valores reales, no solo las celdas de cuenta individuales.
+    if (habiaAlgoQueLimpiar) {
+      try {
+        window.CuentasModulo?.restaurarValoresReales?.();
+      } catch (err) {
+        console.warn("No se pudieron restaurar los totales reales:", err);
+      }
+    }
   };
 
   const DraftHistoryCenter = (() => {

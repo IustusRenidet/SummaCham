@@ -670,4 +670,119 @@ router.get('/totales-capitulo', async (req, res) => {
   }
 });
 
+const {
+  copiarPresupuestoEntreAnios,
+  obtenerDetalleCopiaPresupuesto,
+  listarHistorialCoi,
+  obtenerDetalleHistorialCoi,
+} = require('../services/presupuestosService');
+
+// Copiar presupuesto entre años es una operación de riesgo (sobrescribe
+// datos reales de captura) -- solo administradores globales, sin excepción
+// por permiso de módulo.
+const puedeCopiarPresupuesto = (req) => Boolean(req.esAdmin);
+
+// Detalle completo (sin escribir nada): cuántas cuentas se copiarían,
+// cuáles ya tienen valor real en destino y se sobrescribirían, cuáles son
+// "nuevas" (destino en ceros) y cuáles se omiten por no existir en el
+// catálogo del año destino -- con nombre de cuenta, para el modal de
+// revisión y el reporte descargable.
+router.get('/copiar/detalle', async (req, res) => {
+  try {
+    const empresaId = (req.query.empresaId || '').toString().trim();
+    if (!empresaId) {
+      return res.status(400).json({ mensaje: 'Falta indicar la empresa/capítulo.' });
+    }
+    if (!puedeCopiarPresupuesto(req)) {
+      return res.status(403).json({ mensaje: 'Solo un administrador global puede copiar presupuestos entre años.' });
+    }
+    const detalle = await obtenerDetalleCopiaPresupuesto({
+      empresaId,
+      anioOrigen: req.query.anioOrigen,
+      anioDestino: req.query.anioDestino,
+    });
+    res.json(detalle);
+  } catch (error) {
+    console.error('Error en detalle de copia de presupuesto:', error);
+    if (esErrorConexionFirebird(error)) {
+      return res.status(503).json({ mensaje: 'No se pudo conectar a la base de datos. Verifica la conexión.' });
+    }
+    res.status(error.status || 500).json({ mensaje: error.message || 'No fue posible calcular el detalle.' });
+  }
+});
+
+// Copia el presupuesto SOLO a cuentas que coinciden con el catálogo del año
+// destino (no crea cuentas nuevas). Si alguna cuenta destino ya tiene un
+// valor real (distinto de cero), responde 409 con el conteo en vez de
+// sobrescribir en silencio -- el frontend confirma dos veces y reintenta
+// con permitirSobrescritura=true. Todo el lote se escribe en una sola
+// transacción: si algo falla, no se guarda ningún cambio. Queda registrado
+// en el historial de COI (presupuestos_guardados).
+router.post('/copiar', async (req, res) => {
+  try {
+    const { empresaId, anioOrigen, anioDestino, permitirSobrescritura } = req.body || {};
+    const empresaIdTexto = (empresaId || '').toString().trim();
+    if (!empresaIdTexto) {
+      return res.status(400).json({ mensaje: 'Falta indicar la empresa/capítulo.' });
+    }
+    if (!puedeCopiarPresupuesto(req)) {
+      return res.status(403).json({ mensaje: 'Solo un administrador global puede copiar presupuestos entre años.' });
+    }
+    const resultado = await copiarPresupuestoEntreAnios({
+      empresaId: empresaIdTexto,
+      anioOrigen,
+      anioDestino,
+      usuarioId: req.usuarioActual?.id || null,
+      permitirSobrescritura: Boolean(permitirSobrescritura),
+    });
+    res.json(resultado);
+  } catch (error) {
+    console.error('Error al copiar presupuesto entre años:', error);
+    if (error?.codigo === 'REQUIERE_CONFIRMACION') {
+      return res.status(409).json({ mensaje: error.message, preview: error.preview });
+    }
+    if (esErrorConexionFirebird(error)) {
+      return res.status(503).json({ mensaje: 'No se pudo conectar a la base de datos. Verifica la conexión.' });
+    }
+    res.status(error.status || 500).json({ mensaje: error.message || 'No fue posible copiar el presupuesto.' });
+  }
+});
+
+// Historial de cambios guardados en COI desde este programa -- control de
+// versiones del presupuesto: incluye tanto "Guardar en COI" normal por
+// módulo como las copias entre años, con quién y cuándo.
+router.get('/historial-coi', (req, res) => {
+  try {
+    if (!req.esAdmin) {
+      return res.status(403).json({ mensaje: 'Solo un administrador global puede consultar el historial de COI.' });
+    }
+    const empresaId = (req.query.empresaId || '').toString().trim() || undefined;
+    const anio = req.query.anio ? Number(req.query.anio) : undefined;
+    const historial = listarHistorialCoi({ empresaId, anio, limite: req.query.limite });
+    res.json({ historial });
+  } catch (error) {
+    console.error('Error al listar historial de COI:', error);
+    res.status(500).json({ mensaje: 'No fue posible obtener el historial.' });
+  }
+});
+
+// Detalle completo de un registro del historial: qué cuentas y qué valores
+// mensuales se introdujeron exactamente (con el nombre de cada cuenta),
+// para la vista "ver detalle" del historial de COI.
+router.get('/historial-coi/:id/detalle', async (req, res) => {
+  try {
+    if (!req.esAdmin) {
+      return res.status(403).json({ mensaje: 'Solo un administrador global puede consultar el historial de COI.' });
+    }
+    const detalle = await obtenerDetalleHistorialCoi({ id: req.params.id });
+    res.json(detalle);
+  } catch (error) {
+    console.error('Error al obtener detalle del historial de COI:', error);
+    if (esErrorConexionFirebird(error)) {
+      return res.status(503).json({ mensaje: 'No se pudo conectar a la base de datos. Verifica la conexión.' });
+    }
+    res.status(error.status || 500).json({ mensaje: error.message || 'No fue posible obtener el detalle.' });
+  }
+});
+
 module.exports = router;

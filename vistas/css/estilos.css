@@ -263,6 +263,86 @@ textarea:not(:disabled),
   color: rgba(47, 84, 150, 0.7);
 }
 
+/* "A quien le toca actuar ahora" -- distinto de --tuyo (algo que puedes
+   hacer tu) a solo informativo (esperando a alguien mas). */
+.workflow-turno {
+  color: rgba(47, 84, 150, 0.65);
+}
+
+.workflow-turno--tuyo {
+  color: #7c5205;
+  font-weight: 700;
+}
+
+/* Linea de pasos: cuanto falta para "Guardado en COI" */
+.workflow-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.workflow-steps:empty {
+  display: none;
+}
+
+.workflow-step {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  color: rgba(47, 84, 150, 0.4);
+  white-space: nowrap;
+}
+
+.workflow-step .dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: rgba(47, 84, 150, 0.25);
+  flex: none;
+}
+
+.workflow-step.hecho {
+  color: rgba(47, 84, 150, 0.75);
+}
+
+.workflow-step.hecho .dot {
+  background: var(--texto-acento);
+}
+
+.workflow-step.actual {
+  color: var(--texto-acento);
+  font-weight: 700;
+}
+
+.workflow-step.actual .dot {
+  background: var(--texto-acento);
+  box-shadow: 0 0 0 3px rgba(47, 84, 150, 0.18);
+}
+
+.workflow-step.rechazado {
+  color: #b3261e;
+  font-weight: 700;
+}
+
+.workflow-step.rechazado .dot {
+  background: #b3261e;
+  box-shadow: 0 0 0 3px rgba(179, 38, 30, 0.18);
+}
+
+.workflow-step-sep {
+  width: 0.85rem;
+  height: 1px;
+  background: rgba(47, 84, 150, 0.2);
+  flex: none;
+}
+
+.workflow-step-sep.hecho {
+  background: rgba(47, 84, 150, 0.55);
+}
+
 .toolbar-actions {
   display: flex;
   flex-wrap: wrap;

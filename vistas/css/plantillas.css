@@ -1139,7 +1139,7 @@ body {
 
 .plantillas-graficas-layout {
   display: grid;
-  grid-template-columns: minmax(320px, 1.2fr) minmax(320px, 1fr);
+  grid-template-columns: 1fr;
   gap: 20px;
 }
 
@@ -1198,7 +1198,7 @@ body {
 
 .plantillas-graficas-card-inner {
   display: grid;
-  grid-template-columns: 160px 1fr;
+  grid-template-columns: 240px 1fr;
   gap: 16px;
   padding: 1rem;
 }
@@ -1269,6 +1269,12 @@ body {
   line-height: 1.35;
   color: #475569;
   white-space: pre-wrap;
+}
+
+.plantillas-graficas-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 .plantillas-graficas-preview {
@@ -1721,14 +1727,20 @@ body {
 }
 
 /* ===== OPERATION EDITOR PANEL ===== */
-.template-editor-panel {
-  width: min(560px, 96vw);
-}
-
+/* El editor de operacion (panel lateral, sin cambios) sigue usando
+   .offcanvas-body; el editor de graficas ahora es un modal ancho y usa
+   .modal-body -- misma clase contenedora, dos selectores distintos. */
 .template-editor-panel .offcanvas-body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.template-editor-panel .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 70vh;
 }
 
 .editor-tabs .nav-link {

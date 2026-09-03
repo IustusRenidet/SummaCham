@@ -521,6 +521,14 @@ const construirRefIdCuenta = (cuenta = "") => {
   return key ? `ACC::${key}` : "";
 };
 
+// Igual que construirRefIdSeccion, pero para filas de consolidación/grupo
+// (layoutOps) -- estas no son secciones del layout, así que usan su propio
+// prefijo para no mezclarse con SEC::/SUB:: en el consumidor.
+const construirRefIdGrupo = (label = "") => {
+  const key = normalizarIdSegmento(label);
+  return key ? `GRP::${key}` : "";
+};
+
 const construirRefIdOperacion = (operationId = "") => {
   const key = normalizarIdSegmento(operationId);
   return key ? `OP::${key}` : "";
@@ -3578,6 +3586,7 @@ const construirReporteResumen = (
       layout.push({
         type: "principal",
         label: principalLabel,
+        refId: construirRefIdSeccion(principalLabel),
         order: Number.isFinite(Number(principal.orden))
           ? Number(principal.orden)
           : 0,
@@ -3611,6 +3620,7 @@ const construirReporteResumen = (
         layout.push({
           type: "secundaria",
           label: secundariaLabel,
+          refId: construirRefIdSubseccion(principalLabel, secundariaLabel),
           parentSection: principalLabel,
           order: Number.isFinite(Number(secundaria.orden))
             ? Number(secundaria.orden)
@@ -3647,6 +3657,7 @@ const construirReporteResumen = (
           label: cuenta.label,
           nombre: cuenta.descripcion || cuenta.label,
           cuenta: cuenta.cuenta,
+          refId: construirRefIdCuenta(cuenta.cuenta),
           order: cuentaOrden,
           orderIndex: cuenta.ordenIndex ?? 0,
           parentSection: principalLabel,
@@ -3670,6 +3681,7 @@ const construirReporteResumen = (
     layoutOps.push({
       type: tipo,
       label: row.label,
+      refId: construirRefIdGrupo(row.label),
       order: Number.isFinite(Number(row.orden)) ? Number(row.orden) : 0,
       orderIndex: Number.isFinite(Number(row.ordenIndex))
         ? Number(row.ordenIndex)

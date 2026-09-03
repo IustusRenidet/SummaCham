@@ -92,3 +92,6 @@ info IMPORTANTE/METADATA/SUMMARY/*.csv
 info IMPORTANTE/METADATA/SUMMARY/*.csv
 info IMPORTANTE/METADATA/SUMMARY/*.json
 nul
+
+# Artefactos de pruebas automatizadas (Playwright)
+.playwright-mcp/

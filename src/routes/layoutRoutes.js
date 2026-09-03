@@ -423,7 +423,17 @@ router.get("/:modulo/:anio/existe", requireAuth, (req, res) => {
  * GET /api/layouts/:modulo/:anio/:capitulo
  * Obtener layout completo para un módulo, año y capítulo
  */
-router.get("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
+// Palabras reservadas para el 3er segmento -- rutas GET más específicas
+// registradas más abajo en este archivo (ver "capitulo === 'exportar-json'").
+// Como Express prueba las rutas en el orden en que se registran, sin este
+// escape la ruta genérica de abajo las interpretaría como si fueran nombres
+// de capítulo real, y las rutas específicas nunca se alcanzarían.
+const CAPITULOS_RESERVADOS_GET = new Set(["exportar-json", "plantilla-masiva"]);
+router.get("/:modulo/:anio/:capitulo", requireAuth, (req, res, next) => {
+  const capituloRuta = (req.params.capitulo || "").toString().trim().toLowerCase();
+  if (CAPITULOS_RESERVADOS_GET.has(capituloRuta)) {
+    return next();
+  }
   console.log(
     `[DEBUG] Route /:modulo/:anio/:capitulo hit. Params:`,
     req.params,
@@ -461,14 +471,24 @@ router.get("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
  * POST /api/layouts/:modulo/:anio/:capitulo
  * Reemplazar layout completo (cuentas + operaciones) para un capitulo
  */
+// Igual que arriba pero para las rutas POST /:modulo/:anio/<palabra> más
+// específicas registradas después de esta ruta genérica en este archivo.
+const CAPITULOS_RESERVADOS_POST = new Set([
+  "operaciones",
+  "demo",
+  "reseed",
+  "importar-masivo",
+  "seed-operaciones",
+]);
 router.post("/:modulo/:anio/:capitulo", requireAuth, (req, res, next) => {
   try {
     const { modulo, anio, capitulo } = req.params;
     const capituloRuta = (capitulo || "").toString().trim().toLowerCase();
     // Evitar colisión con endpoints específicos como:
-    // POST /:modulo/:anio/operaciones
-    // Si no se delega, "operaciones" se interpreta como capítulo.
-    if (capituloRuta === "operaciones") {
+    // POST /:modulo/:anio/operaciones, /demo, /reseed, /importar-masivo,
+    // /seed-operaciones. Si no se delega, esas palabras se interpretarían
+    // como si fueran el nombre de un capítulo real.
+    if (CAPITULOS_RESERVADOS_POST.has(capituloRuta)) {
       return next();
     }
     const {

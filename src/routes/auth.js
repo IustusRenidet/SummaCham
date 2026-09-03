@@ -6,6 +6,7 @@ const { construirMapaPermisos } = require('../services/permisosService');
 const { EMPRESAS } = require('../config/empresas');
 const { probarConexion } = require('../services/firebirdService');
 const { emitirTokens, verificarRefreshToken } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 const attempts = new Map();
@@ -159,6 +160,7 @@ router.post('/login', async (req, res) => {
 
   if (!registro) {
     registerAttempt(rateKey, false);
+    logger.warn('login.fallido', { usuario: usuarioBuscado, motivo: 'usuario_no_encontrado', ip: req.ip });
     return res.status(401).json({ mensaje: 'Usuario o contrase¤a incorrectos.' });
   }
 
@@ -166,9 +168,11 @@ router.post('/login', async (req, res) => {
 
   if (!contrasenaCorrecta) {
     registerAttempt(rateKey, false);
+    logger.warn('login.fallido', { usuario: usuarioBuscado, motivo: 'contrasena_incorrecta', ip: req.ip });
     return res.status(401).json({ mensaje: 'Usuario o contrase¤a incorrectos.' });
   }
   registerAttempt(rateKey, true);
+  logger.info('login.exitoso', { usuario: registro.usuario, usuarioId: registro.id, ip: req.ip });
 
   try {
     const sesion = await construirSesion(registro);

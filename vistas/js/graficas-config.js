@@ -800,8 +800,13 @@
         : cleaned[0];
     const color =
       typeof row?.color === "string" && row.color.trim() ? row.color.trim() : null;
+    // refId estable (SEC::/SUB::/ACC::/GRP::) -- si viene del picker, se usa
+    // en vez del texto para encontrar la fila aunque se haya renombrado.
+    const refId =
+      typeof row?.refId === "string" && row.refId.trim() ? row.refId.trim() : null;
     const normalized = { alias, variants: cleaned };
     if (color) normalized.color = color;
+    if (refId) normalized.refId = refId;
     return normalized;
   };
 
@@ -948,7 +953,18 @@
         : typeof fallback?.label === "string" && fallback.label.trim()
         ? fallback.label.trim()
         : variants[0] || "";
-    return { label, variants };
+    // refId estable (SEC::/SUB::/ACC::/GRP::) del picker -- si no viene en
+    // esta config nueva, conserva el de la config anterior (fallback) para
+    // no perderlo en un guardado que solo tocó otro campo.
+    const refId =
+      typeof row?.refId === "string" && row.refId.trim()
+        ? row.refId.trim()
+        : typeof fallback?.refId === "string" && fallback.refId.trim()
+        ? fallback.refId.trim()
+        : "";
+    const normalized = { label, variants };
+    if (refId) normalized.refId = refId;
+    return normalized;
   };
 
   const normalizeRowList = (rows, fallback = []) => {

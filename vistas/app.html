@@ -440,6 +440,66 @@
       color: rgba(47, 84, 150, 0.8);
     }
 
+    .module-status-panel {
+      position: relative;
+    }
+
+    .module-status-panel__button {
+      border: none;
+      background: rgba(47, 84, 150, 0.1);
+      color: var(--color-primario);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .module-status-panel__button:hover,
+    .module-status-panel__button:focus {
+      background: rgba(47, 84, 150, 0.2);
+      color: #fff;
+    }
+
+    .module-status-panel__panel {
+      width: min(340px, 85vw);
+    }
+
+    .module-status-badge {
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+      padding: 0.3rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: rgba(47, 84, 150, 0.12);
+      color: var(--color-primario);
+      white-space: nowrap;
+    }
+
+    .module-status-badge[data-estado="PENDIENTE"] {
+      background: rgba(108, 117, 125, 0.15);
+      color: #495057;
+    }
+
+    .module-status-badge[data-estado="REVISADO"] {
+      background: rgba(255, 193, 7, 0.18);
+      color: #7c5205;
+    }
+
+    .module-status-badge[data-estado="RECHAZADO"] {
+      background: rgba(220, 53, 69, 0.15);
+      color: #842029;
+    }
+
+    .module-status-badge[data-estado="APROBADO"],
+    .module-status-badge[data-estado="GUARDADO"] {
+      background: rgba(25, 135, 84, 0.15);
+      color: #0f5132;
+    }
+
     .guided-tour-overlay {
       position: fixed;
       inset: 0;

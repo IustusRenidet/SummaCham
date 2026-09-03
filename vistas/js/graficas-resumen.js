@@ -372,8 +372,9 @@
           console.warn("📊   Nuevo valor:", fila.totals);
         }
 
-        map.set(lbl, {
+        const registro = {
           label: fila.label,
+          refId: fila.refId || "",
           actual: toNumber(fila?.totals?.actual),
           plan: toNumber(fila?.totals?.plan),
           prev: toNumber(fila?.totals?.prev),
@@ -384,7 +385,13 @@
           prevYTD: toNumber(fila?.totals?.prevYTD),
           varYTDPlan: toNumber(fila?.totals?.varYTDPlan),
           varYTDPrev: toNumber(fila?.totals?.varYTDPrev),
-        });
+        };
+        map.set(lbl, registro);
+        // Clave adicional exacta (sin normalizar) por refId estable -- así una
+        // fila renombrada se sigue encontrando aunque su texto ya no coincida.
+        if (fila.refId) {
+          map.set(`REF::${fila.refId}`, registro);
+        }
       });
 
       console.log("📊 Graficas: Snapshot cargado con", map.size, "filas");
@@ -401,7 +408,13 @@
    * Obtiene los datos de una fila por su label
    * Busca variantes del label si no encuentra la exacta
    */
-  const getRowData = (snapshotMap, labels) => {
+  const getRowData = (snapshotMap, labels, refId) => {
+    // Prioridad: refId estable (sobrevive a un renombre de la fila) antes
+    // que el match por texto.
+    if (refId) {
+      const porRef = snapshotMap.get(`REF::${refId}`);
+      if (porRef) return porRef;
+    }
     const arr = Array.isArray(labels) ? labels : [labels];
     for (const lbl of arr) {
       const normalizado = normalizarLabel(lbl);
@@ -436,8 +449,12 @@
   const buildIngresoCacheKey = (empresaId, anio, signature = "") =>
     `${empresaId || "sin"}:${anio || "sin"}:${signature || "base"}`;
 
-  const obtenerFilaIngreso = (layout = [], variants = []) => {
+  const obtenerFilaIngreso = (layout = [], variants = [], refId = "") => {
     if (!Array.isArray(layout) || !layout.length) return null;
+    if (refId) {
+      const porRef = layout.find((row) => row?.refId && row.refId === refId);
+      if (porRef) return porRef;
+    }
     const candidatos = Array.isArray(variants) ? variants : [variants];
     const normalizados = candidatos.map((v) => normalizarLabel(v));
     return layout.find((row) => {
@@ -546,7 +563,7 @@
     responses.forEach((data, idx) => {
       const layout = data?.resumen?.[0]?.layout || [];
       datasetsConfig.forEach((dataset) => {
-        const row = obtenerFilaIngreso(layout, dataset.variants);
+        const row = obtenerFilaIngreso(layout, dataset.variants, dataset.refId);
         const val = toNumber(row?.totals?.actualYTD);
         series[dataset.key][idx] = val;
       });
@@ -660,7 +677,7 @@
     responses.forEach((data, idx) => {
       const layout = data?.resumen?.[0]?.layout || [];
       datasetsConfig.forEach((dataset) => {
-        const row = obtenerFilaIngreso(layout, dataset.variants);
+        const row = obtenerFilaIngreso(layout, dataset.variants, dataset.refId);
         const val = toNumber(row?.totals?.actualYTD);
         series[dataset.key][idx] = val;
       });
@@ -2248,7 +2265,7 @@
         const layout = data?.resumen?.[0]?.layout || [];
         if (!Array.isArray(layout) || !layout.length) return;
         resolvedRows.forEach((row, rowIdx) => {
-          const match = obtenerFilaIngreso(layout, row.variants);
+          const match = obtenerFilaIngreso(layout, row.variants, row.refId);
           if (!match?.totals) return;
           valuesByRow[rowIdx][idx] += resolveSummarySeriesValue(
             match.totals || {},
@@ -2312,7 +2329,7 @@
                 ? [row.alias]
                 : [];
         if (!variants.length) return;
-        const match = obtenerFilaIngreso(layout, variants);
+        const match = obtenerFilaIngreso(layout, variants, row?.refId);
         if (!match?.totals) return;
         columnDefs.forEach((col) => {
           seriesData[col.key][idx] += resolveSummarySeriesValue(
@@ -2428,6 +2445,30 @@
       }
     };
 
+    // Las etiquetas de fila (ej. "Resultado Operativo: Briefing T&IC") son
+    // largas -- sin esto, Chart.js las corta con "..." en una sola línea
+    // ("Resultado Operativo: Br..."), perdiendo la información. Partirlas
+    // en varias líneas (Chart.js soporta un array de strings por tick) las
+    // deja completas y legibles.
+    const wrapTickLabel = (label, maxLineLength = 16) => {
+      const texto = (label ?? "").toString();
+      if (texto.length <= maxLineLength) return texto;
+      const palabras = texto.split(" ");
+      const lineas = [];
+      let actual = "";
+      palabras.forEach((palabra) => {
+        const candidato = actual ? `${actual} ${palabra}` : palabra;
+        if (candidato.length > maxLineLength && actual) {
+          lineas.push(actual);
+          actual = palabra;
+        } else {
+          actual = candidato;
+        }
+      });
+      if (actual) lineas.push(actual);
+      return lineas.length > 1 ? lineas : texto;
+    };
+
     const renderChart = (canvasEl, emptyEl, data, chartType, barDirection = "inherit") => {
       if (!canvasEl || !data) return;
       if (emptyEl) emptyEl.style.display = "none";
@@ -2483,7 +2524,13 @@
                 },
               },
               x: {
-                ticks: { font: { size: 11 } },
+                ticks: {
+                  font: { size: 11 },
+                  autoSkip: false,
+                  callback: function (value) {
+                    return wrapTickLabel(this.getLabelForValue(value));
+                  },
+                },
               },
             },
           },
@@ -2660,7 +2707,7 @@
     const isPie = isPieType(chartType);
     return columnDefs.map((col) => {
       const rawValues = rows.map((row) => {
-        const data = getRowData(snapshotMap, row.variants);
+        const data = getRowData(snapshotMap, row.variants, row.refId);
         return toNumber(data[col.key]);
       });
       const dataset = {
@@ -2760,7 +2807,8 @@
           consolidatedSources,
           "operating",
           DEFAULT_GRAFICAS_CONFIG.sources?.consolidated || {}
-        )
+        ),
+        consolidatedSources.operating?.refId
       );
       const consolidatedNet = getRowData(
         snapshotMap,
@@ -2768,7 +2816,8 @@
           consolidatedSources,
           "net",
           DEFAULT_GRAFICAS_CONFIG.sources?.consolidated || {}
-        )
+        ),
+        consolidatedSources.net?.refId
       );
 
       const consolidatedColumns = columnDefs.length
@@ -2947,11 +2996,11 @@
     if (isCdmx && operatingRows.length && netRows.length) {
       const operatingSummaries = operatingRows.map((row) => ({
         label: resolveLabel(row.label || row.alias || ""),
-        data: getRowData(snapshotMap, row.variants || []),
+        data: getRowData(snapshotMap, row.variants || [], row.refId),
       }));
       const netSummaries = netRows.map((row) => ({
         label: resolveLabel(row.label || row.alias || ""),
-        data: getRowData(snapshotMap, row.variants || []),
+        data: getRowData(snapshotMap, row.variants || [], row.refId),
       }));
 
       console.log("?? Graficas: Resumen por capitulo (CDMX):", {
@@ -3125,11 +3174,11 @@
     if (snapshotMap && snapshotMap.size > 0) {
       const operatingSummaries = operatingRows.map((row) => ({
         label: resolveLabel(row.label || row.alias || ""),
-        data: getRowData(snapshotMap, row.variants || []),
+        data: getRowData(snapshotMap, row.variants || [], row.refId),
       }));
       const netSummaries = netRows.map((row) => ({
         label: resolveLabel(row.label || row.alias || ""),
-        data: getRowData(snapshotMap, row.variants || []),
+        data: getRowData(snapshotMap, row.variants || [], row.refId),
       }));
 
       if (showOperating && operatingSummaries.length) {
@@ -4126,7 +4175,7 @@
       (label || etiqueta).toString().replace(/\{capitulo\}/gi, etiqueta);
 
     config.operating.forEach(row => {
-      const data = getRowData(snapshot.map, row.variants);
+      const data = getRowData(snapshot.map, row.variants, row.refId);
       datos.operativos.push({
         concepto: resolveLabel(row.label || row.alias || ""),
         realAcumulado: data.actualYTD,
@@ -4137,7 +4186,7 @@
 
     // Datos netos
     config.net.forEach(row => {
-      const data = getRowData(snapshot.map, row.variants);
+      const data = getRowData(snapshot.map, row.variants, row.refId);
       datos.netos.push({
         concepto: resolveLabel(row.label || row.alias || ""),
         realAcumulado: data.actualYTD,
@@ -4158,7 +4207,8 @@
           consolidatedSources,
           "operating",
           DEFAULT_GRAFICAS_CONFIG.sources?.consolidated || {}
-        )
+        ),
+        consolidatedSources.operating?.refId
       );
       const consolidatedNet = getRowData(
         snapshot.map,
@@ -4166,7 +4216,8 @@
           consolidatedSources,
           "net",
           DEFAULT_GRAFICAS_CONFIG.sources?.consolidated || {}
-        )
+        ),
+        consolidatedSources.net?.refId
       );
 
       datos.consolidados.push(
