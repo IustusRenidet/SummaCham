@@ -18,7 +18,7 @@
     "pack": "electron-builder --dir",
     "dist": "cross-env NODE_ENV=production electron-builder --win nsis",
     "build:portable": "cross-env NODE_ENV=production electron-builder --win portable --x64 --ia32",
-    "build:all": "cross-env NODE_ENV=production electron-builder --win nsis --win portable --x64 --ia32",
+    "build:all": "cross-env NODE_ENV=production electron-builder --win nsis --win portable --x64 --publish never",
     "prepublish": "node scripts/prepublish.js",
     "publish": "cross-env NODE_ENV=production electron-builder --win --publish always",
     "postinstall": "electron-builder install-app-deps",
