@@ -254,7 +254,15 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   });
 
   app.get("/api/salud", (req, res) => {
-    res.json({ estado: "ok" });
+    // Comprueba SQLite (sesiones y datos): si esta roto, login.html y todo
+    // lo demas devuelven 500, asi que el healthcheck debe reflejarlo.
+    try {
+      getDb().prepare("SELECT 1").get();
+      res.json({ estado: "ok", uptimeSegundos: Math.round(process.uptime()) });
+    } catch (error) {
+      console.error("❌ /api/salud: SQLite no responde:", error);
+      res.status(503).json({ estado: "error", mensaje: error.message });
+    }
   });
 
   // Endpoint para buscar cuentas activas (STATUS='A') para autocompletar
@@ -345,6 +353,20 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   app.use((error, req, res, next) => {
     // eslint-disable-line no-unused-vars
     console.error("Error no controlado:", error);
+    // Dejar rastro en el archivo de logs (en la app empaquetada no hay consola).
+    try {
+      require("./utils/logger").error("error_no_controlado", {
+        metodo: req.method,
+        url: req.originalUrl,
+        mensaje: error?.message,
+        stack: error?.stack,
+      });
+    } catch (_) {
+      // El logger nunca debe impedir responder.
+    }
+    if (res.headersSent) {
+      return next(error);
+    }
     res.status(500).json({ mensaje: "Ocurrió un error inesperado." });
   });
 

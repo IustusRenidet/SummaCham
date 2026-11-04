@@ -6,6 +6,7 @@ const {
   nativeImage,
   dialog,
   Notification,
+  powerSaveBlocker,
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -84,6 +85,13 @@ if (!gotTheLock) {
       });
   };
 
+  // Ventana padre para dialogos: solo si existe y esta visible (si esta oculta
+  // en la bandeja, un dialogo anclado a ella puede quedar invisible).
+  const ventanaPadre = () =>
+    mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()
+      ? mainWindow
+      : undefined;
+
   // Sistema de actualizaciones automáticas
   const setupAutoUpdater = () => {
     if (!app.isPackaged) {
@@ -103,30 +111,35 @@ if (!gotTheLock) {
     autoUpdater.on("update-available", (info) => {
       console.log("✨ Nueva actualización disponible:", info.version);
 
-      const response = dialog.showMessageBoxSync(mainWindow, {
-        type: "info",
-        title: "Actualización disponible",
-        message: `Nueva versión ${info.version} disponible`,
-        detail: `Versión actual: ${app.getVersion()}\nNueva versión: ${
-          info.version
-        }\n\n¿Deseas descargar e instalar la actualización?`,
-        buttons: ["Descargar ahora", "Más tarde"],
-        defaultId: 0,
-        cancelId: 1,
-      });
+      // IMPORTANTE: el servidor Express vive en este mismo proceso principal.
+      // showMessageBoxSync bloquea todo el event loop (el servidor deja de
+      // responder hasta que alguien pulse el boton), asi que se usa la
+      // version asincrona.
+      dialog
+        .showMessageBox(ventanaPadre(), {
+          type: "info",
+          title: "Actualización disponible",
+          message: `Nueva versión ${info.version} disponible`,
+          detail: `Versión actual: ${app.getVersion()}\nNueva versión: ${
+            info.version
+          }\n\n¿Deseas descargar e instalar la actualización?`,
+          buttons: ["Descargar ahora", "Más tarde"],
+          defaultId: 0,
+          cancelId: 1,
+        })
+        .then(({ response }) => {
+          if (response !== 0) return;
+          autoUpdater.downloadUpdate();
 
-      if (response === 0) {
-        autoUpdater.downloadUpdate();
-
-        // Mostrar notificación
-        if (Notification.isSupported()) {
-          new Notification({
-            title: "Descargando actualización",
-            body: `Descargando versión ${info.version}...`,
-            icon: resolveAssetPath("icono", "icono.png"),
-          }).show();
-        }
-      }
+          if (Notification.isSupported()) {
+            new Notification({
+              title: "Descargando actualización",
+              body: `Descargando versión ${info.version}...`,
+              icon: resolveAssetPath("icono", "icono.png"),
+            }).show();
+          }
+        })
+        .catch((err) => console.warn("⚠️ Dialogo de actualización:", err));
     });
 
     // Evento: No hay actualizaciones
@@ -138,12 +151,8 @@ if (!gotTheLock) {
     autoUpdater.on("error", (err) => {
       console.error("❌ Error en auto-updater:", err);
 
-      if (mainWindow && mainWindow.isVisible()) {
-        dialog.showErrorBox(
-          "Error de actualización",
-          `No se pudo verificar actualizaciones:\n${err.message}`
-        );
-      }
+      // No usar dialog.showErrorBox aqui: es bloqueante y congelaria el
+      // servidor Express (mismo proceso) hasta que alguien lo cierre.
     });
 
     // Evento: Progreso de descarga
@@ -166,29 +175,29 @@ if (!gotTheLock) {
         mainWindow.setTitle("Panel AMCHAM");
       }
 
-      const response = dialog.showMessageBoxSync(mainWindow, {
-        type: "info",
-        title: "Actualización lista",
-        message: "La actualización se ha descargado correctamente",
-        detail: `Versión ${info.version} lista para instalar.\n\n¿Deseas reiniciar ahora para aplicar la actualización?`,
-        buttons: ["Reiniciar ahora", "Reiniciar más tarde"],
-        defaultId: 0,
-        cancelId: 1,
-      });
-
-      if (response === 0) {
-        isQuitting = true;
-        autoUpdater.quitAndInstall(false, true);
-      } else {
-        // Notificar que se instalará al cerrar
-        if (Notification.isSupported()) {
-          new Notification({
-            title: "Actualización pendiente",
-            body: "La actualización se instalará cuando cierres la aplicación",
-            icon: resolveAssetPath("icono", "icono.png"),
-          }).show();
-        }
-      }
+      dialog
+        .showMessageBox(ventanaPadre(), {
+          type: "info",
+          title: "Actualización lista",
+          message: "La actualización se ha descargado correctamente",
+          detail: `Versión ${info.version} lista para instalar.\n\n¿Deseas reiniciar ahora para aplicar la actualización?`,
+          buttons: ["Reiniciar ahora", "Reiniciar más tarde"],
+          defaultId: 0,
+          cancelId: 1,
+        })
+        .then(({ response }) => {
+          if (response === 0) {
+            isQuitting = true;
+            autoUpdater.quitAndInstall(false, true);
+          } else if (Notification.isSupported()) {
+            new Notification({
+              title: "Actualización pendiente",
+              body: "La actualización se instalará cuando cierres la aplicación",
+              icon: resolveAssetPath("icono", "icono.png"),
+            }).show();
+          }
+        })
+        .catch((err) => console.warn("⚠️ Dialogo de actualización:", err));
     });
 
     // Verificar actualizaciones al iniciar
@@ -238,10 +247,11 @@ if (!gotTheLock) {
 
           console.log("🔍 Verificación manual de actualizaciones...");
           autoUpdater.checkForUpdates().catch((err) => {
-            dialog.showErrorBox(
-              "Error",
-              `No se pudo verificar actualizaciones:\n${err.message}`
-            );
+            dialog.showMessageBox(ventanaPadre(), {
+              type: "error",
+              title: "Error",
+              message: `No se pudo verificar actualizaciones:\n${err.message}`,
+            });
           });
         },
       },
@@ -363,6 +373,22 @@ if (!gotTheLock) {
         : path.join(appDataPath, "panel-amcham", "datos");
       process.env.PANELAMCHAM_DATA_DIR = dataDir;
     }
+
+    // El servidor Express vive en este proceso: evitar que Windows suspenda
+    // el equipo (y con ello el servicio y el tunel) mientras la app corre.
+    try {
+      const id = powerSaveBlocker.start("prevent-app-suspension");
+      console.log("✓ Bloqueo de suspension activo:", powerSaveBlocker.isStarted(id));
+    } catch (err) {
+      console.warn("⚠️ No se pudo activar powerSaveBlocker:", err.message);
+    }
+
+    app.on("render-process-gone", (_e, _wc, details) => {
+      console.error("❌ Proceso de render terminado:", details);
+    });
+    app.on("child-process-gone", (_e, details) => {
+      console.error("❌ Proceso hijo terminado:", details);
+    });
 
     // Configurar AppUserModelId ANTES de crear ventanas/tray
     if (process.platform === "win32") {
